@@ -1,0 +1,26 @@
+# CMake and IDE output
+/build/
+/out/
+/.vs/
+CMakeUserPresets.json
+
+# Visual Studio generated files
+*.suo
+*.user
+*.VC.db
+*.VC.opendb
+
+# Native build artifacts
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.exp
+*.lib
+*.dll
+*.exe
+
+# Local tooling and temporary files
+*.log
+*.tmp
+*.cache
