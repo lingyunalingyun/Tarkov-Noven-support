@@ -36,7 +36,14 @@ enum class PixelFormat {
 struct CaptureTimings final {
     double acquire_ms{};
     double roi_copy_ms{};
+    double format_conversion_ms{};
     double capture_to_memory_ms{};
+};
+
+enum class CaptureSource {
+    DxgiNewFrame,
+    DxgiCachedFrame,
+    GdiEmergency,
 };
 
 struct CapturedFrame final {
@@ -50,6 +57,10 @@ struct CapturedFrame final {
 struct CaptureResult final {
     CapturedFrame frame;
     CaptureTimings timings;
+    CaptureSource source{CaptureSource::GdiEmergency};
+    std::uint32_t dxgi_new_frame_count{};
+    std::uint32_t dxgi_cached_frame_count{};
+    std::uint32_t gdi_emergency_count{};
     std::wstring error;
 
     [[nodiscard]] bool Succeeded() const noexcept {

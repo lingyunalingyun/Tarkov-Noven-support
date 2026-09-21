@@ -10,11 +10,13 @@ minimal Unicode Win32 window; game features will be added in later phases.
 - Native Win32 APIs
 - CMake
 - MSVC on Windows x64
-- Future OCR: ONNX Runtime
+- Current text detection: ONNX Runtime CPUExecutionProvider with
+  PaddleOCR PP-OCRv5 mobile detection
 - Future screen capture: Windows Graphics Capture and/or DXGI Desktop Duplication
 
 The project intentionally has no Electron, Tauri, WebView, .NET, Python,
-PyTorch, or large third-party dependency at this stage.
+PyTorch, or Python OCR runtime. ONNX Runtime is used for the current text
+detection and text-recognition phases.
 
 ## Product and safety boundary
 
@@ -29,16 +31,154 @@ local public logs, or public external data. It will not:
 
 ## Current status
 
-The current phase adds only the native capture trigger foundation:
+The current phase adds the native capture trigger and OCR baseline:
 
 - global F2 hotkey;
 - current cursor anchor in physical virtual-screen coordinates;
 - configurable 800 x 600 ROI calculation with desktop-boundary clipping;
 - one capture per hotkey press; and
-- one debug BMP written under `debug-captures` next to the executable.
+- one debug BMP with detected boxes written under `debug-captures` next to the
+  executable; and
+- independent recognition of each detected box, kept in memory and logged for
+  debugging.
 
-OCR, price APIs, maps, log parsing, account synchronization, overlay result
-cards, and game-specific logic are not implemented yet.
+Price APIs, maps, log parsing, account synchronization, overlay result cards,
+and game-specific logic are not implemented yet.
+
+## Text detection phase
+
+The current OCR module performs text detection. It accepts the in-memory
+BGRA8 `CaptureResult`, converts and resizes the ROI to an RGB NCHW tensor, runs
+one PP-OCRv5 mobile detection model on ONNX Runtime's CPU execution provider,
+and returns boxes relative to the captured ROI. Recognition and offline catalog
+matching are separate per-box stages; spatial candidate selection then ranks
+the independently matched boxes.
+
+Model:
+
+- `PP-OCRv5_mobile_det_onnx`, `assets/models/ppocrv5_mobile_det.onnx`
+- Source: PaddlePaddle's official
+  [PaddleOCR model](https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx)
+- Size: 4,826,518 bytes (the checked-in model file)
+- Input: float32 `[1, 3, 640, 640]`, RGB, values normalized from `[0, 1]` to
+  `[-1, 1]`
+- License: Apache-2.0
+
+## Text recognition phase
+
+Each detected box is cropped from the in-memory capture, resized to the
+recognizer's 48-pixel input height with aspect ratio preserved and right
+padding, then recognized independently on ONNX Runtime's CPU execution
+provider. The result keeps the original box, UTF-8 text, and CTC confidence;
+recognized boxes are never concatenated into one ROI-wide string.
+
+Model and dictionary:
+
+- `PP-OCRv5_mobile_rec`, `assets/models/ppocrv5_mobile_rec.onnx`
+- Source: PaddlePaddle's official
+  [PP-OCRv5 mobile recognition ONNX model](https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx)
+- Size: 16,534,782 bytes
+- SHA-256: `DA72DC72CA4DC220DF0DFDE68C1DEDC31C58D3E76A25871122E5056227D50092`
+- Input: float32 `[1, 3, 48, 320]`, BGR, normalized from `[0, 1]` to `[-1, 1]`
+- Languages: Simplified Chinese and English, with the model dictionary also
+  covering the official model's additional characters
+- License: Apache-2.0
+- Dictionary: `assets/models/ppocrv5_mobile_rec_dict.txt`, extracted from the
+  model's official `inference.yml`, UTF-8, 18,383 entries; one entry per line.
+  The model and dictionary are local assets and are not downloaded at runtime.
+
+The recognizer is initialized once at startup and warmed once. Recognition
+runs sequentially on the existing OCR worker thread. Debug output logs each
+recognized box and writes the captured and detected images under
+`debug-captures`.
+
+ONNX Runtime is loaded from the official Windows x64 CPU distribution at
+runtime. Prepare the local development dependency before configuring CMake:
+
+1. Download `onnxruntime-win-x64-1.30.0.zip` from the
+  [ONNX Runtime v1.30.0 release](https://github.com/microsoft/onnxruntime/releases/tag/v1.30.0).
+2. Extract its `include` directory to `third_party/onnxruntime/include`.
+3. Copy `lib/onnxruntime.dll` to `third_party/onnxruntime/bin/onnxruntime.dll`.
+
+The build copies the DLL and detector model beside the executable under
+`assets/models`. The application does not download either at runtime. The
+detector session is initialized once at startup and one zero-input warm-up is
+performed; no OCR work runs while the application is idle. Debug captures and
+detector rectangles are written under `debug-captures` after a hotkey trigger.
+
+## Offline item catalog phase
+
+The application loads `assets/data/items_catalog.tsv` once at startup. It is a
+read-only, offline catalog keyed by the stable Tarkov template ID. Each record
+can expose Simplified Chinese and English full-name and short-name aliases;
+  matching never replaces a localized field with an alias used for lookup.
+
+The catalog currently contains 3,491 items and 13,384 aliases. The generated
+snapshot uses the item ID set from
+[TarkovTracker/tarkovdata](https://github.com/TarkovTracker/tarkovdata) and
+English/Chinese localized fields from
+[SPTarkov server-csharp global/en.json and global/ch.json](https://github.com/sp-tarkov/server-csharp/tree/main/Libraries/SPTarkov.Server.Assets/SPT_Data/database/locales/global).
+The SPTarkov source is licensed under
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/);
+the catalog is a generated derived snapshot for this non-networked prototype.
+The source files provide names but not dimensions in this format, so `width`
+and `height` are currently reserved as zero.
+
+Matching preserves the original UTF-8 OCR text and uses a conservative
+normalization pass: full-width ASCII and spaces, common Chinese/Unicode
+punctuation, whitespace collapsing, and English case folding. It then tries
+raw exact aliases, normalized exact aliases, and finally code-point edit
+distance with English token overlap. Chinese aliases are not rejected for
+being one or two characters. Each recognized OCR box is matched independently;
+  spatial candidate selection uses independent OCR boxes, configurable scanner
+  profiles, directional priority, and expanding distance rings. Matching is
+  completed before selection, so the selector never concatenates OCR text.
+
+## Spatial scanner phase
+
+The default Inventory profile anchors on the cursor and searches each ring in
+the order upper-right, right, lower-right, down, lower-left, left, upper-left,
+up. A RaidPickup profile anchors on the virtual-screen center and prioritizes
+downward directions. Only boxes with an accepted catalog match are considered;
+catalog confidence, OCR confidence, direction, ring distance, and spatial score
+remain separate in debug output. The F2 worker reuses the existing captured ROI
+for all directions and writes an annotated BMP with the anchor, rings, and
+candidate boxes. Profile selection is available through the scanner API; the
+application currently keeps Inventory as the default.
+
+## Offline item economy phase
+
+The economy layer maps internal modes to the current static JSON API at
+`https://json.tarkov.dev`:
+
+- PvP → `/regular/items`
+- PvE → `/pve/items`
+- Seasonal → `/pvp-season/items`
+
+The application consumes each item's stable `id`, `width`, `height`,
+`lastLowPrice`, `types`, and `updated` fields, plus the root `fleaMarket`
+metadata. When a compatible upstream payload exposes `sellFor` or
+`traderPrices`, valid non-flea offers are reduced to the highest trader value;
+the current static items endpoint does not consistently expose those fields,
+so missing trader values remain unknown rather than using `basePrice` as a
+substitute. `lastLowPrice` is retained as the current useful flea-market value
+reported by the upstream snapshot.
+
+`ItemEconomyStore` keeps independent PVP, PVE, and Seasonal maps. It loads
+normalized cache files from `data/economy-cache/{regular,pve,pvp-season}.json`
+before starting the background refresh service. A refresh parses and validates
+the complete response, writes a temporary file, atomically replaces the mode's
+cache, and leaves the previous valid cache in place if download, parsing, or
+validation fails. F2 lookups only read the in-memory mode map and never make a
+network request. Refresh is performed once at startup and can be requested
+manually through `DataRefreshService`; periodic refresh is not enabled.
+
+The JSON parser is a small in-tree parser used only by the economy store, so no
+browser, Python runtime, or additional package manager dependency is required.
+The upstream endpoint catalog and mode names are documented by
+[tarkov.dev's endpoint list](https://json.tarkov.dev/endpoints). The public
+data is community-maintained; the application stores only the normalized
+fields needed for offline lookup.
 
 ## Capture architecture
 
@@ -57,10 +197,14 @@ The DXGI device, output duplication sessions, and BGRA8 staging textures are
 initialized before the hotkey becomes active and reused for later captures.
 If desktop duplication access is lost, the backend tears down and rebuilds the
 session before retrying once.
+Each active output also keeps a persistent full-frame GPU cache. A hotkey
+capture crops from that cache when Desktop Duplication has no new frame, so a
+static screen does not normally require GDI.
 The backend remains behind `ICaptureBackend` so Windows Graphics Capture can
-be benchmarked or substituted later. On HDR outputs or when DXGI has no new
-frame available, the backend uses a one-shot native GDI compatibility capture
-so a static desktop still produces the requested debug image.
+be benchmarked or substituted later. Supported non-BGRA8 frame formats use a
+cached ROI-sized DirectX conversion pipeline to BGRA8. GDI is retained only as
+an emergency fallback for unsupported formats or when DXGI has no new frame
+available, so a static desktop still produces the requested debug image.
 
 The application uses `SetProcessDpiAwarenessContext` with
 `DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2`. Cursor and monitor coordinates

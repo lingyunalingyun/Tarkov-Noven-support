@@ -3,6 +3,13 @@
 /out/
 /.vs/
 CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+.ninja_deps
+.ninja_log
+Testing/
 
 # Visual Studio generated files
 *.suo
@@ -20,7 +27,13 @@ CMakeUserPresets.json
 *.dll
 *.exe
 
+# Required vendored ONNX Runtime build inputs
+!third_party/onnxruntime/bin/onnxruntime.dll
+!third_party/onnxruntime/bin/onnxruntime.lib
+
 # Local tooling and temporary files
+/debug-captures/
+/data/economy-cache/
 *.log
 *.tmp
 *.cache

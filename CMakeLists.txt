@@ -13,19 +13,64 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnxruntime")
+set(ONNXRUNTIME_INCLUDE_DIR "${ONNXRUNTIME_ROOT}/include")
+set(ONNXRUNTIME_DLL "${ONNXRUNTIME_ROOT}/bin/onnxruntime.dll")
+set(TEXT_DETECTOR_MODEL "${CMAKE_CURRENT_SOURCE_DIR}/assets/models/ppocrv5_mobile_det.onnx")
+set(TEXT_RECOGNIZER_MODEL "${CMAKE_CURRENT_SOURCE_DIR}/assets/models/ppocrv5_mobile_rec.onnx")
+set(TEXT_RECOGNIZER_DICTIONARY "${CMAKE_CURRENT_SOURCE_DIR}/assets/models/ppocrv5_mobile_rec_dict.txt")
+set(ITEM_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/assets/data/items_catalog.tsv")
+
+if(NOT EXISTS "${ONNXRUNTIME_INCLUDE_DIR}/onnxruntime_c_api.h")
+    message(FATAL_ERROR "ONNX Runtime headers are missing. See README.md for preparation steps.")
+endif()
+if(NOT EXISTS "${ONNXRUNTIME_DLL}")
+    message(FATAL_ERROR "ONNX Runtime DLL is missing. See README.md for preparation steps.")
+endif()
+if(NOT EXISTS "${TEXT_DETECTOR_MODEL}")
+    message(FATAL_ERROR "Text detector model is missing: ${TEXT_DETECTOR_MODEL}")
+endif()
+if(NOT EXISTS "${TEXT_RECOGNIZER_MODEL}")
+    message(FATAL_ERROR "Text recognizer model is missing: ${TEXT_RECOGNIZER_MODEL}")
+endif()
+if(NOT EXISTS "${TEXT_RECOGNIZER_DICTIONARY}")
+    message(FATAL_ERROR "Text recognizer dictionary is missing: ${TEXT_RECOGNIZER_DICTIONARY}")
+endif()
+if(NOT EXISTS "${ITEM_CATALOG}")
+    message(FATAL_ERROR "Item catalog is missing: ${ITEM_CATALOG}")
+endif()
+
 add_executable(NovenTarkovSupport WIN32
     src/main.cpp
     src/app/App.cpp
     src/capture/DxgiDesktopDuplicationBackend.cpp
     src/capture/Roi.cpp
     src/common/DebugLog.cpp
+    src/data/DataRefreshService.cpp
+    src/data/ItemCatalog.cpp
+    src/data/ItemEconomyStore.cpp
     src/hotkey/GlobalHotkey.cpp
+    src/ocr/DetectionDebugWriter.cpp
+    src/ocr/OnnxRuntimeSession.cpp
+    src/ocr/TextDetector.cpp
+    src/ocr/TextRecognizer.cpp
+    src/overlay/DebugVisualizationWindow.cpp
+    src/overlay/OverlayRenderer.cpp
+    src/overlay/OverlayTypes.cpp
+    src/overlay/OverlayWindow.cpp
     src/scanner/DebugImageWriter.cpp
+    src/scanner/AdaptiveTextExpansion.cpp
+    src/scanner/LocalTextGrouping.cpp
+    src/scanner/ProgressiveScan.cpp
     src/scanner/ScanTrigger.cpp
+    src/scanner/SpatialCandidateSelector.cpp
+    src/scanner/SpatialDebugWriter.cpp
+    src/scanner/TooltipHeuristic.cpp
 )
 
 target_include_directories(NovenTarkovSupport PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${ONNXRUNTIME_INCLUDE_DIR}"
 )
 
 target_compile_definitions(NovenTarkovSupport PRIVATE
@@ -58,5 +103,233 @@ endif()
 target_link_libraries(NovenTarkovSupport PRIVATE
     user32
     d3d11
+    d3dcompiler
     dxgi
+    d2d1
+    dwrite
+    winhttp
 )
+
+add_custom_command(TARGET NovenTarkovSupport POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${ONNXRUNTIME_DLL}"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/onnxruntime.dll"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/models"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${TEXT_DETECTOR_MODEL}"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/models/ppocrv5_mobile_det.onnx"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${TEXT_RECOGNIZER_MODEL}"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/models/ppocrv5_mobile_rec.onnx"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${TEXT_RECOGNIZER_DICTIONARY}"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/models/ppocrv5_mobile_rec_dict.txt"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/data"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${ITEM_CATALOG}"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/data/items_catalog.tsv"
+)
+
+include(CTest)
+if(BUILD_TESTING)
+    configure_file(
+        "${ITEM_CATALOG}"
+        "${CMAKE_CURRENT_BINARY_DIR}/test-data/items_catalog.tsv"
+        COPYONLY
+    )
+    add_executable(NovenTarkovSupportCatalogTests
+        tests/ItemCatalogTests.cpp
+        src/data/ItemCatalog.cpp
+    )
+    target_include_directories(NovenTarkovSupportCatalogTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(NovenTarkovSupportCatalogTests PRIVATE
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        WINVER=0x0A00
+        _WIN32_WINNT=0x0A00
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportCatalogTests PRIVATE
+            /W4
+            /permissive-
+            /utf-8
+            /EHsc
+        )
+    else()
+        target_compile_options(NovenTarkovSupportCatalogTests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+        )
+    endif()
+    add_test(NAME item_catalog COMMAND NovenTarkovSupportCatalogTests "test-data/items_catalog.tsv")
+
+    add_executable(NovenTarkovSupportSpatialTests
+        tests/SpatialCandidateSelectorTests.cpp
+        src/data/ItemCatalog.cpp
+        src/capture/Roi.cpp
+        src/scanner/ProgressiveScan.cpp
+        src/scanner/SpatialCandidateSelector.cpp
+    )
+    target_include_directories(NovenTarkovSupportSpatialTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(NovenTarkovSupportSpatialTests PRIVATE
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        WINVER=0x0A00
+        _WIN32_WINNT=0x0A00
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportSpatialTests PRIVATE
+            /W4
+            /permissive-
+            /utf-8
+            /EHsc
+        )
+    else()
+        target_compile_options(NovenTarkovSupportSpatialTests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+        )
+    endif()
+    add_test(NAME spatial_candidate_selector COMMAND NovenTarkovSupportSpatialTests)
+
+    add_executable(NovenTarkovSupportProgressiveScanTests
+        tests/ProgressiveScanTests.cpp
+        src/scanner/AdaptiveTextExpansion.cpp
+        src/scanner/ProgressiveScan.cpp
+        src/scanner/SpatialCandidateSelector.cpp
+        src/scanner/TooltipHeuristic.cpp
+    )
+    target_include_directories(NovenTarkovSupportProgressiveScanTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(NovenTarkovSupportProgressiveScanTests PRIVATE
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        WINVER=0x0A00
+        _WIN32_WINNT=0x0A00
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportProgressiveScanTests PRIVATE
+            /W4
+            /permissive-
+            /utf-8
+            /EHsc
+        )
+    else()
+        target_compile_options(NovenTarkovSupportProgressiveScanTests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+        )
+    endif()
+    add_test(NAME progressive_scan COMMAND NovenTarkovSupportProgressiveScanTests)
+
+    add_executable(NovenTarkovSupportTextGroupingTests
+        tests/LocalTextGroupingTests.cpp
+        src/data/ItemCatalog.cpp
+        src/scanner/LocalTextGrouping.cpp
+    )
+    target_include_directories(NovenTarkovSupportTextGroupingTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(NovenTarkovSupportTextGroupingTests PRIVATE
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        WINVER=0x0A00
+        _WIN32_WINNT=0x0A00
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportTextGroupingTests PRIVATE
+            /W4
+            /permissive-
+            /utf-8
+            /EHsc
+        )
+    else()
+        target_compile_options(NovenTarkovSupportTextGroupingTests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+        )
+    endif()
+    add_test(NAME local_text_grouping COMMAND NovenTarkovSupportTextGroupingTests
+        "test-data/items_catalog.tsv")
+
+    add_executable(NovenTarkovSupportEconomyTests
+        tests/ItemEconomyStoreTests.cpp
+        src/data/ItemEconomyStore.cpp
+    )
+    target_include_directories(NovenTarkovSupportEconomyTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(NovenTarkovSupportEconomyTests PRIVATE
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        WINVER=0x0A00
+        _WIN32_WINNT=0x0A00
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportEconomyTests PRIVATE
+            /W4
+            /permissive-
+            /utf-8
+            /EHsc
+        )
+    else()
+        target_compile_options(NovenTarkovSupportEconomyTests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+        )
+    endif()
+    add_test(NAME item_economy_store COMMAND NovenTarkovSupportEconomyTests)
+
+    add_executable(NovenTarkovSupportOverlayTests
+        tests/OverlayTests.cpp
+        src/overlay/OverlayTypes.cpp
+    )
+    target_include_directories(NovenTarkovSupportOverlayTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(NovenTarkovSupportOverlayTests PRIVATE
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        WINVER=0x0A00
+        _WIN32_WINNT=0x0A00
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportOverlayTests PRIVATE
+            /W4
+            /permissive-
+            /utf-8
+            /EHsc
+        )
+    else()
+        target_compile_options(NovenTarkovSupportOverlayTests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+        )
+    endif()
+    add_test(NAME overlay_logic COMMAND NovenTarkovSupportOverlayTests)
+endif()

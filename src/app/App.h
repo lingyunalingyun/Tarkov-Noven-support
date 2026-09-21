@@ -12,8 +12,26 @@ namespace noven::hotkey {
 class GlobalHotkey;
 }
 
+namespace noven::ocr {
+class TextDetector;
+class TextRecognizer;
+}
+
+namespace noven::data {
+class ItemCatalog;
+class ItemEconomyStore;
+class DataRefreshService;
+}
+
+namespace noven::overlay {
+class OverlayWindow;
+class DebugVisualizationWindow;
+struct ScanDisplayResult;
+}
+
 namespace noven::scanner {
 class ScanTrigger;
+struct ScanCompletion;
 }
 
 namespace noven {
@@ -30,6 +48,12 @@ public:
 
 private:
     static constexpr wchar_t kWindowClassName[] = L"NovenTarkovSupportWindow";
+    static constexpr UINT kScanResultMessage = WM_APP + 1;
+    static constexpr UINT kScanStepMessage = WM_APP + 2;
+    static constexpr UINT kModeSelectorId = 1001;
+    static constexpr UINT kDebugMouseTimerId = 2;
+    static constexpr UINT kDebugMouseCheckMilliseconds = 50;
+    static constexpr bool kDebugScanVisualization = true;
 
     static LRESULT CALLBACK WindowProc(
         HWND window,
@@ -39,6 +63,12 @@ private:
     );
 
     void OnHotkey(WPARAM hotkey_id);
+    void OnScanCompletionMessage(LPARAM completion_pointer);
+    void OnScanStepMessage(LPARAM roi_pointer);
+    void UpdateDebugRoi(POINT anchor);
+    void CheckDebugVisualizationCursor();
+    void OnModeChanged();
+    bool CreateModeSelector();
     bool RegisterWindowClass(HINSTANCE instance) const;
     HWND CreateMainWindow(HINSTANCE instance) const;
 
@@ -46,7 +76,15 @@ private:
     HWND window_{};
     std::unique_ptr<capture::DxgiDesktopDuplicationBackend> capture_backend_;
     std::unique_ptr<hotkey::GlobalHotkey> hotkey_;
+    std::unique_ptr<ocr::TextDetector> text_detector_;
+    std::unique_ptr<ocr::TextRecognizer> text_recognizer_;
+    std::unique_ptr<data::ItemCatalog> item_catalog_;
+    std::unique_ptr<data::ItemEconomyStore> item_economy_store_;
+    std::unique_ptr<data::DataRefreshService> data_refresh_service_;
+    std::unique_ptr<overlay::OverlayWindow> overlay_window_;
+    std::unique_ptr<overlay::DebugVisualizationWindow> debug_visualization_window_;
     std::unique_ptr<scanner::ScanTrigger> scan_trigger_;
+    HWND mode_selector_{};
 };
 
 } // namespace noven

@@ -4,11 +4,15 @@
 
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 #include <string>
 
 namespace noven::common {
 
 void DebugLog(std::wstring_view message) {
+    static std::mutex log_mutex;
+    std::lock_guard lock(log_mutex);
+
     std::wstring line(message);
     line.push_back(L'\n');
     OutputDebugStringW(line.c_str());
