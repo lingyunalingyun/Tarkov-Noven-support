@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <string_view>
 
 namespace noven::scanner {
 
@@ -231,6 +232,77 @@ bool WithinBounds(
         && group.combinedBox.y2 - group.combinedBox.y1 <= profile.maximum_group_height;
 }
 
+std::vector<char32_t> Utf8CodePoints(std::string_view text) {
+    std::vector<char32_t> result;
+    for (std::size_t index = 0; index < text.size();) {
+        const unsigned char first = static_cast<unsigned char>(text[index]);
+        std::size_t count = 1;
+        char32_t value = first;
+        if ((first & 0xE0U) == 0xC0U && index + 1 < text.size()) {
+            count = 2;
+            value = first & 0x1FU;
+        } else if ((first & 0xF0U) == 0xE0U && index + 2 < text.size()) {
+            count = 3;
+            value = first & 0x0FU;
+        } else if ((first & 0xF8U) == 0xF0U && index + 3 < text.size()) {
+            count = 4;
+            value = first & 0x07U;
+        }
+        bool valid = count > 1;
+        for (std::size_t continuation = 1; continuation < count; ++continuation) {
+            const unsigned char byte = static_cast<unsigned char>(text[index + continuation]);
+            if ((byte & 0xC0U) != 0x80U) {
+                valid = false;
+                break;
+            }
+            value = (value << 6U) | (byte & 0x3FU);
+        }
+        if (!valid && count > 1) {
+            count = 1;
+            value = first;
+        }
+        result.push_back(value);
+        index += count;
+    }
+    return result;
+}
+
+bool IsCjk(char32_t value) noexcept {
+    return (value >= 0x3400 && value <= 0x9FFF)
+        || (value >= 0xF900 && value <= 0xFAFF);
+}
+
+bool IsOpeningPunctuation(char32_t value) noexcept {
+    return value == U'(' || value == U'[' || value == U'{' || value == U'\uFF08'
+        || value == U'\u3010' || value == U'\u300A';
+}
+
+bool IsClosingPunctuation(char32_t value) noexcept {
+    return value == U')' || value == U']' || value == U'}' || value == U','
+        || value == U'.' || value == U':' || value == U';' || value == U'\uFF09'
+        || value == U'\u3001' || value == U'\u3002' || value == U'\u3011'
+        || value == U'\u300B';
+}
+
+void AppendReadingFragment(std::string& output, const std::string& fragment) {
+    const std::string trimmed = Trim(fragment);
+    if (trimmed.empty()) {
+        return;
+    }
+    if (!output.empty()) {
+        const std::vector<char32_t> left = Utf8CodePoints(output);
+        const std::vector<char32_t> right = Utf8CodePoints(trimmed);
+        const bool join_without_space = !left.empty() && !right.empty()
+            && (IsOpeningPunctuation(left.back())
+                || IsClosingPunctuation(right.front())
+                || (IsCjk(left.back()) && IsCjk(right.front())));
+        if (!join_without_space) {
+            output.push_back(' ');
+        }
+    }
+    output += trimmed;
+}
+
 } // namespace
 
 LocalTextGroupingProfile DefaultLocalTextGroupingProfile() noexcept {
@@ -413,6 +485,143 @@ std::vector<TextGroupMatch> MatchLocalTextGroups(
         }
     }
     return matches;
+}
+
+OrderedTextAssembly AssembleLocalTextInReadingOrder(
+    std::span<const ocr::RecognizedText> texts
+) {
+    OrderedTextAssembly result;
+    if (texts.empty()) {
+        return result;
+    }
+
+    std::vector<std::size_t> by_vertical_position(texts.size());
+    std::iota(by_vertical_position.begin(), by_vertical_position.end(), 0);
+    std::stable_sort(
+        by_vertical_position.begin(),
+        by_vertical_position.end(),
+        [&](std::size_t left, std::size_t right) {
+            const BoxGeometry left_geometry = Geometry(texts[left].box);
+            const BoxGeometry right_geometry = Geometry(texts[right].box);
+            if (left_geometry.centerY != right_geometry.centerY) {
+                return left_geometry.centerY < right_geometry.centerY;
+            }
+            return left_geometry.centerX < right_geometry.centerX;
+        }
+    );
+
+    std::vector<std::vector<std::size_t>> line_indices;
+    for (const std::size_t index : by_vertical_position) {
+        const BoxGeometry geometry = Geometry(texts[index].box);
+        auto line = std::find_if(
+            line_indices.begin(),
+            line_indices.end(),
+            [&](const std::vector<std::size_t>& candidate) {
+                float center_sum = 0.0F;
+                float maximum_height = geometry.height;
+                for (const std::size_t member : candidate) {
+                    const BoxGeometry member_geometry = Geometry(texts[member].box);
+                    center_sum += member_geometry.centerY;
+                    maximum_height = std::max(maximum_height, member_geometry.height);
+                }
+                const float baseline = center_sum / static_cast<float>(candidate.size());
+                return std::abs(geometry.centerY - baseline)
+                    <= std::max(8.0F, maximum_height * 0.65F);
+            }
+        );
+        if (line == line_indices.end()) {
+            line_indices.push_back({index});
+        } else {
+            line->push_back(index);
+        }
+    }
+
+    std::stable_sort(
+        line_indices.begin(),
+        line_indices.end(),
+        [&](const auto& left, const auto& right) {
+            const auto line_top = [&](const std::vector<std::size_t>& line) {
+                return texts[*std::min_element(
+                    line.begin(), line.end(),
+                    [&](std::size_t a, std::size_t b) {
+                        return texts[a].box.y1 < texts[b].box.y1;
+                    }
+                )].box.y1;
+            };
+            return line_top(left) < line_top(right);
+        }
+    );
+
+    float all_left = std::numeric_limits<float>::max();
+    float all_top = std::numeric_limits<float>::max();
+    float all_right = std::numeric_limits<float>::lowest();
+    float all_bottom = std::numeric_limits<float>::lowest();
+    float confidence_sum = 0.0F;
+    for (std::vector<std::size_t>& line : line_indices) {
+        std::stable_sort(line.begin(), line.end(), [&](std::size_t left, std::size_t right) {
+            return Geometry(texts[left].box).centerX < Geometry(texts[right].box).centerX;
+        });
+        float left = std::numeric_limits<float>::max();
+        float top = std::numeric_limits<float>::max();
+        float right = std::numeric_limits<float>::lowest();
+        float bottom = std::numeric_limits<float>::lowest();
+        float line_confidence = 0.0F;
+        std::string line_text;
+        for (const std::size_t index : line) {
+            result.orderedBoxIndices.push_back(index);
+            AppendReadingFragment(line_text, texts[index].text);
+            left = std::min(left, texts[index].box.x1);
+            top = std::min(top, texts[index].box.y1);
+            right = std::max(right, texts[index].box.x2);
+            bottom = std::max(bottom, texts[index].box.y2);
+            line_confidence += texts[index].confidence;
+            confidence_sum += texts[index].confidence;
+        }
+        AppendReadingFragment(result.completeText, line_text);
+        all_left = std::min(all_left, left);
+        all_top = std::min(all_top, top);
+        all_right = std::max(all_right, right);
+        all_bottom = std::max(all_bottom, bottom);
+        result.lines.push_back(OrderedTextLine{
+            line,
+            ocr::TextBox{left, top, right, bottom, 1.0F},
+            std::move(line_text),
+            line_confidence / static_cast<float>(line.size()),
+        });
+    }
+    result.combinedBox = ocr::TextBox{
+        all_left, all_top, all_right, all_bottom, 1.0F,
+    };
+    result.ocrConfidence = confidence_sum / static_cast<float>(texts.size());
+    return result;
+}
+
+float CatalogEvidenceCoverage(
+    const std::string& complete_local_text,
+    const std::string& catalog_alias
+) {
+    const std::vector<char32_t> evidence = Utf8CodePoints(
+        data::NormalizeForMatching(complete_local_text)
+    );
+    const std::vector<char32_t> alias = Utf8CodePoints(
+        data::NormalizeForMatching(catalog_alias)
+    );
+    if (evidence.empty() || alias.empty()) {
+        return 0.0F;
+    }
+    std::vector<std::size_t> previous(alias.size() + 1, 0);
+    std::vector<std::size_t> current(alias.size() + 1, 0);
+    for (const char32_t evidence_character : evidence) {
+        for (std::size_t index = 1; index <= alias.size(); ++index) {
+            current[index] = evidence_character == alias[index - 1]
+                ? previous[index - 1] + 1
+                : std::max(previous[index], current[index - 1]);
+        }
+        std::swap(previous, current);
+        std::fill(current.begin(), current.end(), 0);
+    }
+    return static_cast<float>(previous.back())
+        / static_cast<float>(evidence.size());
 }
 
 } // namespace noven::scanner

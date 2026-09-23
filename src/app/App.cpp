@@ -346,12 +346,17 @@ int App::Run(HINSTANCE instance, int show_command) {
 
     scan_trigger_->SetCompletionCallback([this](scanner::ScanCompletion completion) {
         auto* completion_pointer = new scanner::ScanCompletion(std::move(completion));
-        if (!PostMessageW(
+        const bool posted = PostMessageW(
             window_,
             kScanResultMessage,
             0,
             reinterpret_cast<LPARAM>(completion_pointer)
-        )) {
+        ) != FALSE;
+        common::DebugLog(
+            L"[scan-output] wmAppPosted="
+            + std::wstring(posted ? L"true" : L"false")
+        );
+        if (!posted) {
             delete completion_pointer;
         }
     });
@@ -527,6 +532,11 @@ void App::OnScanCompletionMessage(LPARAM completion_pointer) {
                 - completion->validation.hotkey_start
             ).count();
     }
+    common::DebugLog(
+        L"[scan-output] overlayShow="
+        + std::wstring(completion->validation.overlay_show_succeeded
+            ? L"true" : L"false")
+    );
     LogValidation(completion->validation);
 }
 

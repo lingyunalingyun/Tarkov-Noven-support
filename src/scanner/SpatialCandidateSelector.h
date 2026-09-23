@@ -56,6 +56,7 @@ struct MatchedText final {
     std::vector<std::size_t> sourceBoxIndices;
     float groupingConfidence{1.0F};
     bool grouped{};
+    float evidenceCoverage{1.0F};
 };
 
 enum class SpatialSearchAction {
@@ -98,6 +99,7 @@ struct ScanCandidate final {
     bool grouped{};
     bool participatingInSearch{};
     bool insideTooltip{};
+    float evidenceCoverage{1.0F};
 };
 
 struct ScanResult final {

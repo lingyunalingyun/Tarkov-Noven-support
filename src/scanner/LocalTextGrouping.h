@@ -45,6 +45,21 @@ struct TextGroupMatch final {
     float ocrConfidence{};
 };
 
+struct OrderedTextLine final {
+    std::vector<std::size_t> boxIndices;
+    ocr::TextBox combinedBox;
+    std::string text;
+    float ocrConfidence{};
+};
+
+struct OrderedTextAssembly final {
+    std::vector<OrderedTextLine> lines;
+    std::vector<std::size_t> orderedBoxIndices;
+    ocr::TextBox combinedBox;
+    std::string completeText;
+    float ocrConfidence{};
+};
+
 [[nodiscard]] LocalTextGroupingProfile DefaultLocalTextGroupingProfile() noexcept;
 
 [[nodiscard]] bool GroupedMatchClearlyBetter(
@@ -69,6 +84,15 @@ struct TextGroupMatch final {
     std::span<const ocr::RecognizedText> texts,
     float acceptance_threshold,
     const LocalTextGroupingProfile& profile = DefaultLocalTextGroupingProfile()
+);
+
+[[nodiscard]] OrderedTextAssembly AssembleLocalTextInReadingOrder(
+    std::span<const ocr::RecognizedText> texts
+);
+
+[[nodiscard]] float CatalogEvidenceCoverage(
+    const std::string& complete_local_text,
+    const std::string& catalog_alias
 );
 
 } // namespace noven::scanner

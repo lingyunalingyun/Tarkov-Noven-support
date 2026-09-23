@@ -13,6 +13,13 @@ long ClampPositive(long value, long maximum) noexcept {
 
 } // namespace
 
+bool ShouldInitializeDirectionalRoi(
+    int tooltip_expansion_attempt,
+    int adaptive_expansion_count
+) noexcept {
+    return tooltip_expansion_attempt == 0 && adaptive_expansion_count == 0;
+}
+
 std::optional<ProgressiveScanPosition> NextInventoryScanPosition(
     ProgressiveScanPosition current,
     std::size_t direction_count,

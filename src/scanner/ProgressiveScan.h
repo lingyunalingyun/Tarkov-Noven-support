@@ -17,6 +17,11 @@ struct ProgressiveScanPosition final {
     int search_depth{};
 };
 
+[[nodiscard]] bool ShouldInitializeDirectionalRoi(
+    int tooltip_expansion_attempt,
+    int adaptive_expansion_count
+) noexcept;
+
 [[nodiscard]] std::optional<ProgressiveScanPosition> NextInventoryScanPosition(
     ProgressiveScanPosition current,
     std::size_t direction_count,

@@ -332,6 +332,7 @@ ScanResult SpatialCandidateSelector::Select(
                 matched.grouped,
                 false,
                 IsInsideTooltip(matched.recognized.box, tooltip_region),
+                matched.evidenceCoverage,
             },
             ring,
             direction_rank,
@@ -349,6 +350,26 @@ ScanResult SpatialCandidateSelector::Select(
         if (profile.type == ScanProfileType::Inventory
             && left.candidate.insideTooltip != right.candidate.insideTooltip) {
             return left.candidate.insideTooltip;
+        }
+        if (profile.type == ScanProfileType::Inventory
+            && std::abs(
+                left.candidate.evidenceCoverage - right.candidate.evidenceCoverage
+            ) > 0.01F) {
+            return left.candidate.evidenceCoverage
+                > right.candidate.evidenceCoverage;
+        }
+        if (profile.type == ScanProfileType::Inventory
+            && std::abs(left.candidate.match.score - right.candidate.match.score)
+                > 0.01F) {
+            return left.candidate.match.score > right.candidate.match.score;
+        }
+        if (profile.type == ScanProfileType::Inventory
+            && std::abs(
+                left.candidate.recognized.confidence
+                    - right.candidate.recognized.confidence
+            ) > 0.01F) {
+            return left.candidate.recognized.confidence
+                > right.candidate.recognized.confidence;
         }
         if (profile.type == ScanProfileType::Inventory
             && std::abs(

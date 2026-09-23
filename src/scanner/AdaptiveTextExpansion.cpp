@@ -224,40 +224,131 @@ AdaptiveTextAnalysis AnalyzeTextContinuity(
     result.stoppedByLargeGap = std::isfinite(result.nearestOutsideGap)
         && result.nearestOutsideGap > result.stopThreshold;
 
+    const ocr::TextBox& bounds = *result.localBounds;
+    result.safeMargin = std::max({
+        profile.fixedMinimumGap,
+        result.localMedianHeight * profile.boundaryMarginMultiplier,
+        result.medianLocalGap * profile.medianGapMultiplier,
+    });
+    result.leftTextMargin = std::max(0.0F, bounds.x1);
+    result.rightTextMargin = std::max(
+        0.0F,
+        static_cast<float>(roi_size.width) - bounds.x2
+    );
+    result.topTextMargin = std::max(0.0F, bounds.y1);
+    result.bottomTextMargin = std::max(
+        0.0F,
+        static_cast<float>(roi_size.height) - bounds.y2
+    );
+    result.rightmostTextX = bounds.x2;
+    result.needsExpandLeft = result.leftTextMargin <= result.safeMargin;
+    result.needsExpandRight = result.rightTextMargin <= result.safeMargin;
+    result.needsExpandTop = result.topTextMargin <= result.safeMargin;
+    result.needsExpandBottom = result.bottomTextMargin <= result.safeMargin;
+    result.horizontalComplete = !result.needsExpandRight;
+    result.verticalComplete = !result.needsExpandTop
+        && !result.needsExpandBottom;
+
     if (tooltip_bounds.has_value()) {
+        result.horizontalComplete = true;
+        result.verticalComplete = true;
         return result;
     }
 
-    const ocr::TextBox& bounds = *result.localBounds;
-    const float boundary_margin = std::max(
-        profile.fixedMinimumGap,
-        result.localMedianHeight * profile.boundaryMarginMultiplier
-    );
-    struct Edge final { ExpansionSide side; float distance; };
-    const std::array edges{
-        Edge{ExpansionSide::Left, bounds.x1},
-        Edge{ExpansionSide::Right, static_cast<float>(roi_size.width) - bounds.x2},
-        Edge{ExpansionSide::Up, bounds.y1},
-        Edge{ExpansionSide::Down, static_cast<float>(roi_size.height) - bounds.y2},
-    };
-    const auto nearest_edge = std::min_element(
-        edges.begin(),
-        edges.end(),
-        [&](const Edge& left, const Edge& right) {
-            const float left_distance = CanExpandToward(direction, left.side)
-                ? left.distance : std::numeric_limits<float>::infinity();
-            const float right_distance = CanExpandToward(direction, right.side)
-                ? right.distance : std::numeric_limits<float>::infinity();
-            return left_distance < right_distance;
-        }
-    );
-    if (nearest_edge != edges.end()
-        && CanExpandToward(direction, nearest_edge->side)
-        && nearest_edge->distance <= boundary_margin) {
+    if (!result.horizontalComplete
+        && CanExpandToward(direction, ExpansionSide::Right)) {
         result.shouldExpand = true;
-        result.expansionSide = nearest_edge->side;
+        result.expansionSide = ExpansionSide::Right;
+    } else if (!result.verticalComplete) {
+        const ExpansionSide vertical_side = result.topTextMargin
+                <= result.bottomTextMargin
+            ? ExpansionSide::Up
+            : ExpansionSide::Down;
+        if (CanExpandToward(direction, vertical_side)) {
+            result.shouldExpand = true;
+            result.expansionSide = vertical_side;
+        }
     }
     return result;
+}
+
+LockedScanDecision DecideLockedScanStep(
+    LockedScanStage stage,
+    const AdaptiveTextAnalysis& analysis,
+    TooltipExpansionEvidence tooltip
+) noexcept {
+    if (tooltip.complete) {
+        return LockedScanDecision{
+            LockedScanStage::TextAssembly,
+            ExpansionSide::None,
+            false,
+            L"complete_tooltip_bounds",
+        };
+    }
+
+    if (stage == LockedScanStage::HorizontalExpansion) {
+        if (!tooltip.hasRightBorder
+            && (tooltip.clippedRight || !analysis.horizontalComplete)) {
+            return LockedScanDecision{
+                LockedScanStage::HorizontalExpansion,
+                ExpansionSide::Right,
+                true,
+                tooltip.clippedRight
+                    ? L"tooltip_clipped_right"
+                    : L"detector_text_in_right_margin",
+            };
+        }
+        stage = LockedScanStage::VerticalExpansion;
+    }
+
+    if (stage == LockedScanStage::VerticalExpansion) {
+        if (tooltip.clippedTop) {
+            return LockedScanDecision{
+                LockedScanStage::VerticalExpansion,
+                ExpansionSide::Up,
+                true,
+                L"tooltip_clipped_top",
+            };
+        }
+        if (tooltip.clippedBottom) {
+            return LockedScanDecision{
+                LockedScanStage::VerticalExpansion,
+                ExpansionSide::Down,
+                true,
+                L"tooltip_clipped_bottom",
+            };
+        }
+        if (!analysis.verticalComplete) {
+            return LockedScanDecision{
+                LockedScanStage::VerticalExpansion,
+                analysis.topTextMargin <= analysis.bottomTextMargin
+                    ? ExpansionSide::Up
+                    : ExpansionSide::Down,
+                true,
+                analysis.topTextMargin <= analysis.bottomTextMargin
+                    ? L"detector_text_in_top_margin"
+                    : L"detector_text_in_bottom_margin",
+            };
+        }
+        return LockedScanDecision{
+            LockedScanStage::TextAssembly,
+            ExpansionSide::None,
+            false,
+            analysis.widthCompletedBySafetyLimit
+                    || analysis.heightCompletedBySafetyLimit
+                ? L"safety_limit_final_assembly"
+                : (analysis.noContinuationAfterExpansion
+                    ? L"expanded_area_has_no_continuation"
+                    : L"safe_text_margins"),
+        };
+    }
+
+    return LockedScanDecision{
+        stage,
+        ExpansionSide::None,
+        false,
+        L"stage_already_complete",
+    };
 }
 
 capture::Rect ExpandAdaptiveTextRoi(
@@ -322,6 +413,18 @@ const wchar_t* ExpansionSideName(ExpansionSide side) noexcept {
     case ExpansionSide::None: return L"none";
     }
     return L"none";
+}
+
+const wchar_t* LockedScanStageName(LockedScanStage stage) noexcept {
+    switch (stage) {
+    case LockedScanStage::HorizontalExpansion: return L"horizontal";
+    case LockedScanStage::VerticalExpansion: return L"vertical";
+    case LockedScanStage::TextAssembly: return L"text_assembly";
+    case LockedScanStage::CatalogMatch: return L"catalog_match";
+    case LockedScanStage::Complete: return L"complete";
+    case LockedScanStage::Failed: return L"failed";
+    }
+    return L"failed";
 }
 
 } // namespace noven::scanner

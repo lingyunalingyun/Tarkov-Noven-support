@@ -19,6 +19,27 @@ enum class ExpansionSide {
     Down,
 };
 
+enum class LockedScanStage {
+    HorizontalExpansion,
+    VerticalExpansion,
+    TextAssembly,
+    CatalogMatch,
+    Complete,
+    Failed,
+};
+
+struct TooltipExpansionEvidence final {
+    bool present{};
+    bool complete{};
+    bool hasLeftBorder{};
+    bool hasRightBorder{};
+    bool hasTopBorder{};
+    bool hasBottomBorder{};
+    bool clippedRight{};
+    bool clippedTop{};
+    bool clippedBottom{};
+};
+
 struct AdaptiveTextExpansionProfile final {
     float fixedMinimumGap{14.0F};
     float textHeightGapMultiplier{2.5F};
@@ -42,10 +63,40 @@ struct AdaptiveTextAnalysis final {
     float medianLocalGap{};
     float nearestOutsideGap{};
     float stopThreshold{};
+    float safeMargin{};
+    float leftTextMargin{};
+    float rightTextMargin{};
+    float topTextMargin{};
+    float bottomTextMargin{};
+    float rightmostTextX{};
     ExpansionSide expansionSide{ExpansionSide::None};
     bool shouldExpand{};
+    bool needsExpandLeft{};
+    bool needsExpandRight{};
+    bool needsExpandTop{};
+    bool needsExpandBottom{};
+    bool noContinuationAfterExpansion{};
+    bool widthCompletedBySafetyLimit{};
+    bool heightCompletedBySafetyLimit{};
+    bool trustedTooltipRightBorder{};
+    float tooltipRightBorderX{};
+    std::optional<capture::Rect> nextRoi;
+    bool horizontalComplete{};
+    bool verticalComplete{};
     bool stoppedByLargeGap{};
     bool boundedByTooltip{};
+};
+
+struct LockedScanDecision final {
+    LockedScanStage nextStage{LockedScanStage::HorizontalExpansion};
+    ExpansionSide expansionSide{ExpansionSide::None};
+    bool shouldExpand{};
+    const wchar_t* reason{L"none"};
+};
+
+struct LockedRoiStep final {
+    capture::Rect roi;
+    LockedScanStage stage{LockedScanStage::HorizontalExpansion};
 };
 
 [[nodiscard]] AdaptiveTextExpansionProfile DefaultAdaptiveTextExpansionProfile() noexcept;
@@ -69,11 +120,18 @@ struct AdaptiveTextAnalysis final {
         DefaultAdaptiveTextExpansionProfile()
 ) noexcept;
 
+[[nodiscard]] LockedScanDecision DecideLockedScanStep(
+    LockedScanStage stage,
+    const AdaptiveTextAnalysis& analysis,
+    TooltipExpansionEvidence tooltip = {}
+) noexcept;
+
 [[nodiscard]] float RectangleDistanceToPoint(
     const ocr::TextBox& box,
     AnchorPoint point
 ) noexcept;
 
 [[nodiscard]] const wchar_t* ExpansionSideName(ExpansionSide side) noexcept;
+[[nodiscard]] const wchar_t* LockedScanStageName(LockedScanStage stage) noexcept;
 
 } // namespace noven::scanner

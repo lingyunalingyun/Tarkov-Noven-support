@@ -3,6 +3,7 @@
 #include "capture/CaptureTypes.h"
 #include "ocr/OcrTypes.h"
 #include "scanner/AdaptiveTextExpansion.h"
+#include "scanner/LocalTextGrouping.h"
 #include "scanner/SpatialCandidateSelector.h"
 
 #include <filesystem>
@@ -20,7 +21,10 @@ bool WriteSpatialAnnotatedBmp(
     const ScanResult& result,
     std::wstring& error,
     std::optional<ocr::TextBox> tooltip_region = std::nullopt,
-    std::optional<AdaptiveTextAnalysis> adaptive_analysis = std::nullopt
+    std::optional<AdaptiveTextAnalysis> adaptive_analysis = std::nullopt,
+    std::span<const LockedRoiStep> locked_roi_steps = {},
+    capture::Point frame_origin = {},
+    std::optional<OrderedTextAssembly> text_assembly = std::nullopt
 );
 
 } // namespace noven::scanner

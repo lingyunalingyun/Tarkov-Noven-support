@@ -45,6 +45,8 @@ noven::data::ItemCatalog LoadCatalog() {
              << "64abd93857958b4249003418\tInterceptor OTV防弹衣\tOTV\tInterceptor OTV body armor (Woodland)\tOTV\t2\t2\n"
              << "5df8a2ca86f7740bfe6df777\t6B2 防弹衣\t6B2\t6B2 body armor (Flora)\t6B2\t2\t2\n"
              << "60361a7497633951dc245eb4\tUCP军帽\tUCP\tArmy cap (UCP)\tUCP\t1\t1\n";
+        file << "aaaaaaaaaaaaaaaaaaaaaaaa\tLBT Slick\tSlick\tLBT-6094A Slick plate carrier (Black)\tSlick\t3\t3\n"
+             << "bbbbbbbbbbbbbbbbbbbbbbbb\tSlick plate\tSlick plate\tSlick plate\tSlick plate\t1\t1\n";
     }
     noven::data::ItemCatalog catalog;
     std::wstring error;
@@ -164,6 +166,50 @@ void SingleExactMatchIsPreferred() {
     );
 }
 
+void ReadingOrderAndEvidenceCoverage(const noven::data::ItemCatalog& catalog) {
+    const std::vector<noven::ocr::RecognizedText> single_line{
+        Text("plate carrier", 220.0F, 100.0F, 330.0F, 126.0F),
+        Text("LBT-6094A", 20.0F, 101.0F, 110.0F, 127.0F),
+        Text("(Black)", 338.0F, 100.0F, 400.0F, 126.0F),
+        Text("Slick", 120.0F, 99.0F, 180.0F, 125.0F),
+    };
+    const auto assembly = noven::scanner::AssembleLocalTextInReadingOrder(single_line);
+    Require(
+        assembly.completeText == "LBT-6094A Slick plate carrier (Black)",
+        "OCR fragments are ordered left-to-right within one line"
+    );
+    const auto matches = catalog.Match(assembly.completeText, 5, 0.64F);
+    Require(!matches.empty()
+            && matches.front().item->id == "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "complete long-name evidence matches the full item rather than a short alias");
+    const float full_coverage = noven::scanner::CatalogEvidenceCoverage(
+        assembly.completeText,
+        matches.front().matchedAlias
+    );
+    const float short_coverage = noven::scanner::CatalogEvidenceCoverage(
+        assembly.completeText,
+        "Slick"
+    );
+    Require(full_coverage > 0.95F && short_coverage < 0.30F,
+        "full-name evidence coverage strongly outranks a short substring");
+
+    const std::vector<noven::ocr::RecognizedText> multiple_lines{
+        Text("second line", 30.0F, 140.0F, 140.0F, 166.0F),
+        Text("right", 150.0F, 100.0F, 205.0F, 126.0F),
+        Text("first", 30.0F, 100.0F, 90.0F, 126.0F),
+    };
+    const auto multiline = noven::scanner::AssembleLocalTextInReadingOrder(
+        multiple_lines
+    );
+    Require(multiline.lines.size() == 2,
+        "vertically separated OCR boxes form separate lines");
+    Require(multiline.lines[0].text == "first right"
+            && multiline.lines[1].text == "second line",
+        "multiple lines are ordered top-to-bottom and left-to-right");
+    Require(multiline.completeText == "first right second line",
+        "complete multi-line hypothesis preserves reading order");
+}
+
 void Benchmark(const noven::data::ItemCatalog& catalog) {
     const std::vector<noven::ocr::RecognizedText> texts{
         Text("Interceptor", 100.0F, 100.0F, 190.0F, 126.0F),
@@ -193,6 +239,7 @@ int main() {
         RejectUnrelatedAndDistant();
         GroupedFuzzyMatch(catalog);
         SingleExactMatchIsPreferred();
+        ReadingOrderAndEvidenceCoverage(catalog);
         Benchmark(catalog);
         std::cout << "Local text grouping tests passed\n";
         return 0;

@@ -122,6 +122,70 @@ float EdgeContrast(
     return samples == 0 ? 0.0F : total / static_cast<float>(samples);
 }
 
+enum class BorderSide {
+    Left,
+    Right,
+    Top,
+    Bottom,
+};
+
+bool HasBorderEvidence(
+    const capture::CapturedFrame& frame,
+    const ocr::TextBox& bounds,
+    BorderSide side
+) noexcept {
+    constexpr long kBoundaryGuard = 4;
+    constexpr long kSampleStep = 4;
+    constexpr float kMinimumContrast = 18.0F;
+    constexpr float kMinimumEvidenceRatio = 0.35F;
+    const long left = static_cast<long>(std::floor(bounds.x1));
+    const long top = static_cast<long>(std::floor(bounds.y1));
+    const long right = static_cast<long>(std::ceil(bounds.x2)) - 1;
+    const long bottom = static_cast<long>(std::ceil(bounds.y2)) - 1;
+    const bool side_touches_frame =
+        (side == BorderSide::Left && left < kBoundaryGuard)
+        || (side == BorderSide::Right
+            && right >= static_cast<long>(frame.width) - kBoundaryGuard)
+        || (side == BorderSide::Top && top < kBoundaryGuard)
+        || (side == BorderSide::Bottom
+            && bottom >= static_cast<long>(frame.height) - kBoundaryGuard);
+    if (right <= left || bottom <= top || side_touches_frame) {
+        return false;
+    }
+
+    std::size_t evidence = 0;
+    std::size_t samples = 0;
+    const auto sample = [&](long inside_x, long inside_y,
+                            long outside_x, long outside_y) {
+        const float inside = PixelLuminance(frame, inside_x, inside_y);
+        const float outside = PixelLuminance(frame, outside_x, outside_y);
+        ++samples;
+        if (inside <= 140.0F && outside - inside >= kMinimumContrast) {
+            ++evidence;
+        }
+    };
+    if (side == BorderSide::Left || side == BorderSide::Right) {
+        const long inside_x = side == BorderSide::Left ? left + 2 : right - 2;
+        const long outside_x = side == BorderSide::Left
+            ? left - kBoundaryGuard
+            : right + kBoundaryGuard;
+        for (long y = top + 4; y <= bottom - 4; y += kSampleStep) {
+            sample(inside_x, y, outside_x, y);
+        }
+    } else {
+        const long inside_y = side == BorderSide::Top ? top + 2 : bottom - 2;
+        const long outside_y = side == BorderSide::Top
+            ? top - kBoundaryGuard
+            : bottom + kBoundaryGuard;
+        for (long x = left + 4; x <= right - 4; x += kSampleStep) {
+            sample(x, inside_y, x, outside_y);
+        }
+    }
+    return samples > 0
+        && static_cast<float>(evidence) / static_cast<float>(samples)
+            >= kMinimumEvidenceRatio;
+}
+
 } // namespace
 
 std::optional<TooltipBoxCandidate> DetectTooltipBox(
@@ -235,6 +299,14 @@ std::optional<TooltipBoxCandidate> DetectTooltipBox(
             const bool clipped_right = bounds.x2 >= static_cast<float>(frame.width - kSampleStep);
             const bool clipped_top = bounds.y1 <= static_cast<float>(kSampleStep);
             const bool clipped_bottom = bounds.y2 >= static_cast<float>(frame.height - kSampleStep);
+            const bool has_left_border = !clipped_left
+                && HasBorderEvidence(frame, bounds, BorderSide::Left);
+            const bool has_right_border = !clipped_right
+                && HasBorderEvidence(frame, bounds, BorderSide::Right);
+            const bool has_top_border = !clipped_top
+                && HasBorderEvidence(frame, bounds, BorderSide::Top);
+            const bool has_bottom_border = !clipped_bottom
+                && HasBorderEvidence(frame, bounds, BorderSide::Bottom);
             const float darkness = DarkRatio(frame, bounds);
             const float contrast = EdgeContrast(frame, bounds);
             const float border_confidence = std::min(
@@ -250,6 +322,10 @@ std::optional<TooltipBoxCandidate> DetectTooltipBox(
                 bounds,
                 border_confidence,
                 proximity,
+                has_left_border,
+                has_right_border,
+                has_top_border,
+                has_bottom_border,
                 clipped_left,
                 clipped_right,
                 clipped_top,

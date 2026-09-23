@@ -7,6 +7,7 @@
 #include "ocr/TextDetector.h"
 #include "ocr/TextRecognizer.h"
 #include "overlay/OverlayTypes.h"
+#include "scanner/AdaptiveTextExpansion.h"
 #include "scanner/SpatialCandidateSelector.h"
 
 #include <chrono>
@@ -106,6 +107,8 @@ private:
         capture::Rect virtual_screen{};
         int adaptive_expansion_count{};
         std::size_t total_captured_pixels{};
+        LockedScanStage locked_stage{LockedScanStage::HorizontalExpansion};
+        std::vector<LockedRoiStep> locked_roi_steps;
     };
 
     void WorkerLoop();

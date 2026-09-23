@@ -62,6 +62,10 @@ int main() {
             && noven::scanner::DirectionalScanSizeForDepth({280, 140}, 2).width == 280,
         "directional search grows from a near slice to its level maximum"
     );
+    Require(noven::scanner::ShouldInitializeDirectionalRoi(0, 0),
+        "the first directional capture initializes its ROI");
+    Require(!noven::scanner::ShouldInitializeDirectionalRoi(0, 1),
+        "an adaptively expanded ROI survives into the next capture iteration");
 
     auto position = noven::scanner::ProgressiveScanPosition{0, 0, 0};
     for (int expected_level = 0; expected_level < 3; ++expected_level) {
@@ -143,6 +147,64 @@ int main() {
         Require(expanded.left == 100 && expanded.right > 320
                 && expanded.top == 100 && expanded.bottom == 220,
             "adaptive expansion changes only the clipped side");
+
+        auto both_clipped = analysis;
+        both_clipped.horizontalComplete = false;
+        both_clipped.verticalComplete = false;
+        both_clipped.topTextMargin = 0.0F;
+        const auto horizontal_decision = noven::scanner::DecideLockedScanStep(
+            noven::scanner::LockedScanStage::HorizontalExpansion,
+            both_clipped
+        );
+        Require(horizontal_decision.shouldExpand,
+            "width completion requests expansion before height expansion");
+        Require(horizontal_decision.expansionSide
+                == noven::scanner::ExpansionSide::Right,
+            "width completion expands right before height expansion");
+
+        const auto partial_tooltip_decision =
+            noven::scanner::DecideLockedScanStep(
+                noven::scanner::LockedScanStage::HorizontalExpansion,
+                both_clipped,
+                noven::scanner::TooltipExpansionEvidence{
+                    .present = true,
+                }
+            );
+        Require(partial_tooltip_decision.shouldExpand
+                && partial_tooltip_decision.expansionSide
+                    == noven::scanner::ExpansionSide::Right,
+            "right-edge text still expands when partial tooltip geometry exists");
+        Require(partial_tooltip_decision.nextStage
+                == noven::scanner::LockedScanStage::HorizontalExpansion,
+            "text assembly cannot run before width completion");
+
+        const auto partial_without_right_border =
+            noven::scanner::DecideLockedScanStep(
+                noven::scanner::LockedScanStage::HorizontalExpansion,
+                both_clipped,
+                noven::scanner::TooltipExpansionEvidence{
+                    .present = true,
+                    .hasLeftBorder = true,
+                    .hasTopBorder = true,
+                    .hasBottomBorder = true,
+                }
+            );
+        Require(partial_without_right_border.shouldExpand
+                && partial_without_right_border.expansionSide
+                    == noven::scanner::ExpansionSide::Right,
+            "partial tooltip without a right border does not complete width");
+
+        both_clipped.horizontalComplete = true;
+        const auto vertical_decision = noven::scanner::DecideLockedScanStep(
+            noven::scanner::LockedScanStage::HorizontalExpansion,
+            both_clipped
+        );
+        Require(vertical_decision.shouldExpand
+                && vertical_decision.nextStage
+                    == noven::scanner::LockedScanStage::VerticalExpansion
+                && vertical_decision.expansionSide
+                    == noven::scanner::ExpansionSide::Up,
+            "vertical expansion starts only after width is complete");
     }
 
     {
@@ -230,6 +292,71 @@ int main() {
         Require(analysis.localBoxIndices.size() == 1
                 && analysis.localBoxIndices.front() == 0,
             "text outside the tooltip does not enter its local block");
+        const auto tooltip_decision = noven::scanner::DecideLockedScanStep(
+            noven::scanner::LockedScanStage::HorizontalExpansion,
+            analysis,
+            noven::scanner::TooltipExpansionEvidence{
+                .present = true,
+                .complete = true,
+                .hasLeftBorder = true,
+                .hasRightBorder = true,
+                .hasTopBorder = true,
+                .hasBottomBorder = true,
+            }
+        );
+        Require(!tooltip_decision.shouldExpand
+                && tooltip_decision.nextStage
+                    == noven::scanner::LockedScanStage::TextAssembly,
+            "a complete tooltip skips horizontal and vertical expansion");
+    }
+
+    {
+        const std::array detector_only_boxes{
+            noven::ocr::TextBox{150.0F, 40.0F, 219.5F, 62.0F, 0.35F},
+        };
+        const auto detector_only_analysis = noven::scanner::AnalyzeTextContinuity(
+            detector_only_boxes,
+            {100.0F, 80.0F},
+            {220, 120},
+            noven::scanner::ScanDirection::UpperRight
+        );
+        Require(detector_only_analysis.needsExpandRight
+                && !detector_only_analysis.horizontalComplete,
+            "a detector box touching the right edge forces expansion even without recognition");
+        const auto detector_only_decision = noven::scanner::DecideLockedScanStep(
+            noven::scanner::LockedScanStage::HorizontalExpansion,
+            detector_only_analysis
+        );
+        Require(detector_only_decision.shouldExpand
+                && detector_only_decision.nextStage
+                    == noven::scanner::LockedScanStage::HorizontalExpansion,
+            "catalog work cannot begin on a detector-clipped text pass");
+    }
+
+    {
+        noven::scanner::AdaptiveTextAnalysis width_complete;
+        width_complete.horizontalComplete = true;
+        width_complete.verticalComplete = true;
+        width_complete.rightTextMargin = 60.0F;
+        width_complete.safeMargin = 25.0F;
+        const auto decision = noven::scanner::DecideLockedScanStep(
+            noven::scanner::LockedScanStage::HorizontalExpansion,
+            width_complete
+        );
+        Require(!decision.shouldExpand
+                && decision.nextStage
+                    == noven::scanner::LockedScanStage::TextAssembly,
+            "safe empty margin after the rightmost text completes width");
+
+        width_complete.noContinuationAfterExpansion = true;
+        const auto no_continuation = noven::scanner::DecideLockedScanStep(
+            noven::scanner::LockedScanStage::HorizontalExpansion,
+            width_complete
+        );
+        Require(no_continuation.nextStage
+                == noven::scanner::LockedScanStage::TextAssembly
+                && !no_continuation.shouldExpand,
+            "an expanded pass with no continuation reaches final assembly");
     }
 
     Require(
@@ -268,6 +395,9 @@ int main() {
     );
     Require(tooltip.has_value(), "dark near-upper-right rectangle is detected as a tooltip candidate");
     Require(tooltip->FullBox(), "fully visible tooltip is not marked as clipped");
+    Require(tooltip->hasLeftBorder && tooltip->hasRightBorder
+            && tooltip->hasTopBorder && tooltip->hasBottomBorder,
+        "a complete tooltip requires observed evidence for all four borders");
     Require(
         tooltip->rect.x1 <= 104.0F && tooltip->rect.x2 >= 256.0F
             && tooltip->rect.y1 <= 36.0F && tooltip->rect.y2 >= 116.0F,
@@ -299,6 +429,8 @@ int main() {
     );
     Require(clipped_right.has_value() && clipped_right->clippedRight,
         "tooltip touching the right edge is reported as clipped");
+    Require(!clipped_right->hasRightBorder && !clipped_right->FullBox(),
+        "the ROI boundary is not mistaken for a tooltip right border");
     const auto expanded_right = noven::scanner::ExpandTooltipRoi(
         noven::capture::Rect{90, 0, 180, 140},
         *clipped_right,

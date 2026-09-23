@@ -231,13 +231,34 @@ int main() {
     {
         auto nearby = MakeMatched(catalog, "金属零件", 460.0F, 260.0F);
         nearby.match.score = 0.82F;
+        nearby.evidenceCoverage = 0.95F;
         auto distant = MakeMatched(catalog, "6B2 body armor (Flora)", 680.0F, 160.0F);
         distant.match.score = 0.99F;
+        distant.evidenceCoverage = 0.40F;
         const std::vector<noven::scanner::MatchedText> texts{nearby, distant};
         const auto result = selector.Select(
             noven::scanner::ScanProfileType::Inventory, anchor, texts);
         Require(Selected(result).match.item->id == "61bf7b6302b3924be92fa8c3",
-            "nearby slightly weaker match beats a distant perfect match");
+            "complete nearby evidence beats a distant partial match");
+    }
+
+    {
+        auto short_evidence = MakeMatched(
+            catalog, "Metal spare parts", 450.0F, 250.0F, 0.99F);
+        short_evidence.match.score = 0.99F;
+        short_evidence.evidenceCoverage = 0.20F;
+        auto complete_evidence = MakeMatched(
+            catalog, "6B2 body armor (Flora)", 520.0F, 220.0F, 0.90F);
+        complete_evidence.match.score = 0.95F;
+        complete_evidence.evidenceCoverage = 0.95F;
+        const std::vector<noven::scanner::MatchedText> texts{
+            short_evidence,
+            complete_evidence,
+        };
+        const auto result = selector.Select(
+            noven::scanner::ScanProfileType::Inventory, anchor, texts);
+        Require(Selected(result).match.item->id == "5df8a2ca86f7740bfe6df777",
+            "high coverage beats a low-coverage high-similarity substring");
     }
 
     {

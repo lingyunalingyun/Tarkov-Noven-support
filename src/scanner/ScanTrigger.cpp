@@ -326,7 +326,10 @@ void ScanTrigger::WorkerLoop() {
 
         const ScannerProfile profile = ProfileFor(job.profile);
         if (job.profile == ScanProfileType::Inventory
-            && job.tooltip_expansion_attempt == 0) {
+            && ShouldInitializeDirectionalRoi(
+                job.tooltip_expansion_attempt,
+                job.adaptive_expansion_count
+            )) {
             const ScanDirection direction = profile.direction_priority[job.direction_index];
             job.roi = CalculateDirectionalRoi(
                 job.screen_anchor,
@@ -421,64 +424,6 @@ void ScanTrigger::WorkerLoop() {
             return true;
         };
 
-        const auto enqueue_tooltip_expansion = [&](const TooltipBoxCandidate& candidate) {
-            if (job.profile != ScanProfileType::Inventory
-                || job.tooltip_expansion_attempt >= 2) {
-                return false;
-            }
-            const capture::Rect expanded_roi = ExpandTooltipRoi(
-                job.roi,
-                candidate,
-                InventoryScanSizeForLevel(roi_size_, job.scan_level),
-                job.virtual_screen
-            );
-            if (expanded_roi.Empty()
-                || (expanded_roi.left == job.roi.left
-                    && expanded_roi.top == job.roi.top
-                    && expanded_roi.right == job.roi.right
-                    && expanded_roi.bottom == job.roi.bottom)) {
-                return false;
-            }
-            {
-                std::lock_guard lock(jobs_mutex_);
-                jobs_.push_back(ScanJob{
-                    {},
-                    {},
-                    {},
-                    {},
-                    job.hotkey_start,
-                    job.screen_anchor,
-                    expanded_roi,
-                    0.0,
-                    AnchorPoint{
-                        static_cast<float>(job.screen_anchor.x - expanded_roi.left),
-                        static_cast<float>(job.screen_anchor.y - expanded_roi.top),
-                    },
-                    job.profile,
-                    job.game_mode,
-                    job.scan_level,
-                    job.direction_index,
-                    job.search_depth,
-                    job.tooltip_expansion_attempt + 1,
-                    job.direction_locked,
-                    job.virtual_screen,
-                    job.adaptive_expansion_count,
-                    job.total_captured_pixels,
-                });
-            }
-            jobs_available_.notify_one();
-            common::DebugLog(
-                std::wstring(L"[tooltip-search] action=expand")
-                + std::wstring(candidate.clippedRight ? L"_right" : L"")
-                + std::wstring(candidate.clippedLeft ? L"_left" : L"")
-                + std::wstring(candidate.clippedTop ? L"_up" : L"")
-                + std::wstring(candidate.clippedBottom ? L"_down" : L"")
-                + L" attempt="
-                + std::to_wstring(job.tooltip_expansion_attempt + 1)
-            );
-            return true;
-        };
-
         const auto capture_start = std::chrono::steady_clock::now();
         job.capture_result = capture_backend_.Capture(job.roi);
         job.capture_ms = ElapsedMilliseconds(capture_start);
@@ -568,6 +513,17 @@ void ScanTrigger::WorkerLoop() {
                         + FormatMeasurement(tooltip_box_candidate->borderConfidence)
                         + L" proximity="
                         + FormatMeasurement(tooltip_box_candidate->proximityToCursor)
+                        + L" rect=" + BoxText(tooltip_box_candidate->rect)
+                        + L" full_box="
+                        + (tooltip_box_candidate->FullBox() ? L"true" : L"false")
+                        + L" has_left_border="
+                        + (tooltip_box_candidate->hasLeftBorder ? L"true" : L"false")
+                        + L" has_right_border="
+                        + (tooltip_box_candidate->hasRightBorder ? L"true" : L"false")
+                        + L" has_top_border="
+                        + (tooltip_box_candidate->hasTopBorder ? L"true" : L"false")
+                        + L" has_bottom_border="
+                        + (tooltip_box_candidate->hasBottomBorder ? L"true" : L"false")
                         + L" clipped_left="
                         + (tooltip_box_candidate->clippedLeft ? L"true" : L"false")
                         + L" clipped_right="
@@ -586,12 +542,6 @@ void ScanTrigger::WorkerLoop() {
                     + L" textEvidence=false tooltipEvidence=true directionLocked=true"
                     + L" action=expand_and_recognize"
                 );
-            }
-            if (tooltip_box_candidate.has_value()
-                && !tooltip_box_candidate->FullBox()
-                && enqueue_tooltip_expansion(*tooltip_box_candidate)) {
-                common::DebugLog(L"[tooltip-search] action=expand_before_ocr");
-                continue;
             }
             if (tooltip_box_candidate.has_value()) {
                 if (tooltip_box_candidate->FullBox()) {
@@ -634,9 +584,8 @@ void ScanTrigger::WorkerLoop() {
                         );
                     }
                 } else {
-                    tooltip_region_for_frame = tooltip_box_candidate->rect;
                     common::DebugLog(
-                        L"[tooltip-search] action=ocr_visible_partial_box"
+                        L"[tooltip-search] action=locked_state_machine"
                     );
                 }
             } else {
@@ -664,8 +613,7 @@ void ScanTrigger::WorkerLoop() {
             DefaultAdaptiveTextExpansionProfile();
         AdaptiveTextAnalysis adaptive_analysis;
         std::vector<ocr::TextBox> recognition_boxes = detection.boxes;
-        if (job.profile == ScanProfileType::Inventory && job.direction_locked
-            && text_evidence) {
+        if (job.profile == ScanProfileType::Inventory && job.direction_locked) {
             adaptive_analysis = AnalyzeTextContinuity(
                 detection.boxes,
                 job.anchor,
@@ -677,14 +625,83 @@ void ScanTrigger::WorkerLoop() {
                 tooltip_region_for_frame,
                 adaptive_profile
             );
+            if (detection.boxes.empty() && job.adaptive_expansion_count > 0) {
+                adaptive_analysis.noContinuationAfterExpansion = true;
+                adaptive_analysis.horizontalComplete = true;
+                adaptive_analysis.verticalComplete = true;
+            }
+            const bool expansion_count_limit_reached =
+                job.adaptive_expansion_count
+                    >= adaptive_profile.maximumExpansionCount;
+            if (expansion_count_limit_reached) {
+                adaptive_analysis.horizontalComplete = true;
+                adaptive_analysis.verticalComplete = true;
+                adaptive_analysis.needsExpandRight = false;
+                adaptive_analysis.needsExpandTop = false;
+                adaptive_analysis.needsExpandBottom = false;
+                adaptive_analysis.widthCompletedBySafetyLimit = true;
+                adaptive_analysis.heightCompletedBySafetyLimit = true;
+            }
+            if (job.roi.Width() >= adaptive_profile.maximumWidth) {
+                adaptive_analysis.horizontalComplete = true;
+                adaptive_analysis.needsExpandRight = false;
+                adaptive_analysis.widthCompletedBySafetyLimit = true;
+            }
+            if (job.roi.Height() >= adaptive_profile.maximumHeight) {
+                adaptive_analysis.verticalComplete = true;
+                adaptive_analysis.needsExpandTop = false;
+                adaptive_analysis.needsExpandBottom = false;
+                adaptive_analysis.heightCompletedBySafetyLimit = true;
+            }
+            const TooltipExpansionEvidence tooltip_evidence{
+                tooltip_box_candidate.has_value(),
+                tooltip_box_candidate.has_value()
+                    && tooltip_box_candidate->FullBox(),
+                tooltip_box_candidate.has_value()
+                    && tooltip_box_candidate->hasLeftBorder,
+                tooltip_box_candidate.has_value()
+                    && tooltip_box_candidate->hasRightBorder,
+                tooltip_box_candidate.has_value()
+                    && tooltip_box_candidate->hasTopBorder,
+                tooltip_box_candidate.has_value()
+                    && tooltip_box_candidate->hasBottomBorder,
+                tooltip_box_candidate.has_value()
+                    && tooltip_box_candidate->clippedRight,
+                tooltip_box_candidate.has_value()
+                    && tooltip_box_candidate->clippedTop,
+                tooltip_box_candidate.has_value()
+                    && tooltip_box_candidate->clippedBottom,
+            };
+            adaptive_analysis.trustedTooltipRightBorder =
+                tooltip_evidence.hasRightBorder;
+            adaptive_analysis.tooltipRightBorderX = tooltip_box_candidate.has_value()
+                ? tooltip_box_candidate->rect.x2
+                : 0.0F;
+            LockedScanDecision locked_decision = DecideLockedScanStep(
+                job.locked_stage,
+                adaptive_analysis,
+                tooltip_evidence
+            );
+            for (std::size_t box_index = 0;
+                 box_index < detection.boxes.size();
+                 ++box_index) {
+                common::DebugLog(
+                    L"[locked-state-box] index=" + std::to_wstring(box_index)
+                    + L" rect=" + BoxText(detection.boxes[box_index])
+                );
+            }
             common::DebugLog(
-                L"[adaptive-scan] direction="
-                + std::wstring(ScanDirectionName(current_direction))
-                + L" step=" + std::to_wstring(job.adaptive_expansion_count)
+                L"[locked-state] stage="
+                + std::wstring(LockedScanStageName(job.locked_stage))
+                + L" direction=" + ScanDirectionName(current_direction)
+                + L" expansionCount="
+                + std::to_wstring(job.adaptive_expansion_count)
                 + L" roi=(" + std::to_wstring(job.roi.left) + L","
                 + std::to_wstring(job.roi.top) + L")-("
                 + std::to_wstring(job.roi.right) + L","
-                + std::to_wstring(job.roi.bottom) + L") boxes="
+                + std::to_wstring(job.roi.bottom) + L") size="
+                + std::to_wstring(job.roi.Width()) + L"x"
+                + std::to_wstring(job.roi.Height()) + L" boxes="
                 + std::to_wstring(detection.boxes.size())
                 + L" localBoxes="
                 + std::to_wstring(adaptive_analysis.localBoxIndices.size())
@@ -698,14 +715,53 @@ void ScanTrigger::WorkerLoop() {
                     : L"none")
                 + L" stopThreshold="
                 + FormatMeasurement(adaptive_analysis.stopThreshold)
+                + L" rightmostText="
+                + FormatMeasurement(adaptive_analysis.rightmostTextX)
+                + L" rightTextMargin="
+                + FormatMeasurement(adaptive_analysis.rightTextMargin)
+                + L" topTextMargin="
+                + FormatMeasurement(adaptive_analysis.topTextMargin)
+                + L" bottomTextMargin="
+                + FormatMeasurement(adaptive_analysis.bottomTextMargin)
+                + L" tooltipRect="
+                + (tooltip_box_candidate.has_value()
+                    ? BoxText(tooltip_box_candidate->rect)
+                    : L"none")
+                + L" tooltipComplete="
+                + (tooltip_evidence.complete ? L"true" : L"false")
+                + L" hasRightBorder="
+                + (tooltip_evidence.hasRightBorder ? L"true" : L"false")
+                + L" widthComplete="
+                + (adaptive_analysis.horizontalComplete ? L"true" : L"false")
+                + L" needsExpandLeft="
+                + (adaptive_analysis.needsExpandLeft ? L"true" : L"false")
+                + L" needsExpandRight="
+                + (adaptive_analysis.needsExpandRight ? L"true" : L"false")
+                + L" needsExpandTop="
+                + (adaptive_analysis.needsExpandTop ? L"true" : L"false")
+                + L" needsExpandBottom="
+                + (adaptive_analysis.needsExpandBottom ? L"true" : L"false")
+                + L" transition=" + locked_decision.reason
             );
+            if (job.locked_stage == LockedScanStage::HorizontalExpansion
+                && !(locked_decision.shouldExpand
+                    && locked_decision.expansionSide == ExpansionSide::Right)) {
+                common::DebugLog(
+                    L"[locked-scan] stage=horizontal action=width_complete"
+                );
+            }
+            if (locked_decision.nextStage == LockedScanStage::TextAssembly) {
+                common::DebugLog(
+                    L"[locked-scan] stage=vertical action=height_complete"
+                );
+            }
 
-            if (adaptive_analysis.shouldExpand
+            if (locked_decision.shouldExpand
                 && job.adaptive_expansion_count
                     < adaptive_profile.maximumExpansionCount) {
                 const capture::Rect expanded_roi = ExpandAdaptiveTextRoi(
                     job.roi,
-                    adaptive_analysis.expansionSide,
+                    locked_decision.expansionSide,
                     adaptive_analysis.localMedianHeight,
                     job.virtual_screen,
                     adaptive_profile
@@ -718,9 +774,41 @@ void ScanTrigger::WorkerLoop() {
                     || expanded_roi.top != job.roi.top
                     || expanded_roi.right != job.roi.right
                     || expanded_roi.bottom != job.roi.bottom;
+                adaptive_analysis.nextRoi = expanded_roi;
                 if (changed && expanded_pixels > 0
                     && job.total_captured_pixels + expanded_pixels
                         <= adaptive_profile.maximumTotalCapturedPixels) {
+                    std::vector<LockedRoiStep> locked_roi_steps =
+                        job.locked_roi_steps;
+                    locked_roi_steps.push_back(LockedRoiStep{
+                        job.roi,
+                        job.locked_stage,
+                    });
+                    std::vector<ocr::RecognizedText> detector_debug_boxes;
+                    detector_debug_boxes.reserve(detection.boxes.size());
+                    for (const ocr::TextBox& box : detection.boxes) {
+                        detector_debug_boxes.push_back(ocr::RecognizedText{
+                            box,
+                            {},
+                            box.confidence,
+                        });
+                    }
+                    ScanResult locked_debug_result;
+                    locked_debug_result.profile = job.profile;
+                    std::wstring locked_debug_error;
+                    static_cast<void>(WriteSpatialAnnotatedBmp(
+                        job.spatial_output_path,
+                        job.capture_result.frame,
+                        job.anchor,
+                        profile,
+                        detector_debug_boxes,
+                        locked_debug_result,
+                        locked_debug_error,
+                        std::nullopt,
+                        adaptive_analysis,
+                        locked_roi_steps,
+                        capture::Point{job.roi.left, job.roi.top}
+                    ));
                     {
                         std::lock_guard lock(jobs_mutex_);
                         jobs_.push_back(ScanJob{
@@ -743,35 +831,75 @@ void ScanTrigger::WorkerLoop() {
                             job.virtual_screen,
                             job.adaptive_expansion_count + 1,
                             job.total_captured_pixels,
+                            locked_decision.nextStage,
+                            std::move(locked_roi_steps),
                         });
                     }
                     jobs_available_.notify_one();
                     common::DebugLog(
-                        L"[adaptive-scan] action=expand_"
+                        L"[locked-scan] stage="
+                        + std::wstring(LockedScanStageName(job.locked_stage))
+                        + L" action=expand_"
                         + std::wstring(ExpansionSideName(
-                            adaptive_analysis.expansionSide
+                            locked_decision.expansionSide
                         ))
                         + L" next_roi=(" + std::to_wstring(expanded_roi.left)
                         + L"," + std::to_wstring(expanded_roi.top) + L")-("
                         + std::to_wstring(expanded_roi.right) + L","
                         + std::to_wstring(expanded_roi.bottom) + L")"
+                        + L" reason=" + locked_decision.reason
                     );
                     continue;
                 }
                 common::DebugLog(
-                    L"[adaptive-scan] action=stop_safety_limit"
+                    L"[locked-scan] stage="
+                    + std::wstring(LockedScanStageName(job.locked_stage))
+                    + L" action=final_assembly_at_safety_limit"
                 );
+                adaptive_analysis.horizontalComplete = true;
+                adaptive_analysis.verticalComplete = true;
+                locked_decision = LockedScanDecision{
+                    LockedScanStage::TextAssembly,
+                    ExpansionSide::None,
+                    false,
+                    L"safety_limit_final_assembly",
+                };
+            } else if (locked_decision.shouldExpand) {
+                common::DebugLog(
+                    L"[locked-scan] stage="
+                    + std::wstring(LockedScanStageName(job.locked_stage))
+                    + L" action=final_assembly_at_expansion_limit"
+                );
+                adaptive_analysis.horizontalComplete = true;
+                adaptive_analysis.verticalComplete = true;
+                locked_decision = LockedScanDecision{
+                    LockedScanStage::TextAssembly,
+                    ExpansionSide::None,
+                    false,
+                    L"expansion_limit_final_assembly",
+                };
             } else if (adaptive_analysis.stoppedByLargeGap) {
                 common::DebugLog(
-                    L"[adaptive-scan] gap="
+                    L"[locked-scan] stage="
+                    + std::wstring(LockedScanStageName(job.locked_stage))
+                    + L" gap="
                     + FormatMeasurement(adaptive_analysis.nearestOutsideGap)
                     + L" stopThreshold="
                     + FormatMeasurement(adaptive_analysis.stopThreshold)
                     + L" action=stop_large_gap"
                 );
             } else {
-                common::DebugLog(L"[adaptive-scan] action=stop_no_continuation");
+                common::DebugLog(
+                    L"[locked-scan] stage="
+                    + std::wstring(LockedScanStageName(job.locked_stage))
+                    + L" action="
+                    + (locked_decision.nextStage == LockedScanStage::TextAssembly
+                        ? L"coverage_complete"
+                        : L"stop_no_continuation")
+                );
             }
+
+            job.locked_stage = locked_decision.nextStage;
 
             if (!adaptive_analysis.localBoxIndices.empty()) {
                 recognition_boxes.clear();
@@ -835,6 +963,37 @@ void ScanTrigger::WorkerLoop() {
         const auto matching_start = std::chrono::steady_clock::now();
         const LocalTextGroupingProfile grouping_profile =
             DefaultLocalTextGroupingProfile();
+        const OrderedTextAssembly text_assembly =
+            AssembleLocalTextInReadingOrder(recognition.texts);
+        if (job.profile == ScanProfileType::Inventory && job.direction_locked) {
+            job.locked_stage = LockedScanStage::TextAssembly;
+            for (std::size_t line_index = 0;
+                 line_index < text_assembly.lines.size();
+                 ++line_index) {
+                const OrderedTextLine& line = text_assembly.lines[line_index];
+                common::DebugLog(
+                    L"[text-assembly] line=" + std::to_wstring(line_index)
+                    + L" boxes=" + IndexList(line.boxIndices)
+                    + L" text=\"" + Utf8ToWide(line.text) + L"\""
+                );
+            }
+            common::DebugLog(
+                L"[text-assembly] complete=\""
+                + Utf8ToWide(text_assembly.completeText) + L"\""
+            );
+            job.locked_stage = LockedScanStage::CatalogMatch;
+        }
+        const auto evidence_coverage = [&](const data::ItemMatch& match) {
+            if (job.profile != ScanProfileType::Inventory
+                || !job.direction_locked
+                || text_assembly.completeText.empty()) {
+                return 1.0F;
+            }
+            return CatalogEvidenceCoverage(
+                text_assembly.completeText,
+                match.matchedAlias
+            );
+        };
         const auto log_match_diagnostics = [&](const wchar_t* tag,
                                                 std::size_t box_index,
                                                 const std::string& text,
@@ -922,6 +1081,7 @@ void ScanTrigger::WorkerLoop() {
                     {index},
                     1.0F,
                     false,
+                    evidence_coverage(match),
                 });
                 common::DebugLog(
                     L"[match] [" + std::to_wstring(index) + L"] alias=\""
@@ -937,6 +1097,7 @@ void ScanTrigger::WorkerLoop() {
                     {index},
                     1.0F,
                     false,
+                    evidence_coverage(matches.front()),
                 });
                 common::DebugLog(
                     L"[match-ambiguous] box=" + std::to_wstring(index)
@@ -1063,6 +1224,7 @@ void ScanTrigger::WorkerLoop() {
                     group_match.boxIndices,
                     group_match.groupingConfidence,
                     true,
+                    evidence_coverage(group_match.match),
                 };
                 continue;
             }
@@ -1076,7 +1238,110 @@ void ScanTrigger::WorkerLoop() {
                 group_match.boxIndices,
                 group_match.groupingConfidence,
                 true,
+                evidence_coverage(group_match.match),
             });
+        }
+
+        const auto add_ordered_hypothesis = [&](const std::string& text,
+                                                 const ocr::TextBox& box,
+                                                 const std::vector<std::size_t>& indices,
+                                                 float ocr_confidence,
+                                                 const wchar_t* kind) {
+            if (text.empty()) {
+                return;
+            }
+            const auto duplicate = std::find_if(
+                matched_texts.begin(),
+                matched_texts.end(),
+                [&](const MatchedText& matched) {
+                    return matched.recognized.text == text;
+                }
+            );
+            if (duplicate != matched_texts.end()) {
+                return;
+            }
+            const std::vector<data::ItemMatch> matches = item_catalog_.Match(
+                text,
+                5,
+                profile.catalog_threshold
+            );
+            if (matches.empty()) {
+                return;
+            }
+            const data::ItemMatch& match = matches.front();
+            const float coverage = evidence_coverage(match);
+            common::DebugLog(
+                L"[catalog-fit] hypothesis=" + std::wstring(kind)
+                + L" candidate=\"" + Utf8ToWide(match.matchedAlias)
+                + L"\" item_id=" + Utf8ToWide(match.item->id)
+                + L" similarity=" + FormatMeasurement(match.score)
+                + L" coverage=" + FormatMeasurement(coverage)
+                + L" ambiguous=" + (match.ambiguous ? L"true" : L"false")
+            );
+            if (!item_catalog_.IsConfidentMatch(text, match)) {
+                return;
+            }
+            matched_texts.push_back(MatchedText{
+                ocr::RecognizedText{box, text, ocr_confidence},
+                match,
+                indices,
+                1.0F,
+                true,
+                coverage,
+            });
+        };
+        for (const OrderedTextLine& line : text_assembly.lines) {
+            add_ordered_hypothesis(
+                line.text,
+                line.combinedBox,
+                line.boxIndices,
+                line.ocrConfidence,
+                L"line"
+            );
+        }
+        add_ordered_hypothesis(
+            text_assembly.completeText,
+            text_assembly.combinedBox,
+            text_assembly.orderedBoxIndices,
+            text_assembly.ocrConfidence,
+            L"complete"
+        );
+        if (job.profile == ScanProfileType::Inventory && job.direction_locked) {
+            std::vector<const MatchedText*> catalog_fit_ranking;
+            catalog_fit_ranking.reserve(matched_texts.size());
+            for (const MatchedText& matched : matched_texts) {
+                catalog_fit_ranking.push_back(&matched);
+            }
+            std::stable_sort(
+                catalog_fit_ranking.begin(),
+                catalog_fit_ranking.end(),
+                [](const MatchedText* left, const MatchedText* right) {
+                    if (left->match.ambiguous != right->match.ambiguous) {
+                        return !left->match.ambiguous;
+                    }
+                    if (left->evidenceCoverage != right->evidenceCoverage) {
+                        return left->evidenceCoverage > right->evidenceCoverage;
+                    }
+                    if (left->match.score != right->match.score) {
+                        return left->match.score > right->match.score;
+                    }
+                    return left->recognized.confidence
+                        > right->recognized.confidence;
+                }
+            );
+            for (std::size_t rank = 0; rank < catalog_fit_ranking.size(); ++rank) {
+                const MatchedText& fit = *catalog_fit_ranking[rank];
+                common::DebugLog(
+                    L"[catalog-fit] candidate=\""
+                    + Utf8ToWide(fit.match.matchedAlias)
+                    + L"\" similarity=" + FormatMeasurement(fit.match.score)
+                    + L" coverage=" + FormatMeasurement(fit.evidenceCoverage)
+                    + L" ocr=" + FormatMeasurement(fit.recognized.confidence)
+                    + L" ambiguous="
+                    + (fit.match.ambiguous ? L"true" : L"false")
+                    + L" rank=" + std::to_wstring(rank + 1)
+                );
+            }
         }
         const double matching_ms = ElapsedMilliseconds(matching_start);
         validation.catalog_valid_candidate_count = static_cast<std::size_t>(std::count_if(
@@ -1166,8 +1431,10 @@ void ScanTrigger::WorkerLoop() {
                  + L" MatchScore=" + FormatMeasurement(candidate.match.score)
                  + L" grouped=" + (candidate.grouped ? L"true" : L"false")
                  + L" source_boxes=" + IndexList(candidate.sourceBoxIndices)
-                 + L" grouping_confidence="
+                + L" grouping_confidence="
                  + FormatMeasurement(candidate.groupingConfidence)
+                + L" evidence_coverage="
+                + FormatMeasurement(candidate.evidenceCoverage)
                 + L" ambiguous="
                 + (candidate.match.ambiguous ? L"true" : L"false")
                 + L" tooltipCandidate="
@@ -1194,7 +1461,7 @@ void ScanTrigger::WorkerLoop() {
                     *spatial_result.nearestValid
                 );
             const std::wstring ranking_reason = profile.type == ScanProfileType::Inventory
-                ? L"nearest_valid_rect_in_local_block"
+                ? L"best_unambiguous_catalog_fit_in_locked_block"
                 : L"legacy_ring_direction_order";
             common::DebugLog(
                 L"[scan] selector_result=selected_rank=1 reason="
@@ -1280,6 +1547,17 @@ void ScanTrigger::WorkerLoop() {
         } else {
             common::DebugLog(L"[scan] selected none");
         }
+        if (job.profile == ScanProfileType::Inventory && job.direction_locked) {
+            common::DebugLog(
+                L"[locked-scan] stage="
+                + std::wstring(spatial_result.selected.has_value()
+                    ? LockedScanStageName(LockedScanStage::Complete)
+                    : LockedScanStageName(LockedScanStage::Failed))
+                + L" action="
+                + (spatial_result.selected.has_value()
+                    ? L"return_item" : L"return_no_result")
+            );
+        }
         if (spatial_result.nearestValid.has_value()) {
             const ScanCandidate& nearest = *spatial_result.nearestValid;
             common::DebugLog(
@@ -1308,6 +1586,13 @@ void ScanTrigger::WorkerLoop() {
 
         std::wstring spatial_error;
         const auto spatial_write_start = std::chrono::steady_clock::now();
+        std::vector<LockedRoiStep> debug_locked_roi_steps = job.locked_roi_steps;
+        if (job.profile == ScanProfileType::Inventory && job.direction_locked) {
+            debug_locked_roi_steps.push_back(LockedRoiStep{
+                job.roi,
+                job.locked_stage,
+            });
+        }
         const bool spatial_written = WriteSpatialAnnotatedBmp(
             job.spatial_output_path,
             job.capture_result.frame,
@@ -1319,7 +1604,10 @@ void ScanTrigger::WorkerLoop() {
             spatial_result.tooltipRegion,
             job.profile == ScanProfileType::Inventory && text_evidence
                 ? std::optional<AdaptiveTextAnalysis>{adaptive_analysis}
-                : std::nullopt
+                : std::nullopt,
+            debug_locked_roi_steps,
+            capture::Point{job.roi.left, job.roi.top},
+            text_assembly
         );
         const double spatial_write_ms = ElapsedMilliseconds(spatial_write_start);
 
@@ -1373,6 +1661,12 @@ void ScanTrigger::WorkerLoop() {
             continue;
         }
 
+        common::DebugLog(
+            L"[scan-output] finalItemSelected="
+            + std::wstring(spatial_result.selected.has_value() ? L"true" : L"false")
+            + L" displayResultBuilt="
+            + (display_result.has_value() ? L"true" : L"false")
+        );
         if (completion_callback_) {
             completion_callback_(ScanCompletion{
                 std::move(display_result),

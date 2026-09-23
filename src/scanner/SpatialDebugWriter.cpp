@@ -220,15 +220,98 @@ bool WriteSpatialAnnotatedBmp(
     const ScanResult& result,
     std::wstring& error,
     std::optional<ocr::TextBox> tooltip_region,
-    std::optional<AdaptiveTextAnalysis> adaptive_analysis
+    std::optional<AdaptiveTextAnalysis> adaptive_analysis,
+    std::span<const LockedRoiStep> locked_roi_steps,
+    capture::Point frame_origin,
+    std::optional<OrderedTextAssembly> text_assembly
 ) {
     capture::CapturedFrame annotated = frame;
+
+    DrawRect(
+        annotated,
+        ocr::TextBox{
+            0.0F,
+            0.0F,
+            static_cast<float>(frame.width),
+            static_cast<float>(frame.height),
+            1.0F,
+        },
+        Color{255, 255, 255}
+    );
+
+    for (const LockedRoiStep& step : locked_roi_steps) {
+        const Color color = step.stage == LockedScanStage::HorizontalExpansion
+            ? Color{255, 128, 0}
+            : Color{0, 200, 0};
+        DrawRect(
+            annotated,
+            ocr::TextBox{
+                static_cast<float>(step.roi.left - frame_origin.x),
+                static_cast<float>(step.roi.top - frame_origin.y),
+                static_cast<float>(step.roi.right - frame_origin.x),
+                static_cast<float>(step.roi.bottom - frame_origin.y),
+                1.0F,
+            },
+            color
+        );
+    }
 
     if (tooltip_region.has_value()) {
         DrawRect(annotated, *tooltip_region, Color{255, 0, 255});
     }
     if (adaptive_analysis.has_value()
         && adaptive_analysis->localBounds.has_value()) {
+        const float continuation_left = std::max(
+            0.0F,
+            static_cast<float>(frame.width) - adaptive_analysis->safeMargin
+        );
+        DrawRect(
+            annotated,
+            ocr::TextBox{
+                continuation_left,
+                1.0F,
+                static_cast<float>(frame.width) - 1.0F,
+                static_cast<float>(frame.height) - 1.0F,
+                1.0F,
+            },
+            adaptive_analysis->horizontalComplete
+                ? Color{0, 180, 0}
+                : Color{0, 0, 255}
+        );
+        DrawLine(
+            annotated,
+            AnchorPoint{adaptive_analysis->rightmostTextX, 0.0F},
+            AnchorPoint{
+                adaptive_analysis->rightmostTextX,
+                static_cast<float>(frame.height) - 1.0F,
+            },
+            Color{0, 0, 255}
+        );
+        if (adaptive_analysis->trustedTooltipRightBorder) {
+            DrawLine(
+                annotated,
+                AnchorPoint{adaptive_analysis->tooltipRightBorderX, 0.0F},
+                AnchorPoint{
+                    adaptive_analysis->tooltipRightBorderX,
+                    static_cast<float>(frame.height) - 1.0F,
+                },
+                Color{255, 0, 255}
+            );
+        }
+        if (adaptive_analysis->nextRoi.has_value()) {
+            const capture::Rect& next = *adaptive_analysis->nextRoi;
+            DrawRect(
+                annotated,
+                ocr::TextBox{
+                    static_cast<float>(next.left - frame_origin.x),
+                    static_cast<float>(next.top - frame_origin.y),
+                    static_cast<float>(next.right - frame_origin.x),
+                    static_cast<float>(next.bottom - frame_origin.y),
+                    1.0F,
+                },
+                Color{255, 0, 0}
+            );
+        }
         DrawRect(annotated, *adaptive_analysis->localBounds, Color{255, 255, 0});
         if (adaptive_analysis->stoppedByLargeGap) {
             const ocr::TextBox& block = *adaptive_analysis->localBounds;
@@ -248,6 +331,35 @@ bool WriteSpatialAnnotatedBmp(
     }
     for (const ocr::RecognizedText& recognized : recognized_texts) {
         DrawRect(annotated, recognized.box, Color{0, 255, 255});
+    }
+    if (text_assembly.has_value()) {
+        constexpr std::array<Color, 4> line_colors{
+            Color{255, 255, 0}, Color{255, 0, 255},
+            Color{0, 255, 0}, Color{0, 165, 255},
+        };
+        for (std::size_t index = 0; index < text_assembly->lines.size(); ++index) {
+            const OrderedTextLine& line = text_assembly->lines[index];
+            const Color color = line_colors[index % line_colors.size()];
+            DrawRect(annotated, line.combinedBox, color);
+            if (index < 9) {
+                const auto glyph = DigitGlyph(index + 1);
+                const long label_x = static_cast<long>(std::lround(line.combinedBox.x1)) + 2;
+                const long label_y = static_cast<long>(std::lround(line.combinedBox.y1)) + 2;
+                for (long row = 0; row < 5; ++row) {
+                    for (long column = 0; column < 3; ++column) {
+                        if (glyph[static_cast<std::size_t>(row)]
+                                [static_cast<std::size_t>(column)] != 0) {
+                            SetPixel(
+                                annotated,
+                                label_x + column,
+                                label_y + row,
+                                color
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
     for (float radius = profile.ring_step;
          radius <= profile.max_search_radius;

@@ -12,13 +12,18 @@ struct TooltipBoxCandidate final {
     ocr::TextBox rect;
     float borderConfidence{};
     float proximityToCursor{};
+    bool hasLeftBorder{};
+    bool hasRightBorder{};
+    bool hasTopBorder{};
+    bool hasBottomBorder{};
     bool clippedLeft{};
     bool clippedRight{};
     bool clippedTop{};
     bool clippedBottom{};
 
     [[nodiscard]] bool FullBox() const noexcept {
-        return !clippedLeft && !clippedRight && !clippedTop && !clippedBottom;
+        return hasLeftBorder && hasRightBorder && hasTopBorder && hasBottomBorder
+            && !clippedLeft && !clippedRight && !clippedTop && !clippedBottom;
     }
 };
 
