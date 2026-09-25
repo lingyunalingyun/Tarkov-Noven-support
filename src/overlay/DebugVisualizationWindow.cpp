@@ -104,6 +104,10 @@ void DebugVisualizationWindow::ShowRoi(const capture::Rect& roi) {
     ShowWindow(roi_window_, SW_SHOWNOACTIVATE);
 }
 
+void DebugVisualizationWindow::HideRoi() noexcept {
+    if (roi_window_ != nullptr) ShowWindow(roi_window_, SW_HIDE);
+}
+
 bool DebugVisualizationWindow::ShowSpatial(
     const std::filesystem::path& image_path,
     const capture::Rect& roi,

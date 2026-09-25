@@ -21,6 +21,7 @@ public:
     void Destroy() noexcept;
 
     void ShowRoi(const capture::Rect& roi);
+    void HideRoi() noexcept;
     bool ShowSpatial(
         const std::filesystem::path& image_path,
         const capture::Rect& roi,
@@ -30,6 +31,9 @@ public:
 
     [[nodiscard]] bool ShouldHideSpatial(POINT current_cursor) const noexcept;
     [[nodiscard]] bool SpatialVisible() const noexcept { return spatial_visible_; }
+    [[nodiscard]] bool RoiVisible() const noexcept {
+        return roi_window_ != nullptr && IsWindowVisible(roi_window_) != FALSE;
+    }
 
 private:
     static constexpr UINT kMovementThresholdLogicalPixels = 8;

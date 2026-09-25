@@ -9,8 +9,10 @@
 #include "overlay/OverlayTypes.h"
 #include "scanner/AdaptiveTextExpansion.h"
 #include "scanner/SpatialCandidateSelector.h"
+#include "scanner/TooltipHeuristic.h"
 
 #include <chrono>
+#include <cstdint>
 #include <condition_variable>
 #include <deque>
 #include <filesystem>
@@ -23,6 +25,7 @@
 namespace noven::scanner {
 
 struct ScanValidationRecord final {
+    std::uint64_t scan_id{};
     std::chrono::steady_clock::time_point hotkey_start{};
     data::GameMode game_mode{data::GameMode::Pvp};
     ScanProfileType profile{ScanProfileType::Inventory};
@@ -84,7 +87,7 @@ public:
     void SetCompletionCallback(std::function<void(ScanCompletion)> callback);
     void SetScanStepCallback(std::function<void(capture::Rect)> callback);
     void Start();
-    void Trigger();
+    void Trigger(bool previous_overlay_visible = false);
 
 private:
     struct ScanJob final {
@@ -109,6 +112,13 @@ private:
         std::size_t total_captured_pixels{};
         LockedScanStage locked_stage{LockedScanStage::HorizontalExpansion};
         std::vector<LockedRoiStep> locked_roi_steps;
+        InventoryRecognitionPath inventory_path{
+            InventoryRecognitionPath::PrimaryTooltip
+        };
+        TooltipPlacement tooltip_placement{TooltipPlacement::DefaultRightUpper};
+        std::uint64_t scan_id{};
+        capture::Rect monitor_bounds{};
+        bool capture_guard_pending{};
     };
 
     void WorkerLoop();
@@ -126,6 +136,7 @@ private:
     data::GameMode game_mode_{data::GameMode::Pvp};
     SpatialCandidateSelector candidate_selector_;
     unsigned long capture_number_{};
+    std::uint64_t next_scan_id_{};
     std::mutex jobs_mutex_;
     std::condition_variable jobs_available_;
     std::deque<ScanJob> jobs_;

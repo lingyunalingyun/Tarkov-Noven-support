@@ -20,6 +20,7 @@ set(TEXT_DETECTOR_MODEL "${CMAKE_CURRENT_SOURCE_DIR}/assets/models/ppocrv5_mobil
 set(TEXT_RECOGNIZER_MODEL "${CMAKE_CURRENT_SOURCE_DIR}/assets/models/ppocrv5_mobile_rec.onnx")
 set(TEXT_RECOGNIZER_DICTIONARY "${CMAKE_CURRENT_SOURCE_DIR}/assets/models/ppocrv5_mobile_rec_dict.txt")
 set(ITEM_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/assets/data/items_catalog.tsv")
+set(ITEM_CATALOG_METADATA "${CMAKE_CURRENT_SOURCE_DIR}/assets/data/items_catalog.meta.json")
 
 if(NOT EXISTS "${ONNXRUNTIME_INCLUDE_DIR}/onnxruntime_c_api.h")
     message(FATAL_ERROR "ONNX Runtime headers are missing. See README.md for preparation steps.")
@@ -38,6 +39,9 @@ if(NOT EXISTS "${TEXT_RECOGNIZER_DICTIONARY}")
 endif()
 if(NOT EXISTS "${ITEM_CATALOG}")
     message(FATAL_ERROR "Item catalog is missing: ${ITEM_CATALOG}")
+endif()
+if(NOT EXISTS "${ITEM_CATALOG_METADATA}")
+    message(FATAL_ERROR "Item catalog metadata is missing: ${ITEM_CATALOG_METADATA}")
 endif()
 
 add_executable(NovenTarkovSupport WIN32
@@ -59,6 +63,7 @@ add_executable(NovenTarkovSupport WIN32
     src/overlay/OverlayTypes.cpp
     src/overlay/OverlayWindow.cpp
     src/scanner/DebugImageWriter.cpp
+    src/scanner/InventoryRecognition.cpp
     src/scanner/AdaptiveTextExpansion.cpp
     src/scanner/LocalTextGrouping.cpp
     src/scanner/ProgressiveScan.cpp
@@ -66,6 +71,7 @@ add_executable(NovenTarkovSupport WIN32
     src/scanner/SpatialCandidateSelector.cpp
     src/scanner/SpatialDebugWriter.cpp
     src/scanner/TooltipHeuristic.cpp
+    src/scanner/TooltipPlacementModel.cpp
 )
 
 target_include_directories(NovenTarkovSupport PRIVATE
@@ -107,6 +113,7 @@ target_link_libraries(NovenTarkovSupport PRIVATE
     dxgi
     d2d1
     dwrite
+    dwmapi
     winhttp
 )
 
@@ -130,6 +137,9 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${ITEM_CATALOG}"
         "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/data/items_catalog.tsv"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${ITEM_CATALOG_METADATA}"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/data/items_catalog.meta.json"
 )
 
 include(CTest)
@@ -137,6 +147,11 @@ if(BUILD_TESTING)
     configure_file(
         "${ITEM_CATALOG}"
         "${CMAKE_CURRENT_BINARY_DIR}/test-data/items_catalog.tsv"
+        COPYONLY
+    )
+    configure_file(
+        "${ITEM_CATALOG_METADATA}"
+        "${CMAKE_CURRENT_BINARY_DIR}/test-data/items_catalog.meta.json"
         COPYONLY
     )
     add_executable(NovenTarkovSupportCatalogTests
@@ -210,6 +225,7 @@ if(BUILD_TESTING)
         src/scanner/ProgressiveScan.cpp
         src/scanner/SpatialCandidateSelector.cpp
         src/scanner/TooltipHeuristic.cpp
+        src/scanner/TooltipPlacementModel.cpp
     )
     target_include_directories(NovenTarkovSupportProgressiveScanTests PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -332,4 +348,27 @@ if(BUILD_TESTING)
         )
     endif()
     add_test(NAME overlay_logic COMMAND NovenTarkovSupportOverlayTests)
+
+    add_executable(NovenTarkovSupportInventoryRecognitionTests
+        tests/InventoryRecognitionTests.cpp
+        src/data/ItemCatalog.cpp
+        src/data/ItemEconomyStore.cpp
+        src/overlay/OverlayTypes.cpp
+        src/scanner/InventoryRecognition.cpp
+        src/scanner/LocalTextGrouping.cpp
+        src/scanner/SpatialCandidateSelector.cpp
+    )
+    target_include_directories(NovenTarkovSupportInventoryRecognitionTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(NovenTarkovSupportInventoryRecognitionTests PRIVATE
+        UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportInventoryRecognitionTests PRIVATE
+            /W4 /permissive- /utf-8 /EHsc
+        )
+    endif()
+    add_test(NAME inventory_recognition COMMAND NovenTarkovSupportInventoryRecognitionTests
+        "test-data/items_catalog.tsv")
 endif()

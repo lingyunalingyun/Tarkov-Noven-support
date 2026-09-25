@@ -37,6 +37,77 @@ int main() {
             && noven::scanner::InventoryScanSizeForLevel({800, 600}, 2).height == 320,
         "level 2 remains below the legacy 800x600 first capture"
     );
+    const auto primary_size = noven::scanner::InventoryPrimaryTooltipSize({800, 600});
+    Require(primary_size.width == 300 && primary_size.height == 80,
+        "Inventory primary path starts with a compact 300x80 tooltip ROI");
+    const auto normal_placement = noven::scanner::PredictTooltipPlacement(
+        {500, 500}, {0, 0, 1200, 900});
+    Require(normal_placement.placement
+            == noven::scanner::TooltipPlacement::DefaultRightUpper
+            && normal_placement.roi.left > 500
+            && normal_placement.roi.top < 500
+            && normal_placement.roi.bottom < 500,
+        "center-screen search is one right-upper corridor, not three probes");
+    const auto edge_placement = noven::scanner::PredictTooltipPlacement(
+        {1150, 500}, {0, 0, 1200, 900});
+    Require(edge_placement.placement
+            == noven::scanner::TooltipPlacement::RightEdgeShiftedLeft
+            && edge_placement.roi.left < 1150
+            && edge_placement.roi.right > 1150,
+        "right monitor edge shifts search inward across cursor X");
+    const auto secondary_monitor = noven::scanner::PredictTooltipPlacement(
+        {-300, 500}, {-1920, 0, 0, 1080});
+    Require(secondary_monitor.placement
+            == noven::scanner::TooltipPlacement::RightEdgeShiftedLeft,
+        "placement uses cursor monitor bounds with negative coordinates");
+    const auto credible_geometry = noven::scanner::TooltipGeometryConfidence(
+        {500, 500}, {525, 412, 750, 480, 1.0F},
+        noven::scanner::TooltipPlacement::DefaultRightUpper);
+    const auto wrong_geometry = noven::scanner::TooltipGeometryConfidence(
+        {500, 500}, {220, 412, 440, 480, 1.0F},
+        noven::scanner::TooltipPlacement::DefaultRightUpper);
+    Require(credible_geometry > 0.55F && wrong_geometry < 0.45F,
+        "right-upper panel is credible and far above-left panel is rejected");
+    const noven::scanner::TooltipBoxCandidate weak_right{
+        {180, 20, 290, 70, 0.9F}, 0.6F, 0.70F, 0.1F, 0.62F, 15.0F, 0.95F,
+        true, false, true, true, false, true, false, false,
+    };
+    const noven::scanner::TooltipBoxCandidate complete_above_center{
+        {20, 10, 180, 75, 0.9F}, 0.7F, 0.90F, 0.6F, 0.92F, 20.0F, 0.10F,
+        true, true, true, true, false, false, false, false,
+    };
+    Require(!noven::scanner::IsBetterTooltipProbe(
+                complete_above_center,
+                noven::scanner::TooltipPlacement::DefaultRightUpper,
+                weak_right,
+                noven::scanner::TooltipPlacement::DefaultRightUpper
+            ),
+        "far wrong-side panel cannot outrank a panel in the predicted corridor");
+    Require(!noven::capture::FrameSafeAfterOverlayHide(
+                true, noven::capture::CaptureSource::DxgiCachedFrame)
+            && noven::capture::FrameSafeAfterOverlayHide(
+                true, noven::capture::CaptureSource::DxgiNewFrame),
+        "previous overlay cannot be read from a cached pre-hide frame");
+    const std::array title_boxes{
+        noven::ocr::TextBox{10.0F, 10.0F, 50.0F, 24.0F, 0.9F},
+        noven::ocr::TextBox{54.0F, 10.0F, 88.0F, 24.0F, 0.9F},
+        noven::ocr::TextBox{10.0F, 27.0F, 45.0F, 40.0F, 0.9F},
+        noven::ocr::TextBox{10.0F, 65.0F, 70.0F, 78.0F, 0.9F},
+    };
+    const auto title_band = noven::scanner::DeriveTooltipTitleBand(
+        title_boxes,
+        {100, 100}
+    );
+    Require(title_band.has_value()
+            && title_band->x1 == 10.0F && title_band->y1 == 10.0F
+            && title_band->x2 == 88.0F && title_band->y2 == 40.0F,
+        "title band includes compact wrapped name rows but excludes separated details");
+    const auto confined_title = noven::scanner::ClampTooltipTitleCrop(
+        {10.0F, 10.0F, 92.0F, 30.0F, 1.0F},
+        {12.0F, 8.0F, 90.0F, 45.0F, 1.0F}, 4.0F);
+    Require(confined_title.has_value() && confined_title->x1 == 12.0F
+            && confined_title->x2 == 90.0F,
+        "title OCR crop stays inside the detected tooltip panel");
 
     const auto upper_right = noven::scanner::CalculateDirectionalRoi(
         anchor,
@@ -403,6 +474,17 @@ int main() {
             && tooltip->rect.y1 <= 36.0F && tooltip->rect.y2 >= 116.0F,
         "detected tooltip bounds contain the dark rectangle"
     );
+    Require(tooltip->panelConfidence >= 0.55F,
+        "dark low-saturation panel with visible edges is confident");
+    const auto complete_decision = noven::scanner::DecideTooltipPrimaryPath(
+        tooltip,
+        {0, 0, 300, 200},
+        {0, 0, 1000, 1000},
+        0
+    );
+    Require(complete_decision.action
+            == noven::scanner::TooltipPrimaryAction::PreciseCrop,
+        "confident complete tooltip uses the primary precise-crop path");
 
     noven::capture::CapturedFrame clipped_right_frame;
     clipped_right_frame.width = 180;
@@ -439,6 +521,30 @@ int main() {
     );
     Require(expanded_right.right > 180,
         "a right-clipped tooltip expands to the right before fallback");
+    const auto partial_decision = noven::scanner::DecideTooltipPrimaryPath(
+        clipped_right,
+        {90, 0, 270, 140},
+        {0, 0, 1000, 1000},
+        0
+    );
+    Require(partial_decision.action
+            == noven::scanner::TooltipPrimaryAction::RecoverPanel,
+        "partial tooltip recovers its missing edge before adaptive fallback");
+    Require(partial_decision.nextRoi.left == 90
+            && partial_decision.nextRoi.top == 0
+            && partial_decision.nextRoi.bottom == 140
+            && partial_decision.nextRoi.right > 270,
+        "right-clipped tooltip expands only its missing right edge");
+
+    const auto no_panel_decision = noven::scanner::DecideTooltipPrimaryPath(
+        std::nullopt,
+        {90, 0, 390, 80},
+        {0, 0, 1000, 1000},
+        0
+    );
+    Require(no_panel_decision.action
+            == noven::scanner::TooltipPrimaryAction::AdaptiveFallback,
+        "missing tooltip panel invokes AdaptiveTextExpansion fallback");
 
     noven::capture::CapturedFrame clipped_top_frame;
     clipped_top_frame.width = 220;
@@ -473,6 +579,44 @@ int main() {
     );
     Require(expanded_top.top < -40,
         "a top-clipped tooltip expands upward before fallback");
+
+    noven::capture::CapturedFrame text_background_frame;
+    text_background_frame.width = 200;
+    text_background_frame.height = 80;
+    text_background_frame.stride = text_background_frame.width * 4;
+    text_background_frame.bgra.assign(
+        static_cast<std::size_t>(text_background_frame.stride)
+            * text_background_frame.height,
+        220
+    );
+    for (long y = 5; y < 75; ++y) {
+        for (long x = 5; x < 105; ++x) {
+            const std::size_t offset = static_cast<std::size_t>(y)
+                * text_background_frame.stride + static_cast<std::size_t>(x) * 4;
+            text_background_frame.bgra[offset] = 35;
+            text_background_frame.bgra[offset + 1] = 35;
+            text_background_frame.bgra[offset + 2] = 35;
+            text_background_frame.bgra[offset + 3] = 255;
+        }
+    }
+    const std::array tooltip_texts{
+        noven::ocr::RecognizedText{
+            {20.0F, 20.0F, 90.0F, 42.0F, 0.9F}, "BlackRock", 0.9F,
+        },
+        noven::ocr::RecognizedText{
+            {125.0F, 20.0F, 190.0F, 42.0F, 0.9F}, "Unrelated", 0.9F,
+        },
+        noven::ocr::RecognizedText{
+            {20.0F, 48.0F, 80.0F, 66.0F, 0.9F}, "232/400", 0.9F,
+        },
+    };
+    const auto filtered_texts = noven::scanner::FilterTooltipNameFragments(
+        text_background_frame,
+        tooltip_texts
+    );
+    Require(filtered_texts.size() == 1
+            && filtered_texts.front().text == "BlackRock",
+        "tooltip filtering ignores outside text and numeric status noise");
 
     std::cout << "Progressive scan tests passed\n";
     return 0;

@@ -24,6 +24,9 @@ public:
     void Destroy() noexcept;
     [[nodiscard]] OverlayShowResult Show(const ScanDisplayResult& result, POINT anchor);
     void Hide() noexcept;
+    [[nodiscard]] bool Visible() const noexcept {
+        return window_ != nullptr && IsWindowVisible(window_) != FALSE;
+    }
 
     [[nodiscard]] HWND Handle() const noexcept { return window_; }
 

@@ -113,16 +113,27 @@ read-only, offline catalog keyed by the stable Tarkov template ID. Each record
 can expose Simplified Chinese and English full-name and short-name aliases;
   matching never replaces a localized field with an alias used for lookup.
 
-The catalog currently contains 3,491 items and 13,384 aliases. The generated
-snapshot uses the item ID set from
-[TarkovTracker/tarkovdata](https://github.com/TarkovTracker/tarkovdata) and
-English/Chinese localized fields from
-[SPTarkov server-csharp global/en.json and global/ch.json](https://github.com/sp-tarkov/server-csharp/tree/main/Libraries/SPTarkov.Server.Assets/SPT_Data/database/locales/global).
-The SPTarkov source is licensed under
-[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/);
-the catalog is a generated derived snapshot for this non-networked prototype.
-The source files provide names but not dimensions in this format, so `width`
-and `height` are currently reserved as zero.
+The generated snapshot contains 5,441 game-template items and 21,762 localized
+alias fields. `tools/catalog_generator/generate.py` uses
+[`json.tarkov.dev/regular/items`](https://json.tarkov.dev/endpoints) as the
+canonical stable-ID, dimensions, types, and caliber source. The companion
+`items_en` and `items_zh` documents supply names by the same ID; a missing
+Chinese field may be filled from [SPT `global/ch.json`](https://github.com/sp-tarkov/server-csharp/tree/main/Libraries/SPTarkov.Server.Assets/SPT_Data/database/locales/global)
+or an optional legacy catalog. Missing Chinese never removes a canonical item.
+One synthetic non-hex API ID (`customdogtags12345678910`) is reported in
+metadata but excluded from the game's 24-hex template-ID catalog.
+
+Regenerate with `python tools/catalog_generator/generate.py --output-tsv
+assets/data/items_catalog.tsv --output-meta assets/data/items_catalog.meta.json`.
+This is a development-only Python standard-library tool; the native executable
+does not run Python or fetch catalog data while scanning. For reproducible
+offline generation, pass `--canonical-json`, `--english-json`,
+`--chinese-json`, and `--spt-json` local snapshots. `generated_at` is the newest
+canonical item update timestamp, making unchanged inputs byte-for-byte stable.
+The generator reports coverage, source/economy ID differences, and alias
+collisions. `items_catalog.meta.json` is packaged with the TSV and logged at
+startup. SPT's repository [license is CC BY-NC-SA 4.0](https://github.com/sp-tarkov/server-csharp/blob/main/LICENSE);
+check all upstream data terms before redistributing refreshed snapshots.
 
 Matching preserves the original UTF-8 OCR text and uses a conservative
 normalization pass: full-width ASCII and spaces, common Chinese/Unicode

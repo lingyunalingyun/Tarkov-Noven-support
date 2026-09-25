@@ -46,6 +46,13 @@ enum class CaptureSource {
     GdiEmergency,
 };
 
+[[nodiscard]] inline bool FrameSafeAfterOverlayHide(
+    bool overlay_was_visible,
+    CaptureSource source
+) noexcept {
+    return !overlay_was_visible || source != CaptureSource::DxgiCachedFrame;
+}
+
 struct CapturedFrame final {
     std::uint32_t width{};
     std::uint32_t height{};

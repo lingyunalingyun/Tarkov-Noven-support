@@ -1,5 +1,6 @@
 #include "data/ItemCatalog.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <cstdlib>
 #include <chrono>
@@ -49,14 +50,16 @@ int main(int argc, char** argv) {
         Require(static_cast<bool>(file), "additional test catalog rows can be appended");
         file << "61bf7b6302b3924be92fa8c4\t\xE9\x87\x91\xE5\xB1\x9E\xE9\x9B\xB6\xE4\xBB\xB6\t\xE9\x87\x91\xE5\xB1\x9E\xE9\x9B\xB6\xE4\xBB\xB6\tMetal parts\tParts\t1\t1\n"
              << "5c48a2c22e221602b313fb6c\tMDR grip\tMDR\tMDR pistol grip (FDE)\tMDR\t1\t1\n"
-             << "5c488a752e221602b412af63\tMDR rifle\tMDR\tDesert Tech MDR 5.56x45 assault rifle\tMDR\t2\t1\n";
+             << "5c488a752e221602b412af63\tMDR rifle\tMDR\tDesert Tech MDR 5.56x45 assault rifle\tMDR\t2\t1\n"
+             << "545cdae64bdc2d39198b4568\tCamelbak Tri-Zip 突击背包（叶绿色）\tTri-Zip\tCamelbak Tri-Zip assault backpack (Foliage)\tTri-Zip\t2\t3\n"
+             << "5c0a840b86f7747fa141986d\tTHICC 物品箱\tTHICC\tT H I C C item case\tT H I C C\t4\t3\n";
     }
 
     noven::data::ItemCatalog catalog;
     std::wstring error;
     Require(catalog.Load(path, error), "catalog loads");
-    Require(catalog.ItemCount() == 7, "all test items load");
-    Require(catalog.AliasCount() == 28, "all aliases are indexed");
+    Require(catalog.ItemCount() == 9, "all test items load");
+    Require(catalog.AliasCount() == 36, "all aliases are indexed");
 
     const auto zh_name = catalog.Match("金属零件");
     Require(Find(zh_name, "61bf7b6302b3924be92fa8c3") != nullptr,
@@ -84,6 +87,26 @@ int main(int argc, char** argv) {
     Require(Find(catalog.Match("６Ｂ２ body armor （Flora）"),
                  "5df8a2ca86f7740bfe6df777") != nullptr,
         "full-width numbers and punctuation match");
+    const auto cjk_punctuation = catalog.Match(
+        "CamelBak Tri-Zip 突击背包 (叶绿色)"
+    );
+    Require(!cjk_punctuation.empty()
+            && cjk_punctuation.front().item->id == "545cdae64bdc2d39198b4568",
+        "Chinese and ASCII parentheses normalize to the same mixed-language alias");
+    const auto camelbak_english = catalog.Match(
+        "Camelbak Tri-Zip assault backpack (Foliage)"
+    );
+    Require(!camelbak_english.empty()
+            && camelbak_english.front().item->id == "545cdae64bdc2d39198b4568",
+        "Chinese and English full aliases resolve to one stable item ID");
+    const auto damaged_camelbak = catalog.Match("amelbakTr'-'Zio", 10);
+    Require(!damaged_camelbak.empty()
+            && damaged_camelbak.front().item->id == "545cdae64bdc2d39198b4568",
+        "fragmented OCR typo ranks the Camelbak English catalog alias first");
+    const auto thicc_ocr = catalog.Match("HICC 物品箱", 10);
+    Require(!thicc_ocr.empty()
+            && thicc_ocr.front().item->id == "5c0a840b86f7747fa141986d",
+        "missing leading OCR character ranks the THICC Chinese catalog item first");
 
     const auto typo = catalog.Match("6B2 bodi armor (Fora)");
     const auto* typo_match = Find(typo, "5df8a2ca86f7740bfe6df777");
@@ -113,6 +136,29 @@ int main(int argc, char** argv) {
     Require(mdr.front().competitiveCandidateCount > 1
             && mdr.front().scoreGap < 0.08F,
         "MDR exposes competing candidates and a small score gap");
+
+    noven::data::CatalogNarrowingStats size_stats;
+    const auto sized_mdr = catalog.MatchConstrained(
+        "MDR",
+        10,
+        0.64F,
+        noven::data::ItemDimensions{2, 1},
+        &size_stats
+    );
+    Require(sized_mdr.size() == 1
+            && sized_mdr.front().item->id == "5c488a752e221602b412af63",
+        "reliable 2x1 dimensions narrow MDR aliases to the rifle");
+    Require(size_stats.allItems == 9 && size_stats.afterSizeFilter == 3
+            && size_stats.afterAliasFilter == 1,
+        "catalog narrowing reports size and alias candidate counts");
+    const auto unknown_size_mdr = catalog.MatchConstrained(
+        "MDR",
+        10,
+        0.64F,
+        std::nullopt
+    );
+    Require(unknown_size_mdr.size() >= 2,
+        "unknown dimensions do not reject otherwise valid item aliases");
 
     const auto mdr_richer = catalog.Match("MDR 5.56x45", 10);
     const auto* richer_rifle = Find(mdr_richer, "5c488a752e221602b412af63");
@@ -147,6 +193,28 @@ int main(int argc, char** argv) {
             production_error
         ),
             "production catalog loads for benchmark");
+        constexpr auto kNl545 = "68c2940aecc41cc5490bd40e";
+        Require(production_catalog.ItemCount() >= 5'400
+                && production_catalog.AliasCount() >= 20'000
+                && production_catalog.EnglishFieldCount() >= 10'000
+                && production_catalog.ChineseFieldCount() >= 10'000
+                && !production_catalog.SourceVersion().empty()
+                && !production_catalog.GeneratedAt().empty(),
+            "production catalog is current and records generation health");
+        const auto nl545_english = production_catalog.Match(
+            "Custom Guns NL545 (GP) 5.45x39 assault rifle", 20);
+        const auto nl545_chinese = production_catalog.Match(
+            "NL545 (GP) 5.45x39 突击步枪", 20);
+        const auto nl545_short = production_catalog.Match("NL545 GP", 20);
+        const auto* rifle = Find(nl545_english, kNl545);
+        Require(rifle != nullptr && Find(nl545_chinese, kNl545) != nullptr
+                && Find(nl545_short, kNl545) != nullptr,
+            "NL545 English, Chinese, and short aliases retain one stable ID");
+        Require(rifle->item->width == 1 && rifle->item->height == 1
+                && rifle->item->caliber == "Caliber545x39"
+                && std::find(rifle->item->types.begin(), rifle->item->types.end(), "gun")
+                    != rifle->item->types.end(),
+            "NL545 dimensions, caliber, and canonical item type are retained");
         const auto start = std::chrono::steady_clock::now();
         for (int iteration = 0; iteration < 100; ++iteration) {
             static_cast<void>(production_catalog.Match("6B2 bodi armor (Fora)"));

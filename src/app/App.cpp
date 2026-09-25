@@ -12,10 +12,11 @@
 #include "overlay/DebugVisualizationWindow.h"
 #include "overlay/OverlayTypes.h"
 #include "overlay/OverlayWindow.h"
-#include "scanner/ProgressiveScan.h"
 #include "scanner/ScanTrigger.h"
+#include "scanner/TooltipHeuristic.h"
 
 #include <commctrl.h>
+#include <dwmapi.h>
 #include <shellscalingapi.h>
 
 #include <filesystem>
@@ -107,6 +108,7 @@ std::wstring CurrentTimestamp() {
 void LogValidation(const scanner::ScanValidationRecord& record) {
     std::wostringstream summary;
     summary << L"[validation] timestamp=" << CurrentTimestamp()
+            << L" scan_id=" << record.scan_id
             << L" classification=" << scanner::ScanClassificationName(record.classification)
             << L" game_mode=" << data::GameModeName(record.game_mode)
             << L" profile=" << scanner::ScanProfileName(record.profile)
@@ -288,13 +290,15 @@ int App::Run(HINSTANCE instance, int show_command) {
         catalog_error
     )) {
         common::DebugLog(L"[app] item catalog initialization failed: " + catalog_error);
-        DestroyWindow(window_);
-        window_ = nullptr;
-        return 1;
+        common::DebugLog(L"[app] continuing with OCR-only Inventory feedback");
     }
     common::DebugLog(
         L"[catalog] loaded items=" + std::to_wstring(item_catalog_->ItemCount())
         + L" aliases=" + std::to_wstring(item_catalog_->AliasCount())
+        + L" english=" + std::to_wstring(item_catalog_->EnglishFieldCount())
+        + L" chinese=" + std::to_wstring(item_catalog_->ChineseFieldCount())
+        + L" source_version=" + Utf8ToWide(item_catalog_->SourceVersion())
+        + L" generated_at=" + Utf8ToWide(item_catalog_->GeneratedAt())
     );
 
     data_refresh_service_->Start(executable_directory / L"data" / L"economy-cache");
@@ -345,6 +349,7 @@ int App::Run(HINSTANCE instance, int show_command) {
     }
 
     scan_trigger_->SetCompletionCallback([this](scanner::ScanCompletion completion) {
+        const std::uint64_t scan_id = completion.validation.scan_id;
         auto* completion_pointer = new scanner::ScanCompletion(std::move(completion));
         const bool posted = PostMessageW(
             window_,
@@ -353,7 +358,7 @@ int App::Run(HINSTANCE instance, int show_command) {
             reinterpret_cast<LPARAM>(completion_pointer)
         ) != FALSE;
         common::DebugLog(
-            L"[scan-output] wmAppPosted="
+            L"[scan:" + std::to_wstring(scan_id) + L"][display] wmAppPosted="
             + std::wstring(posted ? L"true" : L"false")
         );
         if (!posted) {
@@ -400,15 +405,26 @@ int App::Run(HINSTANCE instance, int show_command) {
 
 void App::OnHotkey(WPARAM hotkey_id) {
     if (hotkey_id == static_cast<WPARAM>(kCaptureHotkeyId)) {
+        const bool previous_overlay_visible = overlay_window_ != nullptr
+            && overlay_window_->Visible();
+        if (previous_overlay_visible) overlay_window_->Hide();
+        bool debug_visible = false;
         if (kDebugScanVisualization && debug_visualization_window_ != nullptr) {
-            POINT cursor{};
-            if (GetCursorPos(&cursor)) {
-                UpdateDebugRoi(cursor);
-            }
+            debug_visible = debug_visualization_window_->RoiVisible()
+                || debug_visualization_window_->SpatialVisible();
+            debug_visualization_window_->HideRoi();
             debug_visualization_window_->HideSpatial();
             KillTimer(window_, kDebugMouseTimerId);
         }
-        scan_trigger_->Trigger();
+        const bool hidden_for_capture = previous_overlay_visible || debug_visible;
+        if (hidden_for_capture) DwmFlush();
+        common::DebugLog(
+            L"[overlay-capture-guard] previousOverlayVisible="
+            + std::wstring(previous_overlay_visible ? L"true" : L"false")
+            + L" hiddenForCapture="
+            + (hidden_for_capture ? L"true" : L"false"));
+        scan_in_progress_ = true;
+        scan_trigger_->Trigger(hidden_for_capture);
     }
 }
 
@@ -417,18 +433,18 @@ void App::UpdateDebugRoi(POINT anchor) {
         return;
     }
     const capture::Point scan_anchor{anchor.x, anchor.y};
-    const capture::Rect virtual_screen = VirtualScreenRect();
+    capture::Rect monitor_bounds = VirtualScreenRect();
+    MONITORINFO monitor_info{sizeof(MONITORINFO)};
+    if (GetMonitorInfoW(MonitorFromPoint(anchor, MONITOR_DEFAULTTONEAREST),
+            &monitor_info)) {
+        monitor_bounds = capture::Rect{
+            monitor_info.rcMonitor.left, monitor_info.rcMonitor.top,
+            monitor_info.rcMonitor.right, monitor_info.rcMonitor.bottom,
+        };
+    }
     const capture::Rect roi = scan_trigger_ != nullptr
-        ? scanner::CalculateDirectionalRoi(
-            scan_anchor,
-            scanner::InventoryProfile().direction_priority.front(),
-            scanner::DirectionalScanSizeForDepth(
-                scanner::InventoryScanSizeForLevel(capture::Size{800, 600}, 0),
-                0
-            ),
-            virtual_screen
-        )
-        : capture::CalculateRoi(scan_anchor, capture::Size{800, 600}, virtual_screen);
+        ? scanner::PredictTooltipPlacement(scan_anchor, monitor_bounds).roi
+        : capture::CalculateRoi(scan_anchor, capture::Size{800, 600}, monitor_bounds);
     debug_visualization_window_->ShowRoi(roi);
 }
 
@@ -490,6 +506,7 @@ void App::OnScanCompletionMessage(LPARAM completion_pointer) {
     if (!completion) {
         return;
     }
+    scan_in_progress_ = false;
     if (completion->display_result.has_value() && overlay_window_ != nullptr) {
         POINT cursor{};
         if (GetCursorPos(&cursor)) {
@@ -537,13 +554,26 @@ void App::OnScanCompletionMessage(LPARAM completion_pointer) {
         + std::wstring(completion->validation.overlay_show_succeeded
             ? L"true" : L"false")
     );
+    common::DebugLog(
+        L"[scan:" + std::to_wstring(completion->validation.scan_id)
+        + L"][display-chain] finalItemSelected="
+        + std::wstring(completion->validation.selected_item_id.empty()
+            ? L"false" : L"true")
+        + L" economyResolved="
+        + (completion->validation.economy_lookup_succeeded ? L"true" : L"false")
+        + L" displayResultBuilt="
+        + (completion->display_result.has_value() ? L"true" : L"false")
+        + L" wmAppPosted=true overlayShow="
+        + (completion->validation.overlay_show_succeeded ? L"true" : L"false")
+    );
     LogValidation(completion->validation);
 }
 
 void App::OnScanStepMessage(LPARAM roi_pointer) {
     std::unique_ptr<capture::Rect> roi(
         reinterpret_cast<capture::Rect*>(roi_pointer));
-    if (!roi || !kDebugScanVisualization || debug_visualization_window_ == nullptr) {
+    if (!roi || scan_in_progress_ || !kDebugScanVisualization
+        || debug_visualization_window_ == nullptr) {
         return;
     }
     debug_visualization_window_->ShowRoi(*roi);

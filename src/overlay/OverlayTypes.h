@@ -10,6 +10,12 @@
 
 namespace noven::overlay {
 
+enum class MatchQuality {
+    Strict,
+    LowConfidence,
+    OcrOnly,
+};
+
 struct ScanDisplayResult final {
     std::string itemId;
     std::string displayName;
@@ -20,6 +26,10 @@ struct ScanDisplayResult final {
     data::FleaStatus fleaStatus{data::FleaStatus::Unknown};
     int width{};
     int height{};
+    MatchQuality matchQuality{MatchQuality::Strict};
+    std::string rawOcrText;
+    std::string assembledOcrText;
+    bool bestEffortAmbiguous{};
 };
 
 struct OverlayPlacement final {

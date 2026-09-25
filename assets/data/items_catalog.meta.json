@@ -1,0 +1,177 @@
+{
+  "alias_collision_count": 967,
+  "alias_collision_samples": [
+    [
+      "\"zabey\"",
+      [
+        "678f84bb9e85556ca60f0362",
+        "67ea616a74f765cefd009fb7"
+      ]
+    ],
+    [
+      ".45 hs",
+      [
+        "5efb0fc6aeb21837e749c801",
+        "65702406bfc87b3a34093216"
+      ]
+    ],
+    [
+      ".45lm",
+      [
+        "5efb0d4f4bc50b58e81710f3",
+        "6570240a1419851aef03e6f7"
+      ]
+    ],
+    [
+      ".50 bmg",
+      [
+        "5d6e68c4a4b9361b93413f79",
+        "65702469c5d7d4cb4d07855b"
+      ]
+    ],
+    [
+      "1911",
+      [
+        "5e81c4ca763d9f754677befa",
+        "5e81c6bf763d9f754677beff"
+      ]
+    ],
+    [
+      "1sch fs",
+      [
+        "5c0919b50db834001b7ce3b9",
+        "5c0e842486f77443a74d2976",
+        "697c7a457c3b0223c30d16e6"
+      ]
+    ],
+    [
+      "1sch面罩",
+      [
+        "5c0919b50db834001b7ce3b9",
+        "5c0e842486f77443a74d2976",
+        "697c7a457c3b0223c30d16e6"
+      ]
+    ],
+    [
+      "20 式",
+      [
+        "6a3bffbebc377285900b85cf",
+        "6a3ce9c28ce058e3a2059b15",
+        "6a3ce9e9123fa14cd00631e8"
+      ]
+    ],
+    [
+      "416 14.5\"",
+      [
+        "5bb20d9cd4351e00334c9d8a",
+        "6a15b1fdbf497aade1003af2"
+      ]
+    ],
+    [
+      "416 4rail",
+      [
+        "5bb20de5d4351e0035629e59",
+        "6a15b13db507e45a68038de8"
+      ]
+    ],
+    [
+      "416a5",
+      [
+        "5bb20d53d4351e4502010a69",
+        "5bb20dcad4351e3bac1212da",
+        "6a15ae3e81a4baf60b09bc33"
+      ]
+    ],
+    [
+      "417 7.62",
+      [
+        "617130016c780c1e710c9a24",
+        "617131a4568c120fdd29482d"
+      ]
+    ],
+    [
+      "417 762",
+      [
+        "617130016c780c1e710c9a24",
+        "617131a4568c120fdd29482d"
+      ]
+    ],
+    [
+      "5-7",
+      [
+        "5d3eb44aa4b93650d64e4979",
+        "5d3eb5eca4b9363b1f22f8e4"
+      ]
+    ],
+    [
+      "5.25mm",
+      [
+        "5d6e6772a4b936088465b17c",
+        "65702426cfc010a0f50069f8"
+      ]
+    ],
+    [
+      "5.45x39mm bp gs ammo pack (120 pcs)",
+      [
+        "5737292724597765e5728562",
+        "57372a7f24597766fe0de0c1"
+      ]
+    ],
+    [
+      "5.45x39mm bp弹药包(120发装)",
+      [
+        "5737292724597765e5728562",
+        "57372a7f24597766fe0de0c1"
+      ]
+    ],
+    [
+      "5.45x39mm bs gs ammo pack (120 pcs)",
+      [
+        "57372b832459776701014e41",
+        "57372bad245977670b7cd242"
+      ]
+    ],
+    [
+      "5.45x39mm bs弹药包(120发装)",
+      [
+        "57372b832459776701014e41",
+        "57372bad245977670b7cd242"
+      ]
+    ],
+    [
+      "5.45x39mm bt gs ammo pack (120 pcs)",
+      [
+        "57372c21245977670937c6c2",
+        "57372c56245977685e584582"
+      ]
+    ]
+  ],
+  "alias_count": 21762,
+  "canonical_count": 5442,
+  "canonical_sha256": "2709c0195c09bdcd081aa8a44ea0099379b33ae6ce6e39d96910cc95210b4ed4",
+  "canonical_source": "https://json.tarkov.dev/regular/items",
+  "catalog_count": 5441,
+  "catalog_ids_missing_from_current_source": [],
+  "coverage": {
+    "nameEn": 5441,
+    "nameZh": 5441,
+    "shortNameEn": 5440,
+    "shortNameZh": 5440
+  },
+  "economy_ids_missing_from_catalog": [],
+  "generated_at": "2026-09-24T08:38:07.000Z",
+  "items_missing_all_aliases": 0,
+  "legacy_chinese_fields_used": 0,
+  "legacy_ids_missing_from_current_source": [],
+  "localization_source": [
+    "https://json.tarkov.dev/regular/items_zh",
+    "https://raw.githubusercontent.com/sp-tarkov/server-csharp/main/Libraries/SPTarkov.Server.Assets/SPT_Data/database/locales/global/ch.json",
+    "legacy SPT catalog by stable ID"
+  ],
+  "non_template_ids_excluded": [
+    "customdogtags12345678910"
+  ],
+  "schema_version": 2,
+  "source_version": "2709c0195c09bdcd",
+  "spt_chinese_fields_used": 0
+}

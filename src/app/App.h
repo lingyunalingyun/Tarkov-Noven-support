@@ -84,6 +84,7 @@ private:
     std::unique_ptr<overlay::OverlayWindow> overlay_window_;
     std::unique_ptr<overlay::DebugVisualizationWindow> debug_visualization_window_;
     std::unique_ptr<scanner::ScanTrigger> scan_trigger_;
+    bool scan_in_progress_{};
     HWND mode_selector_{};
 };
 

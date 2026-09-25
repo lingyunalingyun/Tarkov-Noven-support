@@ -235,10 +235,18 @@ const wchar_t* ScanClassificationName(ScanClassification classification) noexcep
         return L"OCR_FAILED";
     case ScanClassification::NoCatalogMatch:
         return L"NO_CATALOG_MATCH";
+    case ScanClassification::CatalogAmbiguous:
+        return L"CATALOG_AMBIGUOUS";
+    case ScanClassification::BestEffortMatch:
+        return L"BEST_EFFORT_MATCH";
+    case ScanClassification::OcrOnly:
+        return L"OCR_ONLY";
     case ScanClassification::NoSpatialCandidate:
         return L"NO_SPATIAL_CANDIDATE";
     case ScanClassification::EconomyMissing:
         return L"ECONOMY_MISSING";
+    case ScanClassification::DisplayFailed:
+        return L"DISPLAY_FAILED";
     case ScanClassification::OverlayFailed:
         return L"OVERLAY_FAILED";
     }
@@ -347,6 +355,13 @@ ScanResult SpatialCandidateSelector::Select(
 
     const auto ranked_before = [&profile](const RankedCandidate& left,
                                           const RankedCandidate& right) {
+        const auto exact_token_priority = [](data::MatchType type) {
+            if (type == data::MatchType::ExactName) return 3;
+            if (type == data::MatchType::CanonicalName) return 2;
+            if (type == data::MatchType::ExactShortName
+                || type == data::MatchType::CanonicalShortName) return 1;
+            return 0;
+        };
         if (profile.type == ScanProfileType::Inventory
             && left.candidate.insideTooltip != right.candidate.insideTooltip) {
             return left.candidate.insideTooltip;
@@ -364,12 +379,22 @@ ScanResult SpatialCandidateSelector::Select(
             return left.candidate.match.score > right.candidate.match.score;
         }
         if (profile.type == ScanProfileType::Inventory
+            && exact_token_priority(left.candidate.match.matchType)
+                != exact_token_priority(right.candidate.match.matchType)) {
+            return exact_token_priority(left.candidate.match.matchType)
+                > exact_token_priority(right.candidate.match.matchType);
+        }
+        if (profile.type == ScanProfileType::Inventory
             && std::abs(
                 left.candidate.recognized.confidence
                     - right.candidate.recognized.confidence
             ) > 0.01F) {
             return left.candidate.recognized.confidence
                 > right.candidate.recognized.confidence;
+        }
+        if (profile.type == ScanProfileType::Inventory
+            && left.candidate.match.scoreGap != right.candidate.match.scoreGap) {
+            return left.candidate.match.scoreGap > right.candidate.match.scoreGap;
         }
         if (profile.type == ScanProfileType::Inventory
             && std::abs(

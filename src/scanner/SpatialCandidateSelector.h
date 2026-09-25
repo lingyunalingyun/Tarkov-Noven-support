@@ -118,8 +118,12 @@ enum class ScanClassification {
     NoText,
     OcrFailed,
     NoCatalogMatch,
+    CatalogAmbiguous,
+    BestEffortMatch,
+    OcrOnly,
     NoSpatialCandidate,
     EconomyMissing,
+    DisplayFailed,
     OverlayFailed,
 };
 

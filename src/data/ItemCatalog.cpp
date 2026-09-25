@@ -9,9 +9,11 @@
 #include <cctype>
 #include <cwctype>
 #include <fstream>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <numeric>
+#include <regex>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -149,8 +151,41 @@ wchar_t NormalizePunctuation(wchar_t character) {
     case L'／': return L'/';
     case L'（': return L'('; 
     case L'）': return L')';
+    case L'×': return L'x';
+    case L'―':
+    case L'−': return L'-';
     default: return character;
     }
+}
+
+bool IsCjk(wchar_t character) noexcept {
+    return (character >= 0x3400 && character <= 0x4DBF)
+        || (character >= 0x4E00 && character <= 0x9FFF)
+        || (character >= 0xF900 && character <= 0xFAFF);
+}
+
+bool IsEdgePunctuation(wchar_t character) noexcept {
+    switch (character) {
+    case L',': case L'.': case L'!': case L'?': case L':': case L';':
+    case L'"': case L'\'': case L'(': case L')': case L'[': case L']':
+    case L'{': case L'}': case L'<': case L'>':
+        return true;
+    default:
+        return false;
+    }
+}
+
+std::string CompactComparisonForm(std::string_view value) {
+    const std::wstring wide = Utf8ToWide(value);
+    std::wstring compact;
+    compact.reserve(wide.size());
+    for (wchar_t character : wide) {
+        character = NormalizePunctuation(character);
+        if (std::iswalnum(character) != 0 || IsCjk(character)) {
+            compact.push_back(std::towlower(character));
+        }
+    }
+    return WideToUtf8(compact);
 }
 
 std::vector<std::string> SplitFields(const std::string& line) {
@@ -172,6 +207,11 @@ std::string UnescapeField(std::string value) {
     result.reserve(value.size());
     for (std::size_t i = 0; i < value.size(); ++i) {
         if (value[i] == '\\' && i + 1 < value.size()) {
+            if (value[i + 1] == '\\') {
+                result.push_back('\\');
+                ++i;
+                continue;
+            }
             if (value[i + 1] == 't') {
                 result.push_back('\t');
                 ++i;
@@ -207,6 +247,27 @@ int ParseInteger(std::string_view value, bool& valid) {
     const auto parsed = std::from_chars(value.data(), value.data() + value.size(), result);
     valid = parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size();
     return result;
+}
+
+std::vector<std::string> ParseTypes(std::string_view value) {
+    std::vector<std::string> result;
+    std::size_t start = 0;
+    while (start < value.size()) {
+        const std::size_t end = value.find(';', start);
+        result.emplace_back(value.substr(start, end - start));
+        if (end == std::string_view::npos) break;
+        start = end + 1;
+    }
+    return result;
+}
+
+std::string ReadMetadataField(const std::filesystem::path& path, const char* key) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) return {};
+    const std::string payload(std::istreambuf_iterator<char>(file), {});
+    const std::regex pattern(std::string("\"") + key + "\"\\s*:\\s*\"([^\"]*)\"");
+    std::smatch match;
+    return std::regex_search(payload, match, pattern) ? match[1].str() : std::string{};
 }
 
 float EditSimilarity(std::string_view left, std::string_view right) {
@@ -276,7 +337,66 @@ float FuzzyScore(std::string_view query, std::string_view alias) {
             : static_cast<float>(overlap) / static_cast<float>(union_size);
         score = std::max(score, edit * 0.75F + token_score * 0.25F);
     }
+    const std::string compact_query = CompactComparisonForm(query);
+    const std::string compact_alias = CompactComparisonForm(alias);
+    if (compact_query.size() >= 6 && compact_alias.size() >= 6) {
+        score = std::max(score, EditSimilarity(compact_query, compact_alias));
+    }
+    const std::vector<std::string> alias_tokens = EnglishTokens(alias);
+    if (compact_query.size() >= 6 && !alias_tokens.empty()) {
+        for (std::size_t begin = 0; begin < alias_tokens.size(); ++begin) {
+            std::string token_window;
+            for (std::size_t end = begin;
+                 end < alias_tokens.size() && end < begin + 4;
+                 ++end) {
+                token_window += alias_tokens[end];
+                const std::string compact_window = CompactComparisonForm(token_window);
+                if (compact_window.size() >= 6
+                    && compact_window.size() * 2 >= compact_query.size()
+                    && compact_query.size() * 2 >= compact_window.size()) {
+                    score = std::max(score, EditSimilarity(compact_query, compact_window));
+                }
+            }
+        }
+    }
     return std::clamp(score, 0.0F, 1.0F);
+}
+
+float PartialChineseScore(std::string_view query, std::string_view alias) {
+    const auto query_points = CodePoints(query);
+    if (query_points.size() < 4 || query_points.size() > 24) return 0.0F;
+    const std::size_t cjk_count = static_cast<std::size_t>(std::count_if(
+        query_points.begin(), query_points.end(), [](char32_t point) {
+            return (point >= 0x3400 && point <= 0x4DBF)
+                || (point >= 0x4E00 && point <= 0x9FFF);
+        }));
+    if (cjk_count < 2 || alias.find(query) == std::string_view::npos) return 0.0F;
+    return 0.80F;
+}
+
+float PartialNgramScore(
+    const std::vector<char32_t>& query,
+    std::string_view alias
+) {
+    if (query.size() < 6) return 0.0F;
+    const auto candidate = CodePoints(CompactComparisonForm(alias));
+    if (candidate.size() < 6) return 0.0F;
+    std::size_t shared = 0;
+    for (std::size_t left = 0; left + 2 < query.size(); ++left) {
+        for (std::size_t right = 0; right + 2 < candidate.size(); ++right) {
+            if (query[left] == candidate[right]
+                && query[left + 1] == candidate[right + 1]
+                && query[left + 2] == candidate[right + 2]) {
+                ++shared;
+                break;
+            }
+        }
+    }
+    const float query_coverage = static_cast<float>(shared)
+        / static_cast<float>(query.size() - 2);
+    const float dice = 2.0F * static_cast<float>(shared)
+        / static_cast<float>(query.size() + candidate.size() - 4);
+    return 0.55F * query_coverage + 0.45F * dice;
 }
 
 bool ContainsCjk(std::string_view value) {
@@ -343,21 +463,30 @@ std::string NormalizeForMatching(std::string_view text) {
     std::wstring wide = CompatibilityNormalize(Utf8ToWide(text));
     std::wstring result;
     result.reserve(wide.size());
-    bool previous_space = false;
+    bool pending_space = false;
     for (const wchar_t raw_character : wide) {
-        const wchar_t character = NormalizePunctuation(raw_character);
-        if (std::iswspace(character) != 0) {
-            if (!result.empty() && !previous_space) {
-                result.push_back(L' ');
-            }
-            previous_space = true;
+        wchar_t character = NormalizePunctuation(raw_character);
+        if (character == L'\'' || character == L'"') {
             continue;
         }
+        if (std::iswspace(character) != 0) {
+            pending_space = true;
+            continue;
+        }
+        if (pending_space && !result.empty()
+            && !IsCjk(result.back()) && !IsCjk(character)) {
+            result.push_back(L' ');
+        }
         result.push_back(std::towlower(character));
-        previous_space = false;
+        pending_space = false;
     }
-    while (!result.empty() && result.back() == L' ') {
+    while (!result.empty()
+        && (result.back() == L' ' || IsEdgePunctuation(result.back()))) {
         result.pop_back();
+    }
+    while (!result.empty()
+        && (result.front() == L' ' || IsEdgePunctuation(result.front()))) {
+        result.erase(result.begin());
     }
     return WideToUtf8(result);
 }
@@ -386,6 +515,11 @@ bool ItemCatalog::Load(const std::filesystem::path& path, std::wstring& error) {
     exact_index_.clear();
     canonical_index_.clear();
     fuzzy_index_.clear();
+    fuzzy_token_index_.clear();
+    english_fields_ = 0;
+    chinese_fields_ = 0;
+    source_version_.clear();
+    generated_at_.clear();
 
     std::unordered_set<std::string> ids;
     std::string line;
@@ -400,7 +534,8 @@ bool ItemCatalog::Load(const std::filesystem::path& path, std::wstring& error) {
             continue;
         }
         const auto fields = SplitFields(line);
-        if (fields.size() != 7 || !ValidId(fields[0]) || !ids.insert(fields[0]).second) {
+        if ((fields.size() < 7 || fields.size() > 9)
+            || !ValidId(fields[0]) || !ids.insert(fields[0]).second) {
             error = L"Invalid or duplicate item catalog row at line "
                 + std::to_wstring(line_number);
             items_.clear();
@@ -416,6 +551,8 @@ bool ItemCatalog::Load(const std::filesystem::path& path, std::wstring& error) {
             UnescapeField(fields[4]),
             ParseInteger(fields[5], width_valid),
             ParseInteger(fields[6], height_valid),
+            fields.size() >= 8 ? ParseTypes(fields[7]) : std::vector<std::string>{},
+            fields.size() == 9 ? UnescapeField(fields[8]) : std::string{},
             {},
         };
         if (!width_valid || !height_valid || (item.nameZh.empty() && item.nameEn.empty())) {
@@ -424,6 +561,8 @@ bool ItemCatalog::Load(const std::filesystem::path& path, std::wstring& error) {
             items_.clear();
             return false;
         }
+        english_fields_ += !item.nameEn.empty() + !item.shortNameEn.empty();
+        chinese_fields_ += !item.nameZh.empty() + !item.shortNameZh.empty();
         items_.push_back(std::move(item));
     }
     if (items_.empty()) {
@@ -431,6 +570,9 @@ bool ItemCatalog::Load(const std::filesystem::path& path, std::wstring& error) {
         return false;
     }
     BuildIndexes();
+    const auto metadata_path = path.parent_path() / "items_catalog.meta.json";
+    source_version_ = ReadMetadataField(metadata_path, "source_version");
+    generated_at_ = ReadMetadataField(metadata_path, "generated_at");
     return true;
 }
 
@@ -474,13 +616,44 @@ void ItemCatalog::AddAlias(
     aliases_.push_back(AliasEntry{item_index, item_alias_index, normalized, type});
     exact_index_[item.aliases.back().text].push_back(alias_index);
     canonical_index_[normalized].push_back(alias_index);
+    std::unordered_set<char32_t> initials;
     const auto code_points = CodePoints(normalized);
     if (!code_points.empty()) {
-        fuzzy_index_[code_points.front()].push_back(alias_index);
+        initials.insert(code_points.front());
+        if (code_points.size() > 1) {
+            initials.insert(code_points[1]);
+        }
+    }
+    for (const std::string& token : EnglishTokens(normalized)) {
+        fuzzy_token_index_[token].push_back(alias_index);
+    }
+    for (const char32_t initial : initials) {
+        fuzzy_index_[initial].push_back(alias_index);
     }
 }
 
-std::vector<ItemMatch> ItemCatalog::RankMatches(std::string_view text) const {
+std::vector<ItemMatch> ItemCatalog::RankMatches(
+    std::string_view text,
+    std::optional<ItemDimensions> size_constraint,
+    CatalogNarrowingStats* narrowing_stats
+) const {
+    const auto size_matches = [&](const ItemRecord& item) {
+        if (!size_constraint.has_value()
+            || size_constraint->width <= 0 || size_constraint->height <= 0) {
+            return true;
+        }
+        return (item.width == size_constraint->width
+                && item.height == size_constraint->height)
+            || (item.width == size_constraint->height
+                && item.height == size_constraint->width);
+    };
+    if (narrowing_stats != nullptr) {
+        narrowing_stats->allItems = items_.size();
+        narrowing_stats->afterSizeFilter = static_cast<std::size_t>(std::count_if(
+            items_.begin(), items_.end(), size_matches
+        ));
+        narrowing_stats->afterAliasFilter = 0;
+    }
     if (text.empty()) {
         return {};
     }
@@ -496,6 +669,9 @@ std::vector<ItemMatch> ItemCatalog::RankMatches(std::string_view text) const {
     const auto consider = [&](std::size_t alias_index, MatchType type, float score) {
         const AliasEntry& entry = aliases_[alias_index];
         const ItemRecord& item = items_[entry.item_index];
+        if (!size_matches(item)) {
+            return;
+        }
         const ItemAlias& alias = item.aliases[entry.item_alias_index];
         ScoredMatch candidate{
             ItemMatch{&item, alias.text, type, score},
@@ -552,24 +728,15 @@ std::vector<ItemMatch> ItemCatalog::RankMatches(std::string_view text) const {
         // evidence is not reduced to the short alias alone.
         const auto query_tokens = EnglishTokens(normalized);
         if (query_tokens.size() >= 2) {
-            for (std::size_t alias_index = 0; alias_index < aliases_.size(); ++alias_index) {
-                const AliasEntry& entry = aliases_[alias_index];
-                if (!HasAsciiLetter(entry.normalized)) {
+            for (const std::string& query_token : query_tokens) {
+                if (query_token.size() < 2) {
                     continue;
                 }
-                const auto alias_tokens = EnglishTokens(entry.normalized);
-                const bool shares_meaningful_token = std::any_of(
-                    query_tokens.begin(),
-                    query_tokens.end(),
-                    [&](const std::string& query_token) {
-                        return query_token.size() >= 2
-                            && std::find(
-                                alias_tokens.begin(), alias_tokens.end(), query_token
-                            ) != alias_tokens.end();
-                    }
-                );
-                if (shares_meaningful_token) {
-                    fuzzy_aliases.insert(alias_index);
+                const auto token_matches = fuzzy_token_index_.find(query_token);
+                if (token_matches != fuzzy_token_index_.end()) {
+                    fuzzy_aliases.insert(
+                        token_matches->second.begin(), token_matches->second.end()
+                    );
                 }
             }
         }
@@ -593,6 +760,9 @@ std::vector<ItemMatch> ItemCatalog::RankMatches(std::string_view text) const {
     ranked.reserve(best_by_item.size());
     for (auto& entry : best_by_item) {
         ranked.push_back(std::move(entry.second));
+    }
+    if (narrowing_stats != nullptr) {
+        narrowing_stats->afterAliasFilter = ranked.size();
     }
     std::sort(ranked.begin(), ranked.end(), [](const ScoredMatch& left, const ScoredMatch& right) {
         if (left.match.score != right.match.score) {
@@ -642,10 +812,88 @@ std::vector<ItemMatch> ItemCatalog::MatchDiagnostics(
     std::string_view text,
     std::size_t maximum_candidates
 ) const {
+    return MatchDiagnosticsConstrained(
+        text,
+        maximum_candidates,
+        std::nullopt,
+        nullptr
+    );
+}
+
+std::vector<ItemMatch> ItemCatalog::MatchBestEffort(
+    std::string_view text,
+    std::size_t maximum_candidates
+) const {
+    if (maximum_candidates == 0 || aliases_.empty()) return {};
+    std::vector<ItemMatch> indexed = RankMatches(text, std::nullopt, nullptr);
+    const std::string normalized = NormalizeForMatching(text);
+    if (normalized.empty()) return indexed;
+    const auto query_ngrams = CodePoints(CompactComparisonForm(normalized));
+    std::unordered_map<std::size_t, ItemMatch> best_by_item;
+    for (const ItemMatch& match : indexed) {
+        const std::size_t index = static_cast<std::size_t>(match.item - items_.data());
+        best_by_item.emplace(index, match);
+    }
+    for (const AliasEntry& entry : aliases_) {
+        const ItemRecord& item = items_[entry.item_index];
+        const float score = std::max({
+            FuzzyScore(normalized, entry.normalized),
+            TokenEvidenceScore(normalized, entry.normalized),
+            PartialChineseScore(normalized, entry.normalized),
+            PartialNgramScore(query_ngrams, entry.normalized)
+        });
+        const auto found = best_by_item.find(entry.item_index);
+        if (found == best_by_item.end() || score > found->second.score) {
+            best_by_item[entry.item_index] = ItemMatch{
+                &item,
+                item.aliases[entry.item_alias_index].text,
+                entry.type == AliasType::Name
+                    ? MatchType::FuzzyName : MatchType::FuzzyShortName,
+                score,
+            };
+        }
+    }
+    std::vector<ItemMatch> ranked;
+    ranked.reserve(best_by_item.size());
+    for (auto& [index, match] : best_by_item) {
+        ranked.push_back(std::move(match));
+    }
+    std::sort(ranked.begin(), ranked.end(), [](const ItemMatch& left, const ItemMatch& right) {
+        if (left.score != right.score) return left.score > right.score;
+        return left.item->id < right.item->id;
+    });
+    const float best = ranked.front().score;
+    const float second = ranked.size() > 1 ? ranked[1].score : 0.0F;
+    const std::size_t competitive = static_cast<std::size_t>(std::count_if(
+        ranked.begin(), ranked.end(), [&](const ItemMatch& match) {
+            return best - match.score <= 0.08F;
+        }
+    ));
+    if (ranked.size() > maximum_candidates) ranked.resize(maximum_candidates);
+    for (ItemMatch& match : ranked) {
+        match.bestScore = best;
+        match.secondBestScore = second;
+        match.scoreGap = best - second;
+        match.competitiveCandidateCount = competitive;
+        match.ambiguous = competitive > 1;
+    }
+    return ranked;
+}
+
+std::vector<ItemMatch> ItemCatalog::MatchDiagnosticsConstrained(
+    std::string_view text,
+    std::size_t maximum_candidates,
+    std::optional<ItemDimensions> size_constraint,
+    CatalogNarrowingStats* narrowing_stats
+) const {
     if (maximum_candidates == 0) {
         return {};
     }
-    std::vector<ItemMatch> result = RankMatches(text);
+    std::vector<ItemMatch> result = RankMatches(
+        text,
+        size_constraint,
+        narrowing_stats
+    );
     if (result.size() > maximum_candidates) {
         result.resize(maximum_candidates);
     }
@@ -657,7 +905,27 @@ std::vector<ItemMatch> ItemCatalog::Match(
     std::size_t maximum_candidates,
     float acceptance_threshold
 ) const {
-    std::vector<ItemMatch> result = RankMatches(text);
+    return MatchConstrained(
+        text,
+        maximum_candidates,
+        acceptance_threshold,
+        std::nullopt,
+        nullptr
+    );
+}
+
+std::vector<ItemMatch> ItemCatalog::MatchConstrained(
+    std::string_view text,
+    std::size_t maximum_candidates,
+    float acceptance_threshold,
+    std::optional<ItemDimensions> size_constraint,
+    CatalogNarrowingStats* narrowing_stats
+) const {
+    std::vector<ItemMatch> result = RankMatches(
+        text,
+        size_constraint,
+        narrowing_stats
+    );
     result.erase(
         std::remove_if(
             result.begin(),

@@ -195,7 +195,10 @@ bool OverlayRenderer::Render(
     const D2D1_ROUNDED_RECT card{
         D2D1::RectF(0.5F, 0.5F, width - 0.5F, height - 0.5F), 12.0F, 12.0F};
     const std::wstring title = Utf8ToWide(result.displayName);
-    const std::wstring mode = L"模式  " + ModeText(result.mode);
+    const std::wstring quality = result.matchQuality == MatchQuality::LowConfidence
+        ? L"  ·  可能匹配"
+        : (result.matchQuality == MatchQuality::OcrOnly ? L"  ·  OCR 识别文本" : L"");
+    const std::wstring mode = L"模式  " + ModeText(result.mode) + quality;
     const std::wstring flea = L"跳蚤市场     " + FormatOptionalRoubles(result.fleaPrice);
     const std::wstring trader = L"商人最高     " + TraderText(result.bestTrader);
     const std::wstring slot = L"单格价值     " + (result.valuePerSlot.has_value()

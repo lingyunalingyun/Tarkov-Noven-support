@@ -223,7 +223,9 @@ bool WriteSpatialAnnotatedBmp(
     std::optional<AdaptiveTextAnalysis> adaptive_analysis,
     std::span<const LockedRoiStep> locked_roi_steps,
     capture::Point frame_origin,
-    std::optional<OrderedTextAssembly> text_assembly
+    std::optional<OrderedTextAssembly> text_assembly,
+    std::optional<capture::Rect> predicted_tooltip,
+    std::optional<long> monitor_right
 ) {
     capture::CapturedFrame annotated = frame;
 
@@ -258,6 +260,28 @@ bool WriteSpatialAnnotatedBmp(
 
     if (tooltip_region.has_value()) {
         DrawRect(annotated, *tooltip_region, Color{255, 0, 255});
+    }
+    if (profile.type == ScanProfileType::Inventory) {
+        if (predicted_tooltip.has_value()
+            && predicted_tooltip->right > frame_origin.x
+            && predicted_tooltip->left < frame_origin.x + static_cast<long>(frame.width)
+            && predicted_tooltip->bottom > frame_origin.y
+            && predicted_tooltip->top < frame_origin.y + static_cast<long>(frame.height)) {
+            DrawRect(annotated, ocr::TextBox{
+                static_cast<float>(predicted_tooltip->left - frame_origin.x),
+                static_cast<float>(predicted_tooltip->top - frame_origin.y),
+                static_cast<float>(predicted_tooltip->right - frame_origin.x),
+                static_cast<float>(predicted_tooltip->bottom - frame_origin.y), 1.0F,
+            }, Color{0, 255, 0});
+        }
+        if (monitor_right.has_value()) {
+            const long x = *monitor_right - frame_origin.x - 1;
+            if (x >= 0 && x < static_cast<long>(frame.width)) {
+                DrawLine(annotated, AnchorPoint{static_cast<float>(x), 0.0F},
+                    AnchorPoint{static_cast<float>(x), static_cast<float>(frame.height - 1)},
+                    Color{0, 165, 255});
+            }
+        }
     }
     if (adaptive_analysis.has_value()
         && adaptive_analysis->localBounds.has_value()) {
@@ -361,12 +385,14 @@ bool WriteSpatialAnnotatedBmp(
             }
         }
     }
-    for (float radius = profile.ring_step;
-         radius <= profile.max_search_radius;
-         radius += profile.ring_step) {
-        DrawCircle(annotated, anchor, radius, Color{96, 96, 96});
+    if (profile.type != ScanProfileType::Inventory) {
+        for (float radius = profile.ring_step;
+             radius <= profile.max_search_radius;
+             radius += profile.ring_step) {
+            DrawCircle(annotated, anchor, radius, Color{96, 96, 96});
+        }
+        DrawSectorGuides(annotated, anchor, profile, result);
     }
-    DrawSectorGuides(annotated, anchor, profile, result);
     for (std::size_t index = 0; index < result.considered.size(); ++index) {
         const ScanCandidate& candidate = result.considered[index];
         const AnchorPoint center{

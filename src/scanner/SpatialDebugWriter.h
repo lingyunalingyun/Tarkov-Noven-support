@@ -24,7 +24,9 @@ bool WriteSpatialAnnotatedBmp(
     std::optional<AdaptiveTextAnalysis> adaptive_analysis = std::nullopt,
     std::span<const LockedRoiStep> locked_roi_steps = {},
     capture::Point frame_origin = {},
-    std::optional<OrderedTextAssembly> text_assembly = std::nullopt
+    std::optional<OrderedTextAssembly> text_assembly = std::nullopt,
+    std::optional<capture::Rect> predicted_tooltip = std::nullopt,
+    std::optional<long> monitor_right = std::nullopt
 );
 
 } // namespace noven::scanner
