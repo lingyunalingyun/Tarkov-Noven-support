@@ -23,7 +23,9 @@ public:
     bool LoadCacheFile(GameMode mode, const std::filesystem::path& path, std::wstring& error);
     // 验证整份上游数据后才替换对应模式，失败时保留原缓存。
     // Replace a mode only after validating the full payload; preserve the old cache on failure.
-    bool ReplaceFromUpstreamJson(GameMode mode, std::string_view payload, std::wstring& error);
+    bool ReplaceFromUpstreamJson(GameMode mode, std::string_view payload,
+                                 std::wstring& error,
+                                 std::string_view trader_names_payload = {});
     bool SaveCacheFile(GameMode mode, const std::filesystem::path& path, std::wstring& error) const;
 
     [[nodiscard]] const ItemEconomyInfo* Lookup(
@@ -32,6 +34,7 @@ public:
     ) const noexcept;
     [[nodiscard]] std::chrono::system_clock::time_point GetLastUpdated(GameMode mode) const noexcept;
     [[nodiscard]] std::size_t ItemCount(GameMode mode) const noexcept;
+    [[nodiscard]] std::size_t TraderItemCount(GameMode mode) const noexcept;
 
 private:
     struct ModeCache final {

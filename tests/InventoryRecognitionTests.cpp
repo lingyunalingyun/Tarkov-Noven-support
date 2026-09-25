@@ -158,6 +158,9 @@ int main(int argc, char** argv) {
     Require(fallback_economy.itemId == mdr_fallback.selectedItemId,
         "best-effort passes stable item ID into economy lookup");
     noven::data::ItemEconomyStore populated_store;
+    // 此夹具只有跳蚤价；商人报价缺失不应阻断稳定 ID 的展示。
+    // This fixture has only a flea price; missing trader offers must not
+    // prevent display of the stable catalog item.
     const std::string economy_payload = std::string(
         "{\"data\":{\"fleaMarket\":{\"enabled\":true},\"items\":{\"")
         + mdr_fallback.selectedItemId + "\":{\"id\":\""

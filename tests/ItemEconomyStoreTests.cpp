@@ -139,6 +139,69 @@ int main() {
     Require(loaded_store.Lookup(noven::data::GameMode::Pvp, kItemA) != nullptr,
         "malformed disk cache does not replace memory");
 
+    // 回归：现行 JSON 的 sellToTrader 是收购报价，不是商人向玩家出售的价格。
+    // Regression: current sellToTrader entries are buyback offers, not trader sales.
+    constexpr char kNl545[] = "68c2940aecc41cc5490bd40e";
+    const std::string trader_names =
+        "{\"data\":{"
+        "\"54cb50c76803fa8b248b4571 Nickname\":\"Prapor\","
+        "\"5a7c2eca46aef81a7ca2145d Nickname\":\"Mechanic\","
+        "\"5935c25fb3acc3127c3d8cd9 Nickname\":\"Peacekeeper\"}}";
+    const auto current_payload = [&](int flea, int mechanic) {
+        return std::string("{\"data\":{\"items\":{\"") + kNl545 + "\":{"
+            "\"id\":\"" + kNl545 + "\",\"width\":2,\"height\":3,"
+            "\"lastLowPrice\":" + std::to_string(flea) + ","
+            "\"sellToTrader\":["
+            "{\"trader\":\"54cb50c76803fa8b248b4571\",\"price\":8760,\"priceRUB\":8760,\"currency\":\"RUB\"},"
+            "{\"trader\":\"5a7c2eca46aef81a7ca2145d\",\"price\":"
+                + std::to_string(mechanic) + ",\"priceRUB\":" + std::to_string(mechanic)
+                + ",\"currency\":\"RUB\"},"
+            "{\"trader\":\"5935c25fb3acc3127c3d8cd9\",\"price\":64,\"priceRUB\":7884,\"currency\":\"USD\"},"
+            "{\"trader\":\"unknown\",\"priceRUB\":999999}]}}}}";
+    };
+    noven::data::ItemEconomyStore current_store;
+    Require(current_store.ReplaceFromUpstreamJson(
+        noven::data::GameMode::Pvp, current_payload(80000, 9855), error,
+        trader_names), "current PVP sellToTrader payload loads");
+    Require(current_store.ReplaceFromUpstreamJson(
+        noven::data::GameMode::Pve, current_payload(1000, 9855), error,
+        trader_names), "current PVE sellToTrader payload loads");
+    Require(current_store.ReplaceFromUpstreamJson(
+        noven::data::GameMode::Seasonal, current_payload(15000, 12000), error,
+        trader_names), "current Seasonal sellToTrader payload loads");
+    const auto& current_pvp = RequireItem(current_store, noven::data::GameMode::Pvp, kNl545);
+    Require(current_pvp.bestTrader && current_pvp.bestTrader->traderName == "Mechanic"
+            && current_pvp.bestTrader->priceRoubles == 9855,
+        "highest valid current trader buyback uses translated name and RUB value");
+    Require(current_pvp.bestValue == 80000,
+        "higher flea price remains distinct from trader buyback");
+    const auto& current_pve = RequireItem(current_store, noven::data::GameMode::Pve, kNl545);
+    Require(current_pve.bestValue == 9855 && current_pve.valuePerSlot
+            && *current_pve.valuePerSlot == 1642.5,
+        "trader buyback determines best value and value per slot when higher");
+    Require(current_store.TraderItemCount(noven::data::GameMode::Pvp) == 1
+            && current_store.TraderItemCount(noven::data::GameMode::Pve) == 1,
+        "trader coverage is measured separately per mode");
+    Require(RequireItem(current_store, noven::data::GameMode::Seasonal, kNl545)
+                .bestTrader->priceRoubles == 12000
+            && current_pvp.bestTrader->priceRoubles == 9855,
+        "Seasonal trader buyback cannot replace PVP data");
+    Require(!current_store.ReplaceFromUpstreamJson(
+        noven::data::GameMode::Pvp, current_payload(1, 1), error, "{}")
+            && RequireItem(current_store, noven::data::GameMode::Pvp, kNl545)
+                   .bestTrader->priceRoubles == 9855,
+        "malformed trader translations preserve the previous valid cache");
+    const auto current_cache_path = cache_directory / "current.json";
+    Require(current_store.SaveCacheFile(noven::data::GameMode::Pvp,
+                                        current_cache_path, error),
+        "current trader buyback saves to disk cache");
+    noven::data::ItemEconomyStore restored_current;
+    Require(restored_current.LoadCacheFile(noven::data::GameMode::Pvp,
+                                           current_cache_path, error)
+            && RequireItem(restored_current, noven::data::GameMode::Pvp, kNl545)
+                   .bestTrader->traderName == "Mechanic",
+        "translated trader identity survives offline cache reload");
+
     const auto lookup_start = std::chrono::steady_clock::now();
     for (int iteration = 0; iteration < 10'000; ++iteration) {
         static_cast<void>(store.Lookup(noven::data::GameMode::Pvp, kItemA));

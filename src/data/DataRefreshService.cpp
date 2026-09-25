@@ -141,15 +141,17 @@ void DataRefreshService::WorkerLoop() {
 
 void DataRefreshService::RefreshOne(GameMode mode) {
     std::string payload;
+    std::string trader_names;
     std::wstring error;
-    if (!DownloadItems(mode, payload, error)) {
+    if (!DownloadJson(mode, L"items", payload, error)
+        || !DownloadJson(mode, L"traders_en", trader_names, error)) {
         common::DebugLog(
             L"[economy] refresh failed mode=" + std::wstring(GameModeName(mode))
             + L" reason=" + error
         );
         return;
     }
-    if (!store_.ReplaceFromUpstreamJson(mode, payload, error)) {
+    if (!store_.ReplaceFromUpstreamJson(mode, payload, error, trader_names)) {
         common::DebugLog(
             L"[economy] rejected upstream payload mode=" + std::wstring(GameModeName(mode))
             + L" reason=" + error
@@ -166,11 +168,13 @@ void DataRefreshService::RefreshOne(GameMode mode) {
     common::DebugLog(
         L"[economy] refreshed mode=" + std::wstring(GameModeName(mode))
         + L" items=" + std::to_wstring(store_.ItemCount(mode))
+        + L" items_with_trader=" + std::to_wstring(store_.TraderItemCount(mode))
     );
 }
 
-bool DataRefreshService::DownloadItems(
+bool DataRefreshService::DownloadJson(
     GameMode mode,
+    std::wstring_view resource,
     std::string& payload,
     std::wstring& error
 ) const {
@@ -198,7 +202,8 @@ bool DataRefreshService::DownloadItems(
         error = L"WinHttpConnect failed";
         return false;
     }
-    const std::wstring path = L"/" + std::wstring(UpstreamGameMode(mode)) + L"/items";
+    const std::wstring path = L"/" + std::wstring(UpstreamGameMode(mode))
+        + L"/" + std::wstring(resource);
     WinHttpHandle request(WinHttpOpenRequest(
         connection.Get(), L"GET", path.c_str(), nullptr,
         WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE));

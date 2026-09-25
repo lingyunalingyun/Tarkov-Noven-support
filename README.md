@@ -168,12 +168,15 @@ The economy layer maps internal modes to the current static JSON API at
 
 The application consumes each item's stable `id`, `width`, `height`,
 `lastLowPrice`, `types`, and `updated` fields, plus the root `fleaMarket`
-metadata. When a compatible upstream payload exposes `sellFor` or
-`traderPrices`, valid non-flea offers are reduced to the highest trader value;
-the current static items endpoint does not consistently expose those fields,
-so missing trader values remain unknown rather than using `basePrice` as a
-substitute. `lastLowPrice` is retained as the current useful flea-market value
-reported by the upstream snapshot.
+metadata. Current `/{{gameMode}}/items` snapshots expose `sellToTrader`:
+each offer's `trader` ID and `priceRUB` represent a trader purchasing the
+item, with non-RUB offers already converted to roubles. A background refresh
+also loads `/{{gameMode}}/traders_en` to resolve trader nicknames by ID. The
+highest valid purchasing offer is cached separately from `lastLowPrice`;
+items without a valid offer remain unknown rather than substituting
+`basePrice` or a trader's sale price. Both documents must validate before a
+mode cache is replaced, and F2 still uses only the local in-memory cache.
+Legacy `sellFor` / `traderPrices` fields remain parseable when present.
 
 `ItemEconomyStore` keeps independent PVP, PVE, and Seasonal maps. It loads
 normalized cache files from `data/economy-cache/{regular,pve,pvp-season}.json`

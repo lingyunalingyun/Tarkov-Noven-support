@@ -434,7 +434,11 @@ std::string EscapeJson(std::string_view value) {
     return output;
 }
 
-bool ParseTraderValue(const JsonValue& value, TraderSellValue& output) {
+bool ParseTraderValue(
+    const JsonValue& value,
+    const std::unordered_map<std::string, std::string>& trader_names,
+    TraderSellValue& output
+) {
     if (value.type != JsonValue::Type::Object) {
         return false;
     }
@@ -471,6 +475,11 @@ bool ParseTraderValue(const JsonValue& value, TraderSellValue& output) {
     if (output.traderId.empty() || ContainsInsensitive(output.traderId, "flea")) {
         return false;
     }
+    if (output.traderName.empty()) {
+        const auto name = trader_names.find(output.traderId);
+        if (name != trader_names.end()) output.traderName = name->second;
+    }
+    if (output.traderName.empty()) return false;
 
     std::int64_t price = 0;
     if (!ReadInteger(Find(value, "priceRUB"), price)) {
@@ -540,7 +549,8 @@ const ItemEconomyStore::ModeCache& ItemEconomyStore::Cache(GameMode mode) const 
 bool ItemEconomyStore::ReplaceFromUpstreamJson(
     GameMode mode,
     std::string_view payload,
-    std::wstring& error
+    std::wstring& error,
+    std::string_view trader_names_payload
 ) {
     // 在临时模式缓存中解析并校验整份数据，成功后才替换现有价格快照。
     // Parse and validate the full payload in a temporary mode cache;
@@ -556,6 +566,31 @@ bool ItemEconomyStore::ReplaceFromUpstreamJson(
         || items->object.empty() || items->object.size() > 100'000) {
         error = L"Economy JSON has no plausible items object";
         return false;
+    }
+
+    std::unordered_map<std::string, std::string> trader_names;
+    if (!trader_names_payload.empty()) {
+        JsonValue names_root;
+        JsonParser names_parser(trader_names_payload);
+        if (!names_parser.Parse(names_root, error)) return false;
+        const JsonValue* names = Find(names_root, "data");
+        if (names == nullptr || names->type != JsonValue::Type::Object) {
+            error = L"Trader translation JSON has no data object";
+            return false;
+        }
+        constexpr std::string_view suffix = " Nickname";
+        for (const auto& [key, value] : names->object) {
+            if (!key.ends_with(suffix)) continue;
+            const std::string id = key.substr(0, key.size() - suffix.size());
+            std::string name;
+            if (IsValidItemId(id) && ReadString(&value, name) && !name.empty()) {
+                trader_names.emplace(id, std::move(name));
+            }
+        }
+        if (trader_names.empty()) {
+            error = L"Trader translation JSON has no usable nicknames";
+            return false;
+        }
     }
 
     const JsonValue* flea_market = Find(data != nullptr ? *data : root, "fleaMarket");
@@ -616,13 +651,16 @@ bool ItemEconomyStore::ReplaceFromUpstreamJson(
             }
             for (const JsonValue& offer : offers->array) {
                 TraderSellValue trader_value;
-                if (ParseTraderValue(offer, trader_value)
+                if (ParseTraderValue(offer, trader_names, trader_value)
                     && (!info.bestTrader.has_value()
                         || trader_value.priceRoubles > info.bestTrader->priceRoubles)) {
                     info.bestTrader = std::move(trader_value);
                 }
             }
         };
+        // 现行静态 JSON 使用 sellToTrader；priceRUB 是原币报价的卢布换算值。
+        // Current static JSON uses sellToTrader; priceRUB is the RUB equivalent.
+        parse_offer_array(Find(item, "sellToTrader"));
         parse_offer_array(Find(item, "sellFor"));
         parse_offer_array(Find(item, "traderPrices"));
 
@@ -861,6 +899,14 @@ std::chrono::system_clock::time_point ItemEconomyStore::GetLastUpdated(
 
 std::size_t ItemEconomyStore::ItemCount(GameMode mode) const noexcept {
     return Cache(mode).items.size();
+}
+
+std::size_t ItemEconomyStore::TraderItemCount(GameMode mode) const noexcept {
+    std::size_t count = 0;
+    for (const auto& [id, item] : Cache(mode).items) {
+        if (item.bestTrader.has_value()) ++count;
+    }
+    return count;
 }
 
 } // namespace noven::data

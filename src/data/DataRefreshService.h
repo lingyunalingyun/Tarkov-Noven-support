@@ -9,6 +9,8 @@
 #include <deque>
 #include <filesystem>
 #include <mutex>
+#include <string>
+#include <string_view>
 #include <thread>
 
 namespace noven::data {
@@ -30,7 +32,8 @@ public:
 private:
     void WorkerLoop();
     void RefreshOne(GameMode mode);
-    bool DownloadItems(GameMode mode, std::string& payload, std::wstring& error) const;
+    bool DownloadJson(GameMode mode, std::wstring_view resource,
+                      std::string& payload, std::wstring& error) const;
 
     ItemEconomyStore& store_;
     std::filesystem::path cache_directory_;
