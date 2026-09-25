@@ -115,7 +115,8 @@ bool TextDetector::Preprocess(
             const auto sample = [&](long sample_x, long sample_y, int channel) {
                 const std::size_t offset = static_cast<std::size_t>(sample_y) * frame.stride
                     + static_cast<std::size_t>(sample_x) * 4;
-                // The detector uses RGB input; the capture buffer is BGRA.
+                // 检测模型使用 RGB，捕获缓冲区为 BGRA；通道顺序在此转换。
+                // The detector uses RGB while capture stores BGRA; convert channel order here.
                 const std::size_t channel_offset = static_cast<std::size_t>(2 - channel);
                 return static_cast<float>(frame.bgra[offset + channel_offset]) / 255.0F;
             };
@@ -140,6 +141,8 @@ std::vector<TextBox> TextDetector::Postprocess(
     std::uint32_t source_height,
     const TextDetectorConfig& config
 ) {
+    // 概率图中的框映射回输入截图的 ROI 局部像素坐标。
+    // Map probability-map boxes back to pixel coordinates local to the input ROI.
     if (output.shape.size() < 3 || output.data.empty() || source_width == 0
         || source_height == 0) {
         return {};

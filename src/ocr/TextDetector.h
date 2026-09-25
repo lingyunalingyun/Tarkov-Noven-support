@@ -1,5 +1,8 @@
 #pragma once
 
+// PP-OCR 检测阶段把内存像素预处理为模型输入，再还原 ROI 局部文字框。
+// PP-OCR detection preprocesses in-memory pixels and maps output boxes back to ROI coordinates.
+
 #include "capture/CaptureTypes.h"
 #include "ocr/OcrTypes.h"
 #include "ocr/OnnxRuntimeSession.h"
@@ -36,6 +39,8 @@ private:
         std::wstring& error
     );
 
+    // 模型概率图经阈值/框过滤后输出文字区域，不执行文字识别。
+    // Threshold and filter the model probability map into text regions; no recognition here.
     static std::vector<TextBox> Postprocess(
         const OnnxTensor& output,
         std::uint32_t source_width,

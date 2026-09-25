@@ -1,5 +1,9 @@
 #pragma once
 
+// 调试 ROI 与扫描图像用独立穿透窗口显示，不参与正常结果卡的自动隐藏。
+// Show debug ROI and scan imagery in separate click-through windows, independent
+// of the normal card's auto-hide timer.
+
 #include "capture/CaptureTypes.h"
 
 #include <windows.h>
@@ -36,6 +40,9 @@ public:
     }
 
 private:
+    // 仅扫描图随鼠标离开 F2 锚点而隐藏；阈值以逻辑像素定义。
+    // Only the scan image hides after cursor movement from the F2 anchor;
+    // the threshold is expressed in logical pixels.
     static constexpr UINT kMovementThresholdLogicalPixels = 8;
 
     static LRESULT CALLBACK WindowProc(

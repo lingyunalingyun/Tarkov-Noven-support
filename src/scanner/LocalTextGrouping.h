@@ -1,5 +1,8 @@
 #pragma once
 
+// 只对当前局部裁剪区内相邻文字框分组，不跨 ROI 拼接无关 UI 文本。
+// Group neighboring boxes within the current local crop only; never join unrelated UI across ROIs.
+
 #include "data/ItemCatalog.h"
 #include "ocr/OcrTypes.h"
 
@@ -53,6 +56,8 @@ struct OrderedTextLine final {
 };
 
 struct OrderedTextAssembly final {
+    // 行内从左到右、行间从上到下；原始框索引仍可用于诊断。
+    // Left-to-right within lines, top-to-bottom across lines; retain original box indices.
     std::vector<OrderedTextLine> lines;
     std::vector<std::size_t> orderedBoxIndices;
     ocr::TextBox combinedBox;
@@ -90,6 +95,9 @@ struct OrderedTextAssembly final {
     std::span<const ocr::RecognizedText> texts
 );
 
+// 覆盖率与字符串相似度分开：短词即使完全匹配也解释不了完整标题。
+// Coverage is separate from string similarity: a perfect short token
+// cannot explain a complete title.
 [[nodiscard]] float CatalogEvidenceCoverage(
     const std::string& complete_local_text,
     const std::string& catalog_alias

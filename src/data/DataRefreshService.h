@@ -1,5 +1,8 @@
 #pragma once
 
+// 网络刷新由独立线程处理；F2 扫描不等待下载，已有磁盘缓存可离线使用。
+// A separate worker handles network refresh; F2 never waits for downloads and can use disk cache offline.
+
 #include "data/GameMode.h"
 
 #include <condition_variable>
@@ -31,6 +34,8 @@ private:
 
     ItemEconomyStore& store_;
     std::filesystem::path cache_directory_;
+    // 队列与停止标志由此互斥量保护；析构前先唤醒并结束工作线程。
+    // This mutex protects the queue and stop flag; wake and join the worker before destruction.
     std::mutex queue_mutex_;
     std::condition_variable queue_available_;
     std::deque<GameMode> queue_;

@@ -6,6 +6,8 @@
 namespace noven::overlay {
 
 std::string DisplayNameForItem(const data::ItemRecord& item) {
+    // 已解析物品只选目录中的中文/英文规范名称，不使用 OCR 查询文本。
+    // A resolved item uses canonical Chinese/English catalog names, never OCR query text.
     if (!item.nameZh.empty()) {
         return item.nameZh;
     }

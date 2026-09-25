@@ -1,5 +1,8 @@
 #pragma once
 
+// 先定位深色低饱和度工具提示面板，再在其内部确定标题裁剪区。
+// Locate a dark, low-saturation tooltip panel before deriving a title crop inside it.
+
 #include "capture/CaptureTypes.h"
 #include "ocr/OcrTypes.h"
 #include "scanner/SpatialCandidateSelector.h"
@@ -12,6 +15,8 @@
 
 namespace noven::scanner {
 
+// 工具提示精确裁剪是主路径；自适应文字扩展仅作回退。
+// Precise tooltip cropping is primary; adaptive text expansion is a fallback.
 enum class InventoryRecognitionPath {
     PrimaryTooltip,
     AdaptiveFallback,
@@ -34,6 +39,8 @@ struct TooltipPrimaryProfile final {
 };
 
 struct TooltipBoxCandidate final {
+    // rect 为当前捕获 ROI 的局部坐标，不能直接当作虚拟桌面坐标。
+    // rect is local to the captured ROI, not directly a virtual-desktop rectangle.
     ocr::TextBox rect;
     float borderConfidence{};
     float backgroundConfidence{};
@@ -41,6 +48,8 @@ struct TooltipBoxCandidate final {
     float panelConfidence{};
     float proximityToCursor{};
     float geometryConfidence{};
+    // 仅真实观察到的边缘算作面板边界；ROI 截断边绝不证明面板完整。
+    // Only observed edges count as panel borders; an ROI edge never proves completeness.
     bool hasLeftBorder{};
     bool hasRightBorder{};
     bool hasTopBorder{};
@@ -50,6 +59,8 @@ struct TooltipBoxCandidate final {
     bool clippedTop{};
     bool clippedBottom{};
 
+    // 四边均已观察到且未截断，才允许跳过最小边缘恢复。
+    // Skip minimal edge recovery only when all four borders are observed and unclipped.
     [[nodiscard]] bool FullBox() const noexcept {
         return hasLeftBorder && hasRightBorder && hasTopBorder && hasBottomBorder
             && !clippedLeft && !clippedRight && !clippedTop && !clippedBottom;
@@ -76,12 +87,17 @@ struct TooltipPrimaryDecision final {
     TooltipPlacement current_placement
 ) noexcept;
 
+// 暗背景、边缘、内部文字及相对鼠标几何分别提供证据；优先确定区域再 OCR。
+// Dark background, borders, contained text, and cursor geometry contribute separately;
+// determine the region before OCR where possible.
 [[nodiscard]] std::optional<TooltipBoxCandidate> DetectTooltipBox(
     const capture::CapturedFrame& frame,
     AnchorPoint anchor,
     TooltipPlacement placement = TooltipPlacement::DefaultRightUpper
 );
 
+// 只恢复缺失的面板边，并受最大尺寸和虚拟桌面边界约束。
+// Recover only missing panel edges, bounded by maximum size and virtual desktop.
 [[nodiscard]] capture::Rect ExpandTooltipRoi(
     capture::Rect current,
     const TooltipBoxCandidate& candidate,
@@ -119,6 +135,8 @@ struct TooltipPrimaryDecision final {
     capture::Size frame_size
 );
 
+// 标题裁剪矩形始终限制在面板局部边界内。
+// Keep the title crop within panel-local bounds.
 [[nodiscard]] std::optional<ocr::TextBox> ClampTooltipTitleCrop(
     const ocr::TextBox& title,
     const ocr::TextBox& panel,

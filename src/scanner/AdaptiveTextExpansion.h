@@ -1,5 +1,9 @@
 #pragma once
 
+// 无可靠面板时的锁定方向回退：先补宽度，再补高度，最后组装文字。
+// Locked-direction fallback without a reliable panel: complete width, then height,
+// then assemble text.
+
 #include "capture/CaptureTypes.h"
 #include "ocr/OcrTypes.h"
 #include "scanner/SpatialCandidateSelector.h"
@@ -41,6 +45,8 @@ struct TooltipExpansionEvidence final {
 };
 
 struct AdaptiveTextExpansionProfile final {
+    // 间隙按文字高度与局部间距归一化，同时保留次数/像素硬上限。
+    // Normalize gaps by text height/local spacing, with hard attempt and pixel limits.
     float fixedMinimumGap{14.0F};
     float textHeightGapMultiplier{2.5F};
     float medianGapMultiplier{2.5F};
@@ -57,6 +63,8 @@ struct AdaptiveTextExpansionProfile final {
 };
 
 struct AdaptiveTextAnalysis final {
+    // 文字边距和下一步方向基于当前 ROI 局部坐标；nextRoi 是屏幕坐标。
+    // Text margins/direction use current ROI-local coordinates; nextRoi is screen-space.
     std::vector<std::size_t> localBoxIndices;
     std::optional<ocr::TextBox> localBounds;
     float localMedianHeight{};

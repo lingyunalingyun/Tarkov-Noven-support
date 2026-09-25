@@ -1,5 +1,8 @@
 #pragma once
 
+// 使用 Win32 全局热键消息触发单次扫描，不在空闲时轮询按键或屏幕。
+// Use Win32 global-hotkey messages for single-shot scans; no idle key or screen polling.
+
 #include <windows.h>
 
 namespace noven::hotkey {

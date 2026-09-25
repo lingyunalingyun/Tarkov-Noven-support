@@ -1,5 +1,8 @@
 #pragma once
 
+// OCR 坐标相对输入的捕获 ROI；每个识别框独立保留以供局部分组。
+// OCR coordinates are local to the captured ROI; retain each box for local grouping.
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -30,6 +33,8 @@ struct DetectionResult final {
 };
 
 struct RecognizedText final {
+    // 不把整个画面的文字合并成一个查询，以免无关 UI 文本混入物品名。
+    // Never concatenate all screen text into one query; unrelated UI text must stay separate.
     TextBox box;
     std::string text;
     float confidence{};

@@ -1,5 +1,8 @@
 #pragma once
 
+// Inventory 回退的方向/深度推进；锁定后不得旋转到无关方向。
+// Advance Inventory fallback direction/depth; once locked, do not rotate elsewhere.
+
 #include "capture/CaptureTypes.h"
 #include "scanner/SpatialCandidateSelector.h"
 
@@ -38,6 +41,9 @@ struct ProgressiveScanPosition final {
     int search_depth
 ) noexcept;
 
+// anchor 和返回矩形均使用虚拟桌面屏幕坐标，可跨负坐标显示器。
+// Both anchor and returned rectangle use virtual-screen coordinates,
+// including negative-coordinate monitors.
 [[nodiscard]] capture::Rect CalculateDirectionalRoi(
     capture::Point anchor,
     ScanDirection direction,

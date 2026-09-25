@@ -1,5 +1,8 @@
 #pragma once
 
+// 候选矩形相对锚点分类；输入 OCR 框是 ROI 局部坐标。
+// Classify candidate rectangles relative to the anchor; input OCR boxes are ROI-local.
+
 #include "data/ItemCatalog.h"
 #include "ocr/OcrTypes.h"
 
@@ -29,6 +32,8 @@ enum class ScanDirection {
 };
 
 struct AnchorPoint final {
+    // 当前 ROI 内的锚点坐标；不能直接与虚拟桌面框比较。
+    // Anchor coordinates within the current ROI, not directly comparable to screen rectangles.
     float x{};
     float y{};
 };
@@ -75,6 +80,8 @@ struct SpatialSearchStep final {
 };
 
 struct ScanCandidate final {
+    // distanceToAnchor 是点到矩形边界的最短距离；中心距离只作诊断。
+    // distanceToAnchor is point-to-rectangle distance; center distance is diagnostic.
     ocr::RecognizedText recognized;
     data::ItemMatch match;
     ScanDirection direction{};
@@ -103,6 +110,9 @@ struct ScanCandidate final {
 };
 
 struct ScanResult final {
+    // 保留参与和未参与的候选以便调试；Inventory 主路径不做全 ROI 竞争。
+    // Retain candidates for diagnostics; the Inventory primary path does not
+    // run a whole-ROI candidate competition.
     bool found{};
     ScanProfileType profile{};
     std::optional<ScanCandidate> selected;

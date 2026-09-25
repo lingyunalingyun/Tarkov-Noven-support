@@ -1,4 +1,7 @@
-"""Build the offline OCR catalog. Development tool only; never runs in the app."""
+"""生成离线 OCR 目录；仅供开发，不在应用运行时执行。
+
+Build the offline OCR catalog; this development tool never runs in the app.
+"""
 
 import argparse
 import csv
@@ -30,6 +33,10 @@ def unique_object(pairs):
 
 
 def read_json(path):
+    """读取本地快照或规范来源，并校验 UTF-8/重复 JSON 键。
+
+    Read a local snapshot or canonical source and validate UTF-8/duplicate keys.
+    """
     if isinstance(path, Path):
         raw = path.read_bytes()
     else:
@@ -73,6 +80,11 @@ def alias_key(value):
 
 
 def build(canonical, english, chinese, legacy, economy=None, source_hash="", spt=None):
+    """以稳定 ID 遍历规范物品；中文字段仅丰富别名，缺失时保留英文物品。
+
+    Iterate canonical items by stable ID; Chinese enriches aliases but its absence
+    never removes an English item.
+    """
     items = canonical.get("data", {}).get("items")
     en = english.get("data")
     zh = chinese.get("data")
@@ -93,8 +105,8 @@ def build(canonical, english, chinese, legacy, economy=None, source_hash="", spt
         if not isinstance(item, dict) or item.get("id") != item_id:
             raise ValueError(f"invalid canonical stable ID: {item_id}")
         if not ID_PATTERN.fullmatch(item_id):
-            # The API also publishes synthetic IDs (currently custom dogtags),
-            # which cannot be looked up by the game's 24-hex template ID.
+            # 上游也包含非 24 位模板 ID；不把这些合成身份写入游戏物品目录。
+            # Upstream also contains non-template IDs; exclude them from the game catalog.
             unsupported_ids.append(item_id)
             continue
         name_en = text(en.get(item_id + " Name"), item_id + " English name")
@@ -102,6 +114,9 @@ def build(canonical, english, chinese, legacy, economy=None, source_hash="", spt
         if not name_en:
             raise ValueError(f"canonical item lacks English name: {item_id}")
         old_name, old_short = legacy.get(item_id, ("", ""))
+        # 中文优先使用同源本地化，再按相同 ID 从 SPT 与旧目录回填。
+        # Prefer same-source Chinese localization, then fill gaps from SPT and
+        # the legacy catalog by the same stable ID.
         name_zh = text(zh.get(item_id + " Name"), item_id + " Chinese name")
         short_zh = text(zh.get(item_id + " ShortName"), item_id + " Chinese shortName")
         if not name_zh and spt:
@@ -144,6 +159,8 @@ def build(canonical, english, chinese, legacy, economy=None, source_hash="", spt
     economy_ids = ({item["id"] for item in economy_items}
                    if isinstance(economy_items, list) else set(economy_items))
     extra_localization = sorted(set(legacy) - canonical_ids)
+    # 同文别名可能指向不同物品；只报告冲突，不覆盖任何稳定 ID。
+    # Identical aliases may name distinct items; report collisions, never overwrite IDs.
     collisions = sorted((alias, sorted(ids)) for alias, ids in aliases.items()
                         if alias and len(ids) > 1)
     metadata = {
@@ -172,7 +189,13 @@ def build(canonical, english, chinese, legacy, economy=None, source_hash="", spt
 
 
 def write_catalog(rows, metadata, tsv_path, meta_path):
-    # All validation has completed before either output is replaced.
+    """按稳定顺序输出 UTF-8 TSV 与健康元数据。
+
+    Write deterministic UTF-8 TSV and catalog-health metadata.
+    """
+    # 两份输出在替换前已经完成校验；临时文件避免直接写坏现有文件。
+    # Both outputs are validated before replacement; temporary files avoid
+    # writing directly over existing files.
     tsv_path.parent.mkdir(parents=True, exist_ok=True)
     meta_path.parent.mkdir(parents=True, exist_ok=True)
     tsv_temp = tsv_path.with_suffix(tsv_path.suffix + ".tmp")

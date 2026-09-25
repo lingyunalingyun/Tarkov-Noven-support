@@ -1,5 +1,8 @@
 #pragma once
 
+// 单次触发的内存捕获契约：虚拟桌面矩形输入，BGRA8 像素输出。
+// Single-trigger in-memory capture contract: virtual-desktop rectangle in, BGRA8 pixels out.
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -17,6 +20,9 @@ struct Size final {
 };
 
 struct Rect final {
+    // 屏幕坐标允许负值，边界采用左上闭合、右下排他的矩形约定。
+    // Screen coordinates may be negative; bounds use a left/top-inclusive,
+    // right/bottom-exclusive rectangle.
     long left{};
     long top{};
     long right{};
@@ -50,12 +56,17 @@ enum class CaptureSource {
     bool overlay_was_visible,
     CaptureSource source
 ) noexcept {
+    // 先前 Noven 窗口可见时，隐藏前缓存的 DXGI 帧不能作为下一次 OCR 输入。
+    // If a previous Noven window was visible, a pre-hide cached DXGI frame
+    // must not feed the next OCR scan.
     return !overlay_was_visible || source != CaptureSource::DxgiCachedFrame;
 }
 
 struct CapturedFrame final {
     std::uint32_t width{};
     std::uint32_t height{};
+    // 每行字节数可能包含填充，不必等于宽度乘四。
+    // Row stride may include padding and need not equal width times four.
     std::uint32_t stride{};
     PixelFormat pixel_format{PixelFormat::Bgra8};
     std::vector<std::uint8_t> bgra;

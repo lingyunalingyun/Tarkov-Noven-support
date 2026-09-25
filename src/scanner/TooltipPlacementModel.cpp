@@ -10,6 +10,9 @@ TooltipPlacementPrediction PredictTooltipPlacement(
     capture::Rect monitor,
     const TooltipPlacementProfile& profile
 ) noexcept {
+    // 只在预计正常右侧面板越过鼠标所在显示器时向内偏移；不常态探测左侧。
+    // Shift inward only when the normal right-side panel would overflow the
+    // cursor's monitor; do not routinely probe left.
     const bool shifted = cursor.x + profile.offsetX + profile.expectedPanelWidth
         > monitor.right;
     const long left = shifted
@@ -33,6 +36,8 @@ float TooltipGeometryConfidence(
     const ocr::TextBox& panel,
     TooltipPlacement placement
 ) noexcept {
+    // 该分数仅评价面板相对鼠标的方位和距离，不代表文字识别质量。
+    // This score measures panel placement/proximity, not OCR quality.
     if (panel.x2 <= panel.x1 || panel.y2 <= panel.y1) return 0.0F;
     const bool above = panel.y1 < static_cast<float>(cursor.y)
         && panel.y2 <= static_cast<float>(cursor.y + 24);
@@ -54,6 +59,8 @@ float TooltipGeometryConfidence(
 }
 
 const wchar_t* TooltipPlacementName(TooltipPlacement placement) noexcept {
+    // Unknown 仅是无效枚举值的防御性日志文本，不是第三种实际预测模式。
+    // Unknown is defensive log text for an invalid enum value, not a third prediction mode.
     switch (placement) {
     case TooltipPlacement::DefaultRightUpper: return L"DefaultRightUpper";
     case TooltipPlacement::RightEdgeShiftedLeft: return L"RightEdgeShiftedLeft";

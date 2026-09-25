@@ -1,5 +1,10 @@
 #pragma once
 
+// F2 → 捕获 → 工具提示定位/标题裁剪 → OCR → 目录 ID → 经济查询 → UI 显示模型。
+// F2 → capture → tooltip/title crop → OCR → catalog ID → economy → UI display model.
+// Inventory 与 RaidPickup 共用捕获/OCR，但其定位和候选选择路径不同。
+// Inventory and RaidPickup share capture/OCR but differ in localization and selection.
+
 #include "capture/ICaptureBackend.h"
 #include "data/ItemCatalog.h"
 #include "data/GameMode.h"
@@ -25,6 +30,8 @@
 namespace noven::scanner {
 
 struct ScanValidationRecord final {
+    // scan_id 贯穿工作线程、UI 线程和验证日志；ROI 为虚拟桌面屏幕坐标。
+    // scan_id correlates worker/UI activity and validation logs; ROI uses virtual-screen coordinates.
     std::uint64_t scan_id{};
     std::chrono::steady_clock::time_point hotkey_start{};
     data::GameMode game_mode{data::GameMode::Pvp};
@@ -87,10 +94,14 @@ public:
     void SetCompletionCallback(std::function<void(ScanCompletion)> callback);
     void SetScanStepCallback(std::function<void(capture::Rect)> callback);
     void Start();
+    // 触发器只排入单次扫描；模型推理与目录匹配留在工作线程。
+    // Enqueue one scan; model inference and catalog matching stay on the worker.
     void Trigger(bool previous_overlay_visible = false);
 
 private:
     struct ScanJob final {
+        // screen_anchor/roi 是虚拟桌面坐标；anchor 是当前 ROI 的局部坐标。
+        // screen_anchor/roi are virtual-screen coordinates; anchor is ROI-local.
         capture::CaptureResult capture_result;
         std::filesystem::path raw_output_path;
         std::filesystem::path detected_output_path;
@@ -118,6 +129,9 @@ private:
         TooltipPlacement tooltip_placement{TooltipPlacement::DefaultRightUpper};
         std::uint64_t scan_id{};
         capture::Rect monitor_bounds{};
+        // 隐藏前一张结果卡或调试窗口后，等待不含 Noven 画面的新帧。
+        // After hiding a result card or debug window, await a fresh frame
+        // without Noven content.
         bool capture_guard_pending{};
     };
 
@@ -137,6 +151,8 @@ private:
     SpatialCandidateSelector candidate_selector_;
     unsigned long capture_number_{};
     std::uint64_t next_scan_id_{};
+    // 队列与停止状态由互斥量保护；回调将完成结果交给 UI 线程。
+    // The mutex protects queue/stop state; callbacks hand completion to the UI thread.
     std::mutex jobs_mutex_;
     std::condition_variable jobs_available_;
     std::deque<ScanJob> jobs_;

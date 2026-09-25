@@ -1,5 +1,8 @@
 #pragma once
 
+// 磁盘缓存按 PvP/PvE/Seasonal 隔离；扫描热路径只按 ID 查内存数据。
+// Disk caches are isolated by PvP/PvE/Seasonal; the scan hot path only looks up in-memory IDs.
+
 #include "data/GameMode.h"
 #include "data/ItemEconomyTypes.h"
 
@@ -18,6 +21,8 @@ public:
     ItemEconomyStore& operator=(const ItemEconomyStore&) = delete;
 
     bool LoadCacheFile(GameMode mode, const std::filesystem::path& path, std::wstring& error);
+    // 验证整份上游数据后才替换对应模式，失败时保留原缓存。
+    // Replace a mode only after validating the full payload; preserve the old cache on failure.
     bool ReplaceFromUpstreamJson(GameMode mode, std::string_view payload, std::wstring& error);
     bool SaveCacheFile(GameMode mode, const std::filesystem::path& path, std::wstring& error) const;
 

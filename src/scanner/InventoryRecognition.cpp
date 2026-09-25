@@ -1,5 +1,9 @@
 #include "scanner/InventoryRecognition.h"
 
+// OCR 只产生检索证据；严格/尽力匹配解析稳定 ID，卡片标题取自目录。
+// OCR supplies search evidence; strict/best-effort matching resolves a stable ID,
+// while the card title comes from the catalog.
+
 #include <algorithm>
 #include <cctype>
 #include <iterator>
@@ -79,6 +83,8 @@ std::vector<std::string> EvidenceTokens(std::string_view text) {
 }
 
 std::string ModelKey(std::string_view token) {
+    // 保留字母与数字组成的型号标识；连字符用于识别型号，但不参与键比较。
+    // Preserve alphanumeric model identity; hyphens identify a model but are omitted from its key.
     std::string result;
     bool has_digit = false;
     bool has_letter = false;
@@ -97,7 +103,8 @@ std::string ModelKey(std::string_view token) {
 }
 
 std::vector<std::string> Calibers(std::string_view text) {
-    // Boundaries prevent a shared suffix such as x39 from masquerading as a match.
+    // 完整口径是一个语义词元；边界阻止共用 x39 后缀冒充匹配。
+    // A complete caliber is one semantic token; boundaries prevent a shared x39 suffix from matching.
     static const std::regex pattern(R"((^|[^a-z0-9.])([0-9]{1,2}(?:\.[0-9]{1,2})?[x/][0-9]{2,3})(?=$|[^a-z0-9.]))");
     const std::string value(text);
     std::vector<std::string> result;
@@ -179,7 +186,8 @@ ItemCategory InferCategory(std::string_view text) {
     const auto has = [&](std::string_view word) {
         return text.find(word) != std::string_view::npos;
     };
-    // Parts precede weapons: "assault rifle magazine" is not a rifle.
+    // 配件类别先于武器类别："assault rifle magazine" 仍是弹匣。
+    // Part categories precede weapons: "assault rifle magazine" is a magazine.
     if (has("消音器") || has("suppressor") || has("silencer")) return ItemCategory::Suppressor;
     if (has("弹匣") || has("magazine")) return ItemCategory::Magazine;
     if (has("握把") || has("grip")) return ItemCategory::Grip;
@@ -223,6 +231,8 @@ InventoryRecognitionResult BuildInventoryRecognition(
     std::optional<ocr::TextBox> tooltip_rect,
     std::vector<ocr::RecognizedText> fragments
 ) {
+    // 只组装本地片段，保留原框与阅读顺序以便分别构造匹配假设。
+    // Assemble local fragments only; retain boxes and reading order for separate hypotheses.
     InventoryRecognitionResult result;
     result.scanId = scan_id;
     result.sourcePath = source_path;
@@ -240,6 +250,9 @@ void ResolveInventoryCatalog(
     const data::ItemCatalog& catalog,
     float threshold
 ) {
+    // 严格路径依次检索完整标题、行、局部分组和单框；拒绝原因保留给回退路径。
+    // The strict path considers the full title, lines, local groups, then boxes;
+    // preserve rejection reasons for the fallback.
     result.catalogAttempted = true;
     result.candidates.clear();
     result.selectedCandidate.reset();
@@ -335,8 +348,9 @@ void ResolveInventoryCatalog(
             if (candidate.stage == "line") return 1;
             return 0;
         };
-        // Full-text coverage prevents a perfect match to one stray short token
-        // from replacing a candidate that explains the complete title.
+        // 证据覆盖率与相似度分开，避免孤立短词的完美命中压过完整标题。
+        // Evidence coverage is separate from similarity so a perfect stray token
+        // cannot outrank a candidate explaining the complete title.
         if (a.text.evidenceCoverage != b.text.evidenceCoverage)
             return a.text.evidenceCoverage > b.text.evidenceCoverage;
         if (stage_rank(a) != stage_rank(b)) return stage_rank(a) > stage_rank(b);
@@ -374,6 +388,9 @@ void BestEffortResolve(
     InventoryRecognitionResult& result,
     const data::ItemCatalog& catalog
 ) {
+    // 不放宽严格阈值：健康目录中的可用 OCR 总会得到排名第一的规范物品。
+    // Do not relax strict thresholds: usable OCR with a healthy catalog still gets
+    // the top-ranked canonical item, with low-confidence/ambiguity metadata.
     if (result.selectedCandidate.has_value() || result.normalizedText.empty()) return;
     result.bestEffortTop.clear();
     result.bestEffortAmbiguous = false;
@@ -387,6 +404,9 @@ void BestEffortResolve(
     const auto query_calibers = Calibers(result.normalizedText);
     const auto query_models = ModelCodes(result.normalizedText);
     const ItemCategory query_category = InferCategory(result.normalizedText);
+    // 完整标题启用目录全别名/字符三元组回退，以恢复前缀损坏或粘连的文字。
+    // The full title uses the catalog-wide alias/character-trigram fallback to
+    // recover damaged prefixes or merged OCR words.
     const auto consider = [&](std::string_view text, float confidence,
                               bool complete_title) {
         if (data::NormalizeForMatching(text).empty()) return;
@@ -438,6 +458,9 @@ void BestEffortResolve(
             const float model_evidence = model_match ? 1.0F
                 : (model_continuation ? 0.5F : 0.0F);
             const float category_evidence = category_match ? 1.0F : 0.0F;
+            // 完整口径、型号和粗类别分开加分；明显矛盾则扣分而非替换 OCR 原文。
+            // Full caliber, model, and coarse category contribute separately;
+            // contradictions penalize rank without turning OCR into a display title.
             const float penalty = (caliber_conflict ? 0.55F : 0.0F)
                 + (category_conflict ? 0.50F : 0.0F)
                 + (model_conflict ? 0.15F : 0.0F);
@@ -540,7 +563,8 @@ std::optional<overlay::ScanDisplayResult> BuildInventoryDisplayResult(
         result.rawOcrText += fragment.text;
     }
     result.bestEffortAmbiguous = recognition.bestEffortAmbiguous;
-    // A resolved stable ID always owns the result title, irrespective of confidence.
+    // 一旦有稳定 ID，无论置信度如何，目录规范名称都拥有结果标题。
+    // Once resolved, the stable ID owns the canonical card title regardless of confidence.
     if (recognition.selectedCandidate.has_value()) {
         const auto& selected = recognition.candidates[*recognition.selectedCandidate].text;
         result.itemId = recognition.selectedItemId;

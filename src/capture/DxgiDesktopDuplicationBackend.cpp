@@ -21,6 +21,9 @@ using Microsoft::WRL::ComPtr;
 namespace {
 
 struct OutputCapture final {
+    // 每个物理输出持有独立复制会话与全帧 GPU 缓存，避免跨显示器混用画面。
+    // Each physical output owns its duplication session and full-frame GPU cache;
+    // never reuse a frame from a different monitor.
     RECT desktop_coordinates{};
     DXGI_FORMAT format{};
     ComPtr<IDXGIOutputDuplication> duplication;
@@ -488,6 +491,9 @@ bool DxgiDesktopDuplicationBackend::InitializeSession() {
             &resource
         );
         if (acquire_result == DXGI_ERROR_WAIT_TIMEOUT) {
+            // 静止画面没有新帧是正常情况；优先裁已有缓存，仅无缓存时应急 GDI。
+            // A static screen may produce no new frame; crop the cache first,
+            // reserving emergency GDI for an output without a valid cached frame.
             common::DebugLog(
                 L"[capture] output " + std::to_wstring(output_index)
                 + L" had no initial frame; cache will prime on first capture"
@@ -830,6 +836,9 @@ CaptureResult DxgiDesktopDuplicationBackend::CaptureInitialized(const Rect& roi)
         source_texture->GetDesc(&source_desc);
         source_format = source_desc.Format;
         HRESULT hr{};
+        // BGRA8 直接裁 ROI；支持的 HDR/非 BGRA8 格式只转换该 ROI 后回读。
+        // Crop BGRA8 directly; convert only the requested ROI for supported
+        // HDR/non-BGRA8 formats before readback.
         if (source_desc.Format == DXGI_FORMAT_B8G8R8A8_UNORM) {
             if (!prepare_direct_staging(
                     output,

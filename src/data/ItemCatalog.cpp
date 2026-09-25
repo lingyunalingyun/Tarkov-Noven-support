@@ -460,6 +460,9 @@ int MatchPriority(MatchType type) noexcept {
 } // namespace
 
 std::string NormalizeForMatching(std::string_view text) {
+    // 归一化只服务检索：兼容中英文标点与空白，不改变物品规范名称。
+    // Normalization serves lookup only: reconcile punctuation/spacing without
+    // changing canonical item names.
     std::wstring wide = CompatibilityNormalize(Utf8ToWide(text));
     std::wstring result;
     result.reserve(wide.size());
@@ -592,6 +595,8 @@ void ItemCatalog::AddAlias(
     Language language,
     AliasType type
 ) {
+    // 每个别名属于一个稳定 ID；同文别名可能属于多个不同物品。
+    // Each alias belongs to a stable ID; identical text may name several items.
     if (text.empty()) {
         return;
     }
@@ -824,6 +829,9 @@ std::vector<ItemMatch> ItemCatalog::MatchBestEffort(
     std::string_view text,
     std::size_t maximum_candidates
 ) const {
+    // 索引不足以处理受损前缀，因此仅在回退时用全别名扫描和字符三元组补充排序。
+    // Damaged prefixes can evade indexes, so the fallback scans all aliases
+    // and adds character-trigram evidence to the ranking.
     if (maximum_candidates == 0 || aliases_.empty()) return {};
     std::vector<ItemMatch> indexed = RankMatches(text, std::nullopt, nullptr);
     const std::string normalized = NormalizeForMatching(text);

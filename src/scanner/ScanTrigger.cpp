@@ -1,5 +1,9 @@
 #include "scanner/ScanTrigger.h"
 
+// 保留现有编排：Inventory 先找面板并裁标题，必要时自适应回退；RaidPickup 单独做空间选择。
+// Preserve orchestration: Inventory finds/crops a tooltip with adaptive fallback;
+// RaidPickup uses a separate spatial-selection path.
+
 #include "capture/Roi.h"
 #include "common/DebugLog.h"
 #include "scanner/AdaptiveTextExpansion.h"
@@ -215,6 +219,8 @@ void ScanTrigger::Start() {
 }
 
 void ScanTrigger::Trigger(bool previous_overlay_visible) {
+    // F2 的全局鼠标位置在此记录；截图查看器鼠标位置不能用于游戏几何校准。
+    // Record the global cursor at F2; a screenshot viewer cursor must not calibrate game geometry.
     const auto total_start = std::chrono::steady_clock::now();
     const std::uint64_t scan_id = ++next_scan_id_;
     const ScannerProfile profile = ProfileFor(profile_);
@@ -324,6 +330,8 @@ void ScanTrigger::Trigger(bool previous_overlay_visible) {
 }
 
 void ScanTrigger::WorkerLoop() {
+    // 条件变量在空闲时阻塞线程，不持续抓屏或轮询 OCR。
+    // The condition variable blocks while idle: no continuous capture or OCR polling.
     while (true) {
         ScanJob job;
         {
@@ -337,6 +345,9 @@ void ScanTrigger::WorkerLoop() {
         }
 
         const ScannerProfile profile = ProfileFor(job.profile);
+        // Inventory 主路径先按鼠标/显示器预测右上区域，再用图像证据选择面板。
+        // Inventory first predicts a right-upper region from cursor/monitor geometry,
+        // then uses image evidence to select a panel.
         if (job.profile == ScanProfileType::Inventory
             && job.inventory_path == InventoryRecognitionPath::PrimaryTooltip
             && ShouldInitializeDirectionalRoi(
@@ -465,6 +476,9 @@ void ScanTrigger::WorkerLoop() {
             job.capture_result = capture_backend_.Capture(job.roi);
             job.capture_ms = ElapsedMilliseconds(capture_start);
         }
+        // 隐藏置顶结果卡或调试窗口后，旧缓存帧仍可能包含 Noven 画面。
+        // After hiding a topmost card or debug window, the cached frame may
+        // still contain Noven content; require a safe new frame before OCR.
         if (job.capture_guard_pending) {
             const auto guard_start = std::chrono::steady_clock::now();
             for (int attempt = 0; attempt < 3
@@ -1782,6 +1796,9 @@ void ScanTrigger::WorkerLoop() {
             true
         );
         } else {
+            // 可用标题统一进入严格匹配，再进入尽力匹配；低分不直接变成 OCR 标题。
+            // A usable title enters strict then best-effort matching; low score alone
+            // never turns raw OCR into the official item title.
             inventory_recognition = BuildInventoryRecognition(
                 job.scan_id,
                 job.inventory_path,
@@ -2020,6 +2037,8 @@ void ScanTrigger::WorkerLoop() {
 
         const auto selection_start = std::chrono::steady_clock::now();
         ScanResult spatial_result;
+        // RaidPickup 保留以准星为锚的空间候选选择，不复用 Inventory 面板逻辑。
+        // RaidPickup keeps crosshair-anchored spatial selection, separate from Inventory tooltip logic.
         if (job.profile == ScanProfileType::RaidPickup) {
             spatial_result = candidate_selector_.Select(
                 job.profile, job.anchor, matched_texts, tooltip_region_for_frame

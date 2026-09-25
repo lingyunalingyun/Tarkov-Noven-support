@@ -194,6 +194,8 @@ int main(int argc, char** argv) {
             && !noisy.selectedItemId.empty(),
         "badly OCR'd long title yields a nearest item");
 
+    // 回归：前缀损坏且低分时，仍应显示目录规范名称而不是 OCR_ONLY 原文。
+    // Regression: a damaged low-scoring prefix still shows a canonical name, not OCR_ONLY text.
     auto camelbak = Resolve(catalog, "amelbakTr'-'Zo突击背包（", 200);
     Require(camelbak.selectedItemId.empty(), "damaged Camelbak title fails strict matching");
     camelbak.cropConfidence = 0.1F;

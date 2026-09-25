@@ -1,5 +1,8 @@
 #pragma once
 
+// Direct2D/DirectWrite 仅负责测量与绘制 ScanDisplayResult，不参与 OCR 或目录决策。
+// Direct2D/DirectWrite measures and paints ScanDisplayResult, never OCR or catalog decisions.
+
 #include "overlay/OverlayTypes.h"
 
 #include <d2d1.h>
@@ -22,6 +25,8 @@ public:
     );
 
 private:
+    // 渲染目标随窗口尺寸变化复用或重建，结果卡窗口本身保持常驻。
+    // Reuse or recreate the render target as needed; the card window stays persistent.
     bool EnsureRenderTarget(HWND window, UINT width, UINT height, std::wstring& error);
 
     Microsoft::WRL::ComPtr<ID2D1Factory> d2d_factory_;

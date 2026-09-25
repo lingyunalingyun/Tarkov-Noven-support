@@ -1,5 +1,8 @@
 #pragma once
 
+// 显示模型只接收稳定 ID、规范名称和经济数据；原始 OCR 仅作诊断。
+// The display model uses stable ID, canonical name, and economy data; raw OCR is diagnostic only.
+
 #include "data/GameMode.h"
 #include "data/ItemCatalog.h"
 #include "data/ItemEconomyTypes.h"
@@ -11,6 +14,8 @@
 namespace noven::overlay {
 
 enum class MatchQuality {
+    // 低置信度与 OCR_ONLY 是不同状态；前者仍有规范物品身份。
+    // Low confidence still has canonical item identity, unlike OCR_ONLY.
     Strict,
     LowConfidence,
     OcrOnly,
@@ -18,6 +23,8 @@ enum class MatchQuality {
 
 struct ScanDisplayResult final {
     std::string itemId;
+    // 物品匹配成功时，此标题来自目录规范名称而非 OCR。
+    // Once an item resolves, this title comes from the catalog, not OCR.
     std::string displayName;
     data::GameMode mode{data::GameMode::Pvp};
     std::optional<std::int64_t> fleaPrice;

@@ -1,5 +1,9 @@
 #pragma once
 
+// 以 Tarkov 稳定物品 ID 为身份键；英文规范数据与中文本地化按 ID 合并。
+// Use stable Tarkov item IDs as identity keys; merge canonical English data and
+// Chinese localization by ID, never by display name.
+
 #include <cstddef>
 #include <filesystem>
 #include <optional>
@@ -36,6 +40,8 @@ struct ItemRecord final {
     int height{};
     std::vector<std::string> types;
     std::string caliber;
+    // 中文翻译缺失时仍保留英文别名和物品身份。
+    // Missing Chinese localization never removes English aliases or item identity.
     std::vector<ItemAlias> aliases;
 };
 
@@ -55,6 +61,8 @@ struct ItemMatch final {
     float score{};
     float bestScore{};
     float secondBestScore{};
+    // 前两名分差及接近最高分的物品数用于判断歧义。
+    // The top-two gap and count of near-top items characterize ambiguity.
     float scoreGap{};
     std::size_t competitiveCandidateCount{};
     bool ambiguous{};
@@ -97,7 +105,9 @@ public:
         std::size_t maximum_candidates = 10
     ) const;
 
-    // Fallback-only: indexed retrieval first; full scan if fewer than three candidates.
+    // 尽力匹配先利用索引，再扫描所有别名并合并每个 ID 的最高分；仅回退路径使用。
+    // Best-effort starts with indexed candidates, then scans all aliases and
+    // retains each ID's best score; only the fallback path uses this method.
     [[nodiscard]] std::vector<ItemMatch> MatchBestEffort(
         std::string_view text,
         std::size_t maximum_candidates = 10
@@ -141,6 +151,8 @@ private:
 
     std::vector<ItemRecord> items_;
     std::vector<AliasEntry> aliases_;
+    // 一个别名可指向多个稳定 ID；索引保留全部冲突项而不静默覆盖。
+    // An alias may map to multiple stable IDs; indexes retain collisions.
     std::unordered_map<std::string, std::vector<std::size_t>> exact_index_;
     std::unordered_map<std::string, std::vector<std::size_t>> canonical_index_;
     std::unordered_map<char32_t, std::vector<std::size_t>> fuzzy_index_;

@@ -1,5 +1,8 @@
 #pragma once
 
+// 三种游戏模式分别映射至 tarkov.dev 数据集，不能混用价格缓存。
+// Map each game mode to its own tarkov.dev dataset; never mix economy caches.
+
 #include <array>
 
 namespace noven::data {

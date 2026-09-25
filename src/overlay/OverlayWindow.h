@@ -1,5 +1,8 @@
 #pragma once
 
+// 常驻原生卡片窗口仅由 UI 线程更新；扫描线程通过完成消息交接显示模型。
+// The persistent native card is updated only on the UI thread; the scan worker hands off a display model.
+
 #include "overlay/OverlayRenderer.h"
 
 #include <optional>
@@ -32,6 +35,8 @@ public:
 
 private:
     static constexpr UINT_PTR kHideTimerId = 1;
+    // 自动隐藏只作用于结果卡；持久调试可视化有独立窗口和寿命。
+    // Auto-hide applies only to the result card; persistent debug visualization has its own window.
     static constexpr UINT kVisibleMilliseconds = 4000;
 
     static LRESULT CALLBACK WindowProc(

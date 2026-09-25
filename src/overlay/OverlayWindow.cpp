@@ -36,6 +36,8 @@ bool OverlayWindow::Create(HINSTANCE instance, std::wstring& error) {
     RegisterClassExW(&window_class);
 
     window_ = CreateWindowExW(
+        // 置顶工具窗口不可激活且鼠标穿透，不夺取游戏焦点或点击。
+        // Topmost tool window remains non-activating and click-through.
         WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE
             | WS_EX_LAYERED | WS_EX_TRANSPARENT,
         kOverlayClassName,

@@ -122,6 +122,8 @@ void DataRefreshService::Stop() {
 }
 
 void DataRefreshService::WorkerLoop() {
+    // 队列空时等待唤醒；刷新失败不清空此前加载的有效模式缓存。
+    // Wait while the queue is empty; a failed refresh preserves the prior valid mode cache.
     while (true) {
         GameMode mode{};
         {

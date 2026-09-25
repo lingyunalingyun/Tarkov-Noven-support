@@ -19,6 +19,9 @@ HWND CreateDebugWindow(
     const wchar_t* title
 ) {
     return CreateWindowExW(
+        // 调试可视化独立于自动隐藏的结果卡，同样不拦截游戏输入。
+        // Debug visualization is separate from the auto-hiding result card
+        // and likewise does not intercept game input.
         WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE
             | WS_EX_LAYERED | WS_EX_TRANSPARENT,
         kDebugWindowClassName,

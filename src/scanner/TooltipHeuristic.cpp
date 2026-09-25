@@ -328,6 +328,9 @@ std::optional<TooltipBoxCandidate> DetectTooltipBox(
     AnchorPoint anchor,
     TooltipPlacement placement
 ) {
+    // 以暗背景和实际边缘为面板证据；捕获 ROI 的边缘不得充当面板边框。
+    // Use dark background and observed edges as panel evidence; the capture
+    // ROI boundary must not stand in for a tooltip border.
     if (frame.width == 0 || frame.height == 0 || frame.stride < frame.width * 4
         || frame.bgra.empty()) {
         return std::nullopt;
@@ -677,6 +680,8 @@ std::optional<ocr::TextBox> ClampTooltipTitleCrop(
     const ocr::TextBox& panel,
     float padding
 ) noexcept {
+    // 用面板边界约束标题区，阻止背包/仓库的邻近文字进入 OCR 查询。
+    // Constrain the title to the panel so neighboring stash text cannot enter the OCR query.
     const ocr::TextBox crop{
         std::max(panel.x1, title.x1 - padding),
         std::max(panel.y1, title.y1 - padding),

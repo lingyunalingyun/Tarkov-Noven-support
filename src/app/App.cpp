@@ -349,6 +349,9 @@ int App::Run(HINSTANCE instance, int show_command) {
     }
 
     scan_trigger_->SetCompletionCallback([this](scanner::ScanCompletion completion) {
+        // 工作线程只投递拥有所有权的结果；窗口消息处理器在 UI 线程更新覆盖层。
+        // The worker only posts an owned result; the window message handler
+        // updates the overlay on the UI thread.
         const std::uint64_t scan_id = completion.validation.scan_id;
         auto* completion_pointer = new scanner::ScanCompletion(std::move(completion));
         const bool posted = PostMessageW(
@@ -366,6 +369,8 @@ int App::Run(HINSTANCE instance, int show_command) {
         }
     });
     scan_trigger_->SetScanStepCallback([this](capture::Rect roi) {
+        // 调试 ROI 的虚拟桌面矩形也经消息转交，避免跨线程直接改窗口。
+        // Pass the virtual-screen debug ROI through a message too; do not mutate windows cross-thread.
         auto* roi_pointer = new capture::Rect(roi);
         if (!PostMessageW(
             window_,

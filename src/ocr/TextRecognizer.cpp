@@ -206,6 +206,8 @@ bool TextRecognizer::Preprocess(
 }
 
 std::string TextRecognizer::Decode(const OnnxTensor& output, float& confidence) const {
+    // 兼容类别轴在前/在后的输出；CTC blank 与连续重复字符不写入结果。
+    // Accept either class-axis layout; omit CTC blanks and consecutive repeats.
     confidence = 0.0F;
     if (output.shape.size() < 2 || output.data.empty() || dictionary_.empty()) {
         return {};
@@ -215,7 +217,8 @@ std::string TextRecognizer::Decode(const OnnxTensor& output, float& confidence) 
         output.shape[output.shape.size() - 2]
     );
     const std::size_t last = static_cast<std::size_t>(output.shape.back());
-    // CTCLabelDecode appends an ASCII space when use_space_char is enabled.
+    // 字典启用 use_space_char 时，CTCLabelDecode 在末尾增加 ASCII 空格类别。
+    // CTCLabelDecode appends an ASCII-space class when use_space_char is enabled.
     const std::size_t dictionary_class_count = dictionary_.size() + 1;
     const std::size_t dictionary_with_space_class_count = dictionary_.size() + 2;
     const bool has_appended_space = last == dictionary_with_space_class_count

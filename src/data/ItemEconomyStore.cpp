@@ -542,6 +542,9 @@ bool ItemEconomyStore::ReplaceFromUpstreamJson(
     std::string_view payload,
     std::wstring& error
 ) {
+    // 在临时模式缓存中解析并校验整份数据，成功后才替换现有价格快照。
+    // Parse and validate the full payload in a temporary mode cache;
+    // replace the existing price snapshot only on success.
     JsonValue root;
     JsonParser parser(payload);
     if (!parser.Parse(root, error)) {
@@ -773,6 +776,9 @@ bool ItemEconomyStore::SaveCacheFile(
     const std::filesystem::path& path,
     std::wstring& error
 ) const {
+    // 先写临时文件再替换磁盘缓存，避免部分写入损坏离线可用数据。
+    // Write a temporary file before replacing disk cache so partial output
+    // cannot corrupt the last usable offline snapshot.
     const ModeCache& cache = Cache(mode);
     if (cache.items.empty() || cache.upstream_mode.empty()) {
         error = L"There is no valid economy cache to save";

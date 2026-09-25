@@ -1,5 +1,8 @@
 #pragma once
 
+// ONNX Runtime 细节封装于会话中；检测和识别模块只交换张量数据。
+// Encapsulate ONNX Runtime details in a session; detector and recognizer exchange tensors.
+
 #include <cstdint>
 #include <filesystem>
 #include <span>

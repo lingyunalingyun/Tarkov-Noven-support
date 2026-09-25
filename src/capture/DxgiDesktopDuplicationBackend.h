@@ -1,5 +1,8 @@
 #pragma once
 
+// DXGI Desktop Duplication 会话在启动时建立，并跨 F2 扫描复用。
+// The DXGI Desktop Duplication session is initialized at startup and reused across F2 scans.
+
 #include "capture/ICaptureBackend.h"
 
 #include <memory>
@@ -21,6 +24,8 @@ public:
 private:
     struct State;
 
+    // 仅初始化或失去访问权限后重建；空闲时不持续抓屏。
+    // Initialize once or rebuild after access loss; never capture continuously while idle.
     bool InitializeSession();
     void ResetSession();
     CaptureResult CaptureInitialized(const Rect& roi);

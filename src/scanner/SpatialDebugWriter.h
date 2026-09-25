@@ -1,5 +1,9 @@
 #pragma once
 
+// 将 ROI 局部文字框、屏幕坐标中的扩展步骤与面板预测绘成离线调试图。
+// Render ROI-local text boxes, screen-space expansion steps, and panel predictions
+// into an offline debug image; none of this participates in matching.
+
 #include "capture/CaptureTypes.h"
 #include "ocr/OcrTypes.h"
 #include "scanner/AdaptiveTextExpansion.h"
