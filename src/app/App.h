@@ -22,6 +22,7 @@ class TextRecognizer;
 }
 
 namespace noven::data {
+enum class GameMode;
 class ItemCatalog;
 class ItemEconomyStore;
 class DataRefreshService;
@@ -36,6 +37,10 @@ struct ScanDisplayResult;
 namespace noven::scanner {
 class ScanTrigger;
 struct ScanCompletion;
+}
+
+namespace noven::ui {
+class MainWindowUi;
 }
 
 namespace noven {
@@ -57,7 +62,6 @@ private:
     // while the receiver takes ownership of successful posts.
     static constexpr UINT kScanResultMessage = WM_APP + 1;
     static constexpr UINT kScanStepMessage = WM_APP + 2;
-    static constexpr UINT kModeSelectorId = 1001;
     static constexpr UINT kDebugMouseTimerId = 2;
     static constexpr UINT kDebugMouseCheckMilliseconds = 50;
     // 可视化仅供验证；普通结果卡寿命和扫描匹配不由此开关决定。
@@ -76,8 +80,7 @@ private:
     void OnScanStepMessage(LPARAM roi_pointer);
     void UpdateDebugRoi(POINT anchor);
     void CheckDebugVisualizationCursor();
-    void OnModeChanged();
-    bool CreateModeSelector();
+    void OnModeChanged(data::GameMode mode);
     bool RegisterWindowClass(HINSTANCE instance) const;
     HWND CreateMainWindow(HINSTANCE instance) const;
 
@@ -93,8 +96,9 @@ private:
     std::unique_ptr<overlay::OverlayWindow> overlay_window_;
     std::unique_ptr<overlay::DebugVisualizationWindow> debug_visualization_window_;
     std::unique_ptr<scanner::ScanTrigger> scan_trigger_;
+    std::unique_ptr<ui::MainWindowUi> main_ui_;
     bool scan_in_progress_{};
-    HWND mode_selector_{};
+    bool mouse_tracking_{};
 };
 
 } // namespace noven

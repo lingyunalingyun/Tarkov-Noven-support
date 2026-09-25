@@ -72,6 +72,9 @@ add_executable(NovenTarkovSupport WIN32
     src/scanner/SpatialDebugWriter.cpp
     src/scanner/TooltipHeuristic.cpp
     src/scanner/TooltipPlacementModel.cpp
+    src/ui/MainWindowUi.cpp
+    src/ui/PageHost.cpp
+    src/ui/Sidebar.cpp
 )
 
 target_include_directories(NovenTarkovSupport PRIVATE
@@ -371,4 +374,19 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME inventory_recognition COMMAND NovenTarkovSupportInventoryRecognitionTests
         "test-data/items_catalog.tsv")
+
+    add_executable(NovenTarkovSupportNavigationTests
+        tests/MainPageTests.cpp
+        src/ui/PageHost.cpp
+        src/ui/Sidebar.cpp
+    )
+    target_include_directories(NovenTarkovSupportNavigationTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportNavigationTests PRIVATE
+            /W4 /permissive- /utf-8 /EHsc
+        )
+    endif()
+    add_test(NAME main_navigation COMMAND NovenTarkovSupportNavigationTests)
 endif()

@@ -1,5 +1,11 @@
 #include "app/App.h"
 
+// Win32 的 DrawText 宏不能改写随后包含的 Direct2D 接口方法名。
+// Keep the Win32 DrawText macro from renaming Direct2D's DrawText method.
+#ifdef DrawText
+#undef DrawText
+#endif
+
 #include "capture/DxgiDesktopDuplicationBackend.h"
 #include "capture/Roi.h"
 #include "common/DebugLog.h"
@@ -14,10 +20,11 @@
 #include "overlay/OverlayWindow.h"
 #include "scanner/ScanTrigger.h"
 #include "scanner/TooltipHeuristic.h"
+#include "ui/MainWindowUi.h"
 
-#include <commctrl.h>
 #include <dwmapi.h>
 #include <shellscalingapi.h>
+#include <windowsx.h>
 
 #include <filesystem>
 #include <chrono>
@@ -193,7 +200,8 @@ App::App()
           *text_detector_,
           *text_recognizer_,
           *item_catalog_,
-          *item_economy_store_)) {}
+          *item_economy_store_)),
+      main_ui_(std::make_unique<ui::MainWindowUi>()) {}
 
 App::~App() = default;
 
@@ -204,12 +212,13 @@ bool App::RegisterWindowClass(HINSTANCE instance) const {
     window_class.lpfnWndProc = &App::WindowProc;
     window_class.lpszClassName = kWindowClassName;
     window_class.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    window_class.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+    window_class.hbrBackground = nullptr;
 
     return RegisterClassExW(&window_class) != 0;
 }
 
 HWND App::CreateMainWindow(HINSTANCE instance) const {
+    const UINT dpi = GetDpiForSystem();
     return CreateWindowExW(
         0,
         kWindowClassName,
@@ -217,8 +226,8 @@ HWND App::CreateMainWindow(HINSTANCE instance) const {
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        960,
-        640,
+        MulDiv(1080, dpi, 96),
+        MulDiv(750, dpi, 96),
         nullptr,
         nullptr,
         instance,
@@ -246,8 +255,9 @@ int App::Run(HINSTANCE instance, int show_command) {
         return 1;
     }
 
-    if (!CreateModeSelector()) {
-        common::DebugLog(L"[app] mode selector creation failed");
+    std::wstring ui_error;
+    if (!main_ui_->Initialize(window_, ui_error)) {
+        common::DebugLog(L"[app] main UI initialization failed: " + ui_error);
         DestroyWindow(window_);
         window_ = nullptr;
         return 1;
@@ -341,6 +351,9 @@ int App::Run(HINSTANCE instance, int show_command) {
     }
     common::DebugLog(L"[ocr] recognizer warm-up completed");
 
+    main_ui_->SetScannerState(ui::ScannerPageState{
+        data::GameMode::Pvp, true, item_catalog_->ItemCount()});
+
     if (!capture_backend_->Initialize()) {
         common::DebugLog(L"[app] capture backend initialization failed");
         DestroyWindow(window_);
@@ -410,6 +423,9 @@ int App::Run(HINSTANCE instance, int show_command) {
 
 void App::OnHotkey(WPARAM hotkey_id) {
     if (hotkey_id == static_cast<WPARAM>(kCaptureHotkeyId)) {
+        // 这里只隐藏 Noven 的覆盖层；若主窗口本身盖住 EFT，它仍可能进入桌面截图。
+        // Only Noven overlays are hidden here. A main window covering EFT can
+        // still appear in the desktop capture; this shell does not alter capture policy.
         const bool previous_overlay_visible = overlay_window_ != nullptr
             && overlay_window_->Visible();
         if (previous_overlay_visible) overlay_window_->Hide();
@@ -468,40 +484,10 @@ void App::CheckDebugVisualizationCursor() {
     }
 }
 
-bool App::CreateModeSelector() {
-    mode_selector_ = CreateWindowExW(
-        0,
-        WC_COMBOBOXW,
-        L"",
-        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
-        20,
-        20,
-        180,
-        180,
-        window_,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(kModeSelectorId)),
-        instance_,
-        nullptr
-    );
-    if (mode_selector_ == nullptr) {
-        return false;
-    }
-    SendMessageW(mode_selector_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"PvP"));
-    SendMessageW(mode_selector_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"PvE"));
-    SendMessageW(mode_selector_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Seasonal"));
-    SendMessageW(mode_selector_, CB_SETCURSEL, 0, 0);
-    return true;
-}
-
-void App::OnModeChanged() {
-    const LRESULT selection = SendMessageW(mode_selector_, CB_GETCURSEL, 0, 0);
-    data::GameMode mode = data::GameMode::Pvp;
-    if (selection == 1) {
-        mode = data::GameMode::Pve;
-    } else if (selection == 2) {
-        mode = data::GameMode::Seasonal;
-    }
+void App::OnModeChanged(data::GameMode mode) {
     scan_trigger_->SetGameMode(mode);
+    main_ui_->SetScannerState(ui::ScannerPageState{
+        mode, true, item_catalog_->ItemCount()});
     common::DebugLog(L"[economy] active mode=" + std::wstring(data::GameModeName(mode)));
 }
 
@@ -605,13 +591,65 @@ LRESULT CALLBACK App::WindowProc(
         case kScanStepMessage:
             app->OnScanStepMessage(l_param);
             return 0;
-        case WM_COMMAND:
-            if (LOWORD(w_param) == kModeSelectorId
-                && HIWORD(w_param) == CBN_SELCHANGE) {
-                app->OnModeChanged();
+        case WM_PAINT:
+            if (app->main_ui_ != nullptr && app->main_ui_->Ready()) {
+                app->main_ui_->Paint();
                 return 0;
             }
-            break;
+            {
+                PAINTSTRUCT paint{};
+                BeginPaint(window, &paint);
+                EndPaint(window, &paint);
+                return 0;
+            }
+        case WM_ERASEBKGND:
+            return 1;
+        case WM_SIZE:
+            if (app->main_ui_ != nullptr) {
+                app->main_ui_->Resize(LOWORD(l_param), HIWORD(l_param));
+            }
+            return 0;
+        case WM_DPICHANGED:
+            if (app->main_ui_ != nullptr) {
+                app->main_ui_->DpiChanged(HIWORD(w_param));
+                const auto* suggested = reinterpret_cast<const RECT*>(l_param);
+                SetWindowPos(window, nullptr, suggested->left, suggested->top,
+                             suggested->right - suggested->left,
+                             suggested->bottom - suggested->top,
+                             SWP_NOZORDER | SWP_NOACTIVATE);
+            }
+            return 0;
+        case WM_GETMINMAXINFO: {
+            auto* limits = reinterpret_cast<MINMAXINFO*>(l_param);
+            const UINT dpi = GetDpiForWindow(window);
+            limits->ptMinTrackSize.x = MulDiv(900, dpi, 96);
+            limits->ptMinTrackSize.y = MulDiv(750, dpi, 96);
+            return 0;
+        }
+        case WM_MOUSEMOVE:
+            if (app->main_ui_ != nullptr) {
+                app->main_ui_->MouseMove(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
+                if (!app->mouse_tracking_) {
+                    TRACKMOUSEEVENT tracking{sizeof(TRACKMOUSEEVENT), TME_LEAVE, window, 0};
+                    if (TrackMouseEvent(&tracking)) app->mouse_tracking_ = true;
+                }
+            }
+            return 0;
+        case WM_MOUSELEAVE:
+            app->mouse_tracking_ = false;
+            app->main_ui_->MouseLeave();
+            return 0;
+        case WM_LBUTTONDOWN:
+            app->main_ui_->MouseDown(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
+            SetCapture(window);
+            return 0;
+        case WM_LBUTTONUP: {
+            const auto mode = app->main_ui_->MouseUp(
+                GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
+            if (GetCapture() == window) ReleaseCapture();
+            if (mode) app->OnModeChanged(*mode);
+            return 0;
+        }
         case WM_HOTKEY:
             app->OnHotkey(w_param);
             return 0;
