@@ -8,6 +8,7 @@
 #include <d2d1helper.h>
 #include <dwrite.h>
 #include <string_view>
+#include <wrl/client.h>
 
 namespace noven::ui {
 
@@ -21,6 +22,25 @@ struct UiCanvas final {
     IDWriteTextFormat& label;
     IDWriteTextFormat& body;
     IDWriteTextFormat& smallFormat;
+    IDWriteFactory* textFactory{};
+
+    // 只缩小超出可用宽度的本地化页名，不改变标题行高度。
+    // Shrink only localized page names that exceed available width, preserving the title-row height.
+    void FittedTitle(std::wstring_view value, D2D1_RECT_F rect, D2D1_COLOR_F color) const {
+        if (!textFactory) { Text(value, title, rect, color); return; }
+        Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
+        if (FAILED(textFactory->CreateTextLayout(value.data(), static_cast<UINT32>(value.size()),
+                &title, 10000, rect.bottom - rect.top, &layout))) {
+            Text(value, title, rect, color); return;
+        }
+        DWRITE_TEXT_METRICS metrics{};
+        if (SUCCEEDED(layout->GetMetrics(&metrics)) && metrics.width > rect.right - rect.left)
+            layout->SetFontSize(title.GetFontSize() * (rect.right - rect.left) / metrics.width,
+                DWRITE_TEXT_RANGE{0, static_cast<UINT32>(value.size())});
+        layout->SetMaxWidth(rect.right - rect.left);
+        brush.SetColor(color);
+        target.DrawTextLayout(D2D1::Point2F(rect.left, rect.top), layout.Get(), &brush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    }
 
     void Fill(D2D1_RECT_F rect, D2D1_COLOR_F color) const {
         brush.SetColor(color);

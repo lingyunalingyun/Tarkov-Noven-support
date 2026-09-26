@@ -74,6 +74,7 @@ add_executable(NovenTarkovSupport WIN32
     src/scanner/TooltipHeuristic.cpp
     src/scanner/TooltipPlacementModel.cpp
     src/ui/MainWindowUi.cpp
+    src/ui/localization/LocalizationService.cpp
     src/ui/ItemImageCache.cpp
     src/ui/PageHost.cpp
     src/ui/Sidebar.cpp
@@ -123,6 +124,15 @@ target_link_libraries(NovenTarkovSupport PRIVATE
     windowscodecs
     ole32
 )
+
+# 每次构建复制整个语言目录；添加语言包不需要修改源列表或重新链接。
+# Copy the locale directory on every build; adding a pack needs no source-list edit or relink.
+add_custom_target(NovenTranslations ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/i18n"
+)
+add_dependencies(NovenTarkovSupport NovenTranslations)
 
 add_custom_command(TARGET NovenTarkovSupport POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -381,6 +391,7 @@ if(BUILD_TESTING)
 
     add_executable(NovenTarkovSupportNavigationTests
         tests/MainPageTests.cpp
+        src/ui/localization/LocalizationService.cpp
         src/ui/PageHost.cpp
         src/ui/Sidebar.cpp
     )
@@ -424,4 +435,26 @@ if(BUILD_TESTING)
     endif()
     target_link_libraries(NovenTarkovSupportItemImageTests PRIVATE winhttp windowscodecs ole32)
     add_test(NAME item_images COMMAND NovenTarkovSupportItemImageTests)
+    add_executable(NovenLocalizationTests
+        tests/LocalizationTests.cpp
+        src/ui/localization/LocalizationService.cpp)
+    target_include_directories(NovenLocalizationTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenLocalizationTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenLocalizationTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME localization COMMAND NovenLocalizationTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
+    add_executable(NovenLocalizationUiTests
+        tests/LocalizationUiTests.cpp
+        src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
+        src/ui/ItemImageCache.cpp src/ui/localization/LocalizationService.cpp
+        src/common/DebugLog.cpp)
+    target_include_directories(NovenLocalizationUiTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenLocalizationUiTests PRIVATE
+        UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    if(MSVC)
+        target_compile_options(NovenLocalizationUiTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenLocalizationUiTests PRIVATE d2d1 dwrite winhttp windowscodecs ole32)
+    add_test(NAME localization_ui COMMAND NovenLocalizationUiTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
 endif()

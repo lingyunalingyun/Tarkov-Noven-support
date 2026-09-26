@@ -37,7 +37,7 @@ std::wstring Wide(std::string_view utf8) {
 }
 
 std::wstring Price(const std::optional<std::int64_t>& amount) {
-    if (!amount) return L"未知";
+    if (!amount) return Tr(TextKey::Unknown);
     std::wstring digits = std::to_wstring(*amount);
     for (std::size_t pos = digits.size(); pos > 3; pos -= 3)
         digits.insert(pos - 3, 1, L',');
@@ -130,7 +130,8 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
 
     // 所有页面共用紧凑标题行；内容与可选标签栏保持各自的布局。
     // All pages share a compact title row; content and optional tabs keep their own layout.
-    DrawPageHeader(canvas, theme, x, right, page->chinese, page->english);
+    DrawPageHeader(canvas, theme, x, right, Tr(page->titleKey));
+    if (active == MainPage::Settings) return;
 
     if (active == MainPage::RecentScans) {
         const auto pose = SampleTabTransition(recentTransition.progress);
@@ -149,8 +150,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
             if (RecentFilteredCount(recent, mode) == 0) {
                 DrawEmptyState(canvas, theme,
                     D2D1::RectF(x, kRecentTop, (std::min)(right, x + 650), kRecentTop + 160),
-                    right - 20, L"暂无扫描记录", L"按 F2 扫描物品后，结果会显示在这里。",
-                    L"No recent scans · Press F2 on an item to build your local scan history.");
+                    right - 20, Tr(TextKey::EmptyTitle), Tr(TextKey::EmptyDescription));
             } else {
                 std::size_t filteredIndex = 0;
                 for (const auto& entry : recent) {
@@ -162,11 +162,11 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                     std::wstring detail = LocalTime(entry.scannedAtUnixMs) + L"  ·  "
                         + Mode(entry.gameMode) + L"  ·  "
                         + (entry.matchMode == data::RecentMatchMode::Strict
-                            ? L"严格匹配" : L"可能匹配");
-                    if (entry.ambiguous) detail += L" · 有歧义";
+                            ? Tr(TextKey::Strict) : Tr(TextKey::Possible));
+                    if (entry.ambiguous) detail += L" · " + Tr(TextKey::Ambiguous);
                     DrawItemCard(canvas, theme, D2D1::RectF(x, top, cardRight, top + 118),
-                        {Wide(entry.canonicalName), detail, L"跳蚤出售  " + Price(entry.fleaPrice),
-                         L"商人出售  " + Price(entry.bestTraderPrice)
+                        {Wide(entry.canonicalName), detail, UiLocalization().Format(TextKey::FleaSale, {{L"price", Price(entry.fleaPrice)}}),
+                         UiLocalization().Format(TextKey::TraderSale, {{L"price", Price(entry.bestTraderPrice)}})
                             + (entry.bestTraderName.empty() ? L"" : L" · " + Wide(entry.bestTraderName)),
                          image == images.end() ? nullptr : image->second.Get()});
                 }
@@ -197,9 +197,9 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                      theme.cornerRadius, theme.surface);
         canvas.Circle(D2D1::Point2F(x + 39, 136), 14, theme.selected);
         canvas.Circle(D2D1::Point2F(x + 39, 136), 5, theme.accent);
-        canvas.Text(page->chinese, canvas.label,
+        canvas.Text(Tr(page->titleKey), canvas.label,
                     D2D1::RectF(x + 70, 112, card_right - 20, 148), theme.primaryText);
-        canvas.Text(page->description, canvas.body,
+        canvas.Text(Tr(page->descriptionKey), canvas.body,
                     D2D1::RectF(x + 24, 170, card_right - 24, 227), theme.secondaryText);
         return;
     }
@@ -209,37 +209,36 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                  theme.cornerRadius, theme.surface);
     canvas.Round(D2D1::RectF(x + 22, 117, x + 70, 165), 10.0F, theme.selected);
     canvas.Text(L"F2", canvas.label, D2D1::RectF(x + 30, 122, x + 68, 159), theme.accent);
-    canvas.Text(L"快捷扫描已就绪", canvas.label,
+    canvas.Text(Tr(TextKey::ScanReady), canvas.label,
                 D2D1::RectF(x + 88, 111, card_right - 20, 148), theme.primaryText);
-    canvas.Text(L"将鼠标悬停在物品上，按 F2 触发单次扫描。",
+    canvas.Text(Tr(TextKey::ScanHint),
                 canvas.body, D2D1::RectF(x + 88, 150, card_right - 20, 201),
                 theme.secondaryText);
 
-    canvas.Text(L"扫描器状态", canvas.label,
+    canvas.Text(Tr(TextKey::ScannerStatus), canvas.label,
                 D2D1::RectF(x, 243, card_right, 275), theme.primaryText);
-    canvas.Text(L"SCANNER STATUS", canvas.smallFormat,
-                D2D1::RectF(x, 271, card_right, 292), theme.secondaryText);
     canvas.Round(D2D1::RectF(x, 298, card_right, 482),
                  theme.cornerRadius, theme.surface);
-    canvas.Text(L"当前游戏模式", canvas.body,
+    canvas.Text(Tr(TextKey::GameMode), canvas.body,
                 D2D1::RectF(x + 22, 312, x + 218, 345), theme.secondaryText);
     canvas.Fill(D2D1::RectF(x + 22, 356, card_right - 22, 357), theme.divider);
     canvas.Text(L"OCR", canvas.body,
                 D2D1::RectF(x + 22, 368, x + 170, 400), theme.secondaryText);
-    canvas.Text(scanner.ocrReady ? L"Ready" : L"Unavailable", canvas.body,
+    canvas.Text(Tr(scanner.ocrReady ? TextKey::Ready : TextKey::Unavailable), canvas.body,
                 D2D1::RectF(x + 256, 368, card_right - 20, 400),
                 scanner.ocrReady ? theme.primaryText : theme.secondaryText);
     canvas.Fill(D2D1::RectF(x + 22, 410, card_right - 22, 411), theme.divider);
-    canvas.Text(L"Item Catalog", canvas.body,
+    canvas.Text(Tr(TextKey::Catalog), canvas.body,
                 D2D1::RectF(x + 22, 422, x + 200, 454), theme.secondaryText);
     const std::wstring catalog_status = scanner.catalogItems == 0
-        ? L"Unavailable" : L"Ready  ·  " + std::to_wstring(scanner.catalogItems) + L" items";
+        ? Tr(TextKey::Unavailable) : UiLocalization().Format(TextKey::CatalogReady,
+            {{L"count", std::to_wstring(scanner.catalogItems)}});
     canvas.Text(catalog_status, canvas.body,
                 D2D1::RectF(x + 256, 422, card_right - 20, 455),
                 scanner.catalogItems != 0 ? theme.primaryText : theme.secondaryText);
 
     if (height > 550.0F) {
-        canvas.Text(L"经济数据在后台独立更新；扫描使用本地缓存。", canvas.smallFormat,
+        canvas.Text(Tr(TextKey::EconomyHint), canvas.smallFormat,
                     D2D1::RectF(x + 2, 502, right, 531), theme.secondaryText);
     }
 

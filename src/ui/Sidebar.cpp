@@ -1,4 +1,5 @@
 #include "ui/Sidebar.h"
+#include "ui/localization/LocalizationService.h"
 
 #include <algorithm>
 
@@ -76,13 +77,13 @@ void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
     canvas.Circle(D2D1::Point2F(42, 124), 16, theme.hover);
     canvas.Circle(D2D1::Point2F(42, 120), 5, theme.secondaryText);
     canvas.Round(D2D1::RectF(34, 127, 50, 134), 4, theme.secondaryText);
-    canvas.Text(L"用户名", canvas.label, D2D1::RectF(69, 105, 215, 131), theme.primaryText);
-    canvas.Text(L"本地使用", canvas.smallFormat, D2D1::RectF(70, 127, 215, 147), theme.secondaryText);
+    canvas.Text(Tr(TextKey::UserName), canvas.label, D2D1::RectF(69, 105, 215, 131), theme.primaryText);
+    canvas.Text(Tr(TextKey::LocalUse), canvas.smallFormat, D2D1::RectF(70, 127, 215, 147), theme.secondaryText);
 
-    canvas.Text(L"主要功能  /  PRIMARY", canvas.smallFormat,
+    canvas.Text(Tr(TextKey::Primary), canvas.smallFormat,
                 D2D1::RectF(22, 160, 225, 181), theme.secondaryText);
     canvas.Fill(D2D1::RectF(22, 414, theme.sidebarWidth - 22, 415), theme.divider);
-    canvas.Text(L"更多  /  MORE", canvas.smallFormat,
+    canvas.Text(Tr(TextKey::More), canvas.smallFormat,
                 D2D1::RectF(22, 418, 225, 437), theme.secondaryText);
     canvas.Fill(D2D1::RectF(22, height - 71, theme.sidebarWidth - 22,
                             height - 70), theme.divider);
@@ -100,7 +101,7 @@ void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
         }
         const D2D1_COLOR_F color = selected ? theme.primaryText : theme.secondaryText;
         DrawIcon(canvas, page.id, rect.left + 14, rect.top + 11, color);
-        canvas.Text(page.chinese, canvas.label,
+        canvas.Text(Tr(page.titleKey), canvas.label,
                     D2D1::RectF(rect.left + 45, rect.top + 5,
                                 rect.right - 9, rect.bottom), color);
     }

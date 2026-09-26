@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ui/localization/TextKeys.h"
 #include <array>
 #include <string_view>
 
@@ -22,23 +23,22 @@ enum class PageSection { Primary, Secondary, Bottom };
 
 struct PageInfo final {
     MainPage id;
-    std::wstring_view chinese;
-    std::wstring_view english;
-    std::wstring_view description;
+    std::string_view titleKey;
+    std::string_view descriptionKey;
     PageSection section;
 };
 
 inline constexpr std::array<PageInfo, 10> kPages{{
-    {MainPage::Scanner, L"扫描", L"Scan", L"使用 F2 快捷扫描游戏内物品。", PageSection::Primary},
-    {MainPage::Prices, L"物价", L"Prices", L"物价浏览功能将在后续阶段接入。", PageSection::Primary},
-    {MainPage::Hideout, L"藏身处", L"Hideout", L"藏身处功能将在后续阶段接入。", PageSection::Primary},
-    {MainPage::Tasks, L"任务", L"Tasks", L"任务追踪功能将在后续阶段接入。", PageSection::Primary},
-    {MainPage::Map, L"地图", L"Map", L"地图功能将在后续阶段接入。", PageSection::Primary},
-    {MainPage::RaidHistory, L"对局记录", L"Raid History", L"对局记录功能将在后续阶段接入。", PageSection::Secondary},
-    {MainPage::Squad, L"开黑伙伴", L"Squad", L"开黑伙伴功能将在后续阶段接入。", PageSection::Secondary},
-    {MainPage::Events, L"当前活动", L"Events", L"活动信息功能将在后续阶段接入。", PageSection::Secondary},
-    {MainPage::RecentScans, L"最近扫描", L"Recent Scans", L"扫描记录功能将在后续阶段接入。", PageSection::Secondary},
-    {MainPage::Settings, L"设置", L"Settings", L"设置功能将在后续阶段接入。", PageSection::Bottom},
+    {MainPage::Scanner, TextKey::NavScan, TextKey::DescScan, PageSection::Primary},
+    {MainPage::Prices, TextKey::NavPrices, TextKey::DescPrices, PageSection::Primary},
+    {MainPage::Hideout, TextKey::NavHideout, TextKey::DescHideout, PageSection::Primary},
+    {MainPage::Tasks, TextKey::NavTasks, TextKey::DescTasks, PageSection::Primary},
+    {MainPage::Map, TextKey::NavMap, TextKey::DescMap, PageSection::Primary},
+    {MainPage::RaidHistory, TextKey::NavRaidHistory, TextKey::DescRaidHistory, PageSection::Secondary},
+    {MainPage::Squad, TextKey::NavSquad, TextKey::DescSquad, PageSection::Secondary},
+    {MainPage::Events, TextKey::NavEvents, TextKey::DescEvents, PageSection::Secondary},
+    {MainPage::RecentScans, TextKey::NavRecentScans, TextKey::EmptyDescription, PageSection::Secondary},
+    {MainPage::Settings, TextKey::NavSettings, TextKey::LanguageHint, PageSection::Bottom},
 }};
 
 [[nodiscard]] constexpr const PageInfo* FindPage(MainPage id) noexcept {

@@ -1,4 +1,5 @@
 #include "ui/MainWindowUi.h"
+#include "ui/localization/LocalizationService.h"
 
 #include <algorithm>
 #include <cmath>
@@ -18,27 +19,74 @@ bool MainWindowUi::Initialize(HWND window, std::wstring& error) {
         error = L"Could not initialize DirectWrite for the main window";
         return false;
     }
+    return CreateTextFormats(error) && CreateRenderTarget(error);
+}
+
+bool MainWindowUi::CreateTextFormats(std::wstring& error) {
+    const auto& id = UiLocalization().ActiveLocale();
+    const std::wstring locale(id.begin(), id.end());
+    const auto* family = id.starts_with("zh") ? L"Microsoft YaHei UI" : L"Segoe UI";
+    Microsoft::WRL::ComPtr<IDWriteTextFormat> title, pageTitle, label, body, smallText;
     const auto format = [&](float size, DWRITE_FONT_WEIGHT weight,
                             Microsoft::WRL::ComPtr<IDWriteTextFormat>& destination) {
         return SUCCEEDED(write_factory_->CreateTextFormat(
-            L"Microsoft YaHei UI", nullptr, weight, DWRITE_FONT_STYLE_NORMAL,
-            DWRITE_FONT_STRETCH_NORMAL, size, L"zh-CN", destination.GetAddressOf()));
+            family, nullptr, weight, DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL, size, locale.c_str(), destination.GetAddressOf()));
     };
-    if (!format(25, DWRITE_FONT_WEIGHT_SEMI_BOLD, title_format_)
-        || !format(36, DWRITE_FONT_WEIGHT_SEMI_BOLD, page_title_format_)
-        || !format(16, DWRITE_FONT_WEIGHT_SEMI_BOLD, label_format_)
-        || !format(15, DWRITE_FONT_WEIGHT_NORMAL, body_format_)
-        || !format(12, DWRITE_FONT_WEIGHT_NORMAL, small_format_)) {
+    if (!format(25, DWRITE_FONT_WEIGHT_SEMI_BOLD, title)
+        || !format(36, DWRITE_FONT_WEIGHT_SEMI_BOLD, pageTitle)
+        || !format(16, DWRITE_FONT_WEIGHT_SEMI_BOLD, label)
+        || !format(15, DWRITE_FONT_WEIGHT_NORMAL, body)
+        || !format(12, DWRITE_FONT_WEIGHT_NORMAL, smallText)) {
         error = L"Could not create main-window text formats";
         return false;
     }
+    title_format_ = std::move(title); page_title_format_ = std::move(pageTitle);
+    label_format_ = std::move(label); body_format_ = std::move(body); small_format_ = std::move(smallText);
     for (IDWriteTextFormat* text : {title_format_.Get(), page_title_format_.Get(),
                                    label_format_.Get(), body_format_.Get(),
                                    small_format_.Get()}) {
         text->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
         text->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
-    return CreateRenderTarget(error);
+    return true;
+}
+
+// 语言列表只使用服务发现的数据；滚动与命中均使用客户区 DIP。
+// Language rows use discovered metadata only; scrolling and hit testing use client-area DIPs.
+void MainWindowUi::DrawLanguageSettings(const UiCanvas& canvas, float width, float height) {
+    const float left = theme_.sidebarWidth + theme_.contentPadding;
+    const float right = (std::min)(width - theme_.contentPadding, left + 620);
+    canvas.Text(Tr(TextKey::Language), canvas.label, D2D1::RectF(left, 90, right, 121), theme_.primaryText);
+    canvas.Text(Tr(TextKey::LanguageHint), canvas.smallFormat, D2D1::RectF(left, 122, right, 150), theme_.secondaryText);
+    const auto& locales = UiLocalization().AvailableLocales();
+    language_scroll_ = std::clamp(language_scroll_, 0.0F,
+        (std::max)(0.0F, static_cast<float>(locales.size()) * 42 - (height - 178)));
+    canvas.target.PushAxisAlignedClip(D2D1::RectF(left, 156, right, (std::max)(156.0F, height - 22)),
+        D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    for (std::size_t i = 0; i < locales.size(); ++i) {
+        const float top = 156 + static_cast<float>(i) * 42 - language_scroll_;
+        if (top + 42 < 156 || top > height - 22) continue;
+        const bool selected = locales[i].locale == UiLocalization().ActiveLocale();
+        canvas.Round(D2D1::RectF(left, top, right, top + 38), theme_.cornerRadius,
+            selected ? theme_.selected : hovered_language_ == i ? theme_.hover : theme_.surface);
+        canvas.Text(locales[i].name, canvas.body, D2D1::RectF(left + 16, top, right - 16, top + 38),
+            selected ? theme_.accent : theme_.primaryText);
+    }
+    canvas.target.PopAxisAlignedClip();
+}
+
+std::optional<std::size_t> MainWindowUi::LanguageAt(int x, int y) const {
+    if (navigation_.Active() != MainPage::Settings) return std::nullopt;
+    RECT client{}; GetClientRect(window_, &client);
+    const float left = theme_.sidebarWidth + theme_.contentPadding;
+    const float dx = x / Scale(), dy = y / Scale();
+    if (dx < left || dx >= (std::min)(client.right / Scale() - theme_.contentPadding, left + 620)
+        || dy < 156 || dy >= DipHeight() - 22) return std::nullopt;
+    const float offset = dy - 156 + language_scroll_;
+    const auto index = static_cast<std::size_t>(offset / 42);
+    if (index >= UiLocalization().AvailableLocales().size() || std::fmod(offset, 42.0F) >= 38) return std::nullopt;
+    return index;
 }
 
 bool MainWindowUi::CreateRenderTarget(std::wstring& error) {
@@ -105,7 +153,7 @@ void MainWindowUi::Paint() {
         const D2D1_SIZE_F size = render_target_->GetSize();
         UiCanvas canvas{*render_target_.Get(), *brush_.Get(), *title_format_.Get(),
                         *page_title_format_.Get(), *label_format_.Get(),
-                        *body_format_.Get(), *small_format_.Get()};
+                        *body_format_.Get(), *small_format_.Get(), write_factory_.Get()};
         render_target_->BeginDraw();
         render_target_->Clear(theme_.background);
         sidebar_.Draw(canvas, theme_, size.height, navigation_.Active(),
@@ -117,6 +165,7 @@ void MainWindowUi::Paint() {
                     navigation_.Active(), scanner_, mode_menu_open_,
                     mode_hovered_, hovered_mode_, recent_, recent_filter_,
                     hovered_recent_tab_, recent_scroll_, recent_transition_, item_bitmaps_);
+        if (navigation_.Active() == MainPage::Settings) DrawLanguageSettings(canvas, size.width, size.height);
         render_target_->PopAxisAlignedClip();
         if (render_target_->EndDraw() == D2DERR_RECREATE_TARGET) {
             brush_.Reset();
@@ -196,6 +245,8 @@ void MainWindowUi::Invalidate() const {
 }
 
 void MainWindowUi::MouseMove(int x, int y) {
+    const auto language = LanguageAt(x, y);
+    if (language != hovered_language_) { hovered_language_ = language; Invalidate(); }
     if (recent_scroll_grab_) {
         if (const auto bar = Scrollbar()) {
             // 拖动直接跟手，滚轮仍使用原有平滑动画。
@@ -224,6 +275,7 @@ void MainWindowUi::MouseMove(int x, int y) {
 }
 
 void MainWindowUi::MouseLeave() {
+    if (hovered_language_) { hovered_language_.reset(); Invalidate(); }
     if (hovered_.has_value() || mode_hovered_ || hovered_mode_.has_value()
         || hovered_recent_tab_.has_value()) {
         hovered_.reset();
@@ -235,6 +287,7 @@ void MainWindowUi::MouseLeave() {
 }
 
 void MainWindowUi::MouseDown(int x, int y) {
+    pressed_language_ = LanguageAt(x, y);
     CancelScrollDrag();
     if (const auto bar = Scrollbar()) {
         const float dx = static_cast<float>(x) / Scale();
@@ -262,6 +315,15 @@ void MainWindowUi::MouseDown(int x, int y) {
 }
 
 std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
+    const auto language = LanguageAt(x, y);
+    if (pressed_language_ && pressed_language_ == language) {
+        const auto previous = UiLocalization().ActiveLocale();
+        UiLocalization().SetLocale(UiLocalization().AvailableLocales()[*language].locale);
+        std::wstring error;
+        if (!CreateTextFormats(error)) UiLocalization().SetLocale(previous);
+        Invalidate();
+    }
+    pressed_language_.reset();
     if (recent_scroll_grab_) {
         MouseMove(x, y);
         CancelScrollDrag();
@@ -346,6 +408,14 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
 }
 
 bool MainWindowUi::MouseWheel(int x, int y, int delta) {
+    if (navigation_.Active() == MainPage::Settings && x / Scale() >= theme_.sidebarWidth) {
+        const float maximum = (std::max)(0.0F,
+            static_cast<float>(UiLocalization().AvailableLocales().size()) * 42 - (DipHeight() - 178));
+        language_scroll_ = std::clamp(language_scroll_ - static_cast<float>(delta) / WHEEL_DELTA * 42,
+            0.0F, maximum);
+        Invalidate();
+        return false;
+    }
     if (recent_scroll_grab_) return false;
     if (navigation_.Active() != MainPage::RecentScans
         || static_cast<float>(x) / Scale() < theme_.sidebarWidth

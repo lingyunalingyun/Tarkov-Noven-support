@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ui/UiCanvas.h"
+#include "ui/localization/LocalizationService.h"
+#include "ui/localization/TextKeys.h"
 #include "ui/Theme.h"
 #include <algorithm>
 
@@ -9,9 +11,10 @@ namespace noven::ui {
 // 绘制函数只借用 UI 线程资源与文本；不保存业务对象，也不执行网络/磁盘操作。
 // Drawing helpers borrow UI-thread resources and text; they retain no business objects and perform no I/O.
 inline void DrawPageHeader(const UiCanvas& canvas, const UiTheme& theme,
-    float left, float right, std::wstring_view chinese, std::wstring_view english) {
-    canvas.Text(chinese, canvas.title, D2D1::RectF(left, 20, left + 110, 59), theme.primaryText);
-    canvas.Text(english, canvas.body, D2D1::RectF(left + 120, 26, right, 59), theme.secondaryText);
+    float left, float right, std::wstring_view title) {
+    // 每页只有一个当前语言标题，不附加固定英语副标题。
+    // Each page has one active-language title, without a fixed English subtitle.
+    canvas.FittedTitle(title, D2D1::RectF(left, 20, right, 59), theme.primaryText);
     canvas.Fill(D2D1::RectF(left, 70, right, 71), theme.divider);
 }
 
@@ -48,7 +51,7 @@ inline void DrawItemCard(const UiCanvas& canvas, const UiTheme& theme,
             D2D1::RectF(x + 20, top + 19, x + 92, top + 99)),
             canvas.brush.GetOpacity(), D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
     } else {
-        canvas.Text(L"图片暂无", canvas.smallFormat,
+        canvas.Text(Tr(TextKey::ImageUnavailable), canvas.smallFormat,
             D2D1::RectF(x + 26, top + 43, x + 92, top + 75), theme.secondaryText);
     }
     canvas.Text(item.title, canvas.label,
@@ -63,14 +66,12 @@ inline void DrawItemCard(const UiCanvas& canvas, const UiTheme& theme,
 
 inline void DrawEmptyState(const UiCanvas& canvas, const UiTheme& theme,
     D2D1_RECT_F bounds, float textRight, std::wstring_view title,
-    std::wstring_view description, std::wstring_view english) {
+    std::wstring_view description) {
     canvas.Round(bounds, theme.cornerRadius, theme.surface);
     canvas.Text(title, canvas.label, D2D1::RectF(bounds.left + 25, bounds.top + 23,
         textRight, bounds.top + 55), theme.primaryText);
     canvas.Text(description, canvas.body, D2D1::RectF(bounds.left + 25, bounds.top + 62,
         textRight, bounds.top + 94), theme.secondaryText);
-    canvas.Text(english, canvas.smallFormat, D2D1::RectF(bounds.left + 25, bounds.top + 101,
-        textRight, bounds.top + 127), theme.secondaryText);
 }
 
 // 内容缩放/透明度只在此作用域生效；裁剪由页面设置，退出后恢复原状态。

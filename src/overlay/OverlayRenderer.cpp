@@ -1,4 +1,6 @@
 #include "overlay/OverlayRenderer.h"
+#include "ui/localization/LocalizationService.h"
+#include "ui/localization/TextKeys.h"
 
 #include <algorithm>
 #include <array>
@@ -6,6 +8,8 @@
 #include <string_view>
 
 namespace noven::overlay {
+using ui::Tr;
+namespace TextKey = ui::TextKey;
 
 namespace {
 
@@ -30,10 +34,10 @@ std::wstring ModeText(data::GameMode mode) {
 
 std::wstring TraderText(const std::optional<data::TraderSellValue>& trader) {
     if (!trader.has_value()) {
-        return L"未知";
+        return Tr(TextKey::Unknown);
     }
     const std::wstring name = Utf8ToWide(trader->traderName);
-    return (name.empty() ? L"未知" : name) + L" " + FormatRoubles(trader->priceRoubles);
+    return (name.empty() ? Tr(TextKey::Unknown) : name) + L" " + FormatRoubles(trader->priceRoubles);
 }
 
 } // namespace
@@ -196,17 +200,21 @@ bool OverlayRenderer::Render(
         D2D1::RectF(0.5F, 0.5F, width - 0.5F, height - 0.5F), 12.0F, 12.0F};
     const std::wstring title = Utf8ToWide(result.displayName);
     const std::wstring quality = result.matchQuality == MatchQuality::LowConfidence
-        ? L"  ·  可能匹配"
-        : (result.matchQuality == MatchQuality::OcrOnly ? L"  ·  OCR 识别文本" : L"");
-    const std::wstring mode = L"模式  " + ModeText(result.mode) + quality;
-    const std::wstring flea = L"跳蚤出售     " + FormatOptionalRoubles(result.fleaPrice);
-    const std::wstring trader = L"商人出售     " + TraderText(result.bestTrader);
-    const std::wstring slot = L"单格价值     " + (result.valuePerSlot.has_value()
-        ? FormatRoubles(static_cast<std::int64_t>(*result.valuePerSlot)) : L"未知");
-    const std::wstring flea_status = L"跳蚤状态     " +
-        std::wstring(FleaStatusDisplayName(result.fleaStatus));
+        ? L"  ·  " + Tr(TextKey::Possible)
+        : (result.matchQuality == MatchQuality::OcrOnly ? L"  ·  " + Tr(TextKey::OcrOnly) : L"");
+    const auto& text = ui::UiLocalization();
+    const std::wstring mode = text.Format(TextKey::Mode, {{L"mode", ModeText(result.mode)}}) + quality;
+    const std::wstring flea = text.Format(TextKey::FleaSale, {{L"price", result.fleaPrice
+        ? FormatRoubles(*result.fleaPrice) : Tr(TextKey::Unknown)}});
+    const std::wstring trader = text.Format(TextKey::TraderSale, {{L"price", TraderText(result.bestTrader)}});
+    const std::wstring slot = text.Format(TextKey::ValuePerSlot, {{L"price", result.valuePerSlot
+        ? FormatRoubles(static_cast<std::int64_t>(*result.valuePerSlot)) : Tr(TextKey::Unknown)}});
+    const auto state = result.fleaStatus == data::FleaStatus::Allowed ? TextKey::FleaAvailable
+        : result.fleaStatus == data::FleaStatus::Banned ? TextKey::FleaBlocked
+        : result.fleaStatus == data::FleaStatus::LockedOrUnavailable ? TextKey::Unavailable : TextKey::Unknown;
+    const std::wstring flea_status = text.Format(TextKey::FleaState, {{L"state", Tr(state)}});
     const std::wstring size = result.width > 0 && result.height > 0
-        ? L"尺寸 " + std::to_wstring(result.width) + L"×" + std::to_wstring(result.height)
+        ? text.Format(TextKey::Size, {{L"width", std::to_wstring(result.width)}, {L"height", std::to_wstring(result.height)}})
         : L"";
 
     render_target_->BeginDraw();

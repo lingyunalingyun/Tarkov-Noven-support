@@ -40,6 +40,9 @@ public:
     [[nodiscard]] MainPage ActivePage() const noexcept { return navigation_.Active(); }
 
 private:
+    bool CreateTextFormats(std::wstring& error);
+    void DrawLanguageSettings(const UiCanvas& canvas, float width, float height);
+    [[nodiscard]] std::optional<std::size_t> LanguageAt(int x, int y) const;
     bool CreateRenderTarget(std::wstring& error);
     void BuildItemBitmap(const ItemImage& image);
     void Invalidate() const;
@@ -51,6 +54,9 @@ private:
     [[nodiscard]] float Scale() const noexcept { return static_cast<float>(dpi_) / 96.0F; }
 
     HWND window_{};
+    float language_scroll_{};
+    std::optional<std::size_t> hovered_language_;
+    std::optional<std::size_t> pressed_language_;
     UINT dpi_{96};
     NavigationState navigation_;
     ScannerPageState scanner_;

@@ -13,6 +13,7 @@
 #include "data/ItemCatalog.h"
 #include "data/ItemEconomyStore.h"
 #include "data/RecentScanStore.h"
+#include "ui/localization/LocalizationService.h"
 #include "hotkey/GlobalHotkey.h"
 #include "ocr/TextDetector.h"
 #include "ocr/TextRecognizer.h"
@@ -241,6 +242,13 @@ HWND App::CreateMainWindow(HINSTANCE instance) const {
 
 int App::Run(HINSTANCE instance, int show_command) {
     instance_ = instance;
+    std::wstring locale_error;
+    if (!ui::UiLocalization().DiscoverLocales(ExecutableDirectory() / L"assets" / L"i18n", locale_error)) {
+        common::DebugLog(locale_error);
+        MessageBoxW(nullptr, locale_error.c_str(), L"Noven - Localization", MB_OK | MB_ICONERROR);
+        return 1;
+    }
+    for (const auto& warning : ui::UiLocalization().Warnings()) common::DebugLog(L"[i18n] " + warning);
     if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
         common::DebugLog(
             L"[app] SetProcessDpiAwarenessContext failed (Win32 error="
@@ -773,8 +781,11 @@ LRESULT CALLBACK App::WindowProc(
             SetCapture(window);
             return 0;
         case WM_LBUTTONUP: {
+            const auto previous_locale = ui::UiLocalization().ActiveLocale();
             const auto mode = app->main_ui_->MouseUp(
                 GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
+            if (previous_locale != ui::UiLocalization().ActiveLocale() && app->overlay_window_->Visible())
+                InvalidateRect(app->overlay_window_->Handle(), nullptr, FALSE);
             if (GetCapture() == window) ReleaseCapture();
             if (mode) app->OnModeChanged(*mode);
             app->EnsureRecentAnimationTimer();
