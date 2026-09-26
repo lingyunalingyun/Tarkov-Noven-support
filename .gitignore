@@ -34,6 +34,8 @@ Testing/
 # Local tooling and temporary files
 /debug-captures/
 /data/economy-cache/
+/data/recent-scans.json
+/data/item-images/
 *.log
 *.tmp
 *.cache

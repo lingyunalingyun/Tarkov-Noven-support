@@ -12,6 +12,7 @@
 #include "data/DataRefreshService.h"
 #include "data/ItemCatalog.h"
 #include "data/ItemEconomyStore.h"
+#include "data/RecentScanStore.h"
 #include "hotkey/GlobalHotkey.h"
 #include "ocr/TextDetector.h"
 #include "ocr/TextRecognizer.h"
@@ -201,9 +202,12 @@ App::App()
           *text_recognizer_,
           *item_catalog_,
           *item_economy_store_)),
-      main_ui_(std::make_unique<ui::MainWindowUi>()) {}
+      main_ui_(std::make_unique<ui::MainWindowUi>()),
+      recent_scan_store_(std::make_unique<data::RecentScanStore>()) {}
 
-App::~App() = default;
+App::~App() {
+    if (recent_animation_timer_ != nullptr) CloseHandle(recent_animation_timer_);
+}
 
 bool App::RegisterWindowClass(HINSTANCE instance) const {
     WNDCLASSEXW window_class{};
@@ -262,6 +266,14 @@ int App::Run(HINSTANCE instance, int show_command) {
         window_ = nullptr;
         return 1;
     }
+    std::wstring history_error;
+    if (!recent_scan_store_->Load(ExecutableDirectory() / L"data" / L"recent-scans.json",
+                                  history_error)) {
+        common::DebugLog(L"[recent-scans] load warning: " + history_error);
+    }
+    recent_scan_id_base_ = recent_scan_store_->MaxScanId();
+    main_ui_->StartItemImages(ExecutableDirectory() / L"data" / L"item-images");
+    main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
 
     std::wstring overlay_error;
     if (!overlay_window_->Create(instance, overlay_error)) {
@@ -405,8 +417,71 @@ int App::Run(HINSTANCE instance, int show_command) {
     ShowWindow(window_, show_command);
     UpdateWindow(window_);
 
+    recent_animation_timer_ = CreateWaitableTimerExW(nullptr, nullptr,
+        CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+    if (recent_animation_timer_ == nullptr)
+        common::DebugLog(L"[recent-scans] high-resolution timer unavailable; using WM_TIMER");
+    else
+        common::DebugLog(L"[recent-scans] animation timer=high_resolution interval_ms="
+            + std::to_wstring(kRecentAnimationFrameMilliseconds));
+
     MSG message{};
+    auto previous_scroll_frame = std::chrono::steady_clock::time_point{};
+    double scroll_frame_time_ms = 0.0;
+    double slowest_scroll_frame_ms = 0.0;
+    unsigned scroll_frame_count = 0;
     while (true) {
+        if (recent_animation_timer_active_ && recent_animation_uses_waitable_timer_) {
+            // 到期的帧先于连续滚轮消息处理，避免快速滚动时动画被输入队列饿死。
+            // Give a due frame priority over a wheel-message burst so animation keeps moving.
+            const DWORD ready = MsgWaitForMultipleObjectsEx(1, &recent_animation_timer_,
+                0, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            if (ready != WAIT_OBJECT_0
+                && PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
+                if (message.message == WM_QUIT) return static_cast<int>(message.wParam);
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+                continue;
+            }
+            // 动画帧与窗口消息共同等待；普通 WM_TIMER 容易被输入消息延后。
+            // Wait for a frame or UI input together; ordinary WM_TIMER can lag behind input.
+            const DWORD wait = ready == WAIT_OBJECT_0 ? ready
+                : MsgWaitForMultipleObjectsEx(1, &recent_animation_timer_,
+                    INFINITE, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            if (wait == WAIT_OBJECT_0) {
+                const auto frame_start = std::chrono::steady_clock::now();
+                if (scroll_frame_count != 0) {
+                    const double interval = std::chrono::duration<double, std::milli>(
+                        frame_start - previous_scroll_frame).count();
+                    scroll_frame_time_ms += interval;
+                    if (interval > slowest_scroll_frame_ms) slowest_scroll_frame_ms = interval;
+                }
+                previous_scroll_frame = frame_start;
+                ++scroll_frame_count;
+                if (!main_ui_->AnimationTick()) {
+                    CancelWaitableTimer(recent_animation_timer_);
+                    recent_animation_timer_active_ = false;
+                    recent_animation_uses_waitable_timer_ = false;
+                    if (scroll_frame_count > 1 && scroll_frame_time_ms > 0.0)
+                        common::DebugLog(L"[recent-scans] animation frames="
+                            + std::to_wstring(scroll_frame_count)
+                            + L" average_fps=" + FormatMeasurement(
+                                (scroll_frame_count - 1) * 1000.0 / scroll_frame_time_ms)
+                            + L" slowest_frame_ms=" + FormatMeasurement(slowest_scroll_frame_ms));
+                    scroll_frame_count = 0;
+                    scroll_frame_time_ms = 0.0;
+                    slowest_scroll_frame_ms = 0.0;
+                }
+                UpdateWindow(window_);
+            } else if (wait == WAIT_FAILED) {
+                common::DebugLog(L"[recent-scans] waitable timer wait failed; using WM_TIMER");
+                CancelWaitableTimer(recent_animation_timer_);
+                recent_animation_uses_waitable_timer_ = false;
+                recent_animation_timer_active_ = SetTimer(window_, kRecentAnimationTimerId,
+                    kRecentAnimationFrameMilliseconds, nullptr) != 0;
+            }
+            continue;
+        }
         const BOOL result = GetMessageW(&message, nullptr, 0, 0);
         if (result == -1) {
             common::DebugLog(L"[app] GetMessageW failed");
@@ -491,6 +566,22 @@ void App::OnModeChanged(data::GameMode mode) {
     common::DebugLog(L"[economy] active mode=" + std::wstring(data::GameModeName(mode)));
 }
 
+void App::EnsureRecentAnimationTimer() {
+    if (recent_animation_timer_active_ || !main_ui_->AnimationActive()) return;
+    if (recent_animation_timer_ != nullptr) {
+        LARGE_INTEGER due{};
+        due.QuadPart = -static_cast<LONGLONG>(kRecentAnimationFrameMilliseconds) * 10000;
+        recent_animation_uses_waitable_timer_ = SetWaitableTimerEx(
+            recent_animation_timer_, &due, kRecentAnimationFrameMilliseconds,
+            nullptr, nullptr, nullptr, 0) != FALSE;
+        if (!recent_animation_uses_waitable_timer_)
+            common::DebugLog(L"[recent-scans] timer arm failed; using WM_TIMER");
+    }
+    recent_animation_timer_active_ = recent_animation_uses_waitable_timer_
+        || SetTimer(window_, kRecentAnimationTimerId,
+            kRecentAnimationFrameMilliseconds, nullptr) != 0;
+}
+
 void App::OnScanCompletionMessage(LPARAM completion_pointer) {
     std::unique_ptr<scanner::ScanCompletion> completion(
         reinterpret_cast<scanner::ScanCompletion*>(completion_pointer));
@@ -558,6 +649,41 @@ void App::OnScanCompletionMessage(LPARAM completion_pointer) {
         + (completion->validation.overlay_show_succeeded ? L"true" : L"false")
     );
     LogValidation(completion->validation);
+    if (completion->validation.profile == scanner::ScanProfileType::Inventory
+        && completion->display_result && !completion->display_result->itemId.empty()
+        && completion->display_result->matchQuality != overlay::MatchQuality::OcrOnly) {
+        const auto& result = *completion->display_result;
+        data::RecentScanEntry entry;
+        // 扫描器序号每次启动重置；基于已持久化最大 ID 生成跨启动唯一历史 ID。
+        // Scanner sequence restarts each launch; offset it by the persisted maximum.
+        entry.scanId = recent_scan_id_base_ + completion->validation.scan_id;
+        entry.stableItemId = result.itemId;
+        entry.canonicalName = result.displayName;
+        if (const auto* item = item_catalog_->FindById(result.itemId)) {
+            entry.canonicalShortName = !item->shortNameZh.empty()
+                ? item->shortNameZh : item->shortNameEn;
+        }
+        entry.gameMode = result.mode;
+        entry.matchMode = result.matchQuality == overlay::MatchQuality::Strict
+            ? data::RecentMatchMode::Strict : data::RecentMatchMode::BestEffort;
+        entry.ambiguous = result.bestEffortAmbiguous;
+        entry.scannedAtUnixMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        entry.fleaPrice = result.fleaPrice;
+        if (result.bestTrader) {
+            entry.bestTraderPrice = result.bestTrader->priceRoubles;
+            entry.bestTraderName = result.bestTrader->traderName;
+        }
+        entry.valuePerSlot = result.valuePerSlot;
+        entry.fleaStatus = result.fleaStatus;
+        entry.itemWidth = result.width;
+        entry.itemHeight = result.height;
+        if (recent_scan_store_->Append(std::move(entry))) {
+            main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
+            common::DebugLog(L"[recent-scans] appended scan_id="
+                + std::to_wstring(completion->validation.scan_id));
+        }
+    }
 }
 
 void App::OnScanStepMessage(LPARAM roi_pointer) {
@@ -626,6 +752,9 @@ LRESULT CALLBACK App::WindowProc(
             limits->ptMinTrackSize.y = MulDiv(750, dpi, 96);
             return 0;
         }
+        case ui::ItemImageCache::kReadyMessage:
+            if (app->main_ui_ != nullptr) app->main_ui_->ItemImagesReady();
+            return 0;
         case WM_MOUSEMOVE:
             if (app->main_ui_ != nullptr) {
                 app->main_ui_->MouseMove(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
@@ -648,12 +777,30 @@ LRESULT CALLBACK App::WindowProc(
                 GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
             if (GetCapture() == window) ReleaseCapture();
             if (mode) app->OnModeChanged(*mode);
+            app->EnsureRecentAnimationTimer();
+            return 0;
+        }
+        case WM_CAPTURECHANGED:
+            if (app->main_ui_ != nullptr) app->main_ui_->CancelScrollDrag();
+            return 0;
+        case WM_MOUSEWHEEL: {
+            POINT point{GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param)};
+            ScreenToClient(window, &point);
+            if (app->main_ui_->MouseWheel(point.x, point.y,
+                    GET_WHEEL_DELTA_WPARAM(w_param))) app->EnsureRecentAnimationTimer();
             return 0;
         }
         case WM_HOTKEY:
             app->OnHotkey(w_param);
             return 0;
         case WM_TIMER:
+            if (w_param == kRecentAnimationTimerId) {
+                if (!app->main_ui_->AnimationTick()) {
+                    KillTimer(window, kRecentAnimationTimerId);
+                    app->recent_animation_timer_active_ = false;
+                }
+                return 0;
+            }
             if (w_param == kDebugMouseTimerId) {
                 app->CheckDebugVisualizationCursor();
                 return 0;
@@ -671,7 +818,12 @@ LRESULT CALLBACK App::WindowProc(
     }
 
     if (message == WM_DESTROY) {
+        if (app != nullptr && app->main_ui_ != nullptr) app->main_ui_->StopItemImages();
         KillTimer(window, kDebugMouseTimerId);
+        KillTimer(window, kRecentAnimationTimerId);
+        if (app != nullptr && app->recent_animation_timer_ != nullptr)
+            CancelWaitableTimer(app->recent_animation_timer_);
+        if (app != nullptr) app->recent_animation_timer_active_ = false;
         PostQuitMessage(0);
         return 0;
     }

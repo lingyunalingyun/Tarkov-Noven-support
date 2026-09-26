@@ -6,6 +6,7 @@
 
 #include <windows.h>
 
+#include <cstdint>
 #include <memory>
 
 namespace noven::capture {
@@ -26,6 +27,7 @@ enum class GameMode;
 class ItemCatalog;
 class ItemEconomyStore;
 class DataRefreshService;
+class RecentScanStore;
 }
 
 namespace noven::overlay {
@@ -64,6 +66,8 @@ private:
     static constexpr UINT kScanStepMessage = WM_APP + 2;
     static constexpr UINT kDebugMouseTimerId = 2;
     static constexpr UINT kDebugMouseCheckMilliseconds = 50;
+    static constexpr UINT kRecentAnimationTimerId = 3;
+    static constexpr UINT kRecentAnimationFrameMilliseconds = 16;
     // 可视化仅供验证；普通结果卡寿命和扫描匹配不由此开关决定。
     // Visualization is for validation; it does not control card lifetime or matching.
     static constexpr bool kDebugScanVisualization = true;
@@ -81,6 +85,7 @@ private:
     void UpdateDebugRoi(POINT anchor);
     void CheckDebugVisualizationCursor();
     void OnModeChanged(data::GameMode mode);
+    void EnsureRecentAnimationTimer();
     bool RegisterWindowClass(HINSTANCE instance) const;
     HWND CreateMainWindow(HINSTANCE instance) const;
 
@@ -97,7 +102,12 @@ private:
     std::unique_ptr<overlay::DebugVisualizationWindow> debug_visualization_window_;
     std::unique_ptr<scanner::ScanTrigger> scan_trigger_;
     std::unique_ptr<ui::MainWindowUi> main_ui_;
+    std::unique_ptr<data::RecentScanStore> recent_scan_store_;
+    std::uint64_t recent_scan_id_base_{};
+    HANDLE recent_animation_timer_{};
     bool scan_in_progress_{};
+    bool recent_animation_timer_active_{};
+    bool recent_animation_uses_waitable_timer_{};
     bool mouse_tracking_{};
 };
 

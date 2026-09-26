@@ -60,6 +60,10 @@ int main(int argc, char** argv) {
     Require(catalog.Load(path, error), "catalog loads");
     Require(catalog.ItemCount() == 9, "all test items load");
     Require(catalog.AliasCount() == 36, "all aliases are indexed");
+    Require(catalog.FindById("545cdae64bdc2d39198b4568") != nullptr
+            && catalog.FindById("545cdae64bdc2d39198b4568")->shortNameZh == "Tri-Zip"
+            && catalog.FindById("missing") == nullptr,
+        "stable ID retrieves canonical short-name snapshot without matching");
 
     const auto zh_name = catalog.Match("金属零件");
     Require(Find(zh_name, "61bf7b6302b3924be92fa8c3") != nullptr,

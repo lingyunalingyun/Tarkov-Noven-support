@@ -240,8 +240,20 @@ while idle.
 - Tasks
 - Hideout
 - Events
-- Recent Scans
+- Recent Scans (local history implemented)
 - Settings
+
+Resolved Inventory scans are appended to `<exe>/data/recent-scans.json` as
+UTF-8, versioned, scan-time price snapshots. The newest 200 entries are kept;
+the Recent Scans page loads them once at startup and updates after each result.
+OCR-only feedback and RaidPickup scans are not added. File writing runs off
+the F2 result path and atomically replaces the previous valid file.
+
+Recent Scans thumbnails use stable-ID icon assets from `assets.tarkov.dev`.
+Download, disk reads and Windows WIC decoding run on a separate worker; cached
+WebP files live in `<exe>/data/item-images/`. Offline/missing/undecodable images
+keep a placeholder. Windows WebP codec support is required; no codec is installed
+automatically. Images are cosmetic and never enter recognition or price resolution.
 
 The source tree reserves directories for capture, scanning, OCR, matching,
 data, overlay, UI, logs, and common utilities.

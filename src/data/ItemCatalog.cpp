@@ -579,6 +579,13 @@ bool ItemCatalog::Load(const std::filesystem::path& path, std::wstring& error) {
     return true;
 }
 
+const ItemRecord* ItemCatalog::FindById(std::string_view id) const noexcept {
+    const auto found = std::find_if(items_.begin(), items_.end(), [&](const ItemRecord& item) {
+        return item.id == id;
+    });
+    return found == items_.end() ? nullptr : &*found;
+}
+
 void ItemCatalog::BuildIndexes() {
     for (std::size_t item_index = 0; item_index < items_.size(); ++item_index) {
         ItemRecord& item = items_[item_index];

@@ -53,6 +53,7 @@ add_executable(NovenTarkovSupport WIN32
     src/data/DataRefreshService.cpp
     src/data/ItemCatalog.cpp
     src/data/ItemEconomyStore.cpp
+    src/data/RecentScanStore.cpp
     src/hotkey/GlobalHotkey.cpp
     src/ocr/DetectionDebugWriter.cpp
     src/ocr/OnnxRuntimeSession.cpp
@@ -73,6 +74,7 @@ add_executable(NovenTarkovSupport WIN32
     src/scanner/TooltipHeuristic.cpp
     src/scanner/TooltipPlacementModel.cpp
     src/ui/MainWindowUi.cpp
+    src/ui/ItemImageCache.cpp
     src/ui/PageHost.cpp
     src/ui/Sidebar.cpp
 )
@@ -118,6 +120,8 @@ target_link_libraries(NovenTarkovSupport PRIVATE
     dwrite
     dwmapi
     winhttp
+    windowscodecs
+    ole32
 )
 
 add_custom_command(TARGET NovenTarkovSupport POST_BUILD
@@ -389,4 +393,35 @@ if(BUILD_TESTING)
         )
     endif()
     add_test(NAME main_navigation COMMAND NovenTarkovSupportNavigationTests)
+
+    add_executable(NovenTarkovSupportRecentScanTests
+        tests/RecentScanStoreTests.cpp
+        src/data/RecentScanStore.cpp
+        src/common/DebugLog.cpp
+    )
+    target_include_directories(NovenTarkovSupportRecentScanTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(NovenTarkovSupportRecentScanTests PRIVATE
+        UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00
+    )
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportRecentScanTests PRIVATE
+            /W4 /permissive- /utf-8 /EHsc
+        )
+    endif()
+    add_test(NAME recent_scans COMMAND NovenTarkovSupportRecentScanTests)
+    add_executable(NovenTarkovSupportItemImageTests
+        tests/ItemImageCacheTests.cpp
+        src/ui/ItemImageCache.cpp
+        src/common/DebugLog.cpp
+    )
+    target_include_directories(NovenTarkovSupportItemImageTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenTarkovSupportItemImageTests PRIVATE
+        UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportItemImageTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenTarkovSupportItemImageTests PRIVATE winhttp windowscodecs ole32)
+    add_test(NAME item_images COMMAND NovenTarkovSupportItemImageTests)
 endif()

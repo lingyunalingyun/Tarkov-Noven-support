@@ -2,6 +2,7 @@
 
 #include "ui/PageHost.h"
 #include "ui/Sidebar.h"
+#include "ui/ItemImageCache.h"
 
 #include <d2d1.h>
 #include <dwrite.h>
@@ -10,6 +11,7 @@
 
 #include <optional>
 #include <string>
+#include <chrono>
 
 namespace noven::ui {
 
@@ -24,18 +26,28 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
+    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); }
     [[nodiscard]] std::optional<data::GameMode> MouseUp(int x, int y);
+    [[nodiscard]] bool MouseWheel(int x, int y, int delta);
+    [[nodiscard]] bool AnimationTick();
+    [[nodiscard]] bool AnimationActive() const noexcept;
     void SetScannerState(ScannerPageState state);
+    void SetRecentScans(std::vector<data::RecentScanEntry> entries);
+    void StartItemImages(const std::filesystem::path& directory) { image_cache_.Start(window_, directory); }
+    void StopItemImages() { image_cache_.Stop(); }
+    void ItemImagesReady();
     [[nodiscard]] bool Ready() const noexcept { return window_ != nullptr; }
     [[nodiscard]] MainPage ActivePage() const noexcept { return navigation_.Active(); }
 
 private:
     bool CreateRenderTarget(std::wstring& error);
+    void BuildItemBitmap(const ItemImage& image);
     void Invalidate() const;
     [[nodiscard]] std::optional<MainPage> HitTest(int x, int y) const noexcept;
     [[nodiscard]] bool OnModeSelector(int x, int y) const noexcept;
     [[nodiscard]] std::optional<data::GameMode> ModeOptionAt(int x, int y) const noexcept;
     [[nodiscard]] float DipHeight() const noexcept;
+    [[nodiscard]] std::optional<RecentScrollbar> Scrollbar() const noexcept;
     [[nodiscard]] float Scale() const noexcept { return static_cast<float>(dpi_) / 96.0F; }
 
     HWND window_{};
@@ -45,6 +57,20 @@ private:
     UiTheme theme_;
     Sidebar sidebar_;
     PageHost pages_;
+    std::vector<data::RecentScanEntry> recent_;
+    ItemImageCache image_cache_;
+    std::unordered_map<std::string, ItemImage> image_pixels_;
+    ItemBitmapMap item_bitmaps_;
+    float recent_scroll_{};
+    float recent_scroll_target_{};
+    std::optional<float> recent_scroll_grab_;
+    std::chrono::steady_clock::time_point recent_scroll_tick_{};
+    data::GameMode recent_filter_{data::GameMode::Pvp};
+    RecentTabTransition recent_transition_{};
+    float recent_underline_from_{};
+    std::chrono::steady_clock::time_point recent_tab_started_{};
+    std::optional<data::GameMode> hovered_recent_tab_;
+    std::optional<data::GameMode> pressed_recent_tab_;
     std::optional<MainPage> hovered_;
     std::optional<MainPage> pressed_;
     bool mode_menu_open_{};

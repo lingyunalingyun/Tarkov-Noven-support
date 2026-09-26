@@ -199,8 +199,8 @@ bool OverlayRenderer::Render(
         ? L"  ·  可能匹配"
         : (result.matchQuality == MatchQuality::OcrOnly ? L"  ·  OCR 识别文本" : L"");
     const std::wstring mode = L"模式  " + ModeText(result.mode) + quality;
-    const std::wstring flea = L"跳蚤市场     " + FormatOptionalRoubles(result.fleaPrice);
-    const std::wstring trader = L"商人最高     " + TraderText(result.bestTrader);
+    const std::wstring flea = L"跳蚤出售     " + FormatOptionalRoubles(result.fleaPrice);
+    const std::wstring trader = L"商人出售     " + TraderText(result.bestTrader);
     const std::wstring slot = L"单格价值     " + (result.valuePerSlot.has_value()
         ? FormatRoubles(static_cast<std::int64_t>(*result.valuePerSlot)) : L"未知");
     const std::wstring flea_status = L"跳蚤状态     " +
