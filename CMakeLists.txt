@@ -53,6 +53,8 @@ add_executable(NovenTarkovSupport WIN32
     src/data/DataRefreshService.cpp
     src/data/ItemCatalog.cpp
     src/data/ItemEconomyStore.cpp
+    src/data/PriceBrowser.cpp
+    src/data/PriceHistory.cpp
     src/data/RecentScanStore.cpp
     src/hotkey/GlobalHotkey.cpp
     src/ocr/DetectionDebugWriter.cpp
@@ -120,6 +122,7 @@ target_link_libraries(NovenTarkovSupport PRIVATE
     d2d1
     dwrite
     dwmapi
+    windowsapp
     winhttp
     windowscodecs
     ole32
@@ -435,6 +438,20 @@ if(BUILD_TESTING)
     endif()
     target_link_libraries(NovenTarkovSupportItemImageTests PRIVATE winhttp windowscodecs ole32)
     add_test(NAME item_images COMMAND NovenTarkovSupportItemImageTests)
+    add_executable(NovenTarkovSupportPriceBrowserTests
+        tests/PriceBrowserTests.cpp
+        src/data/ItemCatalog.cpp
+        src/data/ItemEconomyStore.cpp
+        src/data/PriceBrowser.cpp)
+    target_include_directories(NovenTarkovSupportPriceBrowserTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenTarkovSupportPriceBrowserTests PRIVATE
+        UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    if(MSVC)
+        target_compile_options(NovenTarkovSupportPriceBrowserTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME price_browser COMMAND NovenTarkovSupportPriceBrowserTests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/data/items_catalog.tsv")
     add_executable(NovenLocalizationTests
         tests/LocalizationTests.cpp
         src/ui/localization/LocalizationService.cpp)
@@ -447,6 +464,8 @@ if(BUILD_TESTING)
     add_executable(NovenLocalizationUiTests
         tests/LocalizationUiTests.cpp
         src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
+        src/data/ItemCatalog.cpp src/data/ItemEconomyStore.cpp src/data/PriceBrowser.cpp
+        src/data/PriceHistory.cpp
         src/ui/ItemImageCache.cpp src/ui/localization/LocalizationService.cpp
         src/common/DebugLog.cpp)
     target_include_directories(NovenLocalizationUiTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -455,6 +474,15 @@ if(BUILD_TESTING)
     if(MSVC)
         target_compile_options(NovenLocalizationUiTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
-    target_link_libraries(NovenLocalizationUiTests PRIVATE d2d1 dwrite winhttp windowscodecs ole32)
+    target_link_libraries(NovenLocalizationUiTests PRIVATE d2d1 dwrite winhttp windowscodecs ole32 windowsapp)
     add_test(NAME localization_ui COMMAND NovenLocalizationUiTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
+    add_executable(NovenPriceHistoryTests tests/PriceHistoryTests.cpp
+        src/data/PriceHistory.cpp src/common/DebugLog.cpp)
+    target_include_directories(NovenPriceHistoryTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenPriceHistoryTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenPriceHistoryTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenPriceHistoryTests PRIVATE winhttp windowsapp)
+    add_test(NAME price_history COMMAND NovenPriceHistoryTests)
 endif()

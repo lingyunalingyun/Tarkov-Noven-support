@@ -4,6 +4,7 @@
 #include "ui/localization/LocalizationService.h"
 #include "ui/localization/TextKeys.h"
 #include "ui/Theme.h"
+#include "ui/TagBadge.h"
 #include <algorithm>
 
 namespace noven::ui {
@@ -26,6 +27,7 @@ struct ItemCardView final {
     std::wstring_view leftValue;
     std::wstring_view rightValue;
     ID2D1Bitmap* image{};
+    std::wstring_view tag;
 };
 
 // 等比例居中，不拉伸物品图片；输入与输出均为 DIP。
@@ -42,7 +44,7 @@ struct ItemCardView final {
 }
 
 inline void DrawItemCard(const UiCanvas& canvas, const UiTheme& theme,
-                        D2D1_RECT_F bounds, const ItemCardView& item) {
+                        D2D1_RECT_F bounds, const ItemCardView& item, bool stackedPrices = false) {
     const float x = bounds.left, top = bounds.top, right = bounds.right;
     canvas.Round(bounds, theme.cornerRadius, theme.surface);
     canvas.Round(D2D1::RectF(x + 16, top + 15, x + 96, top + 103), 6.0F, theme.background);
@@ -54,8 +56,22 @@ inline void DrawItemCard(const UiCanvas& canvas, const UiTheme& theme,
         canvas.Text(Tr(TextKey::ImageUnavailable), canvas.smallFormat,
             D2D1::RectF(x + 26, top + 43, x + 92, top + 75), theme.secondaryText);
     }
-    canvas.Text(item.title, canvas.label,
-        D2D1::RectF(x + 112, top + 10, right - 18, top + 39), theme.primaryText);
+    if (stackedPrices) {
+        const auto wrapping = canvas.label.GetWordWrapping();
+        canvas.label.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+        DrawTaggedTitle(canvas, theme,
+            D2D1::RectF(x + 112, top + 8, right - 18, top + 60), item.title, item.tag);
+        canvas.label.SetWordWrapping(wrapping);
+        canvas.Text(item.detail, canvas.smallFormat,
+            D2D1::RectF(x + 112, top + 62, right - 18, top + 85), theme.secondaryText);
+        canvas.Text(item.leftValue, canvas.body,
+            D2D1::RectF(x + 112, top + 90, right - 18, top + 112), theme.primaryText);
+        canvas.Text(item.rightValue, canvas.body,
+            D2D1::RectF(x + 112, top + 116, right - 18, top + 138), theme.primaryText);
+        return;
+    }
+    DrawTaggedTitle(canvas, theme,
+        D2D1::RectF(x + 112, top + 10, right - 18, top + 39), item.title, item.tag);
     canvas.Text(item.detail, canvas.smallFormat,
         D2D1::RectF(x + 112, top + 40, right - 18, top + 63), theme.secondaryText);
     canvas.Text(item.leftValue, canvas.body,

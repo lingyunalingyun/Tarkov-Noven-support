@@ -624,6 +624,8 @@ bool ItemEconomyStore::ReplaceFromUpstreamJson(
         if (ReadInteger(Find(item, "height"), integer) && integer > 0 && integer <= 100) {
             info.height = static_cast<int>(integer);
         }
+        double changeAmount = 0;
+        if (ReadNumber(Find(item, "changeLast48h"), changeAmount)) info.fleaChangeAmount = changeAmount;
         if (ReadInteger(Find(item, "lastLowPrice"), integer)
             && integer > 0 && integer <= 1'000'000'000'000LL) {
             info.fleaPrice = integer;
@@ -759,6 +761,8 @@ bool ItemEconomyStore::LoadCacheFile(
         if (ReadInteger(Find(item, "height"), integer) && integer > 0 && integer <= 100) {
             info.height = static_cast<int>(integer);
         }
+        double changeAmount = 0;
+        if (ReadNumber(Find(item, "fleaChangeAmount"), changeAmount)) info.fleaChangeAmount = changeAmount;
         if (ReadInteger(Find(item, "fleaPrice"), integer) && integer > 0) {
             info.fleaPrice = integer;
         }
@@ -849,6 +853,7 @@ bool ItemEconomyStore::SaveCacheFile(
                << ",\"fleaStatus\":" << EscapeJson(FleaStatusValue(info.fleaStatus))
                << ",\"updatedAt\":" << EscapeJson(IsoTime(info.updatedAt));
         if (info.fleaPrice.has_value()) output << ",\"fleaPrice\":" << *info.fleaPrice;
+        if (info.fleaChangeAmount) output << ",\"fleaChangeAmount\":" << *info.fleaChangeAmount;
         if (info.bestTrader.has_value()) {
             output << ",\"bestTrader\":{\"traderId\":"
                    << EscapeJson(info.bestTrader->traderId)

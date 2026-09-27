@@ -1,5 +1,9 @@
 #include "ui/PageHost.h"
 #include "ui/PageComponents.h"
+#include "ui/SearchBox.h"
+#include "ui/Dropdown.h"
+#include "ui/ItemTypeLabel.h"
+#include "ui/ValueFormat.h"
 
 #include <windows.h>
 
@@ -14,7 +18,22 @@ namespace {
 
 constexpr float kRecentTop = 139.0F;
 constexpr float kRecentRowHeight = 130.0F;
+constexpr float kPricesTop = 188.0F;
+constexpr float kPricesRowHeight = 118.0F;
+// 窄窗口把筛选栏和价格分行；绘制与滚动必须使用相同断点。
+// Narrow windows stack controls and prices; drawing and scrolling share this breakpoint.
+bool NarrowPrices(float width, const UiTheme& theme) noexcept {
+    return width - theme.sidebarWidth - 2.0F * theme.contentPadding < 690.0F;
+}
+float PricesTop(float width, const UiTheme& theme) noexcept {
+    return NarrowPrices(width, theme) ? 228.0F : kPricesTop;
+}
 constexpr std::array<TabBarItem<data::GameMode>, 3> kRecentTabs{{
+    {data::GameMode::Pvp, L"PvP"},
+    {data::GameMode::Pve, L"PvE"},
+    {data::GameMode::Seasonal, L"PVPS"},
+}};
+constexpr std::array<TabBarItem<data::GameMode>, 3> kPriceTabs{{
     {data::GameMode::Pvp, L"PvP"},
     {data::GameMode::Pve, L"PvE"},
     {data::GameMode::Seasonal, L"PVPS"},
@@ -23,6 +42,62 @@ constexpr std::array<TabBarItem<data::GameMode>, 3> kRecentTabs{{
 TabBarLayout RecentTabLayout(const UiTheme& theme) noexcept {
     return {theme.sidebarWidth + theme.contentPadding, 80.0F, 123.0F,
             100.0F, 22.0F};
+}
+
+TabBarLayout PriceTabLayout(const UiTheme& theme) noexcept {
+    return {theme.sidebarWidth + theme.contentPadding, 128.0F, 171.0F,
+            100.0F, 22.0F};
+}
+
+struct PriceToolbarLayout final {
+    float left{};
+    float top{};
+    float buttonWidth{};
+    float buttonHeight{};
+    float gap{};
+};
+
+PriceToolbarLayout PriceToolbar(const UiTheme& theme, float width) noexcept {
+    const float right = width - theme.contentPadding;
+    const float buttonWidth = 118.0F;
+    return {right - buttonWidth * 3.0F - 16.0F, NarrowPrices(width, theme) ? 182.0F : 132.0F,
+            buttonWidth, 32.0F, 8.0F};
+}
+
+std::optional<D2D1_RECT_F> PriceControlRect(
+    PriceToolbarControl control, const UiTheme& theme, float width) noexcept {
+    const auto layout = PriceToolbar(theme, width);
+    const auto header = [&](std::size_t index) {
+        const float left = layout.left + static_cast<float>(index)
+            * (layout.buttonWidth + layout.gap);
+        return D2D1::RectF(left, layout.top, left + layout.buttonWidth,
+            layout.top + layout.buttonHeight);
+    };
+    const auto option = [&](std::size_t index, std::size_t row) {
+        const auto base = header(index);
+        return DropdownLayout{base}.Option(row);
+    };
+    switch (control) {
+    case PriceToolbarControl::SortDropdown:
+    case PriceToolbarControl::FleaPrice:
+    case PriceToolbarControl::FleaChange:
+    case PriceToolbarControl::TraderPrice:
+        return control == PriceToolbarControl::SortDropdown ? header(0)
+            : option(0, control == PriceToolbarControl::FleaPrice ? 0
+                : control == PriceToolbarControl::FleaChange ? 1 : 2);
+    case PriceToolbarControl::OrderDropdown:
+    case PriceToolbarControl::Ascending:
+    case PriceToolbarControl::Descending:
+        return control == PriceToolbarControl::OrderDropdown ? header(1)
+            : option(1, control == PriceToolbarControl::Ascending ? 0 : 1);
+    case PriceToolbarControl::SideDropdown:
+    case PriceToolbarControl::TraderSell:
+    case PriceToolbarControl::TraderBuy:
+        return control == PriceToolbarControl::SideDropdown ? header(2)
+            : option(2, control == PriceToolbarControl::TraderSell ? 0 : 1);
+    case PriceToolbarControl::FleaSell: return std::nullopt;
+    }
+    return std::nullopt;
 }
 
 std::wstring Wide(std::string_view utf8) {
@@ -41,7 +116,7 @@ std::wstring Price(const std::optional<std::int64_t>& amount) {
     std::wstring digits = std::to_wstring(*amount);
     for (std::size_t pos = digits.size(); pos > 3; pos -= 3)
         digits.insert(pos - 3, 1, L',');
-    return L"₽" + digits;
+    return L"\x20BD" + digits;
 }
 
 std::wstring LocalTime(std::int64_t unixMs) {
@@ -68,11 +143,62 @@ std::wstring Mode(data::GameMode mode) {
     return L"?";
 }
 
+std::wstring DisplayName(const data::ItemRecord& item) {
+    const bool english = UiLocalization().ActiveLocale().starts_with("en");
+    const std::string& name = english
+        ? (!item.nameEn.empty() ? item.nameEn : item.nameZh)
+        : (!item.nameZh.empty() ? item.nameZh : item.nameEn);
+    return Wide(name);
+}
+
+std::wstring PriceText(const std::optional<std::int64_t>& value) {
+    if (!value) return Tr(TextKey::Unknown);
+    std::wstring digits = std::to_wstring(*value);
+    for (std::size_t pos = digits.size(); pos > 3; pos -= 3) digits.insert(pos - 3, 1, L',');
+    return L"₽" + digits;
+}
+
+std::wstring EconomyFlea(const data::ItemEconomyInfo* economy) {
+    if (!economy) return UiLocalization().Format(TextKey::PricesFlea,
+        {{L"price", Tr(TextKey::Unknown)}});
+    if (economy->fleaStatus == data::FleaStatus::Banned)
+        return Tr(TextKey::PricesFleaBanned);
+    if (economy->fleaStatus == data::FleaStatus::LockedOrUnavailable)
+        return Tr(TextKey::PricesFleaUnavailable);
+    return UiLocalization().Format(TextKey::PricesFlea,
+        {{L"price", PriceText(economy->fleaPrice)}});
+}
+
+std::wstring EconomyTrader(const data::ItemEconomyInfo* economy,
+                           data::PriceTraderSide side) {
+    if (side == data::PriceTraderSide::Buy)
+        return Tr(TextKey::PricesTraderBuyUnavailable);
+    std::wstring price = economy && economy->bestTrader
+        ? PriceText(economy->bestTrader->priceRoubles) : Tr(TextKey::Unknown);
+    if (economy && economy->bestTrader && !economy->bestTrader->traderName.empty())
+        price += L" \x00B7 " + Wide(economy->bestTrader->traderName);
+    return UiLocalization().Format(TextKey::PricesTrader, {{L"price", price}});
+}
+
 } // namespace
 
 float PageHost::RecentMaxScroll(float height, std::size_t count) noexcept {
     return (std::max)(0.0F, static_cast<float>(count) * kRecentRowHeight
         - (std::max)(0.0F, height - kRecentTop - 22.0F));
+}
+
+float PageHost::PriceRowHeight(float width, const UiTheme& theme) noexcept {
+    return NarrowPrices(width, theme) ? 154.0F : kPricesRowHeight;
+}
+
+float PageHost::PriceListTop(float width, const UiTheme& theme) noexcept {
+    return PricesTop(width, theme);
+}
+
+float PageHost::PriceMaxScroll(float height, std::size_t count,
+                               float width, const UiTheme& theme, float extraHeight) noexcept {
+    return (std::max)(0.0F, static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight
+        - (std::max)(0.0F, height - PricesTop(width, theme) - 22.0F));
 }
 
 std::optional<RecentScrollbar> PageHost::RecentScrollGeometry(
@@ -89,6 +215,22 @@ RecentScrollbarPose PageHost::AnimateRecentScrollbar(
     return SampleScrollbarTransition(outgoing, incoming, progress);
 }
 
+std::optional<RecentScrollbar> PageHost::PriceScrollGeometry(
+    float width, float height, const UiTheme& theme, std::size_t count,
+    float scroll, float extraHeight) noexcept {
+    const float left = width - theme.contentPadding + 12.0F;
+    return MakeScrollbar(D2D1::RectF(left, PricesTop(width, theme), left + 12.0F, height - 22.0F),
+        static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight, scroll);
+}
+
+RecentScrollbarPose PageHost::AnimatePriceScrollbar(
+    const std::optional<RecentScrollbar>& outgoing,
+    const std::optional<RecentScrollbar>& incoming, float progress) noexcept {
+    // Prices tabs use the same scrollbar transition as Recent Scans; only the data source differs.
+    // 物价 TAB 与最近扫描共用同一滚动条过渡，区别只在于列表数据来源不同。
+    return SampleScrollbarTransition(outgoing, incoming, progress);
+}
+
 std::size_t PageHost::RecentFilteredCount(
     const std::vector<data::RecentScanEntry>& recent, data::GameMode mode) noexcept {
     return static_cast<std::size_t>(std::count_if(recent.begin(), recent.end(),
@@ -98,6 +240,53 @@ std::size_t PageHost::RecentFilteredCount(
 std::optional<data::GameMode> PageHost::RecentTabAt(
     float x, float y, const UiTheme& theme) const noexcept {
     return HitTestTabBar(kRecentTabs, RecentTabLayout(theme), x, y);
+}
+
+std::optional<data::GameMode> PageHost::PriceTabAt(
+    float x, float y, const UiTheme& theme) const noexcept {
+    return HitTestTabBar(kPriceTabs, PriceTabLayout(theme), x, y);
+}
+
+std::optional<PriceToolbarControl> PageHost::PriceControlAt(
+    float x, float y, const UiTheme& theme, float width,
+    std::optional<PriceDropdown> openDropdown) const noexcept {
+    const auto header = [&](PriceToolbarControl control) {
+        const auto rect = PriceControlRect(control, theme, width);
+        return rect && HitTestDropdownRect(*rect, x, y);
+    };
+    if (header(PriceToolbarControl::SortDropdown))
+        return PriceToolbarControl::SortDropdown;
+    if (header(PriceToolbarControl::OrderDropdown))
+        return PriceToolbarControl::OrderDropdown;
+    if (header(PriceToolbarControl::SideDropdown))
+        return PriceToolbarControl::SideDropdown;
+    if (!openDropdown) return std::nullopt;
+    for (const auto control : {
+        PriceToolbarControl::FleaPrice, PriceToolbarControl::FleaChange,
+        PriceToolbarControl::TraderPrice, PriceToolbarControl::Ascending,
+        PriceToolbarControl::Descending, PriceToolbarControl::FleaSell,
+        PriceToolbarControl::TraderSell, PriceToolbarControl::TraderBuy}) {
+        const bool belongs =
+            (*openDropdown == PriceDropdown::Sort
+                && (control == PriceToolbarControl::FleaPrice
+                    || control == PriceToolbarControl::FleaChange
+                    || control == PriceToolbarControl::TraderPrice))
+            || (*openDropdown == PriceDropdown::Order
+                && (control == PriceToolbarControl::Ascending
+                    || control == PriceToolbarControl::Descending))
+            || (*openDropdown == PriceDropdown::Side
+                && (control == PriceToolbarControl::FleaSell
+                    || control == PriceToolbarControl::TraderSell
+                    || control == PriceToolbarControl::TraderBuy));
+        if (!belongs) continue;
+        const auto rect = PriceControlRect(control, theme, width);
+        if (rect && HitTestDropdownRect(*rect, x, y)) {
+            // 涨跌排序暂时没有历史价差数据，因此保留展示但不响应点击。
+            // Change sorting is visible but disabled until historical delta data exists.
+            return control;
+        }
+    }
+    return std::nullopt;
 }
 
 D2D1_RECT_F PageHost::ModeSelectorRect(const UiTheme& theme) const noexcept {
@@ -122,6 +311,22 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                     std::optional<data::GameMode> hoveredRecentTab,
                     float recentScroll,
                     const RecentTabTransition& recentTransition,
+                    data::GameMode priceMode,
+                    std::optional<data::GameMode> hoveredPriceTab,
+                    float priceScroll,
+                    const PriceTabTransition& priceTransition,
+                    const PriceSearchTransition& searchTransition,
+                    const PriceDetailsState& details,
+                    std::optional<PriceToolbarControl> hoveredPriceControl,
+                    std::optional<PriceDropdown> openPriceDropdown,
+                    float priceDropdownProgress,
+                    data::PriceSortMode priceSort,
+                    bool priceSortDescending,
+                    data::PriceTraderSide priceTraderSide,
+                    std::wstring_view priceQuery,
+                    bool priceSearchFocused,
+                    bool priceCaretVisible,
+                    const std::vector<data::PriceRow>& prices,
                     const ItemBitmapMap& images) const {
     const PageInfo* page = FindPage(active);
     if (page == nullptr) return;
@@ -188,6 +393,164 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                 RecentFilteredCount(recent, recentFilter), recentScroll),
             recentTransition.progress);
         DrawScrollbar(canvas, theme, scrollbar);
+        return;
+    }
+
+    if (active == MainPage::Prices) {
+        const float listTop = PricesTop(width, theme);
+        const float rowHeight = PriceRowHeight(width, theme);
+        const auto pose = SampleTabTransition(priceTransition.progress);
+        const D2D1_RECT_F search = D2D1::RectF(x, 84, right, 122);
+        SearchBox search_box;
+        search_box.SetText(std::wstring(priceQuery));
+        if (priceSearchFocused) search_box.Focus();
+        search_box.Draw(canvas, theme, search, Tr(TextKey::PricesSearchPlaceholder), priceCaretVisible);
+        DrawTabBar(canvas, theme, canvas.body, kPriceTabs, PriceTabLayout(theme),
+            priceMode, hoveredPriceTab, priceTransition.outgoingMode,
+            priceTransition.progress, priceTransition.underlineIndex);
+        const auto drawHeader = [&](PriceToolbarControl control,
+                                    std::wstring_view label, bool selected) {
+            const auto rect = PriceControlRect(control, theme, width);
+            if (!rect) return;
+            DrawDropdownHeader(canvas, theme, *rect, label, selected,
+                hoveredPriceControl == control);
+        };
+        drawHeader(PriceToolbarControl::SortDropdown,
+            Tr(priceSort == data::PriceSortMode::TraderPrice
+                ? TextKey::PricesSortTrader : priceSort == data::PriceSortMode::FleaChange
+                ? TextKey::PricesSortFleaChange : TextKey::PricesSortFlea),
+            openPriceDropdown == PriceDropdown::Sort);
+        drawHeader(PriceToolbarControl::OrderDropdown,
+            Tr(priceSortDescending ? TextKey::PricesOrderDescending
+                                   : TextKey::PricesOrderAscending),
+            openPriceDropdown == PriceDropdown::Order);
+        drawHeader(PriceToolbarControl::SideDropdown,
+            Tr(priceTraderSide == data::PriceTraderSide::Buy
+                ? TextKey::PricesTraderBuy : TextKey::PricesTraderSell),
+            openPriceDropdown == PriceDropdown::Side);
+        const float bottom = (std::max)(listTop, height - 22.0F);
+        canvas.target.PushAxisAlignedClip(D2D1::RectF(x, listTop, right, bottom),
+            D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        const float cardRight = right;
+        const auto center = D2D1::Point2F((x + cardRight) / 2.0F, listTop + 150.0F);
+        {
+            // 过渡只作用于价格列表；滚动条必须在作用域结束后独立绘制。
+            // The transition applies only to the price list; draw the scrollbar after this scope.
+            const ScopedContentTransition transition(canvas, center, pose.incomingOpacity, pose.incomingScale);
+        if (prices.empty() && (searchTransition.progress >= 0.28F || searchTransition.rows.empty())) {
+            DrawEmptyState(canvas, theme, D2D1::RectF(x, listTop, cardRight, listTop + 160),
+                cardRight - 20, priceQuery.empty() ? Tr(TextKey::PricesEmptyTitle)
+                    : Tr(TextKey::PricesNoResultsTitle),
+                priceQuery.empty() ? Tr(TextKey::PricesEmptyDescription)
+                    : Tr(TextKey::PricesNoResultsDescription));
+        } else {
+            const auto expanded = std::find_if(prices.begin(), prices.end(), [&](const auto& row) {
+                return row.item->id == details.id;
+            });
+            const auto expandedIndex = static_cast<std::size_t>(expanded - prices.begin());
+            const auto drawRow = [&](const data::PriceRow& row, float slot, float opacity) {
+                const bool selected = row.item->id == details.id;
+                const float extra = selected ? details.extent : 0;
+                const float top = listTop + slot * rowHeight - priceScroll
+                    + (slot > static_cast<float>(expandedIndex) ? details.extent : 0);
+                if (opacity <= 0 || top + rowHeight + extra < listTop || top > bottom) return;
+                const ScopedContentTransition fade(canvas, center, opacity, 1);
+                const auto image = images.find(row.item->id);
+                const auto* economy = row.economy ? &*row.economy : nullptr;
+                std::wstring detail = std::to_wstring(row.item->width) + L"×"
+                    + std::to_wstring(row.item->height) + L"  ·  ";
+                if (priceSort == data::PriceSortMode::FleaChange) {
+                    detail += UiLocalization().Format(TextKey::PricesChangeAmount,
+                        {{L"amount", economy && economy->fleaChangeAmount
+                            ? FormatSignedRoubles(*economy->fleaChangeAmount) : Tr(TextKey::Unknown)}});
+                } else detail += economy && economy->valuePerSlot
+                    ? UiLocalization().Format(TextKey::PricesValuePerSlot,
+                        {{L"price", PriceText(static_cast<std::int64_t>(*economy->valuePerSlot))}})
+                    : UiLocalization().Format(TextKey::PricesValuePerSlot,
+                        {{L"price", Tr(TextKey::Unknown)}});
+                if (extra > 0)
+                    canvas.Round(D2D1::RectF(x, top, cardRight, top + rowHeight - 10 + extra),
+                        theme.cornerRadius, theme.surface);
+                const auto typeKey = ItemTypeKey(row.item->types);
+                const auto tag = typeKey.empty() ? std::wstring{} : Tr(typeKey);
+                DrawItemCard(canvas, theme, D2D1::RectF(x, top, cardRight, top + rowHeight - 10),
+                     {DisplayName(*row.item), detail, EconomyFlea(economy), EconomyTrader(economy, priceTraderSide),
+                     image == images.end() ? nullptr : image->second.Get(), tag}, NarrowPrices(width, theme));
+                if (extra > 0) {
+                    canvas.target.PushAxisAlignedClip(D2D1::RectF(x, top + rowHeight - 10,
+                        cardRight, top + rowHeight - 10 + extra), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                    // 悬浮只读取当前快照，不触发历史下载。
+                    // Hover reads the current snapshot without triggering history downloads.
+                    DrawPriceHistory(canvas, theme,
+                        D2D1::RectF(x, top + rowHeight - 10, cardRight, top + rowHeight - 10 + kPriceDetailsHeight),
+                        details, listTop);
+                    canvas.target.PopAxisAlignedClip();
+                }
+            };
+            if (searchTransition.progress < 1) {
+                for (const auto& row : searchTransition.rows) {
+                    const auto position = SampleListReflow(row.fromSlot, row.toSlot, row.opacity,
+                        row.retained, searchTransition.progress);
+                    drawRow(row.row, position.slot, position.opacity);
+                }
+            } else {
+                for (std::size_t i = 0; i < prices.size(); ++i)
+                    drawRow(prices[i], static_cast<float>(i), 1);
+            }
+            }
+        }
+        canvas.target.PopAxisAlignedClip();
+        const auto scrollbar = AnimatePriceScrollbar(
+            PriceScrollGeometry(width, height, theme, priceTransition.outgoingCount,
+                priceTransition.outgoingScroll),
+            PriceScrollGeometry(width, height, theme, prices.size(), priceScroll,
+                DetailsScrollExtra(details, prices.size(), PriceRowHeight(width, theme),
+                    (std::max)(0.0F, height - PriceListTop(width, theme) - 22))),
+            priceTransition.progress);
+        DrawScrollbar(canvas, theme, scrollbar);
+        if (openPriceDropdown && priceDropdownProgress > 0.0F) {
+            const auto dropdownPose = SampleDropdownTransition(priceDropdownProgress);
+            const auto dropdownControl = *openPriceDropdown == PriceDropdown::Sort
+                ? PriceToolbarControl::SortDropdown
+                : *openPriceDropdown == PriceDropdown::Order
+                    ? PriceToolbarControl::OrderDropdown
+                    : PriceToolbarControl::SideDropdown;
+            const auto base = PriceControlRect(dropdownControl, theme, width);
+            if (base) {
+                const auto menuAnchor = D2D1::Point2F((base->left + base->right) / 2.0F,
+                    base->bottom);
+                const ScopedContentTransition transition(
+                    canvas, menuAnchor, dropdownPose.opacity, dropdownPose.scale);
+                const std::size_t rows = *openPriceDropdown == PriceDropdown::Sort ? 3 : 2;
+                DrawDropdownPanel(canvas, theme, DropdownLayout{*base}, rows);
+                const auto drawOption = [&](PriceToolbarControl control,
+                                            std::wstring_view label, bool selected,
+                                            bool enabled) {
+                    const auto rect = PriceControlRect(control, theme, width);
+                    if (!rect) return;
+                    DrawDropdownOption(canvas, theme, *rect, label, selected, enabled,
+                        hoveredPriceControl == control);
+                };
+                if (*openPriceDropdown == PriceDropdown::Sort) {
+                    drawOption(PriceToolbarControl::FleaPrice, Tr(TextKey::PricesSortFlea),
+                        priceSort == data::PriceSortMode::FleaPrice, true);
+                    drawOption(PriceToolbarControl::FleaChange, Tr(TextKey::PricesSortFleaChange),
+                        priceSort == data::PriceSortMode::FleaChange, true);
+                    drawOption(PriceToolbarControl::TraderPrice, Tr(TextKey::PricesSortTrader),
+                        priceSort == data::PriceSortMode::TraderPrice, true);
+                } else if (*openPriceDropdown == PriceDropdown::Order) {
+                    drawOption(PriceToolbarControl::Ascending, Tr(TextKey::PricesOrderAscending),
+                        !priceSortDescending, true);
+                    drawOption(PriceToolbarControl::Descending, Tr(TextKey::PricesOrderDescending),
+                        priceSortDescending, true);
+                } else {
+                    drawOption(PriceToolbarControl::TraderSell, Tr(TextKey::PricesTraderSell),
+                        priceTraderSide == data::PriceTraderSide::Sell, true);
+                    drawOption(PriceToolbarControl::TraderBuy, Tr(TextKey::PricesTraderBuy),
+                        priceTraderSide == data::PriceTraderSide::Buy, true);
+                }
+            }
+        }
         return;
     }
 

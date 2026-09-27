@@ -126,6 +126,7 @@ public:
     ) const noexcept;
 
     [[nodiscard]] std::size_t ItemCount() const noexcept { return items_.size(); }
+    [[nodiscard]] const std::vector<ItemRecord>& Items() const noexcept { return items_; }
     [[nodiscard]] const ItemRecord* FindById(std::string_view id) const noexcept;
     [[nodiscard]] std::size_t AliasCount() const noexcept { return aliases_.size(); }
     [[nodiscard]] std::size_t EnglishFieldCount() const noexcept { return english_fields_; }

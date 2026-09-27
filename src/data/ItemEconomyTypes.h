@@ -35,6 +35,9 @@ struct ItemEconomyInfo final {
     std::optional<std::int64_t> bestValue;
     std::optional<double> valuePerSlot;
     std::chrono::system_clock::time_point updatedAt{};
+    // 上游“相较昨日”金额，保留符号与真实零；不自行重算或影响扫描估值。
+    // Upstream change-vs-yesterday amount, preserving sign and real zero; never recomputed or used for scan valuation.
+    std::optional<double> fleaChangeAmount;
 };
 
 [[nodiscard]] const wchar_t* FleaStatusName(FleaStatus status) noexcept;

@@ -233,7 +233,7 @@ while idle.
 ## Planned modules
 
 - Scanner
-- Prices
+- Prices (local catalog/economy browser, expandable flea-price history from tarkov.dev; rolling 30-day local cache, older ranges memory-only)
 - Raid History
 - Squad
 - Map

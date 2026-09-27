@@ -281,6 +281,7 @@ int App::Run(HINSTANCE instance, int show_command) {
     }
     recent_scan_id_base_ = recent_scan_store_->MaxScanId();
     main_ui_->StartItemImages(ExecutableDirectory() / L"data" / L"item-images");
+    main_ui_->StartPriceHistory(ExecutableDirectory() / L"data" / L"price-history");
     main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
 
     std::wstring overlay_error;
@@ -330,6 +331,7 @@ int App::Run(HINSTANCE instance, int show_command) {
         + L" source_version=" + Utf8ToWide(item_catalog_->SourceVersion())
         + L" generated_at=" + Utf8ToWide(item_catalog_->GeneratedAt())
     );
+    main_ui_->SetPriceDataSources(*item_catalog_, *item_economy_store_);
 
     data_refresh_service_->Start(executable_directory / L"data" / L"economy-cache");
 
@@ -763,9 +765,16 @@ LRESULT CALLBACK App::WindowProc(
         case ui::ItemImageCache::kReadyMessage:
             if (app->main_ui_ != nullptr) app->main_ui_->ItemImagesReady();
             return 0;
+        case data::PriceHistoryService::kReadyMessage:
+            if (app->main_ui_ != nullptr) {
+                app->main_ui_->PriceHistoryReady();
+                app->EnsureRecentAnimationTimer();
+            }
+            return 0;
         case WM_MOUSEMOVE:
             if (app->main_ui_ != nullptr) {
                 app->main_ui_->MouseMove(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
+                app->EnsureRecentAnimationTimer();
                 if (!app->mouse_tracking_) {
                     TRACKMOUSEEVENT tracking{sizeof(TRACKMOUSEEVENT), TME_LEAVE, window, 0};
                     if (TrackMouseEvent(&tracking)) app->mouse_tracking_ = true;
@@ -801,6 +810,19 @@ LRESULT CALLBACK App::WindowProc(
                     GET_WHEEL_DELTA_WPARAM(w_param))) app->EnsureRecentAnimationTimer();
             return 0;
         }
+        case WM_KEYDOWN:
+            if (app->main_ui_ != nullptr && app->main_ui_->KeyDown(
+                    w_param, (GetKeyState(VK_CONTROL) & 0x8000) != 0)) {
+                app->EnsureRecentAnimationTimer();
+                return 0;
+            }
+            break;
+        case WM_CHAR:
+            if (app->main_ui_ != nullptr && app->main_ui_->Char(static_cast<wchar_t>(w_param))) {
+                app->EnsureRecentAnimationTimer();
+                return 0;
+            }
+            break;
         case WM_HOTKEY:
             app->OnHotkey(w_param);
             return 0;
@@ -829,7 +851,10 @@ LRESULT CALLBACK App::WindowProc(
     }
 
     if (message == WM_DESTROY) {
-        if (app != nullptr && app->main_ui_ != nullptr) app->main_ui_->StopItemImages();
+        if (app != nullptr && app->main_ui_ != nullptr) {
+            app->main_ui_->StopPriceHistory();
+            app->main_ui_->StopItemImages();
+        }
         KillTimer(window, kDebugMouseTimerId);
         KillTimer(window, kRecentAnimationTimerId);
         if (app != nullptr && app->recent_animation_timer_ != nullptr)

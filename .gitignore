@@ -36,6 +36,7 @@ Testing/
 /data/economy-cache/
 /data/recent-scans.json
 /data/item-images/
+/data/price-history/
 *.log
 *.tmp
 *.cache

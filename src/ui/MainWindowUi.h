@@ -3,6 +3,8 @@
 #include "ui/PageHost.h"
 #include "ui/Sidebar.h"
 #include "ui/ItemImageCache.h"
+#include "ui/SearchBox.h"
+#include "data/PriceBrowser.h"
 
 #include <d2d1.h>
 #include <dwrite.h>
@@ -12,6 +14,8 @@
 #include <optional>
 #include <string>
 #include <chrono>
+#include <memory>
+#include <unordered_set>
 
 namespace noven::ui {
 
@@ -26,7 +30,7 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
-    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); }
+    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); }
     [[nodiscard]] std::optional<data::GameMode> MouseUp(int x, int y);
     [[nodiscard]] bool MouseWheel(int x, int y, int delta);
     [[nodiscard]] bool AnimationTick();
@@ -35,7 +39,13 @@ public:
     void SetRecentScans(std::vector<data::RecentScanEntry> entries);
     void StartItemImages(const std::filesystem::path& directory) { image_cache_.Start(window_, directory); }
     void StopItemImages() { image_cache_.Stop(); }
+    void StartPriceHistory(const std::filesystem::path& directory) { price_history_.Start(window_, directory); }
+    void StopPriceHistory() { price_history_.Stop(); }
+    void PriceHistoryReady();
     void ItemImagesReady();
+    void SetPriceDataSources(const data::ItemCatalog& catalog, const data::ItemEconomyStore& economy);
+    [[nodiscard]] bool KeyDown(WPARAM key, bool control);
+    [[nodiscard]] bool Char(wchar_t character);
     [[nodiscard]] bool Ready() const noexcept { return window_ != nullptr; }
     [[nodiscard]] MainPage ActivePage() const noexcept { return navigation_.Active(); }
 
@@ -45,12 +55,23 @@ private:
     [[nodiscard]] std::optional<std::size_t> LanguageAt(int x, int y) const;
     bool CreateRenderTarget(std::wstring& error);
     void BuildItemBitmap(const ItemImage& image);
+    void RefreshPriceRows(bool animateSearch = false);
+    void RequestVisiblePriceImages();
+    [[nodiscard]] std::optional<std::size_t> PriceCardAt(int x, int y) const;
+    [[nodiscard]] std::optional<int> PriceHistoryRangeAt(int x, int y) const;
+    void RequestPriceHistory();
+    [[nodiscard]] float PriceDetailsScrollExtra() const;
+    void UpdateHistoryHover();
     void Invalidate() const;
     [[nodiscard]] std::optional<MainPage> HitTest(int x, int y) const noexcept;
     [[nodiscard]] bool OnModeSelector(int x, int y) const noexcept;
     [[nodiscard]] std::optional<data::GameMode> ModeOptionAt(int x, int y) const noexcept;
     [[nodiscard]] float DipHeight() const noexcept;
+    [[nodiscard]] float DipWidth() const noexcept;
     [[nodiscard]] std::optional<RecentScrollbar> Scrollbar() const noexcept;
+    [[nodiscard]] std::optional<RecentScrollbar> PriceScrollbar() const noexcept;
+    [[nodiscard]] bool OnPriceSearch(int x, int y) const noexcept;
+    [[nodiscard]] std::optional<PriceToolbarControl> PriceControlAt(int x, int y) const noexcept;
     [[nodiscard]] float Scale() const noexcept { return static_cast<float>(dpi_) / 96.0F; }
 
     HWND window_{};
@@ -63,6 +84,38 @@ private:
     UiTheme theme_;
     Sidebar sidebar_;
     PageHost pages_;
+    std::unique_ptr<data::PriceBrowserModel> price_browser_;
+    std::vector<data::PriceRow> price_rows_;
+    std::wstring price_query_;
+    SearchBox price_search_;
+    data::GameMode price_mode_{data::GameMode::Pvp};
+    float price_scroll_{};
+    float price_scroll_target_{};
+    std::optional<float> price_scroll_grab_;
+    std::optional<data::GameMode> hovered_price_tab_;
+    std::optional<data::GameMode> pressed_price_tab_;
+    std::optional<PriceToolbarControl> hovered_price_control_;
+    std::optional<PriceToolbarControl> pressed_price_control_;
+    std::optional<PriceDropdown> price_dropdown_;
+    bool price_dropdown_closing_{};
+    float price_dropdown_progress_{1.0F};
+    std::chrono::steady_clock::time_point price_dropdown_started_{};
+    data::PriceSortMode price_sort_{data::PriceSortMode::FleaPrice};
+    bool price_sort_descending_{true};
+    data::PriceTraderSide price_trader_side_{data::PriceTraderSide::Sell};
+    PriceTabTransition price_transition_{};
+    PriceSearchTransition price_search_transition_;
+    data::PriceHistoryService price_history_;
+    PriceDetailsState price_details_;
+    std::optional<std::size_t> pressed_price_card_;
+    std::optional<int> pressed_history_range_;
+    std::chrono::steady_clock::time_point price_search_started_{};
+    float price_underline_from_{};
+    std::chrono::steady_clock::time_point price_tab_started_{};
+    std::chrono::steady_clock::time_point price_scroll_tick_{};
+    std::unordered_set<std::string> price_image_ids_;
+    std::size_t price_image_window_start_{static_cast<std::size_t>(-1)};
+    std::chrono::system_clock::time_point price_data_updated_{};
     std::vector<data::RecentScanEntry> recent_;
     ItemImageCache image_cache_;
     std::unordered_map<std::string, ItemImage> image_pixels_;
