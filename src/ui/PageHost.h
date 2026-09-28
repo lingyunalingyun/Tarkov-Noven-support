@@ -10,6 +10,7 @@
 #include "ui/Theme.h"
 #include "ui/ListReflow.h"
 #include "ui/PriceDetails.h"
+#include "ui/SearchBox.h"
 
 #include <cstddef>
 #include <optional>
@@ -113,8 +114,7 @@ public:
               data::PriceSortMode priceSort,
               bool priceSortDescending,
               data::PriceTraderSide priceTraderSide,
-              std::wstring_view priceQuery,
-              bool priceSearchFocused,
+              const SearchBox& priceSearch,
               bool priceCaretVisible,
               const std::vector<data::PriceRow>& prices,
               const ItemBitmapMap& images) const;

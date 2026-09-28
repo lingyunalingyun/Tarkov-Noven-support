@@ -1,5 +1,6 @@
 #include "ui/MainWindowUi.h"
 #include "ui/Dropdown.h"
+#include "ui/NavigationButton.h"
 #include "ui/SearchBox.h"
 #include "ui/ExpandableCard.h"
 #include "ui/LineChart.h"
@@ -199,6 +200,40 @@ int wmain(int argc, wchar_t** argv) try {
     Require(restarted.slot == interrupted.slot && restarted.opacity == interrupted.opacity,
         "interrupted reflow retains current pose");
     Microsoft::WRL::ComPtr<IDWriteFactory> textFactory;
+    PageTransition<MainPage> pageMotion;
+    const auto start=PageTransition<MainPage>::Clock::time_point{};
+    Require(!pageMotion.Active() && pageMotion.Sample(MainPage::Scanner).opacity==1,"page transition starts settled");
+    pageMotion.Start(MainPage::Scanner,start);
+    pageMotion.Tick(start+std::chrono::milliseconds(90));
+    const auto outgoing=pageMotion.Sample(MainPage::Prices);
+    Require(outgoing.page==MainPage::Scanner && outgoing.opacity>0 && outgoing.opacity<1 && outgoing.shift<0,"old page fades and moves");
+    pageMotion.Start(MainPage::Prices,start+std::chrono::milliseconds(90));
+    Require(pageMotion.Sample(MainPage::Tasks).opacity==outgoing.opacity
+        && pageMotion.ShowingOutgoing(MainPage::Scanner),"rapid retarget preserves outgoing identity and opacity");
+    pageMotion.Tick(start+std::chrono::milliseconds(290));
+    const auto incoming=pageMotion.Sample(MainPage::Tasks);
+    Require(incoming.page==MainPage::Tasks && incoming.opacity>0 && incoming.opacity<1 && incoming.shift>0,"new page enters after fade");
+    pageMotion.Tick(start+std::chrono::milliseconds(500));
+    Require(!pageMotion.Active() && !pageMotion.ShowingOutgoing(MainPage::Scanner)
+        && pageMotion.Sample(MainPage::Tasks).opacity==1 && pageMotion.Sample(MainPage::Tasks).shift==0,"page transition releases outgoing and settles");
+    Require(HitNavigationButton(D2D1::RectF(10,20,34,64),10,20)
+        && !HitNavigationButton(D2D1::RectF(10,20,34,64),34,20)
+        && !HitNavigationButton(D2D1::RectF(10,20,34,64),20,30,false),"navigation button shares bounds and disabled state");
+    SearchBox editor; editor.SetText(L"电路板"); editor.Focus();
+    Require(editor.HandleKeyDown(VK_LEFT,false) && editor.Caret()==2,"left moves caret");
+    Require(editor.HandleChar(L'新') && editor.Text()==L"电路新板","insert at caret");
+    Require(editor.HandleKeyDown(VK_BACK,false) && editor.Text()==L"电路板" && editor.Caret()==2,"backspace before caret");
+    Require(editor.HandleKeyDown(VK_RIGHT,false) && editor.Caret()==3,"right moves caret");
+    editor.SetText(L"A\U0001F600B");
+    Require(editor.HandleKeyDown(VK_LEFT,false) && editor.HandleKeyDown(VK_LEFT,false),
+        "left handles surrogate-pair navigation");
+    Require(editor.Caret()==1,"left skips surrogate pair");
+    Require(editor.HandleKeyDown(VK_RIGHT,false) && editor.HandleKeyDown(VK_BACK,false),
+        "right and Backspace handle surrogate-pair navigation");
+    Require(editor.Text()==L"AB" && editor.Caret()==1,"backspace removes whole surrogate pair");
+    Require(editor.HandleKeyDown('A',true) && editor.HandleKeyDown(VK_LEFT,false),
+        "Ctrl+A selection collapses with Left");
+    Require(editor.Caret()==0,"left collapses select all to start");
     Require(SUCCEEDED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
         reinterpret_cast<IUnknown**>(textFactory.GetAddressOf()))), "search text factory");
     Microsoft::WRL::ComPtr<IDWriteTextFormat> searchFormat;
@@ -218,6 +253,9 @@ int wmain(int argc, wchar_t** argv) try {
                 "end caret stays in viewport for long queries");
         }
     }
+    const auto middleCaret=LayoutSearchText(*textFactory.Get(),*searchFormat.Get(),L"电路板",600,38,1);
+    const auto prefixCaret=LayoutSearchText(*textFactory.Get(),*searchFormat.Get(),L"电",600,38);
+    Require(std::abs(middleCaret.caretX-prefixCaret.caretX)<.1F,"middle caret uses shaped text position");
     const DropdownLayout menu{D2D1::RectF(10, 20, 128, 52)};
     Require(menu.Option(0).top == 64 && menu.Option(2).bottom == 160,
         "dropdown rows preserve accepted DIP geometry");
@@ -256,11 +294,14 @@ int wmain(int argc, wchar_t** argv) try {
         };
         const UiTheme theme;
         ui.SetPriceDataSources(catalog, economy);
+        ui.SetHideoutDataSources(std::filesystem::path(argv[1]).parent_path()/"data",catalog,economy);
         Sidebar sidebar;
         const auto selectPage = [&](MainPage page) {
             const auto rect = sidebar.ItemRect(page, height, theme);
             Require(!click(rect.left + 30, (rect.top + rect.bottom) / 2), "page selection emits no GameMode change");
             Require(ui.ActivePage() == page, "page selection preserved");
+            ui.Paint();
+            for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
             ui.Paint();
         };
         selectPage(MainPage::Settings);
@@ -276,47 +317,107 @@ int wmain(int argc, wchar_t** argv) try {
         Require(UiLocalization().ActiveLocale() == "zh-CN", "Settings switches back to Chinese");
         selectPage(MainPage::Scanner);
         const PageHost host;
+        selectPage(MainPage::Hideout);
+        ui.Paint();
+        Require(!click(theme.sidebarWidth+theme.contentPadding+150,150),
+            "Hideout PvE selection never returns a Scanner mode change");
+        for(int i=0;i<40 && ui.AnimationActive();++i) { Sleep(16); if(!ui.AnimationTick()) break; }
+        ui.Paint();
+        Require(!click(theme.sidebarWidth+theme.contentPadding+40,100),"Hideout search focus");
+        for(wchar_t c:std::wstring(L"Workbench")) Require(ui.Char(c),"Hideout committed search input");
+        for(int i=0;i<40 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
+        ui.Paint();
+        Require(!click(theme.sidebarWidth+theme.contentPadding+225,385),"Hideout viewed level emits no scanner mode");
+        ui.Paint();
+        (void)ui.MouseWheel(static_cast<int>((theme.sidebarWidth+theme.contentPadding+200)*scale),
+            static_cast<int>(650*scale),-2400);
+        for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16); if(!ui.AnimationTick()) break; }
+        ui.Paint();
         selectPage(MainPage::Prices);
         const float width = client.right / scale;
+        Require(!click(theme.sidebarWidth+theme.contentPadding+40,100),"Prices search focus");
+        for(const wchar_t c:std::wstring(L"电路板")) Require(ui.Char(c),"Prices committed input");
+        Require(ui.KeyDown(VK_LEFT,false) && ui.PriceSearch().Caret()==2,"Prices forwards left key to shared editor");
+        ui.Paint();
+        Require(ui.PriceSearch().Caret()==2,"Prices paint preserves interior caret");
+        Require(ui.Char(L'新') && ui.PriceSearch().Text()==L"电路新板","Prices inserts at interior caret");
+        Require(ui.KeyDown(VK_BACK,false) && ui.PriceSearch().Text()==L"电路板","Prices Backspace follows caret");
+        Require(ui.KeyDown(VK_RIGHT,false) && ui.PriceSearch().Caret()==3,"Prices forwards right key");
+        ui.Paint();
+        Require(ui.KeyDown(VK_ESCAPE,false),"clear Prices search after editing regression");
+        for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
+        ui.Paint();
         const float cardX = theme.sidebarWidth + theme.contentPadding + 30;
         const float cardY = host.PriceListTop(width, theme) + 25;
         Require(!click(cardX, cardY) && ui.AnimationActive(),
             "card expands without changing scanner GameMode");
-        for (int tick = 0; tick < 90 && ui.AnimationActive(); ++tick) { Sleep(16); ui.AnimationTick(); }
+        for (int tick = 0; tick < 90 && ui.AnimationActive(); ++tick) { Sleep(16); if(!ui.AnimationTick()) break; }
         Require(!ui.AnimationActive(), "detail expansion settles");
         ui.Paint();
         Require(!click(cardX, cardY) && ui.AnimationActive(), "same card collapses");
-        for (int tick = 0; tick < 90 && ui.AnimationActive(); ++tick) { Sleep(16); ui.AnimationTick(); }
+        for (int tick = 0; tick < 90 && ui.AnimationActive(); ++tick) { Sleep(16); if(!ui.AnimationTick()) break; }
         Require(!ui.AnimationActive(), "detail collapse settles");
         ui.Paint();
         Require(!click(cardX, cardY + host.PriceRowHeight(width, theme)),
             "second card opens without changing scanner mode");
-        for (int tick = 0; tick < 120 && ui.AnimationActive(); ++tick) { Sleep(16); ui.AnimationTick(); }
+        for (int tick = 0; tick < 120 && ui.AnimationActive(); ++tick) { Sleep(16); if(!ui.AnimationTick()) break; }
         ui.Paint();
         Require(!click(cardX, cardY), "expanded second card is clickable in the first visual slot");
-        for (int tick = 0; tick < 120 && ui.AnimationActive(); ++tick) { Sleep(16); ui.AnimationTick(); }
+        for (int tick = 0; tick < 120 && ui.AnimationActive(); ++tick) { Sleep(16); if(!ui.AnimationTick()) break; }
         Require(!ui.AnimationActive(), "anchored card collapse settles");
+        selectPage(MainPage::Hideout);
+        (void)ui.MouseWheel(static_cast<int>((theme.sidebarWidth+theme.contentPadding+200)*scale),
+            static_cast<int>(650*scale),24000);
+        for(int i=0;i<100 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
+        ui.Paint();
+        Require(!click(theme.sidebarWidth+theme.contentPadding+40,520),"item navigation emits no scanner mode change");
+        Require(ui.ActivePage()==MainPage::Prices && ui.AnimationActive(),"Hideout material opens Prices detail");
+        ui.Paint();
+        Require(ui.CanGoBack(),"cross-page item navigation exposes back button");
+        Require(!click(theme.sidebarWidth+24,42) && ui.ActivePage()==MainPage::Hideout
+            && !ui.CanGoBack(),"back arrow restores source page and consumes return entry");
+        for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
+        ui.Paint();
+        Require(!click(theme.sidebarWidth+theme.contentPadding+40,520)
+            && ui.ActivePage()==MainPage::Prices,"return preserves selected Hideout material and scroll");
+        Require(ui.GoBack() && ui.ActivePage()==MainPage::Hideout,"mouse back command returns to Hideout");
+        for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
+        Require(!ui.GoBack(),"no return action without cross-page history");
+        Require(!click(theme.sidebarWidth+theme.contentPadding+40,520),"repeat item navigation");
         selectPage(MainPage::Scanner);
-        for (const float width : {880.0F, 1000.0F, 1280.0F, 1920.0F}) {
-            const float right = width - theme.contentPadding;
-            const bool narrow = width - theme.sidebarWidth - 2 * theme.contentPadding < 690;
+        Require(!ui.CanGoBack(),"explicit sidebar navigation clears contextual return");
+        for (const float responsiveWidth : {880.0F, 1000.0F, 1280.0F, 1920.0F}) {
+            const float right = responsiveWidth - theme.contentPadding;
+            const bool narrow = responsiveWidth - theme.sidebarWidth - 2 * theme.contentPadding < 690;
             const float toolbarY = narrow ? 198.0F : 148.0F;
-            Require(host.PriceControlAt(right - 20, toolbarY, theme, width, std::nullopt)
+            Require(host.PriceControlAt(right - 20, toolbarY, theme, responsiveWidth, std::nullopt)
                 == PriceToolbarControl::SideDropdown, "responsive toolbar stays inside list boundary");
-            const auto bar = host.PriceScrollGeometry(width, 700, theme, 100, 0);
+            const auto bar = host.PriceScrollGeometry(responsiveWidth, 700, theme, 100, 0);
             Require(bar && bar->track.top > toolbarY + 16,
                 "list viewport clears the wrapped toolbar");
-            Require(bar->maximum == host.PriceMaxScroll(700, 100, width, theme),
+            Require(bar->maximum == host.PriceMaxScroll(700, 100, responsiveWidth, theme),
                 "responsive scroll clamp and thumb share content geometry");
-            const auto expanded = host.PriceScrollGeometry(width, 700, theme, 100, 0, kPriceDetailsHeight);
+            const auto expanded = host.PriceScrollGeometry(responsiveWidth, 700, theme, 100, 0, kPriceDetailsHeight);
             Require(expanded && expanded->maximum == bar->maximum + kPriceDetailsHeight
-                && expanded->maximum == host.PriceMaxScroll(700, 100, width, theme, kPriceDetailsHeight),
+                && expanded->maximum == host.PriceMaxScroll(700, 100, responsiveWidth, theme, kPriceDetailsHeight),
                 "expanded card height participates in scroll range and thumb");
         }
         const auto rect = host.ModeSelectorRect(theme);
         click(rect.left + 30, rect.top + 10);
         Require(!click(rect.left + 30, rect.bottom + 4 + 32 + 10), "PvE selection survived locale and page switches");
         ui.Paint();
+        for(const auto& info:kPages) {
+            selectPage(info.id);
+            Require(!ui.AnimationActive(),"main-page animation settles for every sidebar page");
+        }
+        for(const auto page:{MainPage::Prices,MainPage::Tasks,MainPage::Hideout}) {
+            const auto item=sidebar.ItemRect(page,height,theme);
+            Require(!click(item.left+30,(item.top+item.bottom)/2),"rapid main-page selection emits no scanner mode change");
+            Require(ui.ActivePage()==page && ui.AnimationActive(),"rapid selection retargets main-page animation");
+            ui.Paint();
+        }
+        for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
+        Require(!ui.AnimationActive() && ui.ActivePage()==MainPage::Hideout,"rapid page transitions settle at final destination");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

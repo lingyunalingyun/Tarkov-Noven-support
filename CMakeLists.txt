@@ -54,6 +54,9 @@ add_executable(NovenTarkovSupport WIN32
     src/data/ItemCatalog.cpp
     src/data/ItemEconomyStore.cpp
     src/data/PriceBrowser.cpp
+    src/data/HideoutCatalog.cpp
+    src/data/HideoutBrowser.cpp
+    src/ui/HideoutPage.cpp
     src/data/PriceHistory.cpp
     src/data/RecentScanStore.cpp
     src/hotkey/GlobalHotkey.cpp
@@ -136,6 +139,11 @@ add_custom_target(NovenTranslations ALL
         "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/i18n"
 )
 add_dependencies(NovenTarkovSupport NovenTranslations)
+add_custom_target(NovenHideoutAssets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/data"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/data")
+add_dependencies(NovenTarkovSupport NovenHideoutAssets)
 
 add_custom_command(TARGET NovenTarkovSupport POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -464,6 +472,7 @@ if(BUILD_TESTING)
     add_executable(NovenLocalizationUiTests
         tests/LocalizationUiTests.cpp
         src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
+        src/ui/HideoutPage.cpp src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
         src/data/ItemCatalog.cpp src/data/ItemEconomyStore.cpp src/data/PriceBrowser.cpp
         src/data/PriceHistory.cpp
         src/ui/ItemImageCache.cpp src/ui/localization/LocalizationService.cpp
@@ -485,4 +494,15 @@ if(BUILD_TESTING)
     endif()
     target_link_libraries(NovenPriceHistoryTests PRIVATE winhttp windowsapp)
     add_test(NAME price_history COMMAND NovenPriceHistoryTests)
+    add_executable(NovenHideoutTests tests/HideoutTests.cpp
+        src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
+        src/data/ItemCatalog.cpp src/data/ItemEconomyStore.cpp
+        src/ui/HideoutPage.cpp src/ui/localization/LocalizationService.cpp src/common/DebugLog.cpp)
+    target_include_directories(NovenHideoutTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenHideoutTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenHideoutTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenHideoutTests PRIVATE d2d1 dwrite)
+    add_test(NAME hideout COMMAND NovenHideoutTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 endif()

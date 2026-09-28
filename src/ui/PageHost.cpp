@@ -4,6 +4,7 @@
 #include "ui/Dropdown.h"
 #include "ui/ItemTypeLabel.h"
 #include "ui/ValueFormat.h"
+#include "data/LocalizedName.h"
 
 #include <windows.h>
 
@@ -144,11 +145,7 @@ std::wstring Mode(data::GameMode mode) {
 }
 
 std::wstring DisplayName(const data::ItemRecord& item) {
-    const bool english = UiLocalization().ActiveLocale().starts_with("en");
-    const std::string& name = english
-        ? (!item.nameEn.empty() ? item.nameEn : item.nameZh)
-        : (!item.nameZh.empty() ? item.nameZh : item.nameEn);
-    return Wide(name);
+    return Wide(data::LocalizedName(item.nameZh,item.nameEn,UiLocalization().ActiveLocale()));
 }
 
 std::wstring PriceText(const std::optional<std::int64_t>& value) {
@@ -323,8 +320,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                     data::PriceSortMode priceSort,
                     bool priceSortDescending,
                     data::PriceTraderSide priceTraderSide,
-                    std::wstring_view priceQuery,
-                    bool priceSearchFocused,
+                    const SearchBox& priceSearch,
                     bool priceCaretVisible,
                     const std::vector<data::PriceRow>& prices,
                     const ItemBitmapMap& images) const {
@@ -401,10 +397,10 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
         const float rowHeight = PriceRowHeight(width, theme);
         const auto pose = SampleTabTransition(priceTransition.progress);
         const D2D1_RECT_F search = D2D1::RectF(x, 84, right, 122);
-        SearchBox search_box;
-        search_box.SetText(std::wstring(priceQuery));
-        if (priceSearchFocused) search_box.Focus();
-        search_box.Draw(canvas, theme, search, Tr(TextKey::PricesSearchPlaceholder), priceCaretVisible);
+        // 绘制实际输入组件，禁止用文本副本重建并丢失游标/选中状态。
+        // Draw the actual input component; rebuilding from text loses caret/selection state.
+        priceSearch.Draw(canvas, theme, search, Tr(TextKey::PricesSearchPlaceholder), priceCaretVisible);
+        const auto& priceQuery=priceSearch.Text();
         DrawTabBar(canvas, theme, canvas.body, kPriceTabs, PriceTabLayout(theme),
             priceMode, hoveredPriceTab, priceTransition.outgoingMode,
             priceTransition.progress, priceTransition.underlineIndex);

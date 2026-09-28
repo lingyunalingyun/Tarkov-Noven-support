@@ -24,7 +24,8 @@ bool Download(const std::string& id, std::vector<unsigned char>& bytes) {
     HttpHandle connection{WinHttpConnect(session.value, L"assets.tarkov.dev",
         INTERNET_DEFAULT_HTTPS_PORT, 0)};
     if (!connection.value) return false;
-    const std::wstring path = L"/" + std::wstring(id.begin(), id.end()) + L"-icon.webp";
+    const std::wstring path = L"/" + std::wstring(id.begin(), id.end())
+        + (ItemImageCache::ValidStationKey(id) ? L".png" : L"-icon.webp");
     HttpHandle request{WinHttpOpenRequest(connection.value, L"GET", path.c_str(), nullptr,
         WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE)};
     if (!request.value || !WinHttpSendRequest(request.value, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
@@ -99,6 +100,13 @@ bool ItemImageCache::Decode(const std::vector<unsigned char>& bytes, ItemImage& 
     return true;
 }
 
+// 设施图片仅允许官方固定命名，不接受任意 URL 或本地路径；沿用同一个工作线程和缓存。
+// Station artwork accepts only official fixed keys, never arbitrary URLs or paths; reuse one worker/cache.
+bool ItemImageCache::ValidStationKey(const std::string& key) noexcept {
+    return key.starts_with("station-") && key.size()>8 && key.size()<=96
+        && key.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789-")==std::string::npos;
+}
+
 ItemImageCache::~ItemImageCache() { Stop(); }
 
 void ItemImageCache::Start(HWND window, std::filesystem::path directory) {
@@ -114,7 +122,7 @@ void ItemImageCache::Stop() {
 }
 
 void ItemImageCache::Request(const std::string& id) {
-    if (!ValidId(id)) return;
+    if (!ValidId(id) && !ValidStationKey(id)) return;
     std::lock_guard lock(mutex_);
     if (stopping_ || !requested_.insert(id).second) return;
     pending_.push_back(id);
@@ -131,6 +139,10 @@ std::vector<ItemImage> ItemImageCache::TakeReady() {
 void ItemImageCache::Forget(const std::string& id) {
     std::lock_guard lock(mutex_);
     requested_.erase(id);
+    // 快速横滚时取消尚未开始的离屏请求，避免来回切换累积队列。
+    // Cancel queued off-screen work during rapid rail scrolling to avoid accumulating stale requests.
+    std::erase(pending_,id);
+    std::erase_if(ready_,[&](const auto& image){return image.id==id;});
 }
 
 void ItemImageCache::Run() {
@@ -146,6 +158,7 @@ void ItemImageCache::Run() {
             if (stopping_) break;
             id = std::move(pending_.front());
             pending_.pop_front();
+            if (!requested_.contains(id)) continue;
         }
         const auto path = directory_ / (id + ".webp");
         auto bytes = ReadImage(path);
@@ -167,7 +180,7 @@ void ItemImageCache::Run() {
             + (ok ? L" ready=true" : L" ready=false reason=download_or_decode_failed"));
         std::lock_guard lock(mutex_);
         if (stopping_) break;
-        if (ok) {
+        if (ok && requested_.contains(id)) {
             ready_.push_back(std::move(image));
             PostMessageW(window_, kReadyMessage, 0, 0);
         }

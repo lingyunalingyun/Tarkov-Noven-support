@@ -5,6 +5,8 @@
 #include "ui/ItemImageCache.h"
 #include "ui/SearchBox.h"
 #include "data/PriceBrowser.h"
+#include "ui/HideoutPage.h"
+#include "ui/PageTransition.h"
 
 #include <d2d1.h>
 #include <dwrite.h>
@@ -30,7 +32,7 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
-    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); }
+    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); }
     [[nodiscard]] std::optional<data::GameMode> MouseUp(int x, int y);
     [[nodiscard]] bool MouseWheel(int x, int y, int delta);
     [[nodiscard]] bool AnimationTick();
@@ -44,19 +46,32 @@ public:
     void PriceHistoryReady();
     void ItemImagesReady();
     void SetPriceDataSources(const data::ItemCatalog& catalog, const data::ItemEconomyStore& economy);
+    void SetHideoutDataSources(const std::filesystem::path& directory, const data::ItemCatalog& catalog,
+        const data::ItemEconomyStore& economy) { hideout_.Initialize(directory,catalog,economy); }
     [[nodiscard]] bool KeyDown(WPARAM key, bool control);
     [[nodiscard]] bool Char(wchar_t character);
     [[nodiscard]] bool Ready() const noexcept { return window_ != nullptr; }
     [[nodiscard]] MainPage ActivePage() const noexcept { return navigation_.Active(); }
+    bool GoBack();
+    bool CanGoBack() const noexcept { return return_page_.has_value(); }
+    const SearchBox& PriceSearch() const noexcept { return price_search_; }
 
 private:
+    bool SelectPage(MainPage page);
+    PageTransition<MainPage> page_transition_;
+    bool page_content_press_blocked_{};
+    bool OnBackButton(int x,int y) const noexcept;
+    std::optional<MainPage> return_page_;
+    bool back_hovered_{},back_pressed_{};
     bool CreateTextFormats(std::wstring& error);
     void DrawLanguageSettings(const UiCanvas& canvas, float width, float height);
     [[nodiscard]] std::optional<std::size_t> LanguageAt(int x, int y) const;
     bool CreateRenderTarget(std::wstring& error);
     void BuildItemBitmap(const ItemImage& image);
     void RefreshPriceRows(bool animateSearch = false);
+    void OpenPriceItem(const std::string& id,data::GameMode mode);
     void RequestVisiblePriceImages();
+    void RequestVisibleHideoutImages();
     [[nodiscard]] std::optional<std::size_t> PriceCardAt(int x, int y) const;
     [[nodiscard]] std::optional<int> PriceHistoryRangeAt(int x, int y) const;
     void RequestPriceHistory();
@@ -84,6 +99,8 @@ private:
     UiTheme theme_;
     Sidebar sidebar_;
     PageHost pages_;
+    HideoutPage hideout_;
+    std::unordered_set<std::string> hideout_image_ids_;
     std::unique_ptr<data::PriceBrowserModel> price_browser_;
     std::vector<data::PriceRow> price_rows_;
     std::wstring price_query_;

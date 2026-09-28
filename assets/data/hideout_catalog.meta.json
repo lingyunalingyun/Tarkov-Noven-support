@@ -1,0 +1,36 @@
+{
+  "craftCount": 214,
+  "craftMaterialCount": 707,
+  "itemRequirementCount": 317,
+  "levelCount": 68,
+  "licensing": "Upstream attribution is not redistribution permission; review before public distribution.",
+  "missingItemIds": [],
+  "regularPveStructuralDifferenceCount": 0,
+  "schemaVersion": 1,
+  "seasonalStructureFallback": "regular",
+  "source": "https://json.tarkov.dev/",
+  "sourceHashes": {
+    "https://json.tarkov.dev/pve/crafts": "f9a871b7c20bada956bebf57331e5d98e433445c1d4cf2706c91cb7be09b0313",
+    "https://json.tarkov.dev/pve/hideout": "882180dfc433ca4d54c8d148f225a891994ee28a9beac14799ea02819ebac161",
+    "https://json.tarkov.dev/pve/hideout_en": "0265f9169aec0719c6685884c95a8981356320ae6e55b607085bffe6aa19b22d",
+    "https://json.tarkov.dev/pve/hideout_zh": "9959b17bd9a7bb787859f21437233430cfb74a05b5b4ec0c33dc8be641f5a235",
+    "https://json.tarkov.dev/pve/traders": "f91abd38e6a3f29ddfd41d7e4659e12e6bb71edcf712b9bab26beecdea5b9412",
+    "https://json.tarkov.dev/pve/traders_en": "1d837a5d33dbde4b8860ba49488b3f885af8adbb13c5c52bcecd26637a6568c7",
+    "https://json.tarkov.dev/pve/traders_zh": "97ee70d26787648c185228822d7cbca266235a1a5e79b68c2f4db9763bdfe908",
+    "https://json.tarkov.dev/regular/crafts": "f9a871b7c20bada956bebf57331e5d98e433445c1d4cf2706c91cb7be09b0313",
+    "https://json.tarkov.dev/regular/hideout": "882180dfc433ca4d54c8d148f225a891994ee28a9beac14799ea02819ebac161",
+    "https://json.tarkov.dev/regular/hideout_en": "0265f9169aec0719c6685884c95a8981356320ae6e55b607085bffe6aa19b22d",
+    "https://json.tarkov.dev/regular/hideout_zh": "9959b17bd9a7bb787859f21437233430cfb74a05b5b4ec0c33dc8be641f5a235",
+    "https://json.tarkov.dev/regular/traders": "037d23c1abe63bd8e7f3306a2cc6a879ce5d3a43f6ae836b4ea03d3e93b9dc32",
+    "https://json.tarkov.dev/regular/traders_en": "1d837a5d33dbde4b8860ba49488b3f885af8adbb13c5c52bcecd26637a6568c7",
+    "https://json.tarkov.dev/regular/traders_zh": "97ee70d26787648c185228822d7cbca266235a1a5e79b68c2f4db9763bdfe908"
+  },
+  "stationCount": 26,
+  "structureModes": [
+    "regular"
+  ],
+  "supportedSourceLocales": [
+    "en",
+    "zh"
+  ]
+}

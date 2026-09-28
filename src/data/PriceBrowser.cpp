@@ -73,7 +73,9 @@ std::vector<PriceRow> PriceBrowserModel::Query(
             });
         })) continue;
         Rank best{3, item.aliases.empty() ? 0 : item.aliases.front().text.size(), {}};
-        if (normalized.empty()) {
+        if (nameQuery == item.id) {
+            best = {0, 0, item.id};
+        } else if (normalized.empty()) {
             best = {0, 0, item.id};
         } else {
             bool found = false;

@@ -332,6 +332,7 @@ int App::Run(HINSTANCE instance, int show_command) {
         + L" generated_at=" + Utf8ToWide(item_catalog_->GeneratedAt())
     );
     main_ui_->SetPriceDataSources(*item_catalog_, *item_economy_store_);
+    main_ui_->SetHideoutDataSources(executable_directory / L"assets" / L"data", *item_catalog_, *item_economy_store_);
 
     data_refresh_service_->Start(executable_directory / L"data" / L"economy-cache");
 
@@ -789,6 +790,12 @@ LRESULT CALLBACK App::WindowProc(
             app->main_ui_->MouseDown(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
             SetCapture(window);
             return 0;
+        case WM_XBUTTONUP:
+            if (GET_XBUTTON_WPARAM(w_param)==XBUTTON1 && app->main_ui_->GoBack()) {
+                app->EnsureRecentAnimationTimer();
+                return TRUE;
+            }
+            break;
         case WM_LBUTTONUP: {
             const auto previous_locale = ui::UiLocalization().ActiveLocale();
             const auto mode = app->main_ui_->MouseUp(

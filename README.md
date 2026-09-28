@@ -232,6 +232,11 @@ while idle.
 
 ## Planned modules
 
+Hideout provides a horizontally scrolling station selector with artwork and viewed levels,
+upgrade requirements, mode-specific flea estimates (incomplete costs are explicitly marked),
+and read-only crafting outputs, ingredients, tools and source durations. No player progress or profit calculation.
+Regenerate structure with `python tools/hideout_generator/generate.py`; see `docs/HIDEOUT_REVIEW.md`.
+
 - Scanner
 - Prices (local catalog/economy browser, expandable flea-price history from tarkov.dev; rolling 30-day local cache, older ranges memory-only)
 - Raid History
