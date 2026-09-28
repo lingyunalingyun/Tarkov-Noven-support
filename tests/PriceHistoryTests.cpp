@@ -117,7 +117,9 @@ int main() {
     }
     for (auto mode : AllGameModes())
         std::filesystem::remove(directory / (std::string(UpstreamGameModeCode(mode)) + "-" + id + ".json"));
-    std::filesystem::remove(directory);
+    // Windows 文件过滤器可能让已删除文件短暂处于 delete-pending；目录清理保持尽力而为，不能阻塞测试退出。
+    // Windows file filters may keep deleted files briefly pending; directory cleanup is best-effort and must not block test exit.
+    (void)RemoveDirectoryW(directory.c_str());
     winrt::uninit_apartment();
     std::cout << "Price history tests passed\n";
 }
