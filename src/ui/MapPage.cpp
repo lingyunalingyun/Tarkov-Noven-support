@@ -109,9 +109,11 @@ bool MapPage::FocusInteraction(std::string_view id){
 std::vector<MapInteractionPoint> MapPage::Points() const {
     std::vector<MapInteractionPoint> result;
     const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
+    const auto floor=std::find_if(floors_.begin(),floors_.end(),[&](const auto& f){return Fold(f.label)==Fold(search_.Text());});
     for(const auto& p:points_){
         if(p.mapId!=map_id_||!Allows(p))continue;
-        if(!Matches(p.chinese,search_.Text())&&!Matches(p.english,search_.Text()))continue;
+        if(floor!=floors_.end()){if(p.floorId!=floor->id)continue;}
+        else if(!Matches(p.chinese,search_.Text())&&!Matches(p.english,search_.Text()))continue;
         result.push_back({p.id,p.floorId,p.type,p.coordinate,chinese?p.chinese:p.english});
     }
     return result;

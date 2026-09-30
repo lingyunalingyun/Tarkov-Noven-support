@@ -188,6 +188,11 @@ int main(int argc,char** argv){
     }
     actual.Overview();actual.SelectFloor("First_Floor");
     Require(actual.Selected()&&actual.FloorId()=="First_Floor","real overview back retains floor selection contract");
+    const auto query=actual.Layout().search;actual.MouseDown(query.left+8,query.top+8);
+    for(const auto c:std::wstring(L"1F"))actual.Char(c);
+    Require(actual.Key(VK_RETURN,false)&&actual.FloorId()=="First_Floor"&&actual.Points().size()==442,
+        "real floor search retains floor markers even without floor names in API titles");
+    for(const auto& point:actual.Points())Require(point.floorId=="First_Floor","floor query excludes other-floor markers");
     LocalImage image;
     Require(!image.Load(std::filesystem::path(argv[1])/L"maps"/L"missing.png")&&!image.Ready(),"missing local image rejects without invented background");
     Require(image.Load(std::filesystem::path(argv[1])/L"maps"/L"interchange"/L"First_Floor.png")&&image.Ready(),"full-size local PNG decodes");
