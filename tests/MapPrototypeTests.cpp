@@ -107,8 +107,43 @@ int main(){
     const float mapX=maps.left+maps.itemWidth*1.5F;
     page.MouseDown(mapX,maps.top+10);page.MouseUp(mapX,maps.top+10);
     Require(page.MapId()==MapPrototype::Maps[1].id&&!page.Selected(),"map selector returns to overview");
-    Require(page.Points().empty(),"map identity isolates markers");
+    Require(page.Points().size()==1&&page.Points().front().id=="demo-b-task","map identity isolates markers");
     page.SelectMap("unknown");Require(page.MapId()==MapPrototype::Maps[1].id,"invalid map ID ignored");
     Require(page.FocusInteraction(demo.id)&&page.MapId()==demo.mapId,"focus selects matching map identity");
+    MapPage filtered;filtered.Prepare(1280,800,{});filtered.SelectFloor("demo-b2");
+    const auto settle=[&]{for(int tick=0;tick<30;++tick)filtered.Tick(.016F);filtered.Prepare(1280,800,{});};
+    const auto click=[&](D2D1_RECT_F r,float inset=12){filtered.MouseDown(r.left+inset,r.top+12);filtered.MouseUp(r.left+inset,r.top+12);};
+    const auto has=[&](std::string_view id){for(const auto& p:filtered.Points())if(p.id==id)return true;return false;};
+    settle();const auto category=MapCategoryStrip{filtered.Layout().strip}.Cell(0);
+    click(category);Require(!has("demo-container")&&has("demo-mine"),"category hides only matching point types");
+    click(category);Require(has("demo-container"),"category restores matching point types");
+    click(filtered.Layout().filters[1]);settle();Require(filtered.Panel()==MapFilterPanel::Layers,"layer flyout opens");
+    click(filtered.FilterList().Row(0));Require(!filtered.Filters().grid&&filtered.Filters().geometry,"grid layer toggle independent");
+    click(filtered.FilterList().Row(1));Require(!filtered.Filters().geometry,"geometry layer toggles");
+    click(filtered.Layout().filters[2]);settle();Require(filtered.Panel()==MapFilterPanel::Tasks,"task flyout switches");
+    click(filtered.FilterList().Row(0));Require(!has("demo-task")&&has("demo-task-two"),"task checkbox filters stable identity");
+    click(filtered.FilterList().Row(1),50);Require(filtered.FloorId()=="demo-b3"&&filtered.InteractionId()=="demo-task-two",
+        "task label focuses another floor without collapsing");
+    Require(!filtered.Panel(),"focused task closes flyout");
+    click(filtered.Layout().filters[0]);settle();const auto filterBar=filtered.FilterList().Bar(MapCategoryCount);
+    Require(filterBar.has_value(),"point flyout has draggable overflow scrollbar");
+    const auto scaleBefore=filtered.Viewport().Scale();
+    Require(filtered.Wheel(-120,filtered.Layout().flyout.left+20,filtered.Layout().flyout.top+60),"flyout consumes wheel");
+    Require(filtered.FilterList().scroll>0&&filtered.Viewport().Scale()==scaleBefore,"filter scrolling does not zoom map");
+    filtered.Wheel(120,filtered.Layout().flyout.left+20,filtered.Layout().flyout.top+60);
+    const auto thumb=filtered.FilterList().Bar(MapCategoryCount)->thumb;
+    filtered.MouseDown((thumb.left+thumb.right)/2,thumb.top+5);filtered.MouseMove((thumb.left+thumb.right)/2,thumb.top+50);
+    filtered.MouseUp((thumb.left+thumb.right)/2,thumb.top+50);
+    Require(Near(filtered.FilterList().scroll,filterBar->maximum),"filter scrollbar drag reaches calculated maximum");
+    filtered.MouseDown(30,200);filtered.MouseUp(30,200);
+    Require(filtered.Panel()==MapFilterPanel::Points,"sidebar navigation press preserves filter flyout");
+    filtered.Overview();settle();Require(!filtered.Panel()&&!filtered.Selected(),"overview closes filters");
+    filtered.SelectFloor("demo-b2");settle();Require(!filtered.Filters().grid&&filtered.Filters().hiddenTasks.contains("demo-task"),
+        "overview preserves independent filters");
+    for(float width:{850.0F,1100.0F,1600.0F}){const auto layout=MapLayout::Sample(width,700,{},1,count);
+        Require(layout.strip.bottom<layout.viewport.top&&layout.viewport.bottom-layout.viewport.top>200,"categories preserve map priority");
+        for(std::size_t i=0;i<MapCategoryCount;++i){const auto cell=MapCategoryStrip{layout.strip}.Cell(i);
+            Require(cell.right<=layout.strip.right&&cell.bottom<=layout.strip.bottom,"category wrapping stays inside strip");}
+        Require(layout.filters.back().bottom<layout.content.bottom,"left filter buttons fit content");}
     std::cout<<"Map prototype geometry and transform checks passed\n";
 }

@@ -473,9 +473,17 @@ int wmain(int argc, wchar_t** argv) try {
         Require(ui.Char(L'演')&&ui.Char(L'示'),"Map uses shared committed Unicode input");
         Require(!click(viewBounds.left+30,viewBounds.top+100),"map click blurs search");
         const auto mapQuery=ui.Map().Search().Text();
+        const auto layerButton=ui.Map().Layout().filters[1];
+        Require(!click(layerButton.left+20,layerButton.top+12),"map layer filter opens without changing game mode");
+        for(int tick=0;tick<60&&ui.AnimationActive();++tick){Sleep(16);if(!ui.AnimationTick())break;}
+        ui.Paint();const auto layerRow=ui.Map().FilterList().Row(0);
+        Require(!click(layerRow.left+12,layerRow.top+12)&&!ui.Map().Filters().grid,"native filter hit toggles grid");
+        const auto mapId=ui.Map().MapId();
         selectPage(MainPage::Scanner);selectPage(MainPage::Map);ui.Paint();
         Require(ui.Map().FloorId()==selectedFloor&&ui.Map().Viewport().Scale()==mapScale&&ui.Map().Search().Text()==mapQuery,
             "main navigation preserves selected Map floor, query and zoom");
+        Require(ui.Map().MapId()==mapId&&!ui.Map().Filters().grid&&ui.Map().Panel()==MapFilterPanel::Layers,
+            "main navigation preserves map identity, filter state and flyout");
         for(const auto& info:kPages) {
             selectPage(info.id);
             Require(!ui.AnimationActive(),"main-page animation settles for every sidebar page");

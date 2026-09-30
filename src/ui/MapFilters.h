@@ -10,6 +10,20 @@ enum class MapPointCategory { Container, Mine, Boss, Task, PmcExtract, ScavExtra
     CoopExtract, Transit, HiddenExtract, Sniper, Spawn, ScavSpawn, Btr, EasterEgg, Count };
 inline constexpr std::size_t MapCategoryCount=static_cast<std::size_t>(MapPointCategory::Count);
 enum class MapFilterPanel { Points, Layers, Tasks };
+struct MapCategoryStrip final {
+    D2D1_RECT_F bounds;
+    std::size_t Columns() const {return std::clamp(static_cast<std::size_t>((bounds.right-bounds.left)/110),std::size_t{2},std::size_t{7});}
+    D2D1_RECT_F Cell(std::size_t index) const {
+        const auto columns=Columns();const float w=(bounds.right-bounds.left-16)/static_cast<float>(columns);
+        const float x=bounds.left+8+static_cast<float>(index%columns)*w;
+        const float y=bounds.top+34+static_cast<float>(index/columns)*32;
+        return {x,y,x+w-4,y+28};
+    }
+    std::optional<std::size_t> Hit(D2D1_POINT_2F p) const {
+        for(std::size_t i=0;i<MapCategoryCount;++i)if(MapContains(Cell(i),p))return i;
+        return std::nullopt;
+    }
+};
 // 分类开关与任务身份独立；任务被隐藏后不能因分类重新打开而出现。
 // Category switches and task identities are independent; enabling a category does not unhide a task.
 struct MapFilters final {
@@ -51,7 +65,9 @@ inline void DrawMapCheck(const UiCanvas& canvas,const UiTheme& theme,D2D1_RECT_F
     canvas.target.DrawRectangle({x-5,y-5,x+5,y+5},&canvas.brush,1);
     if(checked){canvas.target.DrawLine({x-3,y},{x-1,y+3},&canvas.brush,1.5F);
         canvas.target.DrawLine({x-1,y+3},{x+4,y-3},&canvas.brush,1.5F);}
+    const auto wrapping=canvas.smallFormat.GetWordWrapping();canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
     canvas.Text(label,canvas.smallFormat,{row.left+24,row.top,row.right-4,row.bottom},
         checked?theme.primaryText:theme.secondaryText);
+    canvas.smallFormat.SetWordWrapping(wrapping);
 }
 }
