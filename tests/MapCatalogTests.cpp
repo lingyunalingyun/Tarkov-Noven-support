@@ -1,4 +1,5 @@
 #include "data/MapCatalog.h"
+#include "data/InterchangeReference.h"
 #include <windows.h>
 #include <cmath>
 #include <fstream>
@@ -26,6 +27,15 @@ int main(int argc,char** argv){
         containers+=point.kind=="container";extracts+=point.kind=="extract";
     }
     Require(containers==795&&extracts==9,"deduplicated containers and faction extract records retained");
+    namespace reference=noven::data::InterchangeReference;
+    const auto top=reference::Project({598,20,-442}),bottom=reference::Project({-433,20,426});
+    Require(top.x==0&&top.y==0&&bottom.x==reference::Width&&bottom.y==reference::Height,"dev rotated bounds project to SVG corners");
+    const auto center=reference::Project({82.5,99,-8});
+    Require(std::abs(center.x-reference::Width/2)<1e-9&&std::abs(center.y-reference::Height/2)<1e-9,"world center projects to image center independent of height");
+    Require(reference::FloorFor({0,24.99,0})=="Ground_Level"&&reference::FloorFor({0,25,0})=="First_Floor"
+        &&reference::FloorFor({0,34,0})=="Second_Floor","floor height boundaries are deterministic");
+    Require(reference::FloorFor({121,40,0})=="Ground_Level"&&reference::FloorFor({0,40,219})=="Ground_Level","outdoor height is not a mall floor");
+    Require(reference::Floors[0].id=="Second_Floor"&&reference::Floors[2].label==L"B1","real floors have stable top-down order");
     const auto dir=std::filesystem::temp_directory_path()/("NovenMapCatalogTests-"+std::to_string(GetCurrentProcessId()));
     Require(std::filesystem::create_directory(dir),"isolated fixture directory created");
     const std::string maps="id\tnormalizedName\tnameZh\tnameEn\trotation\traidDuration\tplayers\nmap1\tinterchange\t立交桥\tInterchange\t180\t40\t11-15\n";
