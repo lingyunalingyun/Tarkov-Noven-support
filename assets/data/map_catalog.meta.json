@@ -1,0 +1,36 @@
+{
+  "coordinateSpace": "upstream world x/y/z; y is height, not screen y",
+  "floorAssignment": "not supplied by this API; requires verified map-layer extents",
+  "imagesIncluded": false,
+  "licensing": "API provenance is not map-image redistribution permission; no images are bundled.",
+  "map": "interchange",
+  "mapCount": 1,
+  "missingPositions": {},
+  "omittedFields": [
+    "lootLoose",
+    "locks",
+    "switches",
+    "stationaryWeapons",
+    "artillery",
+    "tasks",
+    "outlines",
+    "extractConditions"
+  ],
+  "pointCount": 1070,
+  "pointKinds": {
+    "boss": 7,
+    "container": 795,
+    "extract": 9,
+    "hazard": 25,
+    "spawn": 232,
+    "transit": 2
+  },
+  "schemaVersion": 1,
+  "source": "https://json.tarkov.dev/",
+  "sourceHashes": {
+    "https://json.tarkov.dev/regular/maps": "aed36d499bab1482b5955a2427cc38ebd21a465d031fd7c9f3a105c723a0868d",
+    "https://json.tarkov.dev/regular/maps_en": "b61d904d011d64b907583ca2ac766846ef53d1c5e8a40873b6c781232939352b",
+    "https://json.tarkov.dev/regular/maps_zh": "dd3c3c1e20e44ac3e48093c8dfe5e60fee2f839a9d1a937ca1584e609d3c0b07"
+  },
+  "structureMode": "regular"
+}
