@@ -7,30 +7,32 @@
   "mapCount": 1,
   "missingPositions": {},
   "omittedFields": [
-    "lootLoose",
-    "locks",
-    "switches",
-    "stationaryWeapons",
-    "artillery",
-    "tasks",
     "outlines",
     "extractConditions"
   ],
-  "pointCount": 1070,
+  "pointCount": 1634,
   "pointKinds": {
     "boss": 7,
     "container": 795,
     "extract": 9,
     "hazard": 25,
+    "lock": 28,
+    "loose": 483,
     "spawn": 232,
+    "stationary": 2,
+    "switch": 6,
+    "task": 45,
     "transit": 2
   },
   "schemaVersion": 1,
   "source": "https://json.tarkov.dev/",
   "sourceHashes": {
-    "https://json.tarkov.dev/regular/maps": "aed36d499bab1482b5955a2427cc38ebd21a465d031fd7c9f3a105c723a0868d",
+    "https://json.tarkov.dev/regular/maps": "9ea107af6c259606694d0132953f95b408a78e69e9779fa31d4bbccfcdfe693d",
     "https://json.tarkov.dev/regular/maps_en": "b61d904d011d64b907583ca2ac766846ef53d1c5e8a40873b6c781232939352b",
-    "https://json.tarkov.dev/regular/maps_zh": "dd3c3c1e20e44ac3e48093c8dfe5e60fee2f839a9d1a937ca1584e609d3c0b07"
+    "https://json.tarkov.dev/regular/maps_zh": "dd3c3c1e20e44ac3e48093c8dfe5e60fee2f839a9d1a937ca1584e609d3c0b07",
+    "https://json.tarkov.dev/regular/tasks": "b215ba639f0559438d57b988cc450f22d28ce9f87643334468c29e6a753ffdbf",
+    "https://json.tarkov.dev/regular/tasks_en": "ded9766661add1a59412e5d8133dae3ffd45a686b67f60c092a0a3d4645637bb",
+    "https://json.tarkov.dev/regular/tasks_zh": "bf84537d03f20b34e1ae7338c11d28cbde1c011e9c9e25ce05dd8e7e6e023bb1"
   },
   "structureMode": "regular"
 }

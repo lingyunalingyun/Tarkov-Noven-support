@@ -17,6 +17,11 @@ def fixture():
          "transits": [{"id": "transit1", "map": "map2", "description": "Transit", "position": pos}],
          "spawns": [{"zoneName": "zone1", "sides": ["pmc"], "categories": ["player"], "position": pos}],
          "hazards": [{"hazardType": "minefield", "name": "Mine", "position": pos}],
+         "lootLoose": [{"items": ["item2"], "position": pos}],
+         "locks": [{"id": "lock1", "lockType": "door", "key": "key1", "position": pos}],
+         "switches": [{"id": "switch1", "switchType": "Open", "name": "Power", "position": pos}],
+         "stationaryWeapons": [{"stationaryWeapon": "weapon1", "position": pos}],
+         "artillery": {"zones": [{"position": pos}]},
          "bosses": [{"mob": "bossKilla", "spawnLocations": [{"name": "OLI", "positions": [pos]}]}],
          "btrStops": [{"name": "Stop", **pos}]}
     return {"data": {"maps": {"map1": m}}}, {"en": {"Map Name": "Interchange", "Exit": "Railway"}, "zh": {"Map Name": "立交桥", "Exit": "铁路"}}
@@ -26,8 +31,11 @@ class GeneratorTests(unittest.TestCase):
     def test_real_coordinates_and_localization(self):
         rows, _ = GEN.normalize(*fixture())
         self.assertEqual(rows["maps"][0][2:4], ("立交桥", "Interchange"))
-        self.assertEqual(len(rows["points"]), 8)
+        self.assertEqual(len(rows["points"]), 13)
         self.assertTrue(all(p[-3:] == ("-10.5", "27", "4.25") for p in rows["points"]))
+        labels = {p[2]: p[5:7] for p in rows["points"]}
+        self.assertEqual(labels["loose"], ("散落物", "Loose loot"))
+        self.assertEqual(labels["lock"], ("锁", "Lock"))
 
     def test_determinism_and_reordering(self):
         source, locales = fixture()
@@ -45,14 +53,27 @@ class GeneratorTests(unittest.TestCase):
         source, locales = fixture()
         m = source["data"]["maps"]["map1"]
         m["lootContainers"].append(copy.deepcopy(m["lootContainers"][0]))
-        self.assertEqual(len(GEN.normalize(source, locales)[0]["points"]), 8)
+        self.assertEqual(len(GEN.normalize(source, locales)[0]["points"]), 13)
 
     def test_missing_position_is_reported_not_invented(self):
         source, locales = fixture()
         source["data"]["maps"]["map1"]["lootContainers"][0]["position"] = None
         rows, missing = GEN.normalize(source, locales)
         self.assertEqual(missing, {"container": 1})
-        self.assertEqual(len(rows["points"]), 7)
+        self.assertEqual(len(rows["points"]), 12)
+
+    def test_task_zone_and_possible_locations(self):
+        source, locales = fixture()
+        tasks = {"data":{"tasks":{"task1":{"name":"Task", "objectives":[
+            {"id":"objective1","description":"Visit","zones":[{"id":"zone1","map":"map1","position":{"x":1,"y":30,"z":2}}]},
+            {"id":"objective2","description":"Find","possibleLocations":[{"map":"map1","positions":[{"x":3,"y":31,"z":4},{"x":5,"y":32,"z":6}]}]}
+        ]}}}}
+        task_locales={"en":{"Task":"Task","Visit":"Visit","Find":"Find"},"zh":{"Task":"任务","Visit":"访问","Find":"寻找"}}
+        rows,_=GEN.normalize(source,locales,tasks,task_locales)
+        task_rows=[row for row in rows["points"] if row[2]=="task"]
+        self.assertEqual(len(task_rows),3)
+        self.assertEqual({row[3] for row in task_rows},{"objective","item"})
+        self.assertTrue(all(row[5].startswith("任务 · ") for row in task_rows))
 
     def test_invalid_coordinates_rejected(self):
         for value in (float("nan"), float("inf"), True, "12"):

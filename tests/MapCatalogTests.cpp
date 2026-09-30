@@ -16,17 +16,21 @@ int main(int argc,char** argv){
     Require(argc==2,"assets directory required");std::wstring error;
     noven::data::MapCatalog catalog;
     Require(catalog.Load(std::filesystem::path(argv[1])/"data",error)&&error.empty(),"generated Interchange catalog loads");
-    Require(catalog.Maps().size()==1&&catalog.Points().size()==1070,"snapshot counts match");
+    Require(catalog.Maps().size()==1&&catalog.Points().size()==1634,"snapshot counts match");
     const auto* map=catalog.Map("5714dbc024597771384a510d");
     Require(map&&map->nameZh=="立交桥"&&map->nameEn=="Interchange"&&map->cardinalRotation==180,"localized map identity loads");
     Require(!catalog.Map("missing")&&!catalog.Point("missing"),"unknown identities return null");
-    int containers=0,extracts=0;
+    int containers=0,extracts=0,loose=0,locks=0,switches=0,stationary=0,tasks=0;
     for(const auto& point:catalog.Points()){
         Require(catalog.Point(point.id)==&point&&point.mapId==map->id,"stable identity resolves owned point");
         Require(std::isfinite(point.position.x)&&std::isfinite(point.position.y)&&std::isfinite(point.position.z),"raw coordinates finite");
-        containers+=point.kind=="container";extracts+=point.kind=="extract";
+        containers+=point.kind=="container";extracts+=point.kind=="extract";loose+=point.kind=="loose";
+        locks+=point.kind=="lock";switches+=point.kind=="switch";stationary+=point.kind=="stationary";
+        tasks+=point.kind=="task";
     }
     Require(containers==795&&extracts==9,"deduplicated containers and faction extract records retained");
+    Require(loose==483&&locks==28&&switches==6&&stationary==2&&tasks==45,
+        "all positioned Interchange API groups are retained");
     namespace reference=noven::data::InterchangeReference;
     const auto top=reference::Project({598,20,-442}),bottom=reference::Project({-433,20,426});
     Require(top.x==0&&top.y==0&&bottom.x==reference::Width&&bottom.y==reference::Height,"dev rotated bounds project to SVG corners");
@@ -51,6 +55,11 @@ int main(int argc,char** argv){
     rejects(row+row);
     rejects("p1\tmissing\tcontainer\t\titem1\tName\tName\t1\t2\t3\n");
     rejects("p1\tmap1\tunknown\t\titem1\tName\tName\t1\t2\t3\n");
+    for(const auto kind:{"loose","lock","switch","stationary","artillery","task"}){
+        Write(dir/"map_points.tsv",header+"p2\tmap1\t"+kind+"\t\titem1\tName\tName\t1\t2\t3\n");
+        Require(fixture.Load(dir,error)&&fixture.Point("p2"),"supported positioned map data kind loads");
+    }
+    Write(dir/"map_points.tsv",header+row);Require(fixture.Load(dir,error)&&fixture.Point("p1"),"fixture restores baseline kind");
     rejects("p1\tmap1\tcontainer\t\titem1\tName\tName\tnan\t2\t3\n");
     rejects("p1\tmap1\tcontainer\t\titem1\tName\tName\t1\t2\n");
     rejects("p1\tmap1\tcontainer\t\titem1\tBad\\q\tName\t1\t2\t3\n");

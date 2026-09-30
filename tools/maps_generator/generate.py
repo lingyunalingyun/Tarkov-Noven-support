@@ -50,7 +50,7 @@ def escape(value):
     return text(str(value)).replace("\\", "\\\\").replace("\t", "\\t").replace("\r", "\\r").replace("\n", "\\n")
 
 
-def normalize(source, locales):
+def normalize(source, locales, tasks=None, task_locales=None):
     if source.get("errors"):
         raise ValueError("upstream errors")
     maps = source["data"]["maps"]
@@ -76,7 +76,7 @@ def normalize(source, locales):
     missing = Counter()
     seen = {}
 
-    def add(kind, subtype, source_id, label, position):
+    def add(kind, subtype, source_id, label, position, localized=None):
         if position is None:
             missing[kind] += 1
             return
@@ -86,13 +86,25 @@ def normalize(source, locales):
         # Missing point IDs use type, source identity and full coordinates, never rendering indexes.
         stable = json.dumps([map_id, kind, subtype, source_id, *xyz], separators=(",", ":"), ensure_ascii=False)
         point_id = kind + "-" + hashlib.sha256(stable.encode("utf-8")).hexdigest()
-        row = (point_id, map_id, kind, subtype, source_id, *names(label), *xyz)
+        label_names = localized if localized is not None else names(label)
+        row = (point_id, map_id, kind, subtype, source_id, *label_names, *xyz)
         if point_id in seen and seen[point_id] != row:
             raise ValueError("conflicting point identity")
         seen[point_id] = row
 
     for p in m.get("lootContainers", []):
         add("container", "", identity(p["lootContainer"]), p["lootContainer"], p.get("position"))
+    for p in m.get("lootLoose", []):
+        items = sorted(identity(item) for item in p.get("items", []))
+        add("loose", "", ",".join(items) or "unknown", "Loose loot", p.get("position"), ("散落物", "Loose loot"))
+    for p in m.get("locks", []):
+        lock_id = identity(p["id"])
+        key_id = identity(p["key"]) if p.get("key") else "unknown"
+        add("lock", f"{text(str(p.get('lockType') or ''))}:{lock_id}", key_id, "Lock", p.get("position"), ("锁", "Lock"))
+    for p in m.get("switches", []):
+        add("switch", text(str(p.get("switchType") or "")), identity(p["id"]), "Switch", p.get("position"), ("开关", "Switch"))
+    for p in m.get("stationaryWeapons", []):
+        add("stationary", "", identity(p["stationaryWeapon"]), "Stationary weapon", p.get("position"), ("固定武器", "Stationary weapon"))
     for p in m.get("extracts", []):
         add("extract", p["faction"], identity(p["id"]), p["name"], p.get("position"))
     for p in m.get("transits", []):
@@ -108,14 +120,41 @@ def normalize(source, locales):
                 add("boss", location["name"], boss["mob"], boss["mob"], position)
     for p in m.get("btrStops", []):
         add("btr", "", p["name"], p["name"], p)
+    for index, p in enumerate((m.get("artillery") or {}).get("zones", [])):
+        add("artillery", "", f"artillery-{index}", "Artillery zone", p.get("position"), ("炮击区", "Artillery zone"))
+    if tasks:
+        if not task_locales:
+            raise ValueError("task locales required")
+        def task_names(key):
+            key = text(key)
+            en = text(task_locales["en"].get(key, key))
+            zh = text(task_locales["zh"].get(key, en))
+            return zh or en, en
+        for task_id, task in tasks["data"]["tasks"].items():
+            task_id = identity(task_id)
+            task_zh, task_en = task_names(task["name"])
+            for objective in task.get("objectives", []):
+                objective_id = identity(objective["id"])
+                desc_zh, desc_en = task_names(objective["description"])
+                labels = (f"{task_zh} · {desc_zh}", f"{task_en} · {desc_en}")
+                for zone in objective.get("zones") or []:
+                    if zone.get("map") == map_id:
+                        source_id = f"{task_id}_{objective_id}_{text(zone['id'])}"
+                        add("task", "objective", source_id, labels[1], zone.get("position"), labels)
+                for location in objective.get("possibleLocations") or []:
+                    if location.get("map") != map_id:
+                        continue
+                    for position in location.get("positions") or []:
+                        source_id = f"{task_id}_{objective_id}"
+                        add("task", "item", source_id, labels[1], position, labels)
     rows["points"] = sorted(seen.values())
     if not rows["points"]:
         raise ValueError("no positioned data")
     return rows, dict(sorted(missing.items()))
 
 
-def build(source, locales):
-    rows, missing = normalize(source, locales)
+def build(source, locales, tasks=None, task_locales=None):
+    rows, missing = normalize(source, locales, tasks, task_locales)
     outputs = {}
     for key, header in HEADERS.items():
         outputs[f"map_{key}.tsv"] = header + "\n" + "".join("\t".join(escape(v) for v in row) + "\n" for row in rows[key])
@@ -127,7 +166,7 @@ def build(source, locales):
         "coordinateSpace": "upstream world x/y/z; y is height, not screen y",
         "floorAssignment": "not supplied by this API; requires verified map-layer extents",
         "imagesIncluded": False,
-        "omittedFields": ["lootLoose", "locks", "switches", "stationaryWeapons", "artillery", "tasks", "outlines", "extractConditions"],
+        "omittedFields": ["outlines", "extractConditions"],
         "licensing": "API provenance is not map-image redistribution permission; no images are bundled.",
     }
     return outputs, meta
@@ -144,11 +183,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("assets/data"))
     args = parser.parse_args()
-    paths = ["regular/maps", "regular/maps_en", "regular/maps_zh"]
+    paths = ["regular/maps", "regular/maps_en", "regular/maps_zh",
+             "regular/tasks", "regular/tasks_en", "regular/tasks_zh"]
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
         fetched = dict(zip(paths, pool.map(fetch, paths)))
     locales = {lang: fetched[f"regular/maps_{lang}"][0]["data"] for lang in ("en", "zh")}
-    outputs, meta = build(fetched["regular/maps"][0], locales)
+    task_locales = {lang: fetched[f"regular/tasks_{lang}"][0]["data"] for lang in ("en", "zh")}
+    outputs, meta = build(fetched["regular/maps"][0], locales, fetched["regular/tasks"][0], task_locales)
     meta["sourceHashes"] = {BASE + path: digest for path, (_, digest) in fetched.items()}
     args.output.mkdir(parents=True, exist_ok=True)
     for name, content in outputs.items():

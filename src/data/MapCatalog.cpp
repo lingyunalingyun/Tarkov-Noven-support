@@ -73,7 +73,8 @@ bool MapCatalog::Load(const std::filesystem::path& directory,std::wstring& error
             next.maps_.push_back({f[0],f[1],f[2],f[3],f[6],Number(f[4]),Duration(f[5])});
         });
         std::unordered_set<std::string> identities;
-        constexpr std::array<std::string_view,7> kinds{"container","extract","transit","spawn","hazard","boss","btr"};
+        constexpr std::array<std::string_view,13> kinds{"container","loose","lock","switch","stationary","extract",
+            "transit","spawn","hazard","boss","btr","artillery","task"};
         Read(directory,"map_points.tsv","id\tmapId\tkind\tsubtype\tsourceId\tnameZh\tnameEn\tx\ty\tz",[&](const auto& f){
             Identity(f[0]);Identity(f[1]);
             if(!next.Map(f[1])||!identities.insert(f[0]).second||std::find(kinds.begin(),kinds.end(),f[2])==kinds.end()
