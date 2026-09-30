@@ -1,0 +1,1028 @@
+mode	id	traderId	nameZh	nameEn	locationZh	locationEn	minLevel	experience	faction	kappaRequired	lightkeeperRequired
+regular	5936d90786f7742b1420ba5b	54cb50c76803fa8b248b4571	首秀	Debut			0	3000	Any	0	0
+regular	5936da9e86f7742d65037edf	54cb50c76803fa8b248b4571	背景调查	Background Check	海关	Customs	0	3000	Any	0	0
+regular	59674cd986f7744ab26e32f2	54cb50c76803fa8b248b4571	硝烟野餐	Shootout Picnic	森林	Woods	0	3000	Any	0	0
+regular	59674eb386f774539f14813a	54cb50c76803fa8b248b4571	往事速递	Delivery From the Past			0	10000	Any	0	0
+regular	5967530a86f77462ba22226b	54cb50c76803fa8b248b4571	罪证	Bad Rep Evidence			0	3000	Any	0	0
+regular	59675d6c86f7740a842fc482	54cb50c76803fa8b248b4571	蛋卷冰淇淋	Ice Cream Cones	森林	Woods	6	10000	Any	0	0
+regular	59675ea386f77414b32bded2	54cb50c76803fa8b248b4571	邮递员派特 - 1	Postman Pat - Part 1	工厂	Factory	0	10000	Any	1	0
+regular	596760e186f7741e11214d58	54cb57776803fa99248b456e	邮递员派特 - 2	Postman Pat - Part 2			0	3000	Any	1	0
+regular	5967725e86f774601a446662	54cb50c76803fa8b248b4571	探囊取物	Shaking Up the Teller	海关	Customs	0	3000	Any	0	0
+regular	5967733e86f774602332fc84	54cb57776803fa99248b456e	短缺	Shortage			0	3000	Any	0	0
+regular	59689ee586f7740d1570bbd5	54cb57776803fa99248b456e	卫生标准	Sanitary Standards	工厂	Factory	0	10000	Any	0	0
+regular	59689fbd86f7740d137ebfc4	54cb57776803fa99248b456e	水瓶座行动	Operation Aquarius	海关	Customs	0	3000	Any	0	0
+regular	5968eb3186f7741dde183a4d	54cb57776803fa99248b456e	带血的水	Blood in the Water	海关	Customs	0	3000	Any	0	0
+regular	5969f90786f77420d2328015	54cb57776803fa99248b456e	善良之针	Charity			18	28000	Any	0	0
+regular	5969f9e986f7741dde183a50	54cb57776803fa99248b456e	药剂师	Pharmacist	海关	Customs	0	3000	Any	0	0
+regular	596a0e1686f7741ddf17dbee	54cb57776803fa99248b456e	供给计划	Supply Plans	森林	Woods	0	3000	Any	0	0
+regular	596a101f86f7741ddb481582	58330581ace78e27b8b10cee	暗中破坏	Kind of Sabotage			0	4500	Any	0	0
+regular	596a1e6c86f7741ddc2d3206	54cb57776803fa99248b456e	一般储备	General Wares			0	10000	Any	0	0
+regular	596a204686f774576d4c95de	54cb57776803fa99248b456e	卫生标准 - 2	Sanitary Standards - Part 2			8	4500	Any	0	0
+regular	596a218586f77420d232807c	54cb57776803fa99248b456e	汽车修理	Car Repair			0	28000	Any	0	0
+regular	596b36c586f77450d6045ad2	58330581ace78e27b8b10cee	供应商	Supplier			0	3000	Any	0	0
+regular	596b43fb86f77457ca186186	58330581ace78e27b8b10cee	敲诈者	The Extortionist	海关	Customs	0	3000	Any	0	0
+regular	596b455186f77457cb50eccb	58330581ace78e27b8b10cee	风波	Stirrup	工厂	Factory	0	10000	Any	0	0
+regular	5979ed3886f77431307dc512	58330581ace78e27b8b10cee	U盘里有什么？	What’s on the Flash Drive?			0	3000	Any	0	0
+regular	5979eee086f774311955e614	58330581ace78e27b8b10cee	金色失物	Golden Swag	海关	Customs	0	3000	Any	0	0
+regular	5979f8bb86f7743ec214c7a6	58330581ace78e27b8b10cee	Polikhim流浪汉	Polikhim Hobo			0	3000	Any	0	0
+regular	5979f9ba86f7740f6c3fe9f2	58330581ace78e27b8b10cee	化学品 - 1	Chemical - Part 1	海关	Customs	0	3000	Any	1	0
+regular	597a0b2986f77426d66c0633	58330581ace78e27b8b10cee	化学品 - 2	Chemical - Part 2	海关	Customs	0	3000	Any	1	0
+regular	597a0e5786f77426d66c0636	58330581ace78e27b8b10cee	化学品 - 3	Chemical - Part 3	工厂	Factory	9	10000	Any	1	0
+regular	597a0f5686f774273b74f676	58330581ace78e27b8b10cee	化学品 - 4	Chemical - Part 4	海关	Customs	9	10000	Any	0	0
+regular	597a160786f77477531d39d2	54cb57776803fa99248b456e	出于好奇	Out of Curiosity	海关	Customs	9	10000	Any	0	0
+regular	597a171586f77405ba6887d3	54cb50c76803fa8b248b4571	大客户	Big Customer	海关	Customs	9	10000	Any	0	0
+regular	59c124d686f774189b3c843f	54cb50c76803fa8b248b4571	油料快车	Oil Run	海关	Customs	0	3000	Any	0	0
+regular	59c50a9e86f7745fef66f4ff	54cb50c76803fa8b248b4571	惩罚者 - 2	The Punisher - Part 2	海岸线	Shoreline	0	10000	Any	0	0
+regular	59c50c8886f7745fed3193bf	54cb50c76803fa8b248b4571	惩罚者 - 3	The Punisher - Part 3	储备站	Reserve	21	28000	Any	0	0
+regular	59c512ad86f7741f0d09de9b	54cb50c76803fa8b248b4571	惩罚者 - 1	The Punisher - Part 1	海关	Customs	0	10000	Any	0	0
+regular	59c9392986f7742f6923add2	54cb57776803fa99248b456e	救助站点	Aid Stations			5	10000	Any	0	0
+regular	59c93e8e86f7742a406989c4	58330581ace78e27b8b10cee	收买人心	Loyalty Buyout			9	0	Any	0	0
+regular	59ca1a6286f774509a270942	54cb50c76803fa8b248b4571	铁证如山	Ironclad Proof			0	28000	Any	0	0
+regular	59ca264786f77445a80ed044	54cb50c76803fa8b248b4571	惩罚者 - 4	The Punisher - Part 4	灯塔	Lighthouse	36	28000	Any	0	0
+regular	59ca29fb86f77445ab465c87	54cb50c76803fa8b248b4571	惩罚者 - 5	The Punisher - Part 5			36	28000	Any	0	0
+regular	59ca2eb686f77445a80ed049	54cb50c76803fa8b248b4571	惩罚者 - 6	The Punisher - Part 6			36	28000	Any	0	0
+regular	5a03153686f77442d90e2171	5935c25fb3acc3127c3d8cd9	单程票	One-Way Ticket	工厂	Factory	8	10000	Any	0	0
+regular	5a03173786f77451cb427172	5935c25fb3acc3127c3d8cd9	疗养之旅 - 2	Spa Tour - Part 2	海岸线	Shoreline	12	6300	Any	0	0
+regular	5a0327ba86f77456b9154236	5935c25fb3acc3127c3d8cd9	燃料短缺	Fuel Shortage			0	3000	Any	0	0
+regular	5a03296886f774569778596a	5935c25fb3acc3127c3d8cd9	你渴望电力吗	I Need More Power	海岸线	Shoreline	0	10000	Any	0	0
+regular	5a0449d586f77474e66227b7	5935c25fb3acc3127c3d8cd9	主钥匙	Master Key	海岸线	Shoreline	0	3000	Any	0	0
+regular	5a27b75b86f7742e97191958	5935c25fb3acc3127c3d8cd9	渔具	Fishing Gear	海岸线	Shoreline	8	10000	Any	0	0
+regular	5a27b7a786f774579c3eb376	5935c25fb3acc3127c3d8cd9	猎虎行动	Tigr Safari	海关	Customs	0	3000	Any	0	0
+regular	5a27b7d686f77460d847e6a6	5935c25fb3acc3127c3d8cd9	破铜烂铁	Scrap Metal	海岸线	Shoreline	0	10000	Any	0	0
+regular	5a27b80086f774429a5d7e20	5935c25fb3acc3127c3d8cd9	鹰眼	Eagle Eye	海岸线	Shoreline	0	10000	Any	0	0
+regular	5a27b87686f77460de0252a8	5935c25fb3acc3127c3d8cd9	人道主义援助	Humanitarian Supplies	海岸线	Shoreline	0	10000	Any	0	0
+regular	5a27b9de86f77464e5044585	5935c25fb3acc3127c3d8cd9	邪教	The Cult	海岸线	Shoreline	8	10000	Any	0	0
+regular	5a27ba1c86f77461ea5a3c56	5935c25fb3acc3127c3d8cd9	武器流通	Weapons Circulation			0	10000	Any	0	0
+regular	5a27ba9586f7741b543d8e85	5935c25fb3acc3127c3d8cd9	疗养之旅 - 6	Spa Tour - Part 6			12	9500	Any	0	0
+regular	5a27bafb86f7741c73584017	5935c25fb3acc3127c3d8cd9	化学实验	Chemical Experiments	海关	Customs	0	3000	Any	0	0
+regular	5a27bb1e86f7741f27621b7e	5935c25fb3acc3127c3d8cd9	神秘货物	Cargo X	海岸线	Shoreline	0	28000	Any	0	0
+regular	5a27bb3d86f77411ea361a21	5935c25fb3acc3127c3d8cd9	定向追踪	Tracker	海岸线	Shoreline	19	28000	Any	0	0
+regular	5a27bb5986f7741dfb660900	5935c25fb3acc3127c3d8cd9	神秘货物 - 3	Cargo X - Part 3	海岸线	Shoreline	19	8400	Any	0	0
+regular	5a27bb8386f7741c770d2d0a	5935c25fb3acc3127c3d8cd9	湿活 - 1	Wet Job - Part 1	海岸线	Shoreline	8	10000	Any	0	0
+regular	5a27bbf886f774333a418eeb	5935c25fb3acc3127c3d8cd9	湿活 - 2	Wet Job - Part 2	海岸线	Shoreline	8	10000	Any	0	0
+regular	5a27bc1586f7741f6d40fa2f	5935c25fb3acc3127c3d8cd9	湿活 - 3	Wet Job - Part 3	海岸线	Shoreline	19	28000	Any	0	0
+regular	5a27bc3686f7741c73584026	5935c25fb3acc3127c3d8cd9	湿活 - 4	Wet Job - Part 4	海岸线	Shoreline	19	28000	Any	0	0
+regular	5a27bc6986f7741c7358402b	5935c25fb3acc3127c3d8cd9	湿活 - 5	Wet Job - Part 5	海岸线	Shoreline	37	28000	Any	0	0
+regular	5a27bc8586f7741b543d8ea4	5935c25fb3acc3127c3d8cd9	湿活 - 6	Wet Job - Part 6			37	28000	Any	0	0
+regular	5a27c99a86f7747d2c6bdd8e	58330581ace78e27b8b10cee	西方来客	Friend From the West			0	10000	Any	0	0
+regular	5a27d2af86f7744e1115b323	58330581ace78e27b8b10cee	西方来客 - 2	Friend From the West - Part 2			9	10000	Any	0	0
+regular	5a68661a86f774500f48afb0	54cb57776803fa99248b456e	医疗隐私 - 1	Health Care Privacy - Part 1	海岸线	Shoreline	0	3000	Any	0	0
+regular	5a68663e86f774501078f78a	54cb57776803fa99248b456e	医疗隐私 - 2	Health Care Privacy - Part 2	海岸线	Shoreline	5	10000	Any	0	0
+regular	5a68665c86f774255929b4c7	54cb57776803fa99248b456e	医疗隐私 - 3	Health Care Privacy - Part 3	森林	Woods	5	10000	Any	0	0
+regular	5a68667486f7742607157d28	54cb57776803fa99248b456e	医疗隐私 - 4	Health Care Privacy - Part 4			18	28000	Any	0	0
+regular	5a68669a86f774255929b4d4	54cb57776803fa99248b456e	医疗隐私 - 5	Health Care Privacy - Part 5	夜间工厂	Night Factory	18	28000	Any	0	0
+regular	5ac23c6186f7741247042bad	5a7c2eca46aef81a7ca2145d	枪匠 - MP-133	Gunsmith - MP-133			0	3000	Any	0	0
+regular	5ac2426c86f774138762edfe	5a7c2eca46aef81a7ca2145d	枪匠 - AKS-74U	Gunsmith - AKS-74U			0	3000	Any	0	0
+regular	5ac2428686f77412450b42bf	5a7c2eca46aef81a7ca2145d	枪匠 - HK MP5	Gunsmith - HK MP5			0	3000	Any	0	0
+regular	5ac242ab86f77412464f68b4	5a7c2eca46aef81a7ca2145d	枪匠大师 - 3	Gunsmith Master - Part 3			40	10000	Any	0	0
+regular	5ac244c486f77413e12cf945	5a7c2eca46aef81a7ca2145d	枪匠大师 - 2	Gunsmith Master - Part 2			40	10000	Any	0	0
+regular	5ac244eb86f7741356335af1	5a7c2eca46aef81a7ca2145d	枪匠 - M4A1	Gunsmith - M4A1			26	28000	Any	0	0
+regular	5ac345dc86f774288030817f	5a7c2eca46aef81a7ca2145d	投机第一步	Playing the Market	工厂	Factory	0	10000	Any	0	0
+regular	5ac3460c86f7742880308185	5a7c2eca46aef81a7ca2145d	挖矿 - 2	Farming - Part 2			12	5500	Any	0	0
+regular	5ac3462b86f7741d6118b983	5a7c2eca46aef81a7ca2145d	挖矿	Farming	海关	Customs	0	3000	Any	0	0
+regular	5ac3464c86f7741d651d6877	5a7c2eca46aef81a7ca2145d	半导体危机	Semiconductor Crisis			0	28000	Any	0	0
+regular	5ac3467986f7741d6224abc2	5a7c2eca46aef81a7ca2145d	恶意环伺	Ill-Wisher	海岸线	Shoreline	0	10000	Any	0	0
+regular	5ac346a886f7744e1b083d67	5a7c2eca46aef81a7ca2145d	捕鼠计划	Rat Hunting			12	10000	Any	0	0
+regular	5ac346cf86f7741d63233a02	5a7c2eca46aef81a7ca2145d	信号 - 3	Signal - Part 3	海岸线	Shoreline	15	8500	Any	0	0
+regular	5ac346e886f7741d6118b99b	5a7c2eca46aef81a7ca2145d	信号 - 4	Signal - Part 4			15	8600	Any	0	0
+regular	5ac3475486f7741d6224abd3	5a7c2eca46aef81a7ca2145d	不良嗜好	Bad Habit			0	3000	Any	0	0
+regular	5ac3477486f7741d651d6885	5a7c2eca46aef81a7ca2145d	侦查	Scout	工厂	Factory	0	10000	Any	0	0
+regular	5ac3479086f7742880308199	5a7c2eca46aef81a7ca2145d	圈内人	Insider			12	6700	Any	0	0
+regular	5ae3267986f7742a413592fe	5a7c2eca46aef81a7ca2145d	枪匠 - M870	Gunsmith - Model 870			0	10000	Any	0	0
+regular	5ae3270f86f77445ba41d4dd	5a7c2eca46aef81a7ca2145d	枪匠 - AKM	Gunsmith - AKM			26	28000	Any	0	0
+regular	5ae3277186f7745973054106	5a7c2eca46aef81a7ca2145d	枪匠 - AKS-74N	Gunsmith - AKS-74N			0	28000	Any	0	0
+regular	5ae327c886f7745c7b3f2f3f	5a7c2eca46aef81a7ca2145d	枪匠 - AK-105	Gunsmith - AK-105			0	28000	Any	0	0
+regular	5ae3280386f7742a41359364	5a7c2eca46aef81a7ca2145d	枪匠 - AS VAL	Gunsmith - AS VAL			29	28000	Any	0	0
+regular	5ae448a386f7744d3730fff0	5ac3b934156ae10c4430e83c	生意至上	Only Business			15	6700	Any	0	0
+regular	5ae448bf86f7744d733e55ee	5ac3b934156ae10c4430e83c	Make ULTRA Great Again	Make ULTRA Great Again	立交桥	Interchange	0	3000	Any	0	0
+regular	5ae448e586f7744dcf0c2a67	5ac3b934156ae10c4430e83c	大甩卖	Big Sale	立交桥	Interchange	0	10000	Any	0	0
+regular	5ae448f286f77448d73c0131	5ac3b934156ae10c4430e83c	燃油危机	Fuel Crisis	立交桥	Interchange	0	3000	Any	0	0
+regular	5ae4490786f7744ca822adcc	5ac3b934156ae10c4430e83c	盛装杀戮	Dressed to Kill			0	3000	Any	0	0
+regular	5ae4493486f7744efa289417	5ac3b934156ae10c4430e83c	库存清单	Inventory Files	立交桥	Interchange	0	3000	Any	0	0
+regular	5ae4493d86f7744b8e15aa8f	5ac3b934156ae10c4430e83c	损失惨重	A Big Loss	立交桥	Interchange	0	3000	Any	0	0
+regular	5ae4495086f77443c122bc40	5ac3b934156ae10c4430e83c	临行密密缝 - 1	Sew it Good - Part 1			0	10000	Any	1	0
+regular	5ae4495c86f7744e87761355	5ac3b934156ae10c4430e83c	临行密密缝 - 3	Sew it Good - Part 3			0	10000	Any	0	0
+regular	5ae4496986f774459e77beb6	5ac3b934156ae10c4430e83c	临行密密缝 - 4	Sew it Good - Part 4			0	10000	Any	0	0
+regular	5ae4497b86f7744cf402ed00	5ac3b934156ae10c4430e83c	临行密密缝 - 2	Sew it Good - Part 2			0	10000	Any	1	0
+regular	5ae4498786f7744bde357695	5ac3b934156ae10c4430e83c	成功的关键	The Key to Success	立交桥	Interchange	0	10000	Any	0	0
+regular	5ae4499a86f77449783815db	5ac3b934156ae10c4430e83c	风流倜傥	Charisma Brings Success			0	15600	Any	0	0
+regular	5ae449a586f7744bde357696	5ac3b934156ae10c4430e83c	暗度陈仓	No Fuss Needed			0	15800	Any	0	0
+regular	5ae449b386f77446d8741719	5ac3b934156ae10c4430e83c	感恩的心	Gratitude	森林	Woods	0	3000	Any	0	0
+regular	5ae449c386f7744bde357697	5ac3b934156ae10c4430e83c	探路者	Pathfinder	立交桥	Interchange	0	3000	Any	0	0
+regular	5ae449d986f774453a54a7e1	5ac3b934156ae10c4430e83c	财务总监	Supervisor			0	10000	Any	0	0
+regular	5b47749f86f7746c5d6a5fd4	5a7c2eca46aef81a7ca2145d	枪匠大师 - 4	Gunsmith Master - Part 4			40	10000	Any	0	0
+regular	5b47799d86f7746c5d6a5fd8	5a7c2eca46aef81a7ca2145d	枪匠 - MPX	Gunsmith - MPX			0	28000	Any	0	0
+regular	5b477b6f86f7747290681823	5a7c2eca46aef81a7ca2145d	枪匠大师 - 5	Gunsmith Master - Part 5			40	28000	Any	0	0
+regular	5b477f7686f7744d1b23c4d2	5a7c2eca46aef81a7ca2145d	枪匠大师 - 7	Gunsmith Master - Part 7			40	28000	Any	0	0
+regular	5b47825886f77468074618d3	5a7c2eca46aef81a7ca2145d	枪匠大师 - 9	Gunsmith Master - Part 9			40	28000	Any	0	0
+regular	5b47876e86f7744d1c353205	5ac3b934156ae10c4430e83c	战争之血 - 2	The Blood of War - Part 2			23	14600	Any	0	0
+regular	5b47891f86f7744d1b23c571	5ac3b934156ae10c4430e83c	奢侈无罪	Living High is Not a Crime			0	28000	Any	0	0
+regular	5b478b1886f7744d1b23c57d	5ac3b934156ae10c4430e83c	火线速递	Hot Delivery	立交桥	Interchange	0	10000	Any	0	0
+regular	5b478d0f86f7744d190d91b5	5ac3b934156ae10c4430e83c	微型客车	Minibus	立交桥	Interchange	0	10000	Any	0	0
+regular	5b478eca86f7744642012254	58330581ace78e27b8b10cee	维他命	Vitamins			0	10000	Any	0	0
+regular	5b478ff486f7744d184ecbbf	58330581ace78e27b8b10cee	供货	Supplements			0	10000	Any	0	0
+regular	5b47926a86f7747ccc057c15	58330581ace78e27b8b10cee	情报就是力量	Informed Means Armed			0	3000	Any	0	0
+regular	5b4794cb86f774598100d5d4	5935c25fb3acc3127c3d8cd9	铁鸟坠落	Metal Birds	森林	Woods	0	3000	Any	0	0
+regular	5b4795fb86f7745876267770	58330581ace78e27b8b10cee	愿者上钩	Chumming			7	10000	Any	0	0
+regular	5bc4776586f774512d07cf05	5c0647fdd443bc2504c2d371	塔科夫神射手 - 1	The Tarkov Shooter - Part 1			0	3000	Any	1	0
+regular	5bc479e586f7747f376c7da3	5c0647fdd443bc2504c2d371	塔科夫神射手 - 2	The Tarkov Shooter - Part 2			9	10000	Any	1	0
+regular	5bc47dbf86f7741ee74e93b9	5c0647fdd443bc2504c2d371	塔科夫神射手 - 3	The Tarkov Shooter - Part 3			9	10000	Any	1	0
+regular	5bc480a686f7741af0342e29	5c0647fdd443bc2504c2d371	塔科夫神射手 - 4	The Tarkov Shooter - Part 4			17	28000	Any	1	0
+regular	5bc4826c86f774106d22d88b	5c0647fdd443bc2504c2d371	塔科夫神射手 - 5	The Tarkov Shooter - Part 5	海关	Customs	17	13000	Any	0	0
+regular	5bc4836986f7740c0152911c	5c0647fdd443bc2504c2d371	塔科夫神射手 - 5	The Tarkov Shooter - Part 5			17	28000	Any	0	0
+regular	5bc4856986f77454c317bea7	5c0647fdd443bc2504c2d371	塔科夫神射手 - 6	The Tarkov Shooter - Part 6			33	65000	Any	0	0
+regular	5bc4893c86f774626f5ebf3e	5c0647fdd443bc2504c2d371	塔科夫神射手 - 7	The Tarkov Shooter - Part 7			33	65000	Any	0	0
+regular	5c0bbaa886f7746941031d82	58330581ace78e27b8b10cee	一派胡言	Bullshit	灯塔	Lighthouse	38	65000	Any	0	0
+regular	5c0bc91486f7746ab41857a2	58330581ace78e27b8b10cee	大音希声	Silent Caliber			38	65000	Any	0	0
+regular	5c0bd01e86f7747cdd799e56	5935c25fb3acc3127c3d8cd9	彻夜难眠	Insomnia			0	65000	Any	0	0
+regular	5c0bd94186f7747a727f09b2	54cb50c76803fa8b248b4571	塔市进口货	The Tarkov Import			0	28000	Any	0	0
+regular	5c0bdb5286f774166e38eed4	58330581ace78e27b8b10cee	坚如燧石	Flint			35	25100	Any	0	0
+regular	5c0bde0986f77479cf22c2f8	5a7c2eca46aef81a7ca2145d	天神射手	Shooter Born in Heaven			0	55000	Any	1	0
+regular	5c0be13186f7746f016734aa	5a7c2eca46aef81a7ca2145d	狙击疯魔	Psycho Sniper			40	65000	Any	0	0
+regular	5c0be5fc86f774467a116593	54cb57776803fa99248b456e	私人诊所	Private Clinic			35	30600	Any	0	0
+regular	5c0d0d5086f774363760aef2	54cb57776803fa99248b456e	运动员	Athlete			30	3500	Any	0	0
+regular	5c0d0f1886f77457b8210226	58330581ace78e27b8b10cee	转口贸易	From Hand to Hand	灯塔	Lighthouse	0	28000	Any	0	0
+regular	5c0d190cd09282029f5390d8	54cb50c76803fa8b248b4571	掷弹兵	Grenadier			6	10000	Any	0	0
+regular	5c0d1c4cd0928202a02a6f5c	54cb57776803fa99248b456e	灭虫服务	Decontamination Service	实验室	The Lab	37	12500	Any	0	0
+regular	5c0d4c12d09282029f539173	5935c25fb3acc3127c3d8cd9	维和任务	Peacekeeping Mission			0	65000	Any	0	0
+regular	5c0d4e61d09282029f53920e	5935c25fb3acc3127c3d8cd9	向导	The Guide			32	65000	Any	0	0
+regular	5c10f94386f774227172c572	5ac3b934156ae10c4430e83c	小事大帮忙	Small Things, Big Help	森林	Woods	0	3000	Any	0	0
+regular	5c1128e386f7746565181106	5a7c2eca46aef81a7ca2145d	肥料	Fertilizers			0	28000	Any	0	0
+regular	5c112d7e86f7740d6f647486	5ac3b934156ae10c4430e83c	垃圾佬	Scavenger			0	10000	Any	0	0
+regular	5c1141f386f77430ff393792	5ac3b934156ae10c4430e83c	古董爱好者	Antique Enthusiast			42	65000	Any	0	0
+regular	5c1234c286f77406fa13baeb	58330581ace78e27b8b10cee	借刀杀人	Setup	海关	Customs	0	10000	Any	0	0
+regular	5c12452c86f7744b83469073	54cb50c76803fa8b248b4571	左右逢源	Perfect Mediator			35	12000	Any	0	0
+regular	5c139eb686f7747878361a6f	5a7c2eca46aef81a7ca2145d	进口	Import			0	28000	Any	0	0
+regular	5c51aac186f77432ea65c552	579dc571d53a0658a154fbec	收藏家	Collector			42	0	Any	1	0
+regular	5d2495a886f77425cd51e403	5a7c2eca46aef81a7ca2145d	介绍	Introduction	森林	Woods	0	4500	Any	0	0
+regular	5d24b81486f77439c92d6ba8	5c0647fdd443bc2504c2d371	熟人	Acquaintance			0	3000	Any	0	0
+regular	5d25aed386f77442734d25d2	5c0647fdd443bc2504c2d371	生存者之路 - 危险零距离	The Survivalist Path - Unprotected but Dangerous			9	10000	Any	0	0
+regular	5d25b6be86f77444001e1b89	5c0647fdd443bc2504c2d371	生存者之路 - 省吃俭用	The Survivalist Path - Thrifty	森林	Woods	9	10000	Any	0	0
+regular	5d25bfd086f77442734d3007	5c0647fdd443bc2504c2d371	生存者之路 - Zhivchik	The Survivalist Path - Zhivchik			9	10000	Any	0	0
+regular	5d25c81b86f77443e625dd71	5c0647fdd443bc2504c2d371	生存者之路 - 受伤的野兽	The Survivalist Path - Wounded Beast			9	10000	Any	0	0
+regular	5d25cf2686f77443e75488d4	5c0647fdd443bc2504c2d371	生存者之路 - 硬汉	The Survivalist Path - Tough Guy	森林	Woods	9	28000	Any	0	0
+regular	5d25d2c186f77443e35162e5	5c0647fdd443bc2504c2d371	生存者之路 - 冷血	The Survivalist Path - Cold Blooded			17	28000	Any	0	0
+regular	5d25e29d86f7740a22516326	5c0647fdd443bc2504c2d371	生存者之路 -  雕鸮	The Survivalist Path - Eagle-Owl			17	28000	Any	0	0
+regular	5d25e2a986f77409dd5cdf2a	5c0647fdd443bc2504c2d371	生存者之路 - 战地军医	The Survivalist Path - Combat Medic			17	5900	Any	0	0
+regular	5d25e2b486f77409de05bba0	5c0647fdd443bc2504c2d371	猎人之路 - 周边安全	The Huntsman Path - Secured Perimeter	工厂	Factory	0	28000	Any	0	0
+regular	5d25e2c386f77443e7549029	5c0647fdd443bc2504c2d371	猎人之路 - 战利品	The Huntsman Path - Trophy	海关	Customs	0	3000	Any	0	0
+regular	5d25e2cc86f77443e47ae019	5c0647fdd443bc2504c2d371	猎人之路 - 杀戮森林	The Huntsman Path - Forest Cleaning			0	28000	Any	0	0
+regular	5d25e2d886f77442734d335e	5c0647fdd443bc2504c2d371	猎人之路 - 支配者	The Huntsman Path - Controller			17	28000	Any	0	0
+regular	5d25e2e286f77444001e2e48	5c0647fdd443bc2504c2d371	猎人之路 - 脱销	The Huntsman Path - Sellout	立交桥	Interchange	0	10000	Any	0	0
+regular	5d25e2ee86f77443e35162ea	5c0647fdd443bc2504c2d371	猎人之路 - 森林管理员	The Huntsman Path - Woods Keeper	森林	Woods	0	3000	Any	0	0
+regular	5d25e43786f7740a212217fa	5c0647fdd443bc2504c2d371	猎人之路 - 正义	The Huntsman Path - Justice			0	3000	Any	0	0
+regular	5d25e44386f77409453bce7b	5c0647fdd443bc2504c2d371	猎人之路 - 愤怒守望者	The Huntsman Path - Angry Watchman	海关	Customs	0	3000	Any	0	0
+regular	5d25e44f86f77443e625e385	5c0647fdd443bc2504c2d371	猎人之路 - 蒸发密令 - 1	The Huntsman Path - Eraser	储备站	Reserve	0	28000	Any	0	0
+regular	5d25e45e86f77408251c4bfa	5c0647fdd443bc2504c2d371	猎人之路 - 解放	The Huntsman Path - Liberation			0	28000	Any	0	0
+regular	5d25e46e86f77409453bce7c	5c0647fdd443bc2504c2d371	急救措施	First Aid			0	3000	Any	0	0
+regular	5d25e48186f77443e625e386	5c0647fdd443bc2504c2d371	礼节性拜访	Courtesy Visit	海岸线	Shoreline	0	10000	Any	0	0
+regular	5d25e48d86f77408251c4bfb	5c0647fdd443bc2504c2d371	黑幕交易	Shady Business			20	11400	Any	0	0
+regular	5d25e4ad86f77443e625e387	5c0647fdd443bc2504c2d371	怀旧之情	Nostalgia	海岸线	Shoreline	0	10000	Any	0	0
+regular	5d25e4b786f77408251c4bfc	5c0647fdd443bc2504c2d371	鱼塘	Fishing Place			17	28000	Any	0	0
+regular	5d25e4ca86f77409dd5cdf2c	5c0647fdd443bc2504c2d371	狩猎之旅	Hunting Trip	森林	Woods	0	65000	Any	0	0
+regular	5d25e4d586f77443e625e388	5c0647fdd443bc2504c2d371	储备	Reserve	储备站	Reserve	17	28000	Any	0	0
+regular	5d4bec3486f7743cac246665	54cb50c76803fa8b248b4571	管制材料	Regulated Materials			36	65000	Any	0	0
+regular	5d6fb2c086f77449da599c24	54cb57776803fa99248b456e	一天一个苹果 - 医生远离我	An Apple a Day Keeps the Doctor Away			18	0	Any	0	0
+regular	5d6fbc2886f77449d825f9d3	5935c25fb3acc3127c3d8cd9	导师	Mentor			37	0	Any	0	0
+regular	5e381b0286f77420e3417a74	5ac3b934156ae10c4430e83c	纺织业 - 1	Textile - Part 1			42	65000	BEAR	0	0
+regular	5e383a6386f77465910ce1f3	5ac3b934156ae10c4430e83c	纺织业 - 1	Textile - Part 1			42	65000	USEC	0	0
+regular	5e4d4ac186f774264f758336	5ac3b934156ae10c4430e83c	纺织业 - 2	Textile - Part 2			42	65000	BEAR	0	0
+regular	5e4d515e86f77438b2195244	5ac3b934156ae10c4430e83c	纺织业 - 2	Textile - Part 2			42	65000	USEC	0	0
+regular	5eaaaa7c93afa0558f3b5a1c	5c0647fdd443bc2504c2d371	生存者之路 - 瘾君子	The Survivalist Path - Junkie	森林	Woods	33	65000	Any	0	0
+regular	5eda19f0edce541157209cee	54cb50c76803fa8b248b4571	麻醉	Anesthesia	海岸线	Shoreline	0	10000	Any	0	0
+regular	5edab4b1218d181e29451435	5c0647fdd443bc2504c2d371	猎人之路 - 虐待狂	The Huntsman Path - Sadist	海岸线	Shoreline	0	65000	Any	0	0
+regular	5edab736cc183c769d778bc2	54cb57776803fa99248b456e	同事	Colleagues	海岸线	Shoreline	18	28000	Any	0	0
+regular	5edaba7c0c502106f869bc02	54cb57776803fa99248b456e	塔科夫式手腕	Tarkov-Style Diplomacy	海岸线	Shoreline	0	28000	Any	0	0
+regular	5edabd13218d181e29451442	58330581ace78e27b8b10cee	肮脏游戏	Rigged Game	海岸线	Shoreline	0	28000	Any	0	0
+regular	5edac020218d181e29451446	5935c25fb3acc3127c3d8cd9	样品	Samples			37	65000	Any	0	0
+regular	5edac34d0bb72a50635c2bfa	54cb57776803fa99248b456e	艰难抉择	A Difficult Choice			0	27500	Any	0	0
+regular	5edac63b930f5454f51e128b	5935c25fb3acc3127c3d8cd9	TerraGroup 雇员	TerraGroup Employee	实验室	The Lab	0	65000	Any	0	0
+regular	5ede55112c95834b583f052a	54cb50c76803fa8b248b4571	地堡	The Bunker	储备站	Reserve	21	28000	Any	0	0
+regular	5ede567cfa6dc072ce15d6e3	54cb50c76803fa8b248b4571	地堡 - 2	The Bunker - Part 2	储备站	Reserve	21	9200	Any	0	0
+regular	5f04886a3937dc337a6b8238	5a7c2eca46aef81a7ca2145d	化学橱柜	Chemistry Closet	海岸线	Shoreline	0	10000	Any	0	0
+regular	5fd9fad9c1ce6b1a3b486d00	54cb50c76803fa8b248b4571	搜索任务	Search Mission	森林	Woods	0	3000	Any	0	0
+regular	600302d73b897b11364cd161	5c0647fdd443bc2504c2d371	污秽遍地……	All This Filth...			0	3000	Any	0	0
+regular	6086c852c945025d41566124	5935c25fb3acc3127c3d8cd9	无中生有 - 储备站	Revision - Reserve	储备站	Reserve	19	28000	Any	0	0
+regular	60896888e4a85c72ef3fa300	58330581ace78e27b8b10cee	绝密技术	Classified Technologies	储备站	Reserve	22	28000	Any	0	0
+regular	60896b7bfa70fc097863b8f5	54cb50c76803fa8b248b4571	多鱼之漏	Documents	储备站	Reserve	0	28000	Any	0	0
+regular	60896bca6ee58f38c417d4f2	54cb50c76803fa8b248b4571	叛无所依	No Place for Renegades	储备站	Reserve	21	28000	Any	0	0
+regular	60896e28e4a85c72ef3fa301	54cb57776803fa99248b456e	病历	Disease History	储备站	Reserve	0	28000	Any	0	0
+regular	6089732b59b92115597ad789	5a7c2eca46aef81a7ca2145d	物尽其用	Surplus Goods	储备站	Reserve	26	28000	Any	0	0
+regular	6089736efa70fc097863b8f6	5a7c2eca46aef81a7ca2145d	后门	Back Door	储备站	Reserve	26	28000	Any	0	0
+regular	6089743983426423753cd58a	58330581ace78e27b8b10cee	安全通道	Safe Corridor	储备站	Reserve	0	28000	Any	0	0
+regular	608974af4b05530f55550c21	5ac3b934156ae10c4430e83c	储备专家	Reserve Expert	储备站	Reserve	0	28000	Any	0	0
+regular	608974d01a66564e74191fc0	5ac3b934156ae10c4430e83c	雪中送炭	A Fuel Matter	储备站	Reserve	27	28000	Any	0	0
+regular	608a768d82e40b3c727fd17d	5c0647fdd443bc2504c2d371	害虫防治	Pest Control	储备站	Reserve	0	28000	Any	0	0
+regular	60c0c018f7afb4354815096a	5c0647fdd443bc2504c2d371	猎人之路 - 工厂头目	The Huntsman Path - Factory Chief	工厂	Factory	0	10000	Any	0	0
+regular	60e71b62a0beca400d69efc4	54cb50c76803fa8b248b4571	护送	Escort			46	155000	Any	0	0
+regular	60e71b9bbd90872cb85440f3	54cb50c76803fa8b248b4571	掠地攻城	Capturing Outposts			0	10000	Any	0	0
+regular	60e71bb4e456d449cd47ca75	54cb50c76803fa8b248b4571	恐吓者	Intimidator			0	65000	Any	0	0
+regular	60e71c11d54b755a3b53eb65	58330581ace78e27b8b10cee	夜间扫荡	Night Sweep			0	65000	Any	0	0
+regular	60e71c48c1bfa3050473b8e5	54cb57776803fa99248b456e	急单	Crisis			38	34000	Any	0	0
+regular	60e71c9ad54b755a3b53eb66	5935c25fb3acc3127c3d8cd9	清洁工	The Cleaner	储备站	Reserve	0	28000	Any	0	0
+regular	60e71ccb5688f6424c7bfec4	5935c25fb3acc3127c3d8cd9	战利品	Trophies			0	65000	Any	0	0
+regular	60e71ce009d7c801eb0c0ec6	5935c25fb3acc3127c3d8cd9	特殊装备	Special Equipment			0	65000	Any	0	0
+regular	60e71d23c1bfa3050473b8e6	5a7c2eca46aef81a7ca2145d	致命校准	Calibration			40	65000	Any	0	0
+regular	60e71d6d7fcf9c556f325055	5a7c2eca46aef81a7ca2145d	急先锋	The Courier	海关	Customs	0	3000	Any	0	0
+regular	60e71dc0a94be721b065bbfc	5ac3b934156ae10c4430e83c	长期合作	Long Line	立交桥	Interchange	0	3000	Any	0	0
+regular	60e71dc67fcf9c556f325056	5ac3b934156ae10c4430e83c	酒瘾	Booze			27	28000	Any	0	0
+regular	60e71e8ed54b755a3b53eb67	5c0647fdd443bc2504c2d371	猎人之路 - 无情杀手	The Huntsman Path - Relentless			55	65000	Any	0	0
+regular	60e729cf5698ee7b05057439	5c0647fdd443bc2504c2d371	快枪手	Swift	森林	Woods	0	3000	Any	0	0
+regular	60effd818b669d08a35bfad5	579dc571d53a0658a154fbec	抉择	The Choice			50	433333	Any	0	0
+regular	6179ac7511973d018217d0b9	54cb50c76803fa8b248b4571	小菜一碟	Easy Job	灯塔	Lighthouse	21	28000	Any	0	0
+regular	6179acbdc760af5ad2053585	54cb50c76803fa8b248b4571	小菜一碟 - 2	Easy Job - Part 2	灯塔	Lighthouse	21	18000	Any	0	0
+regular	6179ad0a6e9dd54ac275e3f2	5c0647fdd443bc2504c2d371	猎人之路 - 流浪汉	The Huntsman Path - Outcasts	灯塔	Lighthouse	0	28000	Any	0	0
+regular	6179ad56c760af5ad2053587	54cb57776803fa99248b456e	海边假期	Seaside Vacation	灯塔	Lighthouse	0	28000	Any	0	0
+regular	6179afd0bca27a099552e040	54cb57776803fa99248b456e	消失的线人	Lost Contact	灯塔	Lighthouse	18	28000	Any	0	0
+regular	6179aff8f57fb279792c60a1	5935c25fb3acc3127c3d8cd9	人口过剩	Overpopulation	灯塔	Lighthouse	0	28000	Any	0	0
+regular	6179b3a12153c15e937d52bc	5a7c2eca46aef81a7ca2145d	能源危机	Energy Crisis	灯塔	Lighthouse	0	28000	Any	0	0
+regular	6179b3bdc7560e13d23eeb8d	5a7c2eca46aef81a7ca2145d	商业机密	Corporate Secrets	灯塔	Lighthouse	0	28000	Any	0	0
+regular	6179b4d1bca27a099552e04e	5935c25fb3acc3127c3d8cd9	无中生有 - 灯塔	Revision - Lighthouse	灯塔	Lighthouse	19	28000	Any	0	0
+regular	6179b4f16e9dd54ac275e407	58330581ace78e27b8b10cee	失踪货物	Missing Cargo	灯塔	Lighthouse	22	28000	Any	0	0
+regular	6179b5b06e9dd54ac275e409	54cb50c76803fa8b248b4571	我们的土地，我们的血	Our Own Land	灯塔	Lighthouse	0	28000	BEAR	0	0
+regular	6179b5eabca27a099552e052	5935c25fb3acc3127c3d8cd9	反抗	Counteraction	灯塔	Lighthouse	0	65000	USEC	0	0
+regular	61904daa7d0d857927447b9c	5c0647fdd443bc2504c2d371	隐士	The Hermit	灯塔	Lighthouse	17	28000	Any	0	0
+regular	6193850f60b34236ee0483de	58330581ace78e27b8b10cee	长路漫漫	Long Road			0	28000	Any	0	0
+regular	61958c366726521dd96828ec	5935c25fb3acc3127c3d8cd9	来自塔科夫的礼物	Gifts from Tarkov	灯塔	Lighthouse	0	28000	Any	0	0
+regular	61e6e5e0f5b9633f6719ed95	579dc571d53a0658a154fbec	亡羊补牢 - 信任	Compensation for Damage - Trust			0	0	Any	0	0
+regular	61e6e60223374d168a4576a6	579dc571d53a0658a154fbec	亡羊补牢 - 赌注	Compensation for Damage - Wager			0	0	Any	0	0
+regular	61e6e60c5ca3b3783662be27	579dc571d53a0658a154fbec	亡羊补牢 - Wergild	Compensation for Damage - Wergild			0	0	Any	0	0
+regular	61e6e615eea2935bc018a2c5	579dc571d53a0658a154fbec	亡羊补牢 - 酒保	Compensation for Damage - Barkeep			0	0	Any	0	0
+regular	61e6e621bfeab00251576265	579dc571d53a0658a154fbec	亡羊补牢 - 收藏	Compensation for Damage - Collection			0	0	Any	0	0
+regular	625d6ff5ddc94657c21a1625	5a7c2eca46aef81a7ca2145d	网络供应商 - 1	Network Provider - Part 1			0	18600	Any	0	1
+regular	625d6ffaf7308432be1d44c5	5a7c2eca46aef81a7ca2145d	网络供应商 - 2	Network Provider - Part 2	灯塔	Lighthouse	0	19100	Any	0	1
+regular	625d6ffcaa168e51321d69d7	5a7c2eca46aef81a7ca2145d	试探 - 1	Assessment - Part 1	灯塔	Lighthouse	0	23500	Any	0	1
+regular	625d6fff4149f1149b5b12c9	5a7c2eca46aef81a7ca2145d	试探 - 2	Assessment - Part 2	森林	Woods	0	24200	Any	0	1
+regular	625d7001c4874104f230c0c5	5a7c2eca46aef81a7ca2145d	试探 - 3	Assessment - Part 3	实验室	The Lab	0	24800	Any	0	1
+regular	625d70031ed3bb5bcc5bd9e5	5a7c2eca46aef81a7ca2145d	灯塔之匙	Key to the Tower	灯塔	Lighthouse	0	30500	Any	0	1
+regular	625d7005a4eb80027c4f2e09	5a7c2eca46aef81a7ca2145d	咚咚咚	Knock-Knock	灯塔	Lighthouse	0	31300	Any	0	1
+regular	625d700cc48e6c62a440fab5	5a7c2eca46aef81a7ca2145d	邂逅	Getting Acquainted	灯塔	Lighthouse	0	32000	Any	0	0
+regular	626148251ed3bb5bcc5bd9ed	5a7c2eca46aef81a7ca2145d	破镜重圆 - 收买人心	Make Amends - Buyout			0	0	Any	0	0
+regular	6261482fa4eb80027c4f2e11	5a7c2eca46aef81a7ca2145d	破镜重圆 - 装备	Make Amends - Equipment			0	0	Any	0	0
+regular	626148334149f1149b5b12ca	5a7c2eca46aef81a7ca2145d	破镜重圆 - 安保	Make Amends - Security	灯塔	Lighthouse	0	0	Any	0	0
+regular	62614836f7308432be1d44cc	5a7c2eca46aef81a7ca2145d	破镜重圆 - 大扫除	Make Amends - Sweep Up	储备站	Reserve	0	0	Any	0	0
+regular	6261483ac48e6c62a440fab7	5a7c2eca46aef81a7ca2145d	破镜重圆 - 软件	Make Amends - Software			0	0	Any	0	0
+regular	6261483dc4874104f230c0cd	5a7c2eca46aef81a7ca2145d	破镜重圆 - 隔离	Make Amends - Quarantine	实验室	The Lab	0	0	Any	0	0
+regular	626bd75b05f287031503c7f6	54cb57776803fa99248b456e	缉毒行动	Drug Trafficking	灯塔	Lighthouse	0	28000	Any	0	0
+regular	626bd75c71bd851e971b82a5	54cb50c76803fa8b248b4571	踩点行动	Reconnaissance	灯塔	Lighthouse	0	7500	Any	0	0
+regular	626bd75d5bef5d7d590bd415	58330581ace78e27b8b10cee	头号机密	Top Secret	灯塔	Lighthouse	0	28000	Any	0	0
+regular	626bd75e47ea7f506e5493c5	5a7c2eca46aef81a7ca2145d	直播 - 1	Broadcast - Part 1	灯塔	Lighthouse	12	10000	Any	0	0
+regular	626bdcc3a371ee3a7a3514c5	5c0647fdd443bc2504c2d371	流浪狗	Stray Dogs			33	65000	Any	0	0
+regular	638fcd23dc65553116701d33	5ac3b934156ae10c4430e83c	审计	Audit	塔科夫街区	Streets of Tarkov	12	10000	Any	0	0
+regular	639135534b15ca31f76bc317	5935c25fb3acc3127c3d8cd9	你的车该洗了	Your Car Needs a Service	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	6391359b9444fb141f4e6ee6	54cb50c76803fa8b248b4571	一信之缘	You've Got Mail	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	639135a7e705511c8a4a1b78	5ac3b934156ae10c4430e83c	芭蕾舞者	Ballet Lover	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	639135b04ed9512be67647d7	54cb50c76803fa8b248b4571	苏共之辉 - 1	Glory to CPSU - Part 1	塔科夫街区	Streets of Tarkov	17	7300	Any	0	0
+regular	639135bbc115f907b14700a6	5ac3b934156ae10c4430e83c	高保真	Audiophile	塔科夫街区	Streets of Tarkov	27	28000	Any	0	0
+regular	639135c3744e452011470807	58330581ace78e27b8b10cee	软禁	House Arrest	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	639135cd8ba6894d155e77cb	58330581ace78e27b8b10cee	软禁 - 2	House Arrest - Part 2	塔科夫街区	Streets of Tarkov	33	29200	Any	0	0
+regular	639135d89444fb141f4e6eea	54cb57776803fa99248b456e	人口普查	Population Census	塔科夫街区	Streets of Tarkov	5	10000	Any	0	0
+regular	639135e0fa894f0a866afde6	54cb57776803fa99248b456e	城市的解药	Urban Medicine	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	639135e8c115f907b14700aa	5a7c2eca46aef81a7ca2145d	探望	Surveillance	塔科夫街区	Streets of Tarkov	0	12000	Any	0	0
+regular	639135f286e646067c176a87	5935c25fb3acc3127c3d8cd9	无中生有 - 塔科夫街区	Revision - Streets of Tarkov	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	639136d68ba6894d155e77cf	54cb50c76803fa8b248b4571	绿色通道	Green Corridor	塔科夫街区	Streets of Tarkov	0	10000	BEAR	0	0
+regular	639136df4b15ca31f76bc31f	5c0647fdd443bc2504c2d371	猎人之路 - 管理者	The Huntsman Path - Administrator	储备站	Reserve	17	28000	Any	0	0
+regular	639136e84ed9512be67647db	5c0647fdd443bc2504c2d371	别开枪！	Cease Fire!	塔科夫街区	Streets of Tarkov	9	10000	Any	0	0
+regular	639136f086e646067c176a8b	54cb50c76803fa8b248b4571	屋顶战神	Kings of the Rooftops	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	639136fa9444fb141f4e6eee	5a7c2eca46aef81a7ca2145d	你被盯上了	Watching You	塔科夫街区	Streets of Tarkov	12	10000	Any	0	0
+regular	63913715f8e5dd32bf4e3aaa	5a7c2eca46aef81a7ca2145d	直播 - 2	Broadcast - Part 2	塔科夫街区	Streets of Tarkov	12	10000	Any	0	0
+regular	6391372c8ba6894d155e77d7	5c0647fdd443bc2504c2d371	直播 - 4	Broadcast - Part 4	塔科夫街区	Streets of Tarkov	17	28000	Any	0	0
+regular	6391d90f4ed9512be67647df	5a7c2eca46aef81a7ca2145d	破镜重圆	Make Amends	灯塔	Lighthouse	0	0	Any	0	0
+regular	6391d912f8e5dd32bf4e3ab2	5a7c2eca46aef81a7ca2145d	破镜重圆	Make Amends			0	0	Any	0	0
+regular	6391d9144b15ca31f76bc323	5a7c2eca46aef81a7ca2145d	破镜重圆	Make Amends			0	0	Any	0	0
+regular	639282134ed9512be67647ed	5935c25fb3acc3127c3d8cd9	此路不通	Road Closed	塔科夫街区	Streets of Tarkov	0	10000	USEC	0	0
+regular	63966faeea19ac7ed845db2c	638f541a29ffd1183d187f57	情报之源	Information Source			0	0	Any	0	0
+regular	63966fbeea19ac7ed845db2e	638f541a29ffd1183d187f57	失踪的线人	Missing Informant	塔科夫街区	Streets of Tarkov	0	0	Any	0	0
+regular	63966fccac6f8f3c677b9d89	638f541a29ffd1183d187f57	抢夺先机	Snatch			0	0	Any	0	0
+regular	63966fd9ea19ac7ed845db30	638f541a29ffd1183d187f57	以牙还牙	Payback	储备站	Reserve	0	0	Any	0	0
+regular	63966fe7ea74a47c2d3fc0e6	638f541a29ffd1183d187f57	归还人情	Return the Favor	森林	Woods	0	0	Any	0	0
+regular	63966ff54c3ef01b6f3ffad8	638f541a29ffd1183d187f57	挑衅	Provocation	立交桥	Interchange	0	0	Any	0	0
+regular	639670029113f06a7c3b2377	638f541a29ffd1183d187f57	按图索骥	Following the Bread Crumbs			0	0	Any	0	0
+regular	6396700fea19ac7ed845db32	638f541a29ffd1183d187f57	观察员	Spotter	塔科夫街区	Streets of Tarkov	0	0	Any	0	0
+regular	6396701b9113f06a7c3b2379	638f541a29ffd1183d187f57	大显身手	Make an Impression			0	0	Any	0	0
+regular	63967028c4a91c5cb76abd81	638f541a29ffd1183d187f57	大都会之谜	Trouble in the Big City	塔科夫街区	Streets of Tarkov	0	0	Any	0	0
+regular	639872f9decada40426d3447	5a7c2eca46aef81a7ca2145d	枪匠 - OP-SKS	Gunsmith - OP-SKS			0	10000	Any	0	0
+regular	639872fa9b4fb827b200d8e5	5a7c2eca46aef81a7ca2145d	枪匠 - P226R	Gunsmith - P226R			0	28000	Any	0	0
+regular	639872fc93ae507d5858c3a6	5a7c2eca46aef81a7ca2145d	枪匠 - Vector 9x19	Gunsmith - Vector 9x19			0	28000	Any	0	0
+regular	639872fe8871e1272b10ccf6	5a7c2eca46aef81a7ca2145d	枪匠大师 - 1	Gunsmith Master - Part 1			40	10000	Any	0	0
+regular	639873003693c63d86328f25	5a7c2eca46aef81a7ca2145d	枪匠大师 - 6	Gunsmith Master - Part 6			40	28000	Any	0	0
+regular	63987301e11ec11ff5504036	5a7c2eca46aef81a7ca2145d	枪匠大师 - 8	Gunsmith Master - Part 8			40	28000	Any	0	0
+regular	639dbaf17c898a131e1cffff	58330581ace78e27b8b10cee	老赖	Debtor	塔科夫街区	Streets of Tarkov	0	13200	Any	0	0
+regular	63a511ea30d85e10e375b045	5c0647fdd443bc2504c2d371	直播 - 3	Broadcast - Part 3	塔科夫街区	Streets of Tarkov	17	28000	Any	0	0
+regular	63a5cf262964a7488f5243ce	54cb50c76803fa8b248b4571	武力说服	Power of Persuasion			0	3000	Any	0	0
+regular	63a88045abf76d719f42d715	5c0647fdd443bc2504c2d371	美味香肠	The Delicious Sausage	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	63a9ae24009ffc6a551631a5	54cb50c76803fa8b248b4571	最好的差事	Best Job in the World			0	65000	Any	0	0
+regular	63a9b229813bba58a50c9ee5	5935c25fb3acc3127c3d8cd9	最烂的差事	Worst Job in the World			37	65000	Any	0	0
+regular	63a9b36cc31b00242d28a99f	5c0647fdd443bc2504c2d371	屠宰场	Slaughterhouse			33	65000	Any	0	0
+regular	63ab180c87413d64ae0ac20a	54cb57776803fa99248b456e	危险之路	Dangerous Road	塔科夫街区	Streets of Tarkov	15	7800	Any	0	0
+regular	64e7b971f9d6fa49d6769b44	5c0647fdd443bc2504c2d371	猎人之路 - 大动作	The Huntsman Path - Big Game	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	64e7b99017ab941a6f7bf9d7	54cb50c76803fa8b248b4571	出警 - 商场	Gendarmerie - Mall Cop	塔科夫街区	Streets of Tarkov	36	7100	Any	0	0
+regular	64e7b9a4aac4cd0a726562cb	54cb50c76803fa8b248b4571	出警 - 检票	Gendarmerie - Tickets, Please	塔科夫街区	Streets of Tarkov	36	7500	Any	0	0
+regular	64e7b9bffd30422ed03dad38	54cb50c76803fa8b248b4571	地区巡逻	District Patrol	塔科夫街区	Streets of Tarkov	0	8300	Any	0	0
+regular	64ee99639878a0569d6ec8c9	5c0647fdd443bc2504c2d371	直播 - 5	Broadcast - Part 5			17	28000	Any	0	0
+regular	64ee9df4496db64f9b7a4432	5a7c2eca46aef81a7ca2145d	神秘的门	The Door	塔科夫街区	Streets of Tarkov	0	28000	Any	0	0
+regular	64f3176921045e77405d63b5	54cb57776803fa99248b456e	急诊室的故事	Paramedic	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	64f5aac4b63b74469b6c14c2	54cb50c76803fa8b248b4571	苏共之辉	Glory to CPSU	塔科夫街区	Streets of Tarkov	6	10000	Any	0	0
+regular	64f5deac39e45b527a7c4232	54cb50c76803fa8b248b4571	爱国者的使命	Job for a Patriot			25	18000	Any	0	0
+regular	64f5e20652fc01298e2c61e3	58330581ace78e27b8b10cee	好吃到上瘾	Beyond the Red Meat	塔科夫街区	Streets of Tarkov	7	10000	Any	0	0
+regular	64f6aafd67e11a7c6206e0d0	58330581ace78e27b8b10cee	秘制食谱	The Secret Recipe	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	64f731ab83cfca080a361e42	54cb57776803fa99248b456e	兽医也是医	Pets Won't Need It	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	64f83bb69878a0569d6ecfbe	5a7c2eca46aef81a7ca2145d	枪匠大师 - 10	Gunsmith Master - Part 10			40	28000	Any	0	0
+regular	64f83bcdde58fc437700d8fa	5a7c2eca46aef81a7ca2145d	枪匠大师 - 11	Gunsmith Master - Part 11			40	28000	Any	0	0
+regular	64f83bd983cfca080a362c82	5a7c2eca46aef81a7ca2145d	枪匠大师 - 13	Gunsmith Master - Part 13			40	28000	Any	0	0
+regular	6572e876dc0d635f633a5714	58330581ace78e27b8b10cee	发财计划	Pyramid Scheme	塔科夫街区	Streets of Tarkov	0	12400	Any	0	0
+regular	657315ddab5a49b71f098853	54cb57776803fa99248b456e	新手上路	First in Line	中心区	Ground Zero	1	3000	Any	0	0
+regular	657315df034d76585f032e01	54cb50c76803fa8b248b4571	打靶训练	Shooting Cans	中心区	Ground Zero	1	3000	Any	0	0
+regular	657315e1dccd301f1301416a	54cb50c76803fa8b248b4571	奢靡人生	Luxurious Life	中心区	Ground Zero	0	3000	Any	0	0
+regular	657315e270bb0b8dba00cc48	58330581ace78e27b8b10cee	快车初体验	Burning Rubber	中心区	Ground Zero	1	3000	Any	0	0
+regular	657315e4a6af4ab4b50f3459	5a7c2eca46aef81a7ca2145d	救援行动	Saving the Mole	中心区	Ground Zero	1	3000	Any	0	0
+regular	65733403eefc2c312a759ddb	5a7c2eca46aef81a7ca2145d	公司福报	Corporate Perks	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	6573382e557ff128bf3da536	5a7c2eca46aef81a7ca2145d	高效秘诀	The Secret to Productivity	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	6573387d0b26ed4fde798de3	54cb57776803fa99248b456e	兽医也是医 - 2	Pets Won't Need It - Part 2	塔科夫街区	Streets of Tarkov	0	9000	Any	0	0
+regular	6573397ef3f8344c4575cd87	54cb50c76803fa8b248b4571	财不外露	Properties All Around	塔科夫街区	Streets of Tarkov	0	6600	Any	0	0
+regular	65734c186dc1e402c80dc19e	5ac3b934156ae10c4430e83c	花花公子	Dandies	塔科夫街区	Streets of Tarkov	12	11000	Any	0	0
+regular	6574e0dedc0d635f633a5805	54cb50c76803fa8b248b4571	透透气	Getting Some Air			36	65000	Any	0	0
+regular	6578eb36e5020875d64645cd	5c0647fdd443bc2504c2d371	猎人之路 - 坏警察	The Huntsman Path - Crooked Cop	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	6578ec473dbd035d04531a8d	5a7c2eca46aef81a7ca2145d	稳定信号	Steady Signal	森林	Woods	0	3000	Any	0	0
+regular	658027799634223183395339	58330581ace78e27b8b10cee	禁止打劫	No Swiping	海岸线	Shoreline	0	12000	Any	0	0
+regular	65802b627b44fa5e14638899	5ac3b934156ae10c4430e83c	绝不上当	Nothing Fishy About This	海岸线	Shoreline	12	10000	Any	0	0
+regular	66058cb22cee99303f1ba067	58330581ace78e27b8b10cee	赚点快钱 - 1（PVP）	Easy Money - Part 1 [PVP ZONE]	海关	Customs	10	3000	Any	0	0
+regular	66058cb5ae4719735349b9e8	6617beeaa9cfa777ca915b7c	赚点快钱 - 2（PVP）	Easy Money - Part 2 [PVP ZONE]			10	2900	Any	0	0
+regular	66058cb7c7f3584787181476	6617beeaa9cfa777ca915b7c	平衡之力 - 1（PVP）	Balancing - Part 1 [PVP ZONE]			10	5100	Any	0	0
+regular	66058cb9e8e4f17985230805	6617beeaa9cfa777ca915b7c	平衡之力 - 2（PVP）	Balancing - Part 2 [PVP ZONE]			10	7000	Any	0	0
+regular	66058cbb06ef1d50a60c1f46	6617beeaa9cfa777ca915b7c	惊喜（PVP）	Surprise [PVP ZONE]			10	3600	Any	0	0
+regular	66058cbd9f59e625462acc8e	6617beeaa9cfa777ca915b7c	声东击西 - 1（PVP）	Create a Distraction - Part 1 [PVP ZONE]	中心区	Ground Zero	10	5000	Any	0	0
+regular	66058cbf2f19c31a5a1337ec	6617beeaa9cfa777ca915b7c	声东击西 - 2（PVP）	Create a Distraction - Part 2 [PVP ZONE]	塔科夫街区	Streets of Tarkov	10	10000	Any	0	0
+regular	66058cc1da30b620a34e6e86	6617beeaa9cfa777ca915b7c	再创新高！- 1（PVP）	To Great Heights! - Part 1 [PVP ZONE]			10	2800	Any	0	0
+regular	66058cc208308761cf390993	6617beeaa9cfa777ca915b7c	再创新高！- 2（PVP）	To Great Heights! - Part 2 [PVP ZONE]			10	3500	Any	0	0
+regular	66058cc5bb83da7ba474aba9	6617beeaa9cfa777ca915b7c	再创新高！- 3（PVP）	To Great Heights! - Part 3 [PVP ZONE]			10	4500	Any	0	0
+regular	66058cc72cee99303f1ba069	6617beeaa9cfa777ca915b7c	再创新高！- 4（PVP）	To Great Heights! - Part 4 [PVP ZONE]			10	5600	Any	0	0
+regular	66058cc9ae4719735349b9ea	6617beeaa9cfa777ca915b7c	再创新高！- 5（PVP）	To Great Heights! - Part 5 [PVP ZONE]			10	6900	Any	0	0
+regular	66058ccbc7f3584787181478	579dc571d53a0658a154fbec	良心作祟 - 1（PVP）	Against the Conscience - Part 1 [PVP ZONE]	海关	Customs	10	11700	Any	0	0
+regular	66058ccde8e4f17985230807	6617beeaa9cfa777ca915b7c	良心作祟 - 2（PVP）	Against the Conscience - Part 2 [PVP ZONE]			10	23000	Any	0	0
+regular	66058ccf06ef1d50a60c1f48	579dc571d53a0658a154fbec	两害相权（PVP）	Between Two Fires [PVP ZONE]	海关	Customs	10	18500	Any	0	0
+regular	66058cd19f59e625462acc90	6617beeaa9cfa777ca915b7c	两难抉择（PVP）	Decisions, Decisions [PVP ZONE]			10	18500	Any	0	0
+regular	6613f3007f6666d56807c929	5ac3b934156ae10c4430e83c	人靠衣装 - 1	Drip-Out - Part 1			27	28000	BEAR	0	0
+regular	6613f307fca4f2f386029409	5ac3b934156ae10c4430e83c	人靠衣装 - 2	Drip-Out - Part 2			42	65000	BEAR	0	0
+regular	66151401efb0539ae10875ae	5ac3b934156ae10c4430e83c	人靠衣装 - 1	Drip-Out - Part 1			27	28000	USEC	0	0
+regular	6615141bfda04449120269a7	5ac3b934156ae10c4430e83c	人靠衣装 - 2	Drip-Out - Part 2			42	65000	USEC	0	0
+regular	665eeacf5d86b6c8aa03c79b	5c0647fdd443bc2504c2d371	口干舌燥 - 猎犬行动	Thirsty - Hounds	海岸线	Shoreline	9	10000	Any	0	0
+regular	665eec1f5e47a79f8605565a	58330581ace78e27b8b10cee	口干舌燥 - 养家糊口	Thirsty - Breadwinner			9	10000	Any	0	0
+regular	665eec4a4dfc83b0ed0a9dca	58330581ace78e27b8b10cee	口干舌燥 - 送货服务	Thirsty - Delivery			9	10000	Any	0	0
+regular	665eeca45d86b6c8aa03c79d	54cb57776803fa99248b456e	口干舌燥 - 往日回响	Thirsty - Echo	海岸线	Shoreline	9	10000	Any	0	0
+regular	665eeca92f7aedcc900b0437	54cb57776803fa99248b456e	口干舌燥 - 秘密配方	Thirsty - Secrets			9	10000	Any	0	0
+regular	66631489acf8442f8b05319f	579dc571d53a0658a154fbec	陌路相交	Friend Among Strangers			0	25600	Any	0	0
+regular	6663148ca9290f9e0806cca1	579dc571d53a0658a154fbec	免疫力	Immunity			0	28000	Any	0	0
+regular	6663148ed7f171c4c20226c1	579dc571d53a0658a154fbec	小本生意 - 1	Small Business - Part 1			0	22800	Any	0	0
+regular	6663149196a9349baa021baa	579dc571d53a0658a154fbec	小本生意 - 2	Small Business - Part 2			0	36800	Any	0	0
+regular	66631493312343839d032d22	579dc571d53a0658a154fbec	小本生意 - 3	Small Business - Part 3			0	30000	Any	0	0
+regular	6663149cfd5ca9577902e037	5ac3b934156ae10c4430e83c	看不见的大手	The Invisible Hand			42	12800	Any	0	0
+regular	6663149f1d3ec95634095e75	5ac3b934156ae10c4430e83c	经济流动	Circulate			42	32000	Any	0	0
+regular	666314a1920800278d0f6746	5ac3b934156ae10c4430e83c	特殊提议	Special Offer			42	85500	Any	0	0
+regular	666314a31cd52e3d040a2e76	5ac3b934156ae10c4430e83c	实战考验	Combat Proven			42	92000	Any	0	0
+regular	666314a50aa5c7436c00908a	5ac3b934156ae10c4430e83c	旧情难却	Old Patterns			42	0	Any	0	0
+regular	666314b0acf8442f8b0531a1	54cb50c76803fa8b248b4571	人间地狱 - 1	Hell on Earth - Part 1			12	2300	Any	0	0
+regular	666314b2a9290f9e0806cca3	54cb50c76803fa8b248b4571	人间地狱 - 2	Hell on Earth - Part 2			21	16000	Any	0	0
+regular	666314b4d7f171c4c20226c3	54cb50c76803fa8b248b4571	往昔时光 - 1	The Good Times - Part 1	工厂	Factory	12	28000	Any	0	0
+regular	666314b696a9349baa021bac	54cb57776803fa99248b456e	质量标准	Quality Standard	实验室	The Lab	12	28000	Any	0	0
+regular	666314b8312343839d032d24	5a7c2eca46aef81a7ca2145d	航空包裹	Airmail	森林	Woods	12	10000	Any	0	0
+regular	666314bafd5ca9577902e03a	54cb50c76803fa8b248b4571	往昔时光 - 2	The Good Times - Part 2			12	28000	Any	0	0
+regular	666314bc1d3ec95634095e77	58330581ace78e27b8b10cee	高光时刻	Minute of Fame	立交桥	Interchange	12	28000	Any	0	0
+regular	666314bd920800278d0f6748	54cb50c76803fa8b248b4571	忠实观众	Viewer			12	65000	Any	0	0
+regular	666314bf1cd52e3d040a2e78	58330581ace78e27b8b10cee	严词指控	Serious Allegations	海岸线	Shoreline	12	28000	Any	0	0
+regular	666314c10aa5c7436c00908c	5a7c2eca46aef81a7ca2145d	镜头就位，开拍！	Camera, Action!			12	28000	Any	0	0
+regular	666314c3acf8442f8b0531a3	58330581ace78e27b8b10cee	一报还一报	Proper Comeback			12	65000	Any	0	0
+regular	666314c5a9290f9e0806cca5	5ac3b934156ae10c4430e83c	城市之匙	Key to the City	塔科夫街区	Streets of Tarkov	12	28000	Any	0	0
+regular	6672d9def1c88688a707d042	579dc571d53a0658a154fbec	建立联系	Establish Contact			0	8800	Any	0	0
+regular	669fa38fad7f1eac2607ed46	5935c25fb3acc3127c3d8cd9	悬结已解	One Less Loose End			0	3000	Any	0	0
+regular	669fa3910c828825de06d69f	54cb57776803fa99248b456e	健全替代	A Healthy Alternative			0	3000	Any	0	0
+regular	669fa395c4c5c04798002497	58330581ace78e27b8b10cee	出口在此	Exit Here	工厂	Factory	7	10000	Any	0	0
+regular	669fa3979b0ce3feae01a130	5c0647fdd443bc2504c2d371	幽闭恐惧症	Claustrophobia	工厂	Factory	0	10000	Any	0	0
+regular	669fa399033a3ce9870338a8	54cb50c76803fa8b248b4571	占有者	Possessor	工厂	Factory	0	10000	Any	0	0
+regular	669fa39b91b0a8c9680fc467	5a7c2eca46aef81a7ca2145d	黑天鹅计划	Black Swan	工厂	Factory	12	10000	Any	0	0
+regular	669fa39c64ea11e84c0642a6	58330581ace78e27b8b10cee	隔墙有“眼”	The Walls Have Eyes	工厂	Factory	0	10000	Any	0	0
+regular	669fa39ee749756c920d02c8	54cb57776803fa99248b456e	刨根问底	All Is Revealed	工厂	Factory	5	10000	Any	0	0
+regular	669fa3a08b4a64b332041ff7	5c0647fdd443bc2504c2d371	妥善保管	Dragnet	工厂	Factory	9	10000	Any	0	0
+regular	669fa3a3ad7f1eac2607ed48	54cb57776803fa99248b456e	医疗隐私 - 6	Health Care Privacy - Part 6	工厂	Factory	37	65000	Any	0	0
+regular	669fa3a40c828825de06d6a1	54cb50c76803fa8b248b4571	武装郊游	Easy-Breezy			0	28000	Any	0	0
+regular	66aa58245ab22944110db6e9	5935c25fb3acc3127c3d8cd9	新路线，新机遇	New Paths			0	3000	Any	0	0
+regular	66aa61663aa37705c5024277	5ac3b934156ae10c4430e83c	此路是我开！	Know Your Place!			27	28000	Any	0	0
+regular	66aa74571e5e199ecd094f18	5a7c2eca46aef81a7ca2145d	化工厂的秘密	Secrets of Polikhim			0	10000	Any	0	0
+regular	66ab970848ddbe9d4a0c49a8	54cb50c76803fa8b248b4571	特别联络	Special Comms			0	28000	Any	0	0
+regular	66ab9da7eb102b9bcd08591c	5c0647fdd443bc2504c2d371	卑鄙的外乡人	Forester's Duty			0	28000	Any	0	0
+regular	66aba85403e0ee3101042877	54cb57776803fa99248b456e	街区之下	Beneath The Streets			37	24000	Any	0	0
+regular	66b38c7bf85b8bf7250f9cb6	5c0647fdd443bc2504c2d371	危机四伏塔科夫	Rough Tarkov			0	3000	Any	0	0
+regular	66b38e144f2ab7cc530c3fe7	5c0647fdd443bc2504c2d371	猎人必修课	Every Hunter Knows This			9	10000	Any	0	0
+regular	66d9cbb67b491f9d5304f6e6	579dc571d53a0658a154fbec	这是什么梗？	Is This a Reference?			25	30000	Any	0	0
+regular	671a49f77d49aea42c029b5f	58330581ace78e27b8b10cee	诱人新货	Irresistible	立交桥	Interchange	22	28000	Any	0	0
+regular	671a59e43d73dac1360765cc	58330581ace78e27b8b10cee	致命道具	Dangerous Props			38	65000	Any	0	0
+regular	673f2cd5d3346c2167020484	656f0f98d80a697f855d34b1	货运延误 - 2	Shipping Delay - Part 2	森林	Woods	0	11500	Any	0	0
+regular	673f348dd3346c21670217e7	54cb50c76803fa8b248b4571	货运延误 - 1	Shipping Delay - Part 1	森林	Woods	0	10000	Any	0	0
+regular	673f4e956f1b89c7bc0f56ef	656f0f98d80a697f855d34b1	风火轮	Hot Wheels			0	24300	Any	0	0
+regular	673f5a4976553f78350bdac1	656f0f98d80a697f855d34b1	风火轮 - 再次出发	Hot Wheels - Let's Try Again	储备站	Reserve	0	13500	Any	0	0
+regular	673f6027352b4da8e00322d2	656f0f98d80a697f855d34b1	必然回应	Inevitable Response			0	15500	Any	0	0
+regular	673f61a066e6a521aa04b62b	638f541a29ffd1183d187f57	外部订单	Order From Outside			0	46700	Any	0	0
+regular	673f629c5b555b53460cf827	656f0f98d80a697f855d34b1	奠定基石	Building Foundations			0	14500	Any	0	0
+regular	6740a02a69a58fceba0ff399	656f0f98d80a697f855d34b1	自然交换	Natural Exchange	海岸线	Shoreline	0	26800	Any	0	0
+regular	6740a15566e6a521aa051b15	54cb50c76803fa8b248b4571	缔结友谊	Forge a Friendship	海岸线	Shoreline	0	10000	Any	0	0
+regular	6740a2c17e3818d5bb0648b6	54cb50c76803fa8b248b4571	半满半空	Half-Empty			0	10000	Any	0	0
+regular	6740a3f4eca8acb2d2055159	54cb50c76803fa8b248b4571	横插一杠	Stick in the Wheel			0	28000	Any	0	0
+regular	6740b60c60a98cad1b0e0aa0	5ac3b934156ae10c4430e83c	再次延误	Another Shipping Delay	森林	Woods	0	10000	Any	0	0
+regular	674492b6909d2013670a347a	656f0f98d80a697f855d34b1	投石问路	Ask for Directions	灯塔	Lighthouse	0	13200	Any	0	0
+regular	6744a4717e3818d5bb0680bb	5ac3b934156ae10c4430e83c	稳定业务	Stabilize Business	中心区	Ground Zero	0	24100	Any	0	0
+regular	6744a728352b4da8e003eda9	656f0f98d80a697f855d34b1	电池换新	Battery Change			0	58700	Any	0	0
+regular	6744a9dfef61d56e020b5c4a	656f0f98d80a697f855d34b1	电池换新	Battery Change			0	58700	Any	0	0
+regular	6744ab1def61d56e020b5c56	656f0f98d80a697f855d34b1	对空遮断	Protect the Sky	森林	Woods	0	25400	Any	0	0
+regular	6744aca8d3346c216702c583	656f0f98d80a697f855d34b1	反将一军	Discombobulate	森林	Woods	0	23400	Any	0	0
+regular	6744af0969a58fceba101fed	656f0f98d80a697f855d34b1	独立的代价	The Price of Independence			0	85400	Any	0	0
+regular	6745cbee909d2013670a4a55	656f0f98d80a697f855d34b1	独立的代价	The Price of Independence			0	85400	Any	0	0
+regular	6745fae369a58fceba10343d	58330581ace78e27b8b10cee	人往高处走	The Higher They Fly	森林	Woods	0	10000	Any	0	0
+regular	6745fcded0fbbc74ca0f721d	656f0f98d80a697f855d34b1	现世报	Swift Retribution	森林	Woods	0	16000	Any	0	0
+regular	6745fdddd3346c216702e0bf	638f541a29ffd1183d187f57	简单副业	Simple Side Job			0	56700	Any	0	0
+regular	674600a366e6a521aa05eb66	58330581ace78e27b8b10cee	偏离路线	Route Deviation	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	674602307e3818d5bb069489	58330581ace78e27b8b10cee	后知后觉	Hindsight 20/20	森林	Woods	0	28000	Any	0	0
+regular	6746053b5b555b53460d9896	58330581ace78e27b8b10cee	关键伙伴	Key Partner			0	28000	Any	0	0
+regular	674605df60a98cad1b0ec799	58330581ace78e27b8b10cee	致命论据	Killer Argument	森林	Woods	0	28000	Any	0	0
+regular	67460662d0fbbc74ca0f7229	58330581ace78e27b8b10cee	识时务者为俊杰	Choose Your Friends Wisely			0	65000	Any	0	0
+regular	6752f6d83038f7df520c83e8	5a7c2eca46aef81a7ca2145d	一臂之力	A Helping Hand	森林	Woods	0	10000	Any	0	0
+regular	675c03d1f7da9792a405549a	54cb57776803fa99248b456e	无主货物	Abandoned Cargo	海关	Customs	0	3000	Any	0	0
+regular	675c047fa46173572a0bd878	54cb57776803fa99248b456e	货运追踪	Shipment Tracking	海关	Customs	0	3000	Any	0	0
+regular	675c04f4db8807b75d0f38e8	54cb57776803fa99248b456e	平易近人	Closer to the People	海关	Customs	0	10300	Any	0	0
+regular	675c085d59b0575973005f52	5ac3b934156ae10c4430e83c	浑水摸鱼	Break the Deal	海关	Customs	12	10000	Any	0	0
+regular	675c1570526ff496850895d9	5a7c2eca46aef81a7ca2145d	工欲善其事	Passion for Ergonomics	海关	Customs	0	3000	Any	0	0
+regular	675c15fbf7da9792a4059871	6617beeaa9cfa777ca915b7c	收视灵药	Provide Viewership	海关	Customs	10	32000	Any	0	0
+regular	675c1cf4a757ddd00404f0a3	5c0647fdd443bc2504c2d371	事倍功半	Work Smarter	海关	Customs	0	3000	Any	0	0
+regular	675c1d6d59b0575973008fc7	5935c25fb3acc3127c3d8cd9	先声夺人	Seizing the Initiative			0	3000	Any	0	0
+regular	675c1ec7a46173572a0bf20a	5c0647fdd443bc2504c2d371	试炼之路	Rite of Passage	海关	Customs	0	43000	Any	0	0
+regular	675c1ff1a757ddd00404f0aa	54cb50c76803fa8b248b4571	体验独一份	Unique Experience			35	32000	Any	0	0
+regular	675c3507a06634b5110e3c18	54cb50c76803fa8b248b4571	引路先驱	Belka and Strelka	海关	Customs	0	3000	Any	0	0
+regular	675c3582f6ddc329a90f9c6d	58330581ace78e27b8b10cee	私人俱乐部	Private Club	海关	Customs	0	11000	Any	0	0
+regular	6761f28a022f60bb320f3e95	5ac3b934156ae10c4430e83c	新起点	New Beginning			25	10000	Any	0	0
+regular	6761ff17cdc36bd66102e9d0	5ac3b934156ae10c4430e83c	新起点	New Beginning	实验室	The Lab	30	11000	Any	0	0
+regular	6764174c86addd02bc033d68	58330581ace78e27b8b10cee	北国新秀	Connections Up North			0	65000	Any	0	0
+regular	676529af9c90953d090882e7	5a7c2eca46aef81a7ca2145d	枪匠大师 - 12	Gunsmith Master - Part 12			40	28000	Any	0	0
+regular	67a09636b8725511260bc421	5a7c2eca46aef81a7ca2145d	影子雇员	Shady Contractor	中心区	Ground Zero	0	10000	Any	0	0
+regular	67a0964e972c11a3f507731b	5a7c2eca46aef81a7ca2145d	大海捞针	Needle in a Haystack			0	10000	Any	0	0
+regular	67a096577e86e067eb045733	5a7c2eca46aef81a7ca2145d	暗藏玄机	Hidden Layer			0	10000	Any	0	0
+regular	67a09673972c11a3f507731d	54cb57776803fa99248b456e	塔科夫屠夫	The Tarkov Butcher			0	10000	Any	0	0
+regular	67a0967c003a9986cb0f5ac1	5ac3b934156ae10c4430e83c	感官分析 - 1	Sensory Analysis - Part 1			0	28000	Any	0	0
+regular	67a096ed77dd677f600804ba	656f0f98d80a697f855d34b1	感官分析 - 2	Sensory Analysis - Part 2			0	0	Any	0	0
+regular	67a0970744893b9f3f0d9b68	5a7c2eca46aef81a7ca2145d	武装侦察	Offensive Reconnaissance			26	28000	Any	0	0
+regular	67a0970f05d1611ed90be75d	5a7c2eca46aef81a7ca2145d	检验假说	Hypotheses Testing	迷宫	The Labyrinth	26	28000	Any	0	0
+regular	67a09724972c11a3f5077324	5935c25fb3acc3127c3d8cd9	机密情报	Confidential Info	迷宫	The Labyrinth	26	28000	Any	0	0
+regular	67a0972e77dd677f600804bd	54cb57776803fa99248b456e	这带子糟透了	This Tape Sucks	迷宫	The Labyrinth	26	28000	Any	0	0
+regular	67a097379f2068e74603c6ac	58330581ace78e27b8b10cee	绝对威信	Indisputable Authority	迷宫	The Labyrinth	26	28000	Any	0	0
+regular	67a09761e720611a6a01f288	638f541a29ffd1183d187f57	守望者箴言	Keeper's Word	迷宫	The Labyrinth	26	56800	Any	0	0
+regular	67af4c1405c58dc6f7056667	58330581ace78e27b8b10cee	有利可图的生意	Profitable Venture			50	0	Any	0	0
+regular	67af4c169d95ad16e004fd86	58330581ace78e27b8b10cee	安全保障	Safety Guarantee			50	0	Any	0	0
+regular	67af4c17f4f1fb58a907f8f6	58330581ace78e27b8b10cee	学无止境	Never Too Late To Learn			50	0	Any	0	0
+regular	67af4c1991ee75c6d7060a16	58330581ace78e27b8b10cee	站稳脚跟	Get a Foothold			50	0	Any	0	0
+regular	67af4c1a6c3ebfd8e6034916	58330581ace78e27b8b10cee	利润保留	Profit Retention			50	0	Any	0	0
+regular	67af4c1cc0e59d55e2010b97	58330581ace78e27b8b10cee	人生之课	A Life Lesson			50	0	Any	0	0
+regular	67af4c1d8c9482eca103e477	58330581ace78e27b8b10cee	安慰奖	Consolation Prize	实验室	The Lab	0	0	Any	0	0
+regular	67b45467814ab0ffa000c7e7	54cb50c76803fa8b248b4571	艺术就是爆炸	The Art of Explosion			36	65000	Any	0	0
+regular	67d03be712fb5f8fd2096332	5ac3b934156ae10c4430e83c	清空外围	Vacate the Premises	迷宫	The Labyrinth	26	28000	Any	0	0
+regular	67e993b1ac26bf29380a320b	638f541a29ffd1183d187f57	天降大礼 [PVP ZONE]	Surprise Gift [PVP ZONE]			35	25500	Any	0	0
+regular	67e993f5ed537409f009da75	6617beeaa9cfa777ca915b7c	迟来的奖励（PVP）	Postponed Reward [PVP ZONE]			35	0	Any	0	0
+regular	684009026ceedc792c09b2a7	5a7c2eca46aef81a7ca2145d	同好俱乐部	Hobby Club			45	65000	Any	0	0
+regular	68400926706e0a55e90b0007	58330581ace78e27b8b10cee	公道价 - 1	Fair Price - Part 1			45	10000	Any	0	0
+regular	68400953506db3b4db0700e7	58330581ace78e27b8b10cee	公道价 - 2	Fair Price - Part 2	森林	Woods	45	28000	Any	0	0
+regular	6848100b00afffa81f09e365	5ac3b934156ae10c4430e83c	新起点	New Beginning			35	11000	Any	0	0
+regular	68481881f43abfdda2058369	5ac3b934156ae10c4430e83c	新起点	New Beginning			40	11000	Any	0	0
+regular	68db9c7557bc51a8c804c14b	5a7c2eca46aef81a7ca2145d	目标与手段	Goals and Means			0	65000	Any	0	0
+regular	68ee1c18b4e5bc9a68018cd7	54cb50c76803fa8b248b4571	特殊订单	Special Order			0	65000	Any	0	0
+regular	6942b44f891369fc790e385a	5a7c2eca46aef81a7ca2145d	轻重缓急	Setting Priorities			40	65000	Any	0	0
+regular	697877e0c639962b2e0cf24f	6617beeaa9cfa777ca915b7c	竞技场差事（PVP）	Arena Business [PVP ZONE]			10	19500	Any	0	0
+regular	69788c2bac719606e40b4e77	6617beeaa9cfa777ca915b7c	专业热身 - 1（PVP）	Professional Fitness - Part 1 [PVP ZONE]			10	1800	Any	0	0
+regular	69788db3878a4385d10c0718	6617beeaa9cfa777ca915b7c	专业热身 - 2（PVP）	Professional Fitness - Part 2 [PVP ZONE]			10	2400	Any	0	0
+regular	69789418b2187365e70bb947	6617beeaa9cfa777ca915b7c	再创新高！- 6（PVP）	To Great Heights! - Part 6 [PVP ZONE]			10	7700	Any	0	0
+regular	697895b6c639962b2e0cf268	6617beeaa9cfa777ca915b7c	保持领先（PVP）	Hold the Lead [PVP ZONE]			10	9100	Any	0	0
+regular	69c26c07683c9831020018c7	656f0f98d80a697f855d34b1	坚持到底	Stick to It			0	25000	Any	0	0
+regular	69c27158e350f01390049e77	656f0f98d80a697f855d34b1	拯救大兵罗曼	Saving Private Roman			0	42000	Any	0	0
+regular	69c277f3ea6da9c23e07f8d2	656f0f98d80a697f855d34b1	苦涩的胜利	A Bitter Victory			0	30000	Any	0	0
+regular	69c2a2d004de49c8f0055a3d	656f0f98d80a697f855d34b1	宿醉	Hangover			0	60000	Any	0	0
+regular	69ce1cfb298a6529b30d712b	5c0647fdd443bc2504c2d371	如楔在侧	A Wedge Between Us	破冰船	Icebreaker	0	52000	Any	0	0
+regular	69ce1de03e15cd80bd06f6c9	54cb50c76803fa8b248b4571	油料交换	Oil Change	破冰船	Icebreaker	0	32000	Any	0	0
+regular	69ce1f84ebbdbf36a200627c	5935c25fb3acc3127c3d8cd9	和平原子	Peaceful Atom	破冰船	Icebreaker	0	24000	Any	0	0
+regular	69ce204c8702b378f9091e4b	54cb57776803fa99248b456e	战争从未改变	War Never Changes	破冰船	Icebreaker	0	27000	Any	0	0
+regular	69ce213a298a6529b30d7134	54cb57776803fa99248b456e	生化分析	Biochemistry	破冰船	Icebreaker	0	32000	Any	0	0
+regular	69ce21e990144e437802b1e0	5ac3b934156ae10c4430e83c	新鲜到货	Fresh Stock	破冰船	Icebreaker	0	25000	Any	0	0
+regular	69e5583240c3e6c8ba0edbd5	5935c25fb3acc3127c3d8cd9	窃听风暴	Wiring the Vessel	破冰船	Icebreaker	0	30000	Any	0	0
+regular	6a45208043b8d7604d00b8d5	5c0647fdd443bc2504c2d371	猎人之路 - 管理者	The Huntsman Path - Administrator	灯塔	Lighthouse	17	28000	Any	0	0
+regular	6a4532e48e82d8ffea0c3eae	5c0647fdd443bc2504c2d371	猎人之路 - 控制	The Huntsman Path - Control	实验室	The Lab	33	65000	Any	0	0
+regular	6a5424ae135497b9df0c68be	54cb57776803fa99248b456e	秋季综合征	Fall Ailment			0	3000	Any	0	0
+regular	6a5c1578f2689567c30eb0f3	5935c25fb3acc3127c3d8cd9	徒步旅行	Hiking	森林	Woods	0	3000	Any	0	0
+regular	6a5ccda873f06065630d61b0	5935c25fb3acc3127c3d8cd9	秘密消息	Secret Message	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+regular	6a5cd2178fd7c2b201032f3f	5935c25fb3acc3127c3d8cd9	演示原型	Demonstration Model	储备站	Reserve	19	28000	Any	0	0
+pve	5936d90786f7742b1420ba5b	54cb50c76803fa8b248b4571	首秀	Debut			0	3000	Any	0	0
+pve	5936da9e86f7742d65037edf	54cb50c76803fa8b248b4571	背景调查	Background Check	海关	Customs	0	3000	Any	0	0
+pve	59674cd986f7744ab26e32f2	54cb50c76803fa8b248b4571	硝烟野餐	Shootout Picnic	森林	Woods	0	3000	Any	0	0
+pve	59674eb386f774539f14813a	54cb50c76803fa8b248b4571	往事速递	Delivery From the Past			0	10000	Any	0	0
+pve	5967530a86f77462ba22226b	54cb50c76803fa8b248b4571	罪证	Bad Rep Evidence			0	3000	Any	0	0
+pve	59675d6c86f7740a842fc482	54cb50c76803fa8b248b4571	蛋卷冰淇淋	Ice Cream Cones	森林	Woods	6	10000	Any	0	0
+pve	59675ea386f77414b32bded2	54cb50c76803fa8b248b4571	邮递员派特 - 1	Postman Pat - Part 1	工厂	Factory	0	10000	Any	1	0
+pve	596760e186f7741e11214d58	54cb57776803fa99248b456e	邮递员派特 - 2	Postman Pat - Part 2			0	3000	Any	1	0
+pve	5967725e86f774601a446662	54cb50c76803fa8b248b4571	探囊取物	Shaking Up the Teller	海关	Customs	0	3000	Any	0	0
+pve	5967733e86f774602332fc84	54cb57776803fa99248b456e	短缺	Shortage			0	3000	Any	0	0
+pve	59689ee586f7740d1570bbd5	54cb57776803fa99248b456e	卫生标准	Sanitary Standards	工厂	Factory	0	10000	Any	0	0
+pve	59689fbd86f7740d137ebfc4	54cb57776803fa99248b456e	水瓶座行动	Operation Aquarius	海关	Customs	0	3000	Any	0	0
+pve	5968eb3186f7741dde183a4d	54cb57776803fa99248b456e	带血的水	Blood in the Water	海关	Customs	0	3000	Any	0	0
+pve	5969f90786f77420d2328015	54cb57776803fa99248b456e	善良之针	Charity			18	28000	Any	0	0
+pve	5969f9e986f7741dde183a50	54cb57776803fa99248b456e	药剂师	Pharmacist	海关	Customs	0	3000	Any	0	0
+pve	596a0e1686f7741ddf17dbee	54cb57776803fa99248b456e	供给计划	Supply Plans	森林	Woods	0	3000	Any	0	0
+pve	596a101f86f7741ddb481582	58330581ace78e27b8b10cee	暗中破坏	Kind of Sabotage			0	4500	Any	0	0
+pve	596a1e6c86f7741ddc2d3206	54cb57776803fa99248b456e	一般储备	General Wares			0	10000	Any	0	0
+pve	596a204686f774576d4c95de	54cb57776803fa99248b456e	卫生标准 - 2	Sanitary Standards - Part 2			8	4500	Any	0	0
+pve	596a218586f77420d232807c	54cb57776803fa99248b456e	汽车修理	Car Repair			0	28000	Any	0	0
+pve	596b36c586f77450d6045ad2	58330581ace78e27b8b10cee	供应商	Supplier			0	3000	Any	0	0
+pve	596b43fb86f77457ca186186	58330581ace78e27b8b10cee	敲诈者	The Extortionist	海关	Customs	0	3000	Any	0	0
+pve	596b455186f77457cb50eccb	58330581ace78e27b8b10cee	风波	Stirrup	工厂	Factory	0	10000	Any	0	0
+pve	5979ed3886f77431307dc512	58330581ace78e27b8b10cee	U盘里有什么？	What’s on the Flash Drive?			0	3000	Any	0	0
+pve	5979eee086f774311955e614	58330581ace78e27b8b10cee	金色失物	Golden Swag	海关	Customs	0	3000	Any	0	0
+pve	5979f8bb86f7743ec214c7a6	58330581ace78e27b8b10cee	Polikhim流浪汉	Polikhim Hobo			0	3000	Any	0	0
+pve	5979f9ba86f7740f6c3fe9f2	58330581ace78e27b8b10cee	化学品 - 1	Chemical - Part 1	海关	Customs	0	3000	Any	1	0
+pve	597a0b2986f77426d66c0633	58330581ace78e27b8b10cee	化学品 - 2	Chemical - Part 2	海关	Customs	0	3000	Any	1	0
+pve	597a0e5786f77426d66c0636	58330581ace78e27b8b10cee	化学品 - 3	Chemical - Part 3	工厂	Factory	9	10000	Any	1	0
+pve	597a0f5686f774273b74f676	58330581ace78e27b8b10cee	化学品 - 4	Chemical - Part 4	海关	Customs	9	10000	Any	0	0
+pve	597a160786f77477531d39d2	54cb57776803fa99248b456e	出于好奇	Out of Curiosity	海关	Customs	9	10000	Any	0	0
+pve	597a171586f77405ba6887d3	54cb50c76803fa8b248b4571	大客户	Big Customer	海关	Customs	9	10000	Any	0	0
+pve	59c124d686f774189b3c843f	54cb50c76803fa8b248b4571	油料快车	Oil Run	海关	Customs	0	3000	Any	0	0
+pve	59c50a9e86f7745fef66f4ff	54cb50c76803fa8b248b4571	惩罚者 - 2	The Punisher - Part 2	海岸线	Shoreline	0	10000	Any	0	0
+pve	59c50c8886f7745fed3193bf	54cb50c76803fa8b248b4571	惩罚者 - 3	The Punisher - Part 3	储备站	Reserve	21	28000	Any	0	0
+pve	59c512ad86f7741f0d09de9b	54cb50c76803fa8b248b4571	惩罚者 - 1	The Punisher - Part 1	海关	Customs	0	10000	Any	0	0
+pve	59c9392986f7742f6923add2	54cb57776803fa99248b456e	救助站点	Aid Stations			5	10000	Any	0	0
+pve	59c93e8e86f7742a406989c4	58330581ace78e27b8b10cee	收买人心	Loyalty Buyout			9	0	Any	0	0
+pve	59ca1a6286f774509a270942	54cb50c76803fa8b248b4571	铁证如山	Ironclad Proof			0	28000	Any	0	0
+pve	59ca264786f77445a80ed044	54cb50c76803fa8b248b4571	惩罚者 - 4	The Punisher - Part 4	灯塔	Lighthouse	36	28000	Any	0	0
+pve	59ca29fb86f77445ab465c87	54cb50c76803fa8b248b4571	惩罚者 - 5	The Punisher - Part 5			36	28000	Any	0	0
+pve	59ca2eb686f77445a80ed049	54cb50c76803fa8b248b4571	惩罚者 - 6	The Punisher - Part 6			36	28000	Any	0	0
+pve	5a03153686f77442d90e2171	5935c25fb3acc3127c3d8cd9	单程票	One-Way Ticket	工厂	Factory	8	10000	Any	0	0
+pve	5a03173786f77451cb427172	5935c25fb3acc3127c3d8cd9	疗养之旅 - 2	Spa Tour - Part 2	海岸线	Shoreline	12	6300	Any	0	0
+pve	5a0327ba86f77456b9154236	5935c25fb3acc3127c3d8cd9	燃料短缺	Fuel Shortage			0	3000	Any	0	0
+pve	5a03296886f774569778596a	5935c25fb3acc3127c3d8cd9	你渴望电力吗	I Need More Power	海岸线	Shoreline	0	10000	Any	0	0
+pve	5a0449d586f77474e66227b7	5935c25fb3acc3127c3d8cd9	主钥匙	Master Key	海岸线	Shoreline	0	3000	Any	0	0
+pve	5a27b75b86f7742e97191958	5935c25fb3acc3127c3d8cd9	渔具	Fishing Gear	海岸线	Shoreline	8	10000	Any	0	0
+pve	5a27b7a786f774579c3eb376	5935c25fb3acc3127c3d8cd9	猎虎行动	Tigr Safari	海关	Customs	0	3000	Any	0	0
+pve	5a27b7d686f77460d847e6a6	5935c25fb3acc3127c3d8cd9	破铜烂铁	Scrap Metal	海岸线	Shoreline	0	10000	Any	0	0
+pve	5a27b80086f774429a5d7e20	5935c25fb3acc3127c3d8cd9	鹰眼	Eagle Eye	海岸线	Shoreline	0	10000	Any	0	0
+pve	5a27b87686f77460de0252a8	5935c25fb3acc3127c3d8cd9	人道主义援助	Humanitarian Supplies	海岸线	Shoreline	0	10000	Any	0	0
+pve	5a27b9de86f77464e5044585	5935c25fb3acc3127c3d8cd9	邪教	The Cult	海岸线	Shoreline	8	10000	Any	0	0
+pve	5a27ba1c86f77461ea5a3c56	5935c25fb3acc3127c3d8cd9	武器流通	Weapons Circulation			0	10000	Any	0	0
+pve	5a27ba9586f7741b543d8e85	5935c25fb3acc3127c3d8cd9	疗养之旅 - 6	Spa Tour - Part 6			12	9500	Any	0	0
+pve	5a27bafb86f7741c73584017	5935c25fb3acc3127c3d8cd9	化学实验	Chemical Experiments	海关	Customs	0	3000	Any	0	0
+pve	5a27bb1e86f7741f27621b7e	5935c25fb3acc3127c3d8cd9	神秘货物	Cargo X	海岸线	Shoreline	0	28000	Any	0	0
+pve	5a27bb3d86f77411ea361a21	5935c25fb3acc3127c3d8cd9	定向追踪	Tracker	海岸线	Shoreline	19	28000	Any	0	0
+pve	5a27bb5986f7741dfb660900	5935c25fb3acc3127c3d8cd9	神秘货物 - 3	Cargo X - Part 3	海岸线	Shoreline	19	8400	Any	0	0
+pve	5a27bb8386f7741c770d2d0a	5935c25fb3acc3127c3d8cd9	湿活 - 1	Wet Job - Part 1	海岸线	Shoreline	8	10000	Any	0	0
+pve	5a27bbf886f774333a418eeb	5935c25fb3acc3127c3d8cd9	湿活 - 2	Wet Job - Part 2	海岸线	Shoreline	8	10000	Any	0	0
+pve	5a27bc1586f7741f6d40fa2f	5935c25fb3acc3127c3d8cd9	湿活 - 3	Wet Job - Part 3	海岸线	Shoreline	19	28000	Any	0	0
+pve	5a27bc3686f7741c73584026	5935c25fb3acc3127c3d8cd9	湿活 - 4	Wet Job - Part 4	海岸线	Shoreline	19	28000	Any	0	0
+pve	5a27bc6986f7741c7358402b	5935c25fb3acc3127c3d8cd9	湿活 - 5	Wet Job - Part 5	海岸线	Shoreline	37	28000	Any	0	0
+pve	5a27bc8586f7741b543d8ea4	5935c25fb3acc3127c3d8cd9	湿活 - 6	Wet Job - Part 6			37	28000	Any	0	0
+pve	5a27c99a86f7747d2c6bdd8e	58330581ace78e27b8b10cee	西方来客	Friend From the West			0	10000	Any	0	0
+pve	5a27d2af86f7744e1115b323	58330581ace78e27b8b10cee	西方来客 - 2	Friend From the West - Part 2			9	10000	Any	0	0
+pve	5a68661a86f774500f48afb0	54cb57776803fa99248b456e	医疗隐私 - 1	Health Care Privacy - Part 1	海岸线	Shoreline	0	3000	Any	0	0
+pve	5a68663e86f774501078f78a	54cb57776803fa99248b456e	医疗隐私 - 2	Health Care Privacy - Part 2	海岸线	Shoreline	5	10000	Any	0	0
+pve	5a68665c86f774255929b4c7	54cb57776803fa99248b456e	医疗隐私 - 3	Health Care Privacy - Part 3	森林	Woods	5	10000	Any	0	0
+pve	5a68667486f7742607157d28	54cb57776803fa99248b456e	医疗隐私 - 4	Health Care Privacy - Part 4			18	28000	Any	0	0
+pve	5a68669a86f774255929b4d4	54cb57776803fa99248b456e	医疗隐私 - 5	Health Care Privacy - Part 5	夜间工厂	Night Factory	18	28000	Any	0	0
+pve	5ac23c6186f7741247042bad	5a7c2eca46aef81a7ca2145d	枪匠 - MP-133	Gunsmith - MP-133			0	3000	Any	0	0
+pve	5ac2426c86f774138762edfe	5a7c2eca46aef81a7ca2145d	枪匠 - AKS-74U	Gunsmith - AKS-74U			0	3000	Any	0	0
+pve	5ac2428686f77412450b42bf	5a7c2eca46aef81a7ca2145d	枪匠 - HK MP5	Gunsmith - HK MP5			0	3000	Any	0	0
+pve	5ac242ab86f77412464f68b4	5a7c2eca46aef81a7ca2145d	枪匠大师 - 3	Gunsmith Master - Part 3			40	10000	Any	0	0
+pve	5ac244c486f77413e12cf945	5a7c2eca46aef81a7ca2145d	枪匠大师 - 2	Gunsmith Master - Part 2			40	10000	Any	0	0
+pve	5ac244eb86f7741356335af1	5a7c2eca46aef81a7ca2145d	枪匠 - M4A1	Gunsmith - M4A1			26	28000	Any	0	0
+pve	5ac345dc86f774288030817f	5a7c2eca46aef81a7ca2145d	投机第一步	Playing the Market	工厂	Factory	0	10000	Any	0	0
+pve	5ac3460c86f7742880308185	5a7c2eca46aef81a7ca2145d	挖矿 - 2	Farming - Part 2			12	5500	Any	0	0
+pve	5ac3462b86f7741d6118b983	5a7c2eca46aef81a7ca2145d	挖矿	Farming	海关	Customs	0	3000	Any	0	0
+pve	5ac3464c86f7741d651d6877	5a7c2eca46aef81a7ca2145d	半导体危机	Semiconductor Crisis			0	28000	Any	0	0
+pve	5ac3467986f7741d6224abc2	5a7c2eca46aef81a7ca2145d	恶意环伺	Ill-Wisher	海岸线	Shoreline	0	10000	Any	0	0
+pve	5ac346a886f7744e1b083d67	5a7c2eca46aef81a7ca2145d	捕鼠计划	Rat Hunting			12	10000	Any	0	0
+pve	5ac346cf86f7741d63233a02	5a7c2eca46aef81a7ca2145d	信号 - 3	Signal - Part 3	海岸线	Shoreline	15	8500	Any	0	0
+pve	5ac346e886f7741d6118b99b	5a7c2eca46aef81a7ca2145d	信号 - 4	Signal - Part 4			15	8600	Any	0	0
+pve	5ac3475486f7741d6224abd3	5a7c2eca46aef81a7ca2145d	不良嗜好	Bad Habit			0	3000	Any	0	0
+pve	5ac3477486f7741d651d6885	5a7c2eca46aef81a7ca2145d	侦查	Scout	工厂	Factory	0	10000	Any	0	0
+pve	5ac3479086f7742880308199	5a7c2eca46aef81a7ca2145d	圈内人	Insider			12	6700	Any	0	0
+pve	5ae3267986f7742a413592fe	5a7c2eca46aef81a7ca2145d	枪匠 - M870	Gunsmith - Model 870			0	10000	Any	0	0
+pve	5ae3270f86f77445ba41d4dd	5a7c2eca46aef81a7ca2145d	枪匠 - AKM	Gunsmith - AKM			26	28000	Any	0	0
+pve	5ae3277186f7745973054106	5a7c2eca46aef81a7ca2145d	枪匠 - AKS-74N	Gunsmith - AKS-74N			0	28000	Any	0	0
+pve	5ae327c886f7745c7b3f2f3f	5a7c2eca46aef81a7ca2145d	枪匠 - AK-105	Gunsmith - AK-105			0	28000	Any	0	0
+pve	5ae3280386f7742a41359364	5a7c2eca46aef81a7ca2145d	枪匠 - AS VAL	Gunsmith - AS VAL			29	28000	Any	0	0
+pve	5ae448a386f7744d3730fff0	5ac3b934156ae10c4430e83c	生意至上	Only Business			15	6700	Any	0	0
+pve	5ae448bf86f7744d733e55ee	5ac3b934156ae10c4430e83c	Make ULTRA Great Again	Make ULTRA Great Again	立交桥	Interchange	0	3000	Any	0	0
+pve	5ae448e586f7744dcf0c2a67	5ac3b934156ae10c4430e83c	大甩卖	Big Sale	立交桥	Interchange	0	10000	Any	0	0
+pve	5ae448f286f77448d73c0131	5ac3b934156ae10c4430e83c	燃油危机	Fuel Crisis	立交桥	Interchange	0	3000	Any	0	0
+pve	5ae4490786f7744ca822adcc	5ac3b934156ae10c4430e83c	盛装杀戮	Dressed to Kill			0	3000	Any	0	0
+pve	5ae4493486f7744efa289417	5ac3b934156ae10c4430e83c	库存清单	Inventory Files	立交桥	Interchange	0	3000	Any	0	0
+pve	5ae4493d86f7744b8e15aa8f	5ac3b934156ae10c4430e83c	损失惨重	A Big Loss	立交桥	Interchange	0	3000	Any	0	0
+pve	5ae4495086f77443c122bc40	5ac3b934156ae10c4430e83c	临行密密缝 - 1	Sew it Good - Part 1			0	10000	Any	1	0
+pve	5ae4495c86f7744e87761355	5ac3b934156ae10c4430e83c	临行密密缝 - 3	Sew it Good - Part 3			0	10000	Any	0	0
+pve	5ae4496986f774459e77beb6	5ac3b934156ae10c4430e83c	临行密密缝 - 4	Sew it Good - Part 4			0	10000	Any	0	0
+pve	5ae4497b86f7744cf402ed00	5ac3b934156ae10c4430e83c	临行密密缝 - 2	Sew it Good - Part 2			0	10000	Any	1	0
+pve	5ae4498786f7744bde357695	5ac3b934156ae10c4430e83c	成功的关键	The Key to Success	立交桥	Interchange	0	10000	Any	0	0
+pve	5ae4499a86f77449783815db	5ac3b934156ae10c4430e83c	风流倜傥	Charisma Brings Success			0	15600	Any	0	0
+pve	5ae449a586f7744bde357696	5ac3b934156ae10c4430e83c	暗度陈仓	No Fuss Needed			0	15800	Any	0	0
+pve	5ae449b386f77446d8741719	5ac3b934156ae10c4430e83c	感恩的心	Gratitude	森林	Woods	0	3000	Any	0	0
+pve	5ae449c386f7744bde357697	5ac3b934156ae10c4430e83c	探路者	Pathfinder	立交桥	Interchange	0	3000	Any	0	0
+pve	5ae449d986f774453a54a7e1	5ac3b934156ae10c4430e83c	财务总监	Supervisor			0	10000	Any	0	0
+pve	5b47749f86f7746c5d6a5fd4	5a7c2eca46aef81a7ca2145d	枪匠大师 - 4	Gunsmith Master - Part 4			40	10000	Any	0	0
+pve	5b47799d86f7746c5d6a5fd8	5a7c2eca46aef81a7ca2145d	枪匠 - MPX	Gunsmith - MPX			0	28000	Any	0	0
+pve	5b477b6f86f7747290681823	5a7c2eca46aef81a7ca2145d	枪匠大师 - 5	Gunsmith Master - Part 5			40	28000	Any	0	0
+pve	5b477f7686f7744d1b23c4d2	5a7c2eca46aef81a7ca2145d	枪匠大师 - 7	Gunsmith Master - Part 7			40	28000	Any	0	0
+pve	5b47825886f77468074618d3	5a7c2eca46aef81a7ca2145d	枪匠大师 - 9	Gunsmith Master - Part 9			40	28000	Any	0	0
+pve	5b47876e86f7744d1c353205	5ac3b934156ae10c4430e83c	战争之血 - 2	The Blood of War - Part 2			23	14600	Any	0	0
+pve	5b47891f86f7744d1b23c571	5ac3b934156ae10c4430e83c	奢侈无罪	Living High is Not a Crime			0	28000	Any	0	0
+pve	5b478b1886f7744d1b23c57d	5ac3b934156ae10c4430e83c	火线速递	Hot Delivery	立交桥	Interchange	0	10000	Any	0	0
+pve	5b478d0f86f7744d190d91b5	5ac3b934156ae10c4430e83c	微型客车	Minibus	立交桥	Interchange	0	10000	Any	0	0
+pve	5b478eca86f7744642012254	58330581ace78e27b8b10cee	维他命	Vitamins			0	10000	Any	0	0
+pve	5b478ff486f7744d184ecbbf	58330581ace78e27b8b10cee	供货	Supplements			0	10000	Any	0	0
+pve	5b47926a86f7747ccc057c15	58330581ace78e27b8b10cee	情报就是力量	Informed Means Armed			0	3000	Any	0	0
+pve	5b4794cb86f774598100d5d4	5935c25fb3acc3127c3d8cd9	铁鸟坠落	Metal Birds	森林	Woods	0	3000	Any	0	0
+pve	5b4795fb86f7745876267770	58330581ace78e27b8b10cee	愿者上钩	Chumming			7	10000	Any	0	0
+pve	5bc4776586f774512d07cf05	5c0647fdd443bc2504c2d371	塔科夫神射手 - 1	The Tarkov Shooter - Part 1			0	3000	Any	1	0
+pve	5bc479e586f7747f376c7da3	5c0647fdd443bc2504c2d371	塔科夫神射手 - 2	The Tarkov Shooter - Part 2			9	10000	Any	1	0
+pve	5bc47dbf86f7741ee74e93b9	5c0647fdd443bc2504c2d371	塔科夫神射手 - 3	The Tarkov Shooter - Part 3			9	10000	Any	1	0
+pve	5bc480a686f7741af0342e29	5c0647fdd443bc2504c2d371	塔科夫神射手 - 4	The Tarkov Shooter - Part 4			17	28000	Any	1	0
+pve	5bc4826c86f774106d22d88b	5c0647fdd443bc2504c2d371	塔科夫神射手 - 5	The Tarkov Shooter - Part 5	海关	Customs	17	13000	Any	0	0
+pve	5bc4836986f7740c0152911c	5c0647fdd443bc2504c2d371	塔科夫神射手 - 5	The Tarkov Shooter - Part 5			17	28000	Any	0	0
+pve	5bc4856986f77454c317bea7	5c0647fdd443bc2504c2d371	塔科夫神射手 - 6	The Tarkov Shooter - Part 6			33	65000	Any	0	0
+pve	5bc4893c86f774626f5ebf3e	5c0647fdd443bc2504c2d371	塔科夫神射手 - 7	The Tarkov Shooter - Part 7			33	65000	Any	0	0
+pve	5c0bbaa886f7746941031d82	58330581ace78e27b8b10cee	一派胡言	Bullshit	灯塔	Lighthouse	38	65000	Any	0	0
+pve	5c0bc91486f7746ab41857a2	58330581ace78e27b8b10cee	大音希声	Silent Caliber			38	65000	Any	0	0
+pve	5c0bd01e86f7747cdd799e56	5935c25fb3acc3127c3d8cd9	彻夜难眠	Insomnia			0	65000	Any	0	0
+pve	5c0bd94186f7747a727f09b2	54cb50c76803fa8b248b4571	塔市进口货	The Tarkov Import			0	28000	Any	0	0
+pve	5c0bdb5286f774166e38eed4	58330581ace78e27b8b10cee	坚如燧石	Flint			35	25100	Any	0	0
+pve	5c0bde0986f77479cf22c2f8	5a7c2eca46aef81a7ca2145d	天神射手	Shooter Born in Heaven			0	55000	Any	1	0
+pve	5c0be13186f7746f016734aa	5a7c2eca46aef81a7ca2145d	狙击疯魔	Psycho Sniper			40	65000	Any	0	0
+pve	5c0be5fc86f774467a116593	54cb57776803fa99248b456e	私人诊所	Private Clinic			35	30600	Any	0	0
+pve	5c0d0d5086f774363760aef2	54cb57776803fa99248b456e	运动员	Athlete			30	3500	Any	0	0
+pve	5c0d0f1886f77457b8210226	58330581ace78e27b8b10cee	转口贸易	From Hand to Hand	灯塔	Lighthouse	0	28000	Any	0	0
+pve	5c0d190cd09282029f5390d8	54cb50c76803fa8b248b4571	掷弹兵	Grenadier			6	10000	Any	0	0
+pve	5c0d1c4cd0928202a02a6f5c	54cb57776803fa99248b456e	灭虫服务	Decontamination Service	实验室	The Lab	37	12500	Any	0	0
+pve	5c0d4c12d09282029f539173	5935c25fb3acc3127c3d8cd9	维和任务	Peacekeeping Mission			0	65000	Any	0	0
+pve	5c0d4e61d09282029f53920e	5935c25fb3acc3127c3d8cd9	向导	The Guide			32	65000	Any	0	0
+pve	5c10f94386f774227172c572	5ac3b934156ae10c4430e83c	小事大帮忙	Small Things, Big Help	森林	Woods	0	3000	Any	0	0
+pve	5c1128e386f7746565181106	5a7c2eca46aef81a7ca2145d	肥料	Fertilizers			0	28000	Any	0	0
+pve	5c112d7e86f7740d6f647486	5ac3b934156ae10c4430e83c	垃圾佬	Scavenger			0	10000	Any	0	0
+pve	5c1141f386f77430ff393792	5ac3b934156ae10c4430e83c	古董爱好者	Antique Enthusiast			42	65000	Any	0	0
+pve	5c1234c286f77406fa13baeb	58330581ace78e27b8b10cee	借刀杀人	Setup	海关	Customs	0	10000	Any	0	0
+pve	5c12452c86f7744b83469073	54cb50c76803fa8b248b4571	左右逢源	Perfect Mediator			35	12000	Any	0	0
+pve	5c139eb686f7747878361a6f	5a7c2eca46aef81a7ca2145d	进口	Import			0	28000	Any	0	0
+pve	5c51aac186f77432ea65c552	579dc571d53a0658a154fbec	收藏家	Collector			42	0	Any	1	0
+pve	5d2495a886f77425cd51e403	5a7c2eca46aef81a7ca2145d	介绍	Introduction	森林	Woods	0	4500	Any	0	0
+pve	5d24b81486f77439c92d6ba8	5c0647fdd443bc2504c2d371	熟人	Acquaintance			0	3000	Any	0	0
+pve	5d25aed386f77442734d25d2	5c0647fdd443bc2504c2d371	生存者之路 - 危险零距离	The Survivalist Path - Unprotected but Dangerous			9	10000	Any	0	0
+pve	5d25b6be86f77444001e1b89	5c0647fdd443bc2504c2d371	生存者之路 - 省吃俭用	The Survivalist Path - Thrifty	森林	Woods	9	10000	Any	0	0
+pve	5d25bfd086f77442734d3007	5c0647fdd443bc2504c2d371	生存者之路 - Zhivchik	The Survivalist Path - Zhivchik			9	10000	Any	0	0
+pve	5d25c81b86f77443e625dd71	5c0647fdd443bc2504c2d371	生存者之路 - 受伤的野兽	The Survivalist Path - Wounded Beast			9	10000	Any	0	0
+pve	5d25cf2686f77443e75488d4	5c0647fdd443bc2504c2d371	生存者之路 - 硬汉	The Survivalist Path - Tough Guy	森林	Woods	9	28000	Any	0	0
+pve	5d25d2c186f77443e35162e5	5c0647fdd443bc2504c2d371	生存者之路 - 冷血	The Survivalist Path - Cold Blooded			17	28000	Any	0	0
+pve	5d25e29d86f7740a22516326	5c0647fdd443bc2504c2d371	生存者之路 -  雕鸮	The Survivalist Path - Eagle-Owl			17	28000	Any	0	0
+pve	5d25e2a986f77409dd5cdf2a	5c0647fdd443bc2504c2d371	生存者之路 - 战地军医	The Survivalist Path - Combat Medic			17	5900	Any	0	0
+pve	5d25e2b486f77409de05bba0	5c0647fdd443bc2504c2d371	猎人之路 - 周边安全	The Huntsman Path - Secured Perimeter	工厂	Factory	0	28000	Any	0	0
+pve	5d25e2c386f77443e7549029	5c0647fdd443bc2504c2d371	猎人之路 - 战利品	The Huntsman Path - Trophy	海关	Customs	0	3000	Any	0	0
+pve	5d25e2cc86f77443e47ae019	5c0647fdd443bc2504c2d371	猎人之路 - 杀戮森林	The Huntsman Path - Forest Cleaning			0	28000	Any	0	0
+pve	5d25e2d886f77442734d335e	5c0647fdd443bc2504c2d371	猎人之路 - 支配者	The Huntsman Path - Controller			17	28000	Any	0	0
+pve	5d25e2e286f77444001e2e48	5c0647fdd443bc2504c2d371	猎人之路 - 脱销	The Huntsman Path - Sellout	立交桥	Interchange	0	10000	Any	0	0
+pve	5d25e2ee86f77443e35162ea	5c0647fdd443bc2504c2d371	猎人之路 - 森林管理员	The Huntsman Path - Woods Keeper	森林	Woods	0	3000	Any	0	0
+pve	5d25e43786f7740a212217fa	5c0647fdd443bc2504c2d371	猎人之路 - 正义	The Huntsman Path - Justice			0	3000	Any	0	0
+pve	5d25e44386f77409453bce7b	5c0647fdd443bc2504c2d371	猎人之路 - 愤怒守望者	The Huntsman Path - Angry Watchman	海关	Customs	0	3000	Any	0	0
+pve	5d25e44f86f77443e625e385	5c0647fdd443bc2504c2d371	猎人之路 - 蒸发密令 - 1	The Huntsman Path - Eraser	储备站	Reserve	0	28000	Any	0	0
+pve	5d25e45e86f77408251c4bfa	5c0647fdd443bc2504c2d371	猎人之路 - 解放	The Huntsman Path - Liberation			0	28000	Any	0	0
+pve	5d25e46e86f77409453bce7c	5c0647fdd443bc2504c2d371	急救措施	First Aid			0	3000	Any	0	0
+pve	5d25e48186f77443e625e386	5c0647fdd443bc2504c2d371	礼节性拜访	Courtesy Visit	海岸线	Shoreline	0	10000	Any	0	0
+pve	5d25e48d86f77408251c4bfb	5c0647fdd443bc2504c2d371	黑幕交易	Shady Business			20	11400	Any	0	0
+pve	5d25e4ad86f77443e625e387	5c0647fdd443bc2504c2d371	怀旧之情	Nostalgia	海岸线	Shoreline	0	10000	Any	0	0
+pve	5d25e4b786f77408251c4bfc	5c0647fdd443bc2504c2d371	鱼塘	Fishing Place			17	28000	Any	0	0
+pve	5d25e4ca86f77409dd5cdf2c	5c0647fdd443bc2504c2d371	狩猎之旅	Hunting Trip	森林	Woods	0	65000	Any	0	0
+pve	5d25e4d586f77443e625e388	5c0647fdd443bc2504c2d371	储备	Reserve	储备站	Reserve	17	28000	Any	0	0
+pve	5d4bec3486f7743cac246665	54cb50c76803fa8b248b4571	管制材料	Regulated Materials			36	65000	Any	0	0
+pve	5d6fb2c086f77449da599c24	54cb57776803fa99248b456e	一天一个苹果 - 医生远离我	An Apple a Day Keeps the Doctor Away			18	0	Any	0	0
+pve	5d6fbc2886f77449d825f9d3	5935c25fb3acc3127c3d8cd9	导师	Mentor			37	0	Any	0	0
+pve	5e381b0286f77420e3417a74	5ac3b934156ae10c4430e83c	纺织业 - 1	Textile - Part 1			42	65000	BEAR	0	0
+pve	5e383a6386f77465910ce1f3	5ac3b934156ae10c4430e83c	纺织业 - 1	Textile - Part 1			42	65000	USEC	0	0
+pve	5e4d4ac186f774264f758336	5ac3b934156ae10c4430e83c	纺织业 - 2	Textile - Part 2			42	65000	BEAR	0	0
+pve	5e4d515e86f77438b2195244	5ac3b934156ae10c4430e83c	纺织业 - 2	Textile - Part 2			42	65000	USEC	0	0
+pve	5eaaaa7c93afa0558f3b5a1c	5c0647fdd443bc2504c2d371	生存者之路 - 瘾君子	The Survivalist Path - Junkie	森林	Woods	33	65000	Any	0	0
+pve	5eda19f0edce541157209cee	54cb50c76803fa8b248b4571	麻醉	Anesthesia	海岸线	Shoreline	0	10000	Any	0	0
+pve	5edab4b1218d181e29451435	5c0647fdd443bc2504c2d371	猎人之路 - 虐待狂	The Huntsman Path - Sadist	海岸线	Shoreline	0	65000	Any	0	0
+pve	5edab736cc183c769d778bc2	54cb57776803fa99248b456e	同事	Colleagues	海岸线	Shoreline	18	28000	Any	0	0
+pve	5edaba7c0c502106f869bc02	54cb57776803fa99248b456e	塔科夫式手腕	Tarkov-Style Diplomacy	海岸线	Shoreline	0	28000	Any	0	0
+pve	5edabd13218d181e29451442	58330581ace78e27b8b10cee	肮脏游戏	Rigged Game	海岸线	Shoreline	0	28000	Any	0	0
+pve	5edac020218d181e29451446	5935c25fb3acc3127c3d8cd9	样品	Samples			37	65000	Any	0	0
+pve	5edac34d0bb72a50635c2bfa	54cb57776803fa99248b456e	艰难抉择	A Difficult Choice			0	27500	Any	0	0
+pve	5edac63b930f5454f51e128b	5935c25fb3acc3127c3d8cd9	TerraGroup 雇员	TerraGroup Employee	实验室	The Lab	0	65000	Any	0	0
+pve	5ede55112c95834b583f052a	54cb50c76803fa8b248b4571	地堡	The Bunker	储备站	Reserve	21	28000	Any	0	0
+pve	5ede567cfa6dc072ce15d6e3	54cb50c76803fa8b248b4571	地堡 - 2	The Bunker - Part 2	储备站	Reserve	21	9200	Any	0	0
+pve	5f04886a3937dc337a6b8238	5a7c2eca46aef81a7ca2145d	化学橱柜	Chemistry Closet	海岸线	Shoreline	0	10000	Any	0	0
+pve	5fd9fad9c1ce6b1a3b486d00	54cb50c76803fa8b248b4571	搜索任务	Search Mission	森林	Woods	0	3000	Any	0	0
+pve	600302d73b897b11364cd161	5c0647fdd443bc2504c2d371	污秽遍地……	All This Filth...			0	3000	Any	0	0
+pve	6086c852c945025d41566124	5935c25fb3acc3127c3d8cd9	无中生有 - 储备站	Revision - Reserve	储备站	Reserve	19	28000	Any	0	0
+pve	60896888e4a85c72ef3fa300	58330581ace78e27b8b10cee	绝密技术	Classified Technologies	储备站	Reserve	22	28000	Any	0	0
+pve	60896b7bfa70fc097863b8f5	54cb50c76803fa8b248b4571	多鱼之漏	Documents	储备站	Reserve	0	28000	Any	0	0
+pve	60896bca6ee58f38c417d4f2	54cb50c76803fa8b248b4571	叛无所依	No Place for Renegades	储备站	Reserve	21	28000	Any	0	0
+pve	60896e28e4a85c72ef3fa301	54cb57776803fa99248b456e	病历	Disease History	储备站	Reserve	0	28000	Any	0	0
+pve	6089732b59b92115597ad789	5a7c2eca46aef81a7ca2145d	物尽其用	Surplus Goods	储备站	Reserve	26	28000	Any	0	0
+pve	6089736efa70fc097863b8f6	5a7c2eca46aef81a7ca2145d	后门	Back Door	储备站	Reserve	26	28000	Any	0	0
+pve	6089743983426423753cd58a	58330581ace78e27b8b10cee	安全通道	Safe Corridor	储备站	Reserve	0	28000	Any	0	0
+pve	608974af4b05530f55550c21	5ac3b934156ae10c4430e83c	储备专家	Reserve Expert	储备站	Reserve	0	28000	Any	0	0
+pve	608974d01a66564e74191fc0	5ac3b934156ae10c4430e83c	雪中送炭	A Fuel Matter	储备站	Reserve	27	28000	Any	0	0
+pve	608a768d82e40b3c727fd17d	5c0647fdd443bc2504c2d371	害虫防治	Pest Control	储备站	Reserve	0	28000	Any	0	0
+pve	60c0c018f7afb4354815096a	5c0647fdd443bc2504c2d371	猎人之路 - 工厂头目	The Huntsman Path - Factory Chief	工厂	Factory	0	10000	Any	0	0
+pve	60e71b62a0beca400d69efc4	54cb50c76803fa8b248b4571	护送	Escort			46	155000	Any	0	0
+pve	60e71b9bbd90872cb85440f3	54cb50c76803fa8b248b4571	掠地攻城	Capturing Outposts			0	10000	Any	0	0
+pve	60e71bb4e456d449cd47ca75	54cb50c76803fa8b248b4571	恐吓者	Intimidator			0	65000	Any	0	0
+pve	60e71c11d54b755a3b53eb65	58330581ace78e27b8b10cee	夜间扫荡	Night Sweep			0	65000	Any	0	0
+pve	60e71c48c1bfa3050473b8e5	54cb57776803fa99248b456e	急单	Crisis			38	34000	Any	0	0
+pve	60e71c9ad54b755a3b53eb66	5935c25fb3acc3127c3d8cd9	清洁工	The Cleaner	储备站	Reserve	0	28000	Any	0	0
+pve	60e71ccb5688f6424c7bfec4	5935c25fb3acc3127c3d8cd9	战利品	Trophies			0	65000	Any	0	0
+pve	60e71ce009d7c801eb0c0ec6	5935c25fb3acc3127c3d8cd9	特殊装备	Special Equipment			0	65000	Any	0	0
+pve	60e71d23c1bfa3050473b8e6	5a7c2eca46aef81a7ca2145d	致命校准	Calibration			40	65000	Any	0	0
+pve	60e71d6d7fcf9c556f325055	5a7c2eca46aef81a7ca2145d	急先锋	The Courier	海关	Customs	0	3000	Any	0	0
+pve	60e71dc0a94be721b065bbfc	5ac3b934156ae10c4430e83c	长期合作	Long Line	立交桥	Interchange	0	3000	Any	0	0
+pve	60e71dc67fcf9c556f325056	5ac3b934156ae10c4430e83c	酒瘾	Booze			27	28000	Any	0	0
+pve	60e71e8ed54b755a3b53eb67	5c0647fdd443bc2504c2d371	猎人之路 - 无情杀手	The Huntsman Path - Relentless			55	65000	Any	0	0
+pve	60e729cf5698ee7b05057439	5c0647fdd443bc2504c2d371	快枪手	Swift	森林	Woods	0	3000	Any	0	0
+pve	60effd818b669d08a35bfad5	579dc571d53a0658a154fbec	抉择	The Choice			50	433333	Any	0	0
+pve	6179ac7511973d018217d0b9	54cb50c76803fa8b248b4571	小菜一碟	Easy Job	灯塔	Lighthouse	21	28000	Any	0	0
+pve	6179acbdc760af5ad2053585	54cb50c76803fa8b248b4571	小菜一碟 - 2	Easy Job - Part 2	灯塔	Lighthouse	21	18000	Any	0	0
+pve	6179ad0a6e9dd54ac275e3f2	5c0647fdd443bc2504c2d371	猎人之路 - 流浪汉	The Huntsman Path - Outcasts	灯塔	Lighthouse	0	28000	Any	0	0
+pve	6179ad56c760af5ad2053587	54cb57776803fa99248b456e	海边假期	Seaside Vacation	灯塔	Lighthouse	0	28000	Any	0	0
+pve	6179afd0bca27a099552e040	54cb57776803fa99248b456e	消失的线人	Lost Contact	灯塔	Lighthouse	18	28000	Any	0	0
+pve	6179aff8f57fb279792c60a1	5935c25fb3acc3127c3d8cd9	人口过剩	Overpopulation	灯塔	Lighthouse	0	28000	Any	0	0
+pve	6179b3a12153c15e937d52bc	5a7c2eca46aef81a7ca2145d	能源危机	Energy Crisis	灯塔	Lighthouse	0	28000	Any	0	0
+pve	6179b3bdc7560e13d23eeb8d	5a7c2eca46aef81a7ca2145d	商业机密	Corporate Secrets	灯塔	Lighthouse	0	28000	Any	0	0
+pve	6179b4d1bca27a099552e04e	5935c25fb3acc3127c3d8cd9	无中生有 - 灯塔	Revision - Lighthouse	灯塔	Lighthouse	19	28000	Any	0	0
+pve	6179b4f16e9dd54ac275e407	58330581ace78e27b8b10cee	失踪货物	Missing Cargo	灯塔	Lighthouse	22	28000	Any	0	0
+pve	6179b5b06e9dd54ac275e409	54cb50c76803fa8b248b4571	我们的土地，我们的血	Our Own Land	灯塔	Lighthouse	0	28000	BEAR	0	0
+pve	6179b5eabca27a099552e052	5935c25fb3acc3127c3d8cd9	反抗	Counteraction	灯塔	Lighthouse	0	65000	USEC	0	0
+pve	61904daa7d0d857927447b9c	5c0647fdd443bc2504c2d371	隐士	The Hermit	灯塔	Lighthouse	17	28000	Any	0	0
+pve	6193850f60b34236ee0483de	58330581ace78e27b8b10cee	长路漫漫	Long Road			0	28000	Any	0	0
+pve	61958c366726521dd96828ec	5935c25fb3acc3127c3d8cd9	来自塔科夫的礼物	Gifts from Tarkov	灯塔	Lighthouse	0	28000	Any	0	0
+pve	61e6e5e0f5b9633f6719ed95	579dc571d53a0658a154fbec	亡羊补牢 - 信任	Compensation for Damage - Trust			0	0	Any	0	0
+pve	61e6e60223374d168a4576a6	579dc571d53a0658a154fbec	亡羊补牢 - 赌注	Compensation for Damage - Wager			0	0	Any	0	0
+pve	61e6e60c5ca3b3783662be27	579dc571d53a0658a154fbec	亡羊补牢 - Wergild	Compensation for Damage - Wergild			0	0	Any	0	0
+pve	61e6e615eea2935bc018a2c5	579dc571d53a0658a154fbec	亡羊补牢 - 酒保	Compensation for Damage - Barkeep			0	0	Any	0	0
+pve	61e6e621bfeab00251576265	579dc571d53a0658a154fbec	亡羊补牢 - 收藏	Compensation for Damage - Collection			0	0	Any	0	0
+pve	625d6ff5ddc94657c21a1625	5a7c2eca46aef81a7ca2145d	网络供应商 - 1	Network Provider - Part 1			0	18600	Any	0	1
+pve	625d6ffaf7308432be1d44c5	5a7c2eca46aef81a7ca2145d	网络供应商 - 2	Network Provider - Part 2	灯塔	Lighthouse	0	19100	Any	0	1
+pve	625d6ffcaa168e51321d69d7	5a7c2eca46aef81a7ca2145d	试探 - 1	Assessment - Part 1	灯塔	Lighthouse	0	23500	Any	0	1
+pve	625d6fff4149f1149b5b12c9	5a7c2eca46aef81a7ca2145d	试探 - 2	Assessment - Part 2	森林	Woods	0	24200	Any	0	1
+pve	625d7001c4874104f230c0c5	5a7c2eca46aef81a7ca2145d	试探 - 3	Assessment - Part 3	实验室	The Lab	0	24800	Any	0	1
+pve	625d70031ed3bb5bcc5bd9e5	5a7c2eca46aef81a7ca2145d	灯塔之匙	Key to the Tower	灯塔	Lighthouse	0	30500	Any	0	1
+pve	625d7005a4eb80027c4f2e09	5a7c2eca46aef81a7ca2145d	咚咚咚	Knock-Knock	灯塔	Lighthouse	0	31300	Any	0	1
+pve	625d700cc48e6c62a440fab5	5a7c2eca46aef81a7ca2145d	邂逅	Getting Acquainted	灯塔	Lighthouse	0	32000	Any	0	0
+pve	626148251ed3bb5bcc5bd9ed	5a7c2eca46aef81a7ca2145d	破镜重圆 - 收买人心	Make Amends - Buyout			0	0	Any	0	0
+pve	6261482fa4eb80027c4f2e11	5a7c2eca46aef81a7ca2145d	破镜重圆 - 装备	Make Amends - Equipment			0	0	Any	0	0
+pve	626148334149f1149b5b12ca	5a7c2eca46aef81a7ca2145d	破镜重圆 - 安保	Make Amends - Security	灯塔	Lighthouse	0	0	Any	0	0
+pve	62614836f7308432be1d44cc	5a7c2eca46aef81a7ca2145d	破镜重圆 - 大扫除	Make Amends - Sweep Up	储备站	Reserve	0	0	Any	0	0
+pve	6261483ac48e6c62a440fab7	5a7c2eca46aef81a7ca2145d	破镜重圆 - 软件	Make Amends - Software			0	0	Any	0	0
+pve	6261483dc4874104f230c0cd	5a7c2eca46aef81a7ca2145d	破镜重圆 - 隔离	Make Amends - Quarantine	实验室	The Lab	0	0	Any	0	0
+pve	626bd75b05f287031503c7f6	54cb57776803fa99248b456e	缉毒行动	Drug Trafficking	灯塔	Lighthouse	0	28000	Any	0	0
+pve	626bd75c71bd851e971b82a5	54cb50c76803fa8b248b4571	踩点行动	Reconnaissance	灯塔	Lighthouse	0	7500	Any	0	0
+pve	626bd75d5bef5d7d590bd415	58330581ace78e27b8b10cee	头号机密	Top Secret	灯塔	Lighthouse	0	28000	Any	0	0
+pve	626bd75e47ea7f506e5493c5	5a7c2eca46aef81a7ca2145d	直播 - 1	Broadcast - Part 1	灯塔	Lighthouse	12	10000	Any	0	0
+pve	626bdcc3a371ee3a7a3514c5	5c0647fdd443bc2504c2d371	流浪狗	Stray Dogs			33	65000	Any	0	0
+pve	638fcd23dc65553116701d33	5ac3b934156ae10c4430e83c	审计	Audit	塔科夫街区	Streets of Tarkov	12	10000	Any	0	0
+pve	639135534b15ca31f76bc317	5935c25fb3acc3127c3d8cd9	你的车该洗了	Your Car Needs a Service	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	6391359b9444fb141f4e6ee6	54cb50c76803fa8b248b4571	一信之缘	You've Got Mail	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	639135a7e705511c8a4a1b78	5ac3b934156ae10c4430e83c	芭蕾舞者	Ballet Lover	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	639135b04ed9512be67647d7	54cb50c76803fa8b248b4571	苏共之辉 - 1	Glory to CPSU - Part 1	塔科夫街区	Streets of Tarkov	17	7300	Any	0	0
+pve	639135bbc115f907b14700a6	5ac3b934156ae10c4430e83c	高保真	Audiophile	塔科夫街区	Streets of Tarkov	27	28000	Any	0	0
+pve	639135c3744e452011470807	58330581ace78e27b8b10cee	软禁	House Arrest	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	639135cd8ba6894d155e77cb	58330581ace78e27b8b10cee	软禁 - 2	House Arrest - Part 2	塔科夫街区	Streets of Tarkov	33	29200	Any	0	0
+pve	639135d89444fb141f4e6eea	54cb57776803fa99248b456e	人口普查	Population Census	塔科夫街区	Streets of Tarkov	5	10000	Any	0	0
+pve	639135e0fa894f0a866afde6	54cb57776803fa99248b456e	城市的解药	Urban Medicine	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	639135e8c115f907b14700aa	5a7c2eca46aef81a7ca2145d	探望	Surveillance	塔科夫街区	Streets of Tarkov	0	12000	Any	0	0
+pve	639135f286e646067c176a87	5935c25fb3acc3127c3d8cd9	无中生有 - 塔科夫街区	Revision - Streets of Tarkov	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	639136d68ba6894d155e77cf	54cb50c76803fa8b248b4571	绿色通道	Green Corridor	塔科夫街区	Streets of Tarkov	0	10000	BEAR	0	0
+pve	639136df4b15ca31f76bc31f	5c0647fdd443bc2504c2d371	猎人之路 - 管理者	The Huntsman Path - Administrator	储备站	Reserve	17	28000	Any	0	0
+pve	639136e84ed9512be67647db	5c0647fdd443bc2504c2d371	别开枪！	Cease Fire!	塔科夫街区	Streets of Tarkov	9	10000	Any	0	0
+pve	639136f086e646067c176a8b	54cb50c76803fa8b248b4571	屋顶战神	Kings of the Rooftops	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	639136fa9444fb141f4e6eee	5a7c2eca46aef81a7ca2145d	你被盯上了	Watching You	塔科夫街区	Streets of Tarkov	12	10000	Any	0	0
+pve	63913715f8e5dd32bf4e3aaa	5a7c2eca46aef81a7ca2145d	直播 - 2	Broadcast - Part 2	塔科夫街区	Streets of Tarkov	12	10000	Any	0	0
+pve	6391372c8ba6894d155e77d7	5c0647fdd443bc2504c2d371	直播 - 4	Broadcast - Part 4	塔科夫街区	Streets of Tarkov	17	28000	Any	0	0
+pve	6391d90f4ed9512be67647df	5a7c2eca46aef81a7ca2145d	破镜重圆	Make Amends	灯塔	Lighthouse	0	0	Any	0	0
+pve	6391d912f8e5dd32bf4e3ab2	5a7c2eca46aef81a7ca2145d	破镜重圆	Make Amends			0	0	Any	0	0
+pve	6391d9144b15ca31f76bc323	5a7c2eca46aef81a7ca2145d	破镜重圆	Make Amends			0	0	Any	0	0
+pve	639282134ed9512be67647ed	5935c25fb3acc3127c3d8cd9	此路不通	Road Closed	塔科夫街区	Streets of Tarkov	0	10000	USEC	0	0
+pve	63966faeea19ac7ed845db2c	638f541a29ffd1183d187f57	情报之源	Information Source			0	0	Any	0	0
+pve	63966fbeea19ac7ed845db2e	638f541a29ffd1183d187f57	失踪的线人	Missing Informant	塔科夫街区	Streets of Tarkov	0	0	Any	0	0
+pve	63966fccac6f8f3c677b9d89	638f541a29ffd1183d187f57	抢夺先机	Snatch			0	0	Any	0	0
+pve	63966fd9ea19ac7ed845db30	638f541a29ffd1183d187f57	以牙还牙	Payback	储备站	Reserve	0	0	Any	0	0
+pve	63966fe7ea74a47c2d3fc0e6	638f541a29ffd1183d187f57	归还人情	Return the Favor	森林	Woods	0	0	Any	0	0
+pve	63966ff54c3ef01b6f3ffad8	638f541a29ffd1183d187f57	挑衅	Provocation	立交桥	Interchange	0	0	Any	0	0
+pve	639670029113f06a7c3b2377	638f541a29ffd1183d187f57	按图索骥	Following the Bread Crumbs			0	0	Any	0	0
+pve	6396700fea19ac7ed845db32	638f541a29ffd1183d187f57	观察员	Spotter	塔科夫街区	Streets of Tarkov	0	0	Any	0	0
+pve	6396701b9113f06a7c3b2379	638f541a29ffd1183d187f57	大显身手	Make an Impression			0	0	Any	0	0
+pve	63967028c4a91c5cb76abd81	638f541a29ffd1183d187f57	大都会之谜	Trouble in the Big City	塔科夫街区	Streets of Tarkov	0	0	Any	0	0
+pve	639872f9decada40426d3447	5a7c2eca46aef81a7ca2145d	枪匠 - OP-SKS	Gunsmith - OP-SKS			0	10000	Any	0	0
+pve	639872fa9b4fb827b200d8e5	5a7c2eca46aef81a7ca2145d	枪匠 - P226R	Gunsmith - P226R			0	28000	Any	0	0
+pve	639872fc93ae507d5858c3a6	5a7c2eca46aef81a7ca2145d	枪匠 - Vector 9x19	Gunsmith - Vector 9x19			0	28000	Any	0	0
+pve	639872fe8871e1272b10ccf6	5a7c2eca46aef81a7ca2145d	枪匠大师 - 1	Gunsmith Master - Part 1			40	10000	Any	0	0
+pve	639873003693c63d86328f25	5a7c2eca46aef81a7ca2145d	枪匠大师 - 6	Gunsmith Master - Part 6			40	28000	Any	0	0
+pve	63987301e11ec11ff5504036	5a7c2eca46aef81a7ca2145d	枪匠大师 - 8	Gunsmith Master - Part 8			40	28000	Any	0	0
+pve	639dbaf17c898a131e1cffff	58330581ace78e27b8b10cee	老赖	Debtor	塔科夫街区	Streets of Tarkov	0	13200	Any	0	0
+pve	63a511ea30d85e10e375b045	5c0647fdd443bc2504c2d371	直播 - 3	Broadcast - Part 3	塔科夫街区	Streets of Tarkov	17	28000	Any	0	0
+pve	63a5cf262964a7488f5243ce	54cb50c76803fa8b248b4571	武力说服	Power of Persuasion			0	3000	Any	0	0
+pve	63a88045abf76d719f42d715	5c0647fdd443bc2504c2d371	美味香肠	The Delicious Sausage	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	63a9ae24009ffc6a551631a5	54cb50c76803fa8b248b4571	最好的差事	Best Job in the World			0	65000	Any	0	0
+pve	63a9b229813bba58a50c9ee5	5935c25fb3acc3127c3d8cd9	最烂的差事	Worst Job in the World			37	65000	Any	0	0
+pve	63a9b36cc31b00242d28a99f	5c0647fdd443bc2504c2d371	屠宰场	Slaughterhouse			33	65000	Any	0	0
+pve	63ab180c87413d64ae0ac20a	54cb57776803fa99248b456e	危险之路	Dangerous Road	塔科夫街区	Streets of Tarkov	15	7800	Any	0	0
+pve	64e7b971f9d6fa49d6769b44	5c0647fdd443bc2504c2d371	猎人之路 - 大动作	The Huntsman Path - Big Game	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	64e7b99017ab941a6f7bf9d7	54cb50c76803fa8b248b4571	出警 - 商场	Gendarmerie - Mall Cop	塔科夫街区	Streets of Tarkov	36	7100	Any	0	0
+pve	64e7b9a4aac4cd0a726562cb	54cb50c76803fa8b248b4571	出警 - 检票	Gendarmerie - Tickets, Please	塔科夫街区	Streets of Tarkov	36	7500	Any	0	0
+pve	64e7b9bffd30422ed03dad38	54cb50c76803fa8b248b4571	地区巡逻	District Patrol	塔科夫街区	Streets of Tarkov	0	8300	Any	0	0
+pve	64ee99639878a0569d6ec8c9	5c0647fdd443bc2504c2d371	直播 - 5	Broadcast - Part 5			17	28000	Any	0	0
+pve	64ee9df4496db64f9b7a4432	5a7c2eca46aef81a7ca2145d	神秘的门	The Door	塔科夫街区	Streets of Tarkov	0	28000	Any	0	0
+pve	64f3176921045e77405d63b5	54cb57776803fa99248b456e	急诊室的故事	Paramedic	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	64f5aac4b63b74469b6c14c2	54cb50c76803fa8b248b4571	苏共之辉	Glory to CPSU	塔科夫街区	Streets of Tarkov	6	10000	Any	0	0
+pve	64f5deac39e45b527a7c4232	54cb50c76803fa8b248b4571	爱国者的使命	Job for a Patriot			25	18000	Any	0	0
+pve	64f5e20652fc01298e2c61e3	58330581ace78e27b8b10cee	好吃到上瘾	Beyond the Red Meat	塔科夫街区	Streets of Tarkov	7	10000	Any	0	0
+pve	64f6aafd67e11a7c6206e0d0	58330581ace78e27b8b10cee	秘制食谱	The Secret Recipe	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	64f731ab83cfca080a361e42	54cb57776803fa99248b456e	兽医也是医	Pets Won't Need It	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	64f83bb69878a0569d6ecfbe	5a7c2eca46aef81a7ca2145d	枪匠大师 - 10	Gunsmith Master - Part 10			40	28000	Any	0	0
+pve	64f83bcdde58fc437700d8fa	5a7c2eca46aef81a7ca2145d	枪匠大师 - 11	Gunsmith Master - Part 11			40	28000	Any	0	0
+pve	64f83bd983cfca080a362c82	5a7c2eca46aef81a7ca2145d	枪匠大师 - 13	Gunsmith Master - Part 13			40	28000	Any	0	0
+pve	6572e876dc0d635f633a5714	58330581ace78e27b8b10cee	发财计划	Pyramid Scheme	塔科夫街区	Streets of Tarkov	0	12400	Any	0	0
+pve	657315ddab5a49b71f098853	54cb57776803fa99248b456e	新手上路	First in Line	中心区	Ground Zero	1	3000	Any	0	0
+pve	657315df034d76585f032e01	54cb50c76803fa8b248b4571	打靶训练	Shooting Cans	中心区	Ground Zero	1	3000	Any	0	0
+pve	657315e1dccd301f1301416a	54cb50c76803fa8b248b4571	奢靡人生	Luxurious Life	中心区	Ground Zero	0	3000	Any	0	0
+pve	657315e270bb0b8dba00cc48	58330581ace78e27b8b10cee	快车初体验	Burning Rubber	中心区	Ground Zero	1	3000	Any	0	0
+pve	657315e4a6af4ab4b50f3459	5a7c2eca46aef81a7ca2145d	救援行动	Saving the Mole	中心区	Ground Zero	1	3000	Any	0	0
+pve	65733403eefc2c312a759ddb	5a7c2eca46aef81a7ca2145d	公司福报	Corporate Perks	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	6573382e557ff128bf3da536	5a7c2eca46aef81a7ca2145d	高效秘诀	The Secret to Productivity	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	6573387d0b26ed4fde798de3	54cb57776803fa99248b456e	兽医也是医 - 2	Pets Won't Need It - Part 2	塔科夫街区	Streets of Tarkov	0	9000	Any	0	0
+pve	6573397ef3f8344c4575cd87	54cb50c76803fa8b248b4571	财不外露	Properties All Around	塔科夫街区	Streets of Tarkov	0	6600	Any	0	0
+pve	65734c186dc1e402c80dc19e	5ac3b934156ae10c4430e83c	花花公子	Dandies	塔科夫街区	Streets of Tarkov	12	11000	Any	0	0
+pve	6574e0dedc0d635f633a5805	54cb50c76803fa8b248b4571	透透气	Getting Some Air			36	65000	Any	0	0
+pve	6578eb36e5020875d64645cd	5c0647fdd443bc2504c2d371	猎人之路 - 坏警察	The Huntsman Path - Crooked Cop	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	6578ec473dbd035d04531a8d	5a7c2eca46aef81a7ca2145d	稳定信号	Steady Signal	森林	Woods	0	3000	Any	0	0
+pve	658027799634223183395339	58330581ace78e27b8b10cee	禁止打劫	No Swiping	海岸线	Shoreline	0	12000	Any	0	0
+pve	65802b627b44fa5e14638899	5ac3b934156ae10c4430e83c	绝不上当	Nothing Fishy About This	海岸线	Shoreline	12	10000	Any	0	0
+pve	6613f3007f6666d56807c929	5ac3b934156ae10c4430e83c	人靠衣装 - 1	Drip-Out - Part 1			27	28000	BEAR	0	0
+pve	6613f307fca4f2f386029409	5ac3b934156ae10c4430e83c	人靠衣装 - 2	Drip-Out - Part 2			42	65000	BEAR	0	0
+pve	66151401efb0539ae10875ae	5ac3b934156ae10c4430e83c	人靠衣装 - 1	Drip-Out - Part 1			27	28000	USEC	0	0
+pve	6615141bfda04449120269a7	5ac3b934156ae10c4430e83c	人靠衣装 - 2	Drip-Out - Part 2			42	65000	USEC	0	0
+pve	665eeacf5d86b6c8aa03c79b	5c0647fdd443bc2504c2d371	口干舌燥 - 猎犬行动	Thirsty - Hounds	海岸线	Shoreline	9	10000	Any	0	0
+pve	665eec1f5e47a79f8605565a	58330581ace78e27b8b10cee	口干舌燥 - 养家糊口	Thirsty - Breadwinner			9	10000	Any	0	0
+pve	665eec4a4dfc83b0ed0a9dca	58330581ace78e27b8b10cee	口干舌燥 - 送货服务	Thirsty - Delivery			9	10000	Any	0	0
+pve	665eeca45d86b6c8aa03c79d	54cb57776803fa99248b456e	口干舌燥 - 往日回响	Thirsty - Echo	海岸线	Shoreline	9	10000	Any	0	0
+pve	665eeca92f7aedcc900b0437	54cb57776803fa99248b456e	口干舌燥 - 秘密配方	Thirsty - Secrets			9	10000	Any	0	0
+pve	66631489acf8442f8b05319f	579dc571d53a0658a154fbec	陌路相交	Friend Among Strangers			0	25600	Any	0	0
+pve	6663148ca9290f9e0806cca1	579dc571d53a0658a154fbec	免疫力	Immunity			0	28000	Any	0	0
+pve	6663148ed7f171c4c20226c1	579dc571d53a0658a154fbec	小本生意 - 1	Small Business - Part 1			0	22800	Any	0	0
+pve	6663149196a9349baa021baa	579dc571d53a0658a154fbec	小本生意 - 2	Small Business - Part 2			0	36800	Any	0	0
+pve	66631493312343839d032d22	579dc571d53a0658a154fbec	小本生意 - 3	Small Business - Part 3			0	30000	Any	0	0
+pve	6663149cfd5ca9577902e037	5ac3b934156ae10c4430e83c	看不见的大手	The Invisible Hand			42	12800	Any	0	0
+pve	6663149f1d3ec95634095e75	5ac3b934156ae10c4430e83c	经济流动	Circulate			42	32000	Any	0	0
+pve	666314a1920800278d0f6746	5ac3b934156ae10c4430e83c	特殊提议	Special Offer			42	85500	Any	0	0
+pve	666314a31cd52e3d040a2e76	5ac3b934156ae10c4430e83c	实战考验	Combat Proven			42	92000	Any	0	0
+pve	666314a50aa5c7436c00908a	5ac3b934156ae10c4430e83c	旧情难却	Old Patterns			42	0	Any	0	0
+pve	666314b0acf8442f8b0531a1	54cb50c76803fa8b248b4571	人间地狱 - 1	Hell on Earth - Part 1			12	2300	Any	0	0
+pve	666314b2a9290f9e0806cca3	54cb50c76803fa8b248b4571	人间地狱 - 2	Hell on Earth - Part 2			21	16000	Any	0	0
+pve	666314b4d7f171c4c20226c3	54cb50c76803fa8b248b4571	往昔时光 - 1	The Good Times - Part 1	工厂	Factory	12	28000	Any	0	0
+pve	666314b696a9349baa021bac	54cb57776803fa99248b456e	质量标准	Quality Standard	实验室	The Lab	12	28000	Any	0	0
+pve	666314b8312343839d032d24	5a7c2eca46aef81a7ca2145d	航空包裹	Airmail	森林	Woods	12	10000	Any	0	0
+pve	666314bafd5ca9577902e03a	54cb50c76803fa8b248b4571	往昔时光 - 2	The Good Times - Part 2			12	28000	Any	0	0
+pve	666314bc1d3ec95634095e77	58330581ace78e27b8b10cee	高光时刻	Minute of Fame	立交桥	Interchange	12	28000	Any	0	0
+pve	666314bd920800278d0f6748	54cb50c76803fa8b248b4571	忠实观众	Viewer			12	65000	Any	0	0
+pve	666314bf1cd52e3d040a2e78	58330581ace78e27b8b10cee	严词指控	Serious Allegations	海岸线	Shoreline	12	28000	Any	0	0
+pve	666314c10aa5c7436c00908c	5a7c2eca46aef81a7ca2145d	镜头就位，开拍！	Camera, Action!			12	28000	Any	0	0
+pve	666314c3acf8442f8b0531a3	58330581ace78e27b8b10cee	一报还一报	Proper Comeback			12	65000	Any	0	0
+pve	666314c5a9290f9e0806cca5	5ac3b934156ae10c4430e83c	城市之匙	Key to the City	塔科夫街区	Streets of Tarkov	12	28000	Any	0	0
+pve	6672d9def1c88688a707d042	579dc571d53a0658a154fbec	建立联系	Establish Contact			0	8800	Any	0	0
+pve	669fa38fad7f1eac2607ed46	5935c25fb3acc3127c3d8cd9	悬结已解	One Less Loose End			0	3000	Any	0	0
+pve	669fa3910c828825de06d69f	54cb57776803fa99248b456e	健全替代	A Healthy Alternative			0	3000	Any	0	0
+pve	669fa395c4c5c04798002497	58330581ace78e27b8b10cee	出口在此	Exit Here	工厂	Factory	7	10000	Any	0	0
+pve	669fa3979b0ce3feae01a130	5c0647fdd443bc2504c2d371	幽闭恐惧症	Claustrophobia	工厂	Factory	0	10000	Any	0	0
+pve	669fa399033a3ce9870338a8	54cb50c76803fa8b248b4571	占有者	Possessor	工厂	Factory	0	10000	Any	0	0
+pve	669fa39b91b0a8c9680fc467	5a7c2eca46aef81a7ca2145d	黑天鹅计划	Black Swan	工厂	Factory	12	10000	Any	0	0
+pve	669fa39c64ea11e84c0642a6	58330581ace78e27b8b10cee	隔墙有“眼”	The Walls Have Eyes	工厂	Factory	0	10000	Any	0	0
+pve	669fa39ee749756c920d02c8	54cb57776803fa99248b456e	刨根问底	All Is Revealed	工厂	Factory	5	10000	Any	0	0
+pve	669fa3a08b4a64b332041ff7	5c0647fdd443bc2504c2d371	妥善保管	Dragnet	工厂	Factory	9	10000	Any	0	0
+pve	669fa3a3ad7f1eac2607ed48	54cb57776803fa99248b456e	医疗隐私 - 6	Health Care Privacy - Part 6	工厂	Factory	37	65000	Any	0	0
+pve	669fa3a40c828825de06d6a1	54cb50c76803fa8b248b4571	武装郊游	Easy-Breezy			0	28000	Any	0	0
+pve	66aa58245ab22944110db6e9	5935c25fb3acc3127c3d8cd9	新路线，新机遇	New Paths			0	3000	Any	0	0
+pve	66aa61663aa37705c5024277	5ac3b934156ae10c4430e83c	此路是我开！	Know Your Place!			27	28000	Any	0	0
+pve	66aa74571e5e199ecd094f18	5a7c2eca46aef81a7ca2145d	化工厂的秘密	Secrets of Polikhim			0	10000	Any	0	0
+pve	66ab970848ddbe9d4a0c49a8	54cb50c76803fa8b248b4571	特别联络	Special Comms			0	28000	Any	0	0
+pve	66ab9da7eb102b9bcd08591c	5c0647fdd443bc2504c2d371	卑鄙的外乡人	Forester's Duty			0	28000	Any	0	0
+pve	66aba85403e0ee3101042877	54cb57776803fa99248b456e	街区之下	Beneath The Streets			37	24000	Any	0	0
+pve	66b38c7bf85b8bf7250f9cb6	5c0647fdd443bc2504c2d371	危机四伏塔科夫	Rough Tarkov			0	3000	Any	0	0
+pve	66b38e144f2ab7cc530c3fe7	5c0647fdd443bc2504c2d371	猎人必修课	Every Hunter Knows This			9	10000	Any	0	0
+pve	66d9cbb67b491f9d5304f6e6	579dc571d53a0658a154fbec	这是什么梗？	Is This a Reference?			25	30000	Any	0	0
+pve	671a49f77d49aea42c029b5f	58330581ace78e27b8b10cee	诱人新货	Irresistible	立交桥	Interchange	22	28000	Any	0	0
+pve	671a59e43d73dac1360765cc	58330581ace78e27b8b10cee	致命道具	Dangerous Props			38	65000	Any	0	0
+pve	673f2cd5d3346c2167020484	656f0f98d80a697f855d34b1	货运延误 - 2	Shipping Delay - Part 2	森林	Woods	0	11500	Any	0	0
+pve	673f348dd3346c21670217e7	54cb50c76803fa8b248b4571	货运延误 - 1	Shipping Delay - Part 1	森林	Woods	0	10000	Any	0	0
+pve	673f4e956f1b89c7bc0f56ef	656f0f98d80a697f855d34b1	风火轮	Hot Wheels			0	24300	Any	0	0
+pve	673f5a4976553f78350bdac1	656f0f98d80a697f855d34b1	风火轮 - 再次出发	Hot Wheels - Let's Try Again	储备站	Reserve	0	13500	Any	0	0
+pve	673f6027352b4da8e00322d2	656f0f98d80a697f855d34b1	必然回应	Inevitable Response			0	15500	Any	0	0
+pve	673f61a066e6a521aa04b62b	638f541a29ffd1183d187f57	外部订单	Order From Outside			0	46700	Any	0	0
+pve	673f629c5b555b53460cf827	656f0f98d80a697f855d34b1	奠定基石	Building Foundations			0	14500	Any	0	0
+pve	6740a02a69a58fceba0ff399	656f0f98d80a697f855d34b1	自然交换	Natural Exchange	海岸线	Shoreline	0	26800	Any	0	0
+pve	6740a15566e6a521aa051b15	54cb50c76803fa8b248b4571	缔结友谊	Forge a Friendship	海岸线	Shoreline	0	10000	Any	0	0
+pve	6740a2c17e3818d5bb0648b6	54cb50c76803fa8b248b4571	半满半空	Half-Empty			0	10000	Any	0	0
+pve	6740a3f4eca8acb2d2055159	54cb50c76803fa8b248b4571	横插一杠	Stick in the Wheel			0	28000	Any	0	0
+pve	6740b60c60a98cad1b0e0aa0	5ac3b934156ae10c4430e83c	再次延误	Another Shipping Delay	森林	Woods	0	10000	Any	0	0
+pve	674492b6909d2013670a347a	656f0f98d80a697f855d34b1	投石问路	Ask for Directions	灯塔	Lighthouse	0	13200	Any	0	0
+pve	6744a4717e3818d5bb0680bb	5ac3b934156ae10c4430e83c	稳定业务	Stabilize Business	中心区	Ground Zero	0	24100	Any	0	0
+pve	6744a728352b4da8e003eda9	656f0f98d80a697f855d34b1	电池换新	Battery Change			0	58700	Any	0	0
+pve	6744a9dfef61d56e020b5c4a	656f0f98d80a697f855d34b1	电池换新	Battery Change			0	58700	Any	0	0
+pve	6744ab1def61d56e020b5c56	656f0f98d80a697f855d34b1	对空遮断	Protect the Sky	森林	Woods	0	25400	Any	0	0
+pve	6744aca8d3346c216702c583	656f0f98d80a697f855d34b1	反将一军	Discombobulate	森林	Woods	0	23400	Any	0	0
+pve	6744af0969a58fceba101fed	656f0f98d80a697f855d34b1	独立的代价	The Price of Independence			0	85400	Any	0	0
+pve	6745cbee909d2013670a4a55	656f0f98d80a697f855d34b1	独立的代价	The Price of Independence			0	85400	Any	0	0
+pve	6745fae369a58fceba10343d	58330581ace78e27b8b10cee	人往高处走	The Higher They Fly	森林	Woods	0	10000	Any	0	0
+pve	6745fcded0fbbc74ca0f721d	656f0f98d80a697f855d34b1	现世报	Swift Retribution	森林	Woods	0	16000	Any	0	0
+pve	6745fdddd3346c216702e0bf	638f541a29ffd1183d187f57	简单副业	Simple Side Job			0	56700	Any	0	0
+pve	674600a366e6a521aa05eb66	58330581ace78e27b8b10cee	偏离路线	Route Deviation	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	674602307e3818d5bb069489	58330581ace78e27b8b10cee	后知后觉	Hindsight 20/20	森林	Woods	0	28000	Any	0	0
+pve	6746053b5b555b53460d9896	58330581ace78e27b8b10cee	关键伙伴	Key Partner			0	28000	Any	0	0
+pve	674605df60a98cad1b0ec799	58330581ace78e27b8b10cee	致命论据	Killer Argument	森林	Woods	0	28000	Any	0	0
+pve	67460662d0fbbc74ca0f7229	58330581ace78e27b8b10cee	识时务者为俊杰	Choose Your Friends Wisely			0	65000	Any	0	0
+pve	6752f6d83038f7df520c83e8	5a7c2eca46aef81a7ca2145d	一臂之力	A Helping Hand	森林	Woods	0	10000	Any	0	0
+pve	675c03d1f7da9792a405549a	54cb57776803fa99248b456e	无主货物	Abandoned Cargo	海关	Customs	0	3000	Any	0	0
+pve	675c047fa46173572a0bd878	54cb57776803fa99248b456e	货运追踪	Shipment Tracking	海关	Customs	0	3000	Any	0	0
+pve	675c04f4db8807b75d0f38e8	54cb57776803fa99248b456e	平易近人	Closer to the People	海关	Customs	0	10300	Any	0	0
+pve	675c085d59b0575973005f52	5ac3b934156ae10c4430e83c	浑水摸鱼	Break the Deal	海关	Customs	12	10000	Any	0	0
+pve	675c1570526ff496850895d9	5a7c2eca46aef81a7ca2145d	工欲善其事	Passion for Ergonomics	海关	Customs	0	3000	Any	0	0
+pve	675c15fbf7da9792a4059871	6617beeaa9cfa777ca915b7c	收视灵药	Provide Viewership	海关	Customs	0	32000	Any	0	0
+pve	675c1cf4a757ddd00404f0a3	5c0647fdd443bc2504c2d371	事倍功半	Work Smarter	海关	Customs	0	3000	Any	0	0
+pve	675c1d6d59b0575973008fc7	5935c25fb3acc3127c3d8cd9	先声夺人	Seizing the Initiative			0	3000	Any	0	0
+pve	675c1ec7a46173572a0bf20a	5c0647fdd443bc2504c2d371	试炼之路	Rite of Passage	海关	Customs	0	43000	Any	0	0
+pve	675c1ff1a757ddd00404f0aa	54cb50c76803fa8b248b4571	体验独一份	Unique Experience			35	32000	Any	0	0
+pve	675c3507a06634b5110e3c18	54cb50c76803fa8b248b4571	引路先驱	Belka and Strelka	海关	Customs	0	3000	Any	0	0
+pve	675c3582f6ddc329a90f9c6d	58330581ace78e27b8b10cee	私人俱乐部	Private Club	海关	Customs	0	11000	Any	0	0
+pve	6761f28a022f60bb320f3e95	5ac3b934156ae10c4430e83c	新起点	New Beginning			25	10000	Any	0	0
+pve	6764174c86addd02bc033d68	58330581ace78e27b8b10cee	北国新秀	Connections Up North			0	65000	Any	0	0
+pve	676529af9c90953d090882e7	5a7c2eca46aef81a7ca2145d	枪匠大师 - 12	Gunsmith Master - Part 12			40	28000	Any	0	0
+pve	67a09636b8725511260bc421	5a7c2eca46aef81a7ca2145d	影子雇员	Shady Contractor	中心区	Ground Zero	0	10000	Any	0	0
+pve	67a0964e972c11a3f507731b	5a7c2eca46aef81a7ca2145d	大海捞针	Needle in a Haystack			0	10000	Any	0	0
+pve	67a096577e86e067eb045733	5a7c2eca46aef81a7ca2145d	暗藏玄机	Hidden Layer			0	10000	Any	0	0
+pve	67a09673972c11a3f507731d	54cb57776803fa99248b456e	塔科夫屠夫	The Tarkov Butcher			0	10000	Any	0	0
+pve	67a0967c003a9986cb0f5ac1	5ac3b934156ae10c4430e83c	感官分析 - 1	Sensory Analysis - Part 1			0	28000	Any	0	0
+pve	67a096ed77dd677f600804ba	656f0f98d80a697f855d34b1	感官分析 - 2	Sensory Analysis - Part 2			0	0	Any	0	0
+pve	67a0970744893b9f3f0d9b68	5a7c2eca46aef81a7ca2145d	武装侦察	Offensive Reconnaissance			26	28000	Any	0	0
+pve	67a0970f05d1611ed90be75d	5a7c2eca46aef81a7ca2145d	检验假说	Hypotheses Testing	迷宫	The Labyrinth	26	28000	Any	0	0
+pve	67a09724972c11a3f5077324	5935c25fb3acc3127c3d8cd9	机密情报	Confidential Info	迷宫	The Labyrinth	26	28000	Any	0	0
+pve	67a0972e77dd677f600804bd	54cb57776803fa99248b456e	这带子糟透了	This Tape Sucks	迷宫	The Labyrinth	26	28000	Any	0	0
+pve	67a097379f2068e74603c6ac	58330581ace78e27b8b10cee	绝对威信	Indisputable Authority	迷宫	The Labyrinth	26	28000	Any	0	0
+pve	67a09761e720611a6a01f288	638f541a29ffd1183d187f57	守望者箴言	Keeper's Word	迷宫	The Labyrinth	26	56800	Any	0	0
+pve	67af4c1405c58dc6f7056667	58330581ace78e27b8b10cee	有利可图的生意	Profitable Venture			50	0	Any	0	0
+pve	67af4c169d95ad16e004fd86	58330581ace78e27b8b10cee	安全保障	Safety Guarantee			50	0	Any	0	0
+pve	67af4c17f4f1fb58a907f8f6	58330581ace78e27b8b10cee	学无止境	Never Too Late To Learn			50	0	Any	0	0
+pve	67af4c1991ee75c6d7060a16	58330581ace78e27b8b10cee	站稳脚跟	Get a Foothold			50	0	Any	0	0
+pve	67af4c1a6c3ebfd8e6034916	58330581ace78e27b8b10cee	利润保留	Profit Retention			50	0	Any	0	0
+pve	67af4c1cc0e59d55e2010b97	58330581ace78e27b8b10cee	人生之课	A Life Lesson			50	0	Any	0	0
+pve	67af4c1d8c9482eca103e477	58330581ace78e27b8b10cee	安慰奖	Consolation Prize	实验室	The Lab	0	0	Any	0	0
+pve	67b45467814ab0ffa000c7e7	54cb50c76803fa8b248b4571	艺术就是爆炸	The Art of Explosion			36	65000	Any	0	0
+pve	67d03be712fb5f8fd2096332	5ac3b934156ae10c4430e83c	清空外围	Vacate the Premises	迷宫	The Labyrinth	26	28000	Any	0	0
+pve	6834145ebc1f443d7603c8a7	58330581ace78e27b8b10cee	赚点快钱 - 1（PVE）	Easy Money - Part 1 [PVE ZONE]	海关	Customs	10	3000	Any	0	0
+pve	6834158f2f0e2a7eb90b62c8	6617beeaa9cfa777ca915b7c	赚点快钱 - 2（PVE）	Easy Money - Part 2 [PVE ZONE]			10	2900	Any	0	0
+pve	68341846186efa3c5b07f989	6617beeaa9cfa777ca915b7c	平衡之力 - 1（PVE）	Balancing - Part 1 [PVE ZONE]			10	5100	Any	0	0
+pve	68341a0b2f0e2a7eb90b62d4	6617beeaa9cfa777ca915b7c	平衡之力 - 2（PVE）	Balancing - Part 2 [PVE ZONE]			10	7000	Any	0	0
+pve	68341b407559f4e6d50bc0ce	6617beeaa9cfa777ca915b7c	平衡之力 - 2（PVE）	Surprise [PVE ZONE]			10	3600	Any	0	0
+pve	68341c4babec72d95d0c1260	6617beeaa9cfa777ca915b7c	声东击西 - 1（PVE）	Create a Distraction - Part 1 [PVE ZONE]	中心区	Ground Zero	10	5000	Any	0	0
+pve	68341d7d7559f4e6d50bc0db	6617beeaa9cfa777ca915b7c	声东击西 - 2（PVE）	Create a Distraction - Part 2 [PVE ZONE]	塔科夫街区	Streets of Tarkov	10	10000	Any	0	0
+pve	68341eb25619c8e2a9031501	6617beeaa9cfa777ca915b7c	再创新高！- 1（PVE）	To Great Heights! - Part 1 [PVE ZONE]			10	2800	Any	0	0
+pve	68341f6fe2e7ef70a3060a0a	6617beeaa9cfa777ca915b7c	再创新高！- 2（PVE）	To Great Heights! - Part 2 [PVE ZONE]			10	3500	Any	0	0
+pve	6834202a186efa3c5b07f9a2	6617beeaa9cfa777ca915b7c	再创新高！- 3（PVE）	To Great Heights! - Part 3 [PVE ZONE]			10	4500	Any	0	0
+pve	683421515619c8e2a9031511	6617beeaa9cfa777ca915b7c	再创新高！- 4（PVE）	To Great Heights! - Part 4 [PVE ZONE]			10	5600	Any	0	0
+pve	68342265a8d674b5740b31f0	6617beeaa9cfa777ca915b7c	再创新高！- 5（PVE）	To Great Heights! - Part 5 [PVE ZONE]			10	6900	Any	0	0
+pve	6834233fecd5cf3a440d855b	579dc571d53a0658a154fbec	良心作祟 - 1（PVE）	Against the Conscience - Part 1 [PVE ZONE]	海关	Customs	10	11700	Any	0	0
+pve	68342446a8d674b5740b31fc	6617beeaa9cfa777ca915b7c	良心作祟 - 2（PVE）	Against the Conscience - Part 2 [PVE ZONE]			10	23000	Any	0	0
+pve	6834254f2f0e2a7eb90b62ef	6617beeaa9cfa777ca915b7c	两难抉择（PVE）	Decisions, Decisions [PVE ZONE]			10	18500	Any	0	0
+pve	683425dd8f5b18d29a05d9d1	579dc571d53a0658a154fbec	两害相权（PVE）	Between Two Fires [PVE ZONE]	海关	Customs	10	18500	Any	0	0
+pve	683427418f5b18d29a05d9e3	638f541a29ffd1183d187f57	天降大礼（PVE）	Surprise Gift [PVE ZONE]			35	25500	Any	0	0
+pve	6834287b7559f4e6d50bc0fa	6617beeaa9cfa777ca915b7c	迟来的奖励（PVE）	Postponed Reward [PVE ZONE]			35	0	Any	0	0
+pve	684009026ceedc792c09b2a7	5a7c2eca46aef81a7ca2145d	同好俱乐部	Hobby Club			45	65000	Any	0	0
+pve	68400926706e0a55e90b0007	58330581ace78e27b8b10cee	公道价 - 1	Fair Price - Part 1			45	10000	Any	0	0
+pve	68400953506db3b4db0700e7	58330581ace78e27b8b10cee	公道价 - 2	Fair Price - Part 2	森林	Woods	45	28000	Any	0	0
+pve	68db9c7557bc51a8c804c14b	5a7c2eca46aef81a7ca2145d	目标与手段	Goals and Means			0	65000	Any	0	0
+pve	68ee1c18b4e5bc9a68018cd7	54cb50c76803fa8b248b4571	特殊订单	Special Order			0	65000	Any	0	0
+pve	6942b44f891369fc790e385a	5a7c2eca46aef81a7ca2145d	轻重缓急	Setting Priorities			40	65000	Any	0	0
+pve	697878057aa1273126030fb0	6617beeaa9cfa777ca915b7c	竞技场差事（PVE）	Arena Business [PVE ZONE]			10	19500	Any	0	0
+pve	69788d4e963f08d9140bce19	6617beeaa9cfa777ca915b7c	专业热身 - 1（PVE）	Professional Fitness - Part 1 [PVE ZONE]			10	1800	Any	0	0
+pve	6978907718bd6d7cbd0e8b8e	6617beeaa9cfa777ca915b7c	专业热身 - 2（PVE）	Professional Fitness - Part 2 [PVE ZONE]			10	2400	Any	0	0
+pve	697895277d31587eab080266	6617beeaa9cfa777ca915b7c	再创新高！- 6（PVE）	To Great Heights! - Part 6 [PVE ZONE]			10	7700	Any	0	0
+pve	69789660b2187365e70bb94a	6617beeaa9cfa777ca915b7c	保持领先（PVE）	Hold the Lead [PVE ZONE]			10	9100	Any	0	0
+pve	69c26c07683c9831020018c7	656f0f98d80a697f855d34b1	坚持到底	Stick to It			0	25000	Any	0	0
+pve	69c27158e350f01390049e77	656f0f98d80a697f855d34b1	拯救大兵罗曼	Saving Private Roman			0	42000	Any	0	0
+pve	69c277f3ea6da9c23e07f8d2	656f0f98d80a697f855d34b1	苦涩的胜利	A Bitter Victory			0	30000	Any	0	0
+pve	69c2a2d004de49c8f0055a3d	656f0f98d80a697f855d34b1	宿醉	Hangover			0	60000	Any	0	0
+pve	69ce1cfb298a6529b30d712b	5c0647fdd443bc2504c2d371	如楔在侧	A Wedge Between Us	破冰船	Icebreaker	0	52000	Any	0	0
+pve	69ce1de03e15cd80bd06f6c9	54cb50c76803fa8b248b4571	油料交换	Oil Change	破冰船	Icebreaker	0	32000	Any	0	0
+pve	69ce1f84ebbdbf36a200627c	5935c25fb3acc3127c3d8cd9	和平原子	Peaceful Atom	破冰船	Icebreaker	0	24000	Any	0	0
+pve	69ce204c8702b378f9091e4b	54cb57776803fa99248b456e	战争从未改变	War Never Changes	破冰船	Icebreaker	0	27000	Any	0	0
+pve	69ce213a298a6529b30d7134	54cb57776803fa99248b456e	生化分析	Biochemistry	破冰船	Icebreaker	0	32000	Any	0	0
+pve	69ce21e990144e437802b1e0	5ac3b934156ae10c4430e83c	新鲜到货	Fresh Stock	破冰船	Icebreaker	0	25000	Any	0	0
+pve	69e5583240c3e6c8ba0edbd5	5935c25fb3acc3127c3d8cd9	窃听风暴	Wiring the Vessel	破冰船	Icebreaker	0	30000	Any	0	0
+pve	6a45208043b8d7604d00b8d5	5c0647fdd443bc2504c2d371	猎人之路 - 管理者	The Huntsman Path - Administrator	灯塔	Lighthouse	17	28000	Any	0	0
+pve	6a4532e48e82d8ffea0c3eae	5c0647fdd443bc2504c2d371	猎人之路 - 控制	The Huntsman Path - Control	实验室	The Lab	33	65000	Any	0	0
+pve	6a5424ae135497b9df0c68be	54cb57776803fa99248b456e	秋季综合征	Fall Ailment			0	3000	Any	0	0
+pve	6a5c1578f2689567c30eb0f3	5935c25fb3acc3127c3d8cd9	徒步旅行	Hiking	森林	Woods	0	3000	Any	0	0
+pve	6a5ccda873f06065630d61b0	5935c25fb3acc3127c3d8cd9	秘密消息	Secret Message	塔科夫街区	Streets of Tarkov	0	10000	Any	0	0
+pve	6a5cd2178fd7c2b201032f3f	5935c25fb3acc3127c3d8cd9	演示原型	Demonstration Model	储备站	Reserve	19	28000	Any	0	0

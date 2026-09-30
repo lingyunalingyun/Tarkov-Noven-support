@@ -333,6 +333,7 @@ int App::Run(HINSTANCE instance, int show_command) {
     );
     main_ui_->SetPriceDataSources(*item_catalog_, *item_economy_store_);
     main_ui_->SetHideoutDataSources(executable_directory / L"assets" / L"data", *item_catalog_, *item_economy_store_);
+    main_ui_->SetTaskDataSources(executable_directory / L"assets" / L"data", *item_catalog_);
 
     data_refresh_service_->Start(executable_directory / L"data" / L"economy-cache");
 
@@ -823,6 +824,12 @@ LRESULT CALLBACK App::WindowProc(
                 app->EnsureRecentAnimationTimer();
                 return 0;
             }
+            break;
+        case WM_IME_STARTCOMPOSITION:
+            // 开始组合前先更新自绘搜索光标的位置，候选窗口仍由系统管理。
+            // Update the custom search anchor before the system opens its IME windows.
+            InvalidateRect(window, nullptr, FALSE);
+            UpdateWindow(window);
             break;
         case WM_CHAR:
             if (app->main_ui_ != nullptr && app->main_ui_->Char(static_cast<wchar_t>(w_param))) {

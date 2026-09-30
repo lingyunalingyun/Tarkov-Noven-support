@@ -3,6 +3,8 @@
 #include "ui/PageComponents.h"
 
 #include <windows.h>
+#include <imm.h>
+#include <cmath>
 
 #include <string>
 #include <string_view>
@@ -15,6 +17,15 @@ struct SearchTextLayout final {
     float caretX{};
     float scrollX{};
 };
+
+// 输入是未变换的客户区 DIP；输出是系统 IME 所需的客户区像素，不加屏幕原点。
+// Input is untransformed client DIPs; output is IME client pixels, without the screen origin.
+[[nodiscard]] inline POINT SearchImeAnchor(D2D1_POINT_2F caret,
+    const D2D1::Matrix3x2F& transform, float dpiX, float dpiY) {
+    const auto point = transform.TransformPoint(caret);
+    return {static_cast<LONG>(std::lround(point.x * dpiX / 96.0F)),
+        static_cast<LONG>(std::lround(point.y * dpiY / 96.0F))};
+}
 
 // 使用同一布局绘制文字和定位编辑光标；DIP 度量包含中文和比例字体。
 // Share one layout for drawing and the editing caret, including CJK and proportional fonts.
@@ -54,6 +65,38 @@ public:
         // 占位文字不参与光标定位；长查询只平移绘制，不改变查询内容。
         // Placeholder text does not position the caret; scrolling never modifies the query.
         const float scroll = text_.empty() ? 0.0F : textLayout.scrollX;
+        // 自绘光标的位置同步给系统输入法；窗口客户区像素需包含 DPI 和页面变换。
+        // Give the system IME the custom caret position in transformed client pixels.
+        if (focused_ && canvas.inputWindow && GetFocus() == canvas.inputWindow) {
+            const float x = viewport.left + (text_.empty() ? 0.0F : textLayout.caretX - scroll);
+            D2D1::Matrix3x2F transform;
+            canvas.target.GetTransform(&transform);
+            float dpiX{}, dpiY{};
+            canvas.target.GetDpi(&dpiX, &dpiY);
+            const auto anchor = SearchImeAnchor(D2D1::Point2F(x, bounds.bottom - 9),
+                transform, dpiX, dpiY);
+            if (const HIMC context = ImmGetContext(canvas.inputWindow)) {
+                CANDIDATEFORM candidate{};
+                if (!ImmGetCandidateWindow(context, 0, &candidate)
+                    || candidate.dwStyle != CFS_CANDIDATEPOS
+                    || candidate.ptCurrentPos.x != anchor.x || candidate.ptCurrentPos.y != anchor.y) {
+                    candidate = {};
+                    candidate.dwStyle = CFS_CANDIDATEPOS;
+                    candidate.ptCurrentPos = anchor;
+                    ImmSetCandidateWindow(context, &candidate);
+                }
+                COMPOSITIONFORM composition{};
+                if (!ImmGetCompositionWindow(context, &composition)
+                    || composition.dwStyle != CFS_POINT
+                    || composition.ptCurrentPos.x != anchor.x || composition.ptCurrentPos.y != anchor.y) {
+                    composition = {};
+                    composition.dwStyle = CFS_POINT;
+                    composition.ptCurrentPos = anchor;
+                    ImmSetCompositionWindow(context, &composition);
+                }
+                ImmReleaseContext(canvas.inputWindow, context);
+            }
+        }
         canvas.target.PushAxisAlignedClip(viewport, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
         canvas.brush.SetColor(text_.empty() ? theme.secondaryText : theme.primaryText);
         canvas.target.DrawTextLayout(D2D1::Point2F(viewport.left - scroll, viewport.top),

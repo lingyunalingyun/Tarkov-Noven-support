@@ -237,12 +237,17 @@ upgrade requirements, mode-specific flea estimates (incomplete costs are explici
 and read-only crafting outputs, ingredients, tools and source durations. No player progress or profit calculation.
 Regenerate structure with `python tools/hideout_generator/generate.py`; see `docs/HIDEOUT_REVIEW.md`.
 
+Tasks loads generated local Tarkov.dev data for trader/task navigation, localized objectives,
+task chains and completion rewards. Regular and PvE structures remain distinct; the UI is
+read-only and does not infer player progression. Regenerate with `python tools/tasks_generator/generate.py`.
+The current UI defaults to PvP without a Tasks mode selector; see `docs/TASKS_REVIEW.md` for validation and limitations.
+
 - Scanner
 - Prices (local catalog/economy browser, expandable flea-price history from tarkov.dev; rolling 30-day local cache, older ranges memory-only)
 - Raid History
 - Squad
 - Map
-- Tasks
+- Tasks (local generated task browser)
 - Hideout
 - Events
 - Recent Scans (local history implemented)

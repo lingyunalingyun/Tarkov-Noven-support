@@ -56,7 +56,10 @@ add_executable(NovenTarkovSupport WIN32
     src/data/PriceBrowser.cpp
     src/data/HideoutCatalog.cpp
     src/data/HideoutBrowser.cpp
+    src/data/TaskCatalog.cpp
+    src/data/TaskBrowser.cpp
     src/ui/HideoutPage.cpp
+    src/ui/TasksPage.cpp
     src/data/PriceHistory.cpp
     src/data/RecentScanStore.cpp
     src/hotkey/GlobalHotkey.cpp
@@ -119,6 +122,7 @@ endif()
 
 target_link_libraries(NovenTarkovSupport PRIVATE
     user32
+    imm32
     d3d11
     d3dcompiler
     dxgi
@@ -414,6 +418,7 @@ if(BUILD_TESTING)
             /W4 /permissive- /utf-8 /EHsc
         )
     endif()
+    target_link_libraries(NovenTarkovSupportNavigationTests PRIVATE imm32)
     add_test(NAME main_navigation COMMAND NovenTarkovSupportNavigationTests)
 
     add_executable(NovenTarkovSupportRecentScanTests
@@ -472,7 +477,8 @@ if(BUILD_TESTING)
     add_executable(NovenLocalizationUiTests
         tests/LocalizationUiTests.cpp
         src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
-        src/ui/HideoutPage.cpp src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
+        src/ui/HideoutPage.cpp src/ui/TasksPage.cpp src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
+        src/data/TaskCatalog.cpp src/data/TaskBrowser.cpp
         src/data/ItemCatalog.cpp src/data/ItemEconomyStore.cpp src/data/PriceBrowser.cpp
         src/data/PriceHistory.cpp
         src/ui/ItemImageCache.cpp src/ui/localization/LocalizationService.cpp
@@ -483,7 +489,7 @@ if(BUILD_TESTING)
     if(MSVC)
         target_compile_options(NovenLocalizationUiTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
-    target_link_libraries(NovenLocalizationUiTests PRIVATE d2d1 dwrite winhttp windowscodecs ole32 windowsapp)
+    target_link_libraries(NovenLocalizationUiTests PRIVATE d2d1 dwrite winhttp windowscodecs ole32 windowsapp imm32)
     add_test(NAME localization_ui COMMAND NovenLocalizationUiTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenPriceHistoryTests tests/PriceHistoryTests.cpp
         src/data/PriceHistory.cpp src/common/DebugLog.cpp)
@@ -503,6 +509,13 @@ if(BUILD_TESTING)
     if(MSVC)
         target_compile_options(NovenHideoutTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
-    target_link_libraries(NovenHideoutTests PRIVATE d2d1 dwrite)
+    target_link_libraries(NovenHideoutTests PRIVATE d2d1 dwrite imm32)
     add_test(NAME hideout COMMAND NovenHideoutTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+    add_executable(NovenTaskTests tests/TaskTests.cpp src/data/TaskCatalog.cpp src/data/TaskBrowser.cpp src/data/ItemCatalog.cpp)
+    target_include_directories(NovenTaskTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenTaskTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenTaskTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME tasks COMMAND NovenTaskTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 endif()

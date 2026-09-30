@@ -23,6 +23,9 @@ struct UiCanvas final {
     IDWriteTextFormat& body;
     IDWriteTextFormat& smallFormat;
     IDWriteFactory* textFactory{};
+    // 借用当前输入页的窗口；旧页过渡和离屏绘制必须留空，避免重定位输入法。
+    // Borrow the active input window; outgoing/offscreen draws leave it null to avoid moving the IME.
+    HWND inputWindow{};
 
     // 只缩小超出可用宽度的本地化页名，不改变标题行高度。
     // Shrink only localized page names that exceed available width, preserving the title-row height.

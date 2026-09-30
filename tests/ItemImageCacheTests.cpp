@@ -25,6 +25,8 @@ int main(int argc, char** argv) {
         && !ItemImageCache::ValidStationKey("station-../secret")
         && !ItemImageCache::ValidStationKey("https://example.com/image.png")
         && !ItemImageCache::ValidStationKey("station-"),"station image keys reject arbitrary paths and hosts");
+    Require(ItemImageCache::ValidTraderKey("trader-54cb50c76803fa8b248b4571")
+        && !ItemImageCache::ValidTraderKey("trader-../secret"),"trader image keys accept only stable IDs");
     Require(!ItemImageCache::Decode({}, image)
         && !ItemImageCache::Decode({1, 2, 3}, image), "invalid images fail safely");
     // 用小型 BMP 测试 WIC 和异步磁盘缓存，测试不依赖网络或用户历史。

@@ -24,8 +24,10 @@ bool Download(const std::string& id, std::vector<unsigned char>& bytes) {
     HttpHandle connection{WinHttpConnect(session.value, L"assets.tarkov.dev",
         INTERNET_DEFAULT_HTTPS_PORT, 0)};
     if (!connection.value) return false;
-    const std::wstring path = L"/" + std::wstring(id.begin(), id.end())
-        + (ItemImageCache::ValidStationKey(id) ? L".png" : L"-icon.webp");
+    const bool trader=ItemImageCache::ValidTraderKey(id);
+    const std::string sourceId=trader?id.substr(7):id;
+    const std::wstring path = L"/" + std::wstring(sourceId.begin(), sourceId.end())
+        + (ItemImageCache::ValidStationKey(id) ? L".png" : trader ? L".webp" : L"-icon.webp");
     HttpHandle request{WinHttpOpenRequest(connection.value, L"GET", path.c_str(), nullptr,
         WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE)};
     if (!request.value || !WinHttpSendRequest(request.value, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
@@ -107,6 +109,10 @@ bool ItemImageCache::ValidStationKey(const std::string& key) noexcept {
         && key.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789-")==std::string::npos;
 }
 
+bool ItemImageCache::ValidTraderKey(const std::string& key) noexcept {
+    return key.starts_with("trader-") && ValidId(key.substr(7));
+}
+
 ItemImageCache::~ItemImageCache() { Stop(); }
 
 void ItemImageCache::Start(HWND window, std::filesystem::path directory) {
@@ -121,11 +127,13 @@ void ItemImageCache::Stop() {
     if (worker_.joinable()) worker_.join();
 }
 
-void ItemImageCache::Request(const std::string& id) {
-    if (!ValidId(id) && !ValidStationKey(id)) return;
+void ItemImageCache::Request(const std::string& id, bool visiblePriority) {
+    if (!ValidId(id) && !ValidStationKey(id) && !ValidTraderKey(id)) return;
     std::lock_guard lock(mutex_);
     if (stopping_ || !requested_.insert(id).second) return;
-    pending_.push_back(id);
+    // 当前可见的界面头像应先于后台预取，但仍复用同一有界工作线程。
+    // Visible UI portraits precede background prefetch while reusing the same bounded worker.
+    if (visiblePriority) pending_.push_front(id); else pending_.push_back(id);
     changed_.notify_one();
 }
 

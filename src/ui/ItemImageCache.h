@@ -31,11 +31,12 @@ public:
     // The window owns this service: start once, then stop and join before destroying the window.
     void Start(HWND window, std::filesystem::path directory);
     void Stop();
-    void Request(const std::string& id);
+    void Request(const std::string& id, bool visiblePriority = false);
     void Forget(const std::string& id);
     [[nodiscard]] std::vector<ItemImage> TakeReady();
     [[nodiscard]] static bool ValidId(const std::string& id) noexcept;
     [[nodiscard]] static bool ValidStationKey(const std::string& key) noexcept;
+    [[nodiscard]] static bool ValidTraderKey(const std::string& key) noexcept;
     // 调用线程须初始化 COM；输出为预乘 BGRA，适合 Direct2D。
     // The calling thread must initialize COM; output is premultiplied BGRA for Direct2D.
     [[nodiscard]] static bool Decode(const std::vector<unsigned char>& bytes, ItemImage& image);

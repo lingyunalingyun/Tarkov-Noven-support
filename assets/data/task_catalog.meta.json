@@ -1,0 +1,37 @@
+{
+  "licensing": "Upstream attribution is not redistribution permission; review before public distribution.",
+  "pveTaskCount": 512,
+  "regularPveStructuralDifferenceCount": 591,
+  "regularTaskCount": 515,
+  "schemaVersion": 1,
+  "seasonalStructureFallback": "regular",
+  "source": "https://json.tarkov.dev/",
+  "sourceHashes": {
+    "https://json.tarkov.dev/pve/maps": "012b22566af1ea74b4c352cc6fdf9cd3a51d7ad8b9968fd8549741c0e8ccfb39",
+    "https://json.tarkov.dev/pve/maps_en": "8592735c4bcc0416ecdea5e1039e741bd856df1e562d0bcbe71d3362353a2156",
+    "https://json.tarkov.dev/pve/maps_zh": "16ecedf466f5bfe03d108a80d2b0e0c96b409e901968121d10d5155d60b32f9d",
+    "https://json.tarkov.dev/pve/tasks": "dc99521bf86d0da6b8fed326f199b163b34eb5d289c68fc51a319b896e340dab",
+    "https://json.tarkov.dev/pve/tasks_en": "484f2eae2579a947d69593168acbb31775e21a10400ad32aa7241b6716d3eab1",
+    "https://json.tarkov.dev/pve/tasks_zh": "dcace5b88fe43ca0f4e61a9e4365acd0b3acf13eb4c70d71d396e7538796c484",
+    "https://json.tarkov.dev/pve/traders": "e07c81866627b2c52f710826440141bf83fed2a9e5eeca2c7690b1d2f5c54104",
+    "https://json.tarkov.dev/pve/traders_en": "1d837a5d33dbde4b8860ba49488b3f885af8adbb13c5c52bcecd26637a6568c7",
+    "https://json.tarkov.dev/pve/traders_zh": "97ee70d26787648c185228822d7cbca266235a1a5e79b68c2f4db9763bdfe908",
+    "https://json.tarkov.dev/regular/maps": "45c7ee0f52db83c8fc96ea66a441fa625c025d6dfe3dddf71bb6999ec7b48e18",
+    "https://json.tarkov.dev/regular/maps_en": "128a2a34c65a92c776d02cf5105d6359fb8b17f8fc5d98d12993f5a5ef428997",
+    "https://json.tarkov.dev/regular/maps_zh": "8669267e696f81f867cf21bedca8dc83b7c7b4ce5205e46a4e8a51c36e124b0a",
+    "https://json.tarkov.dev/regular/tasks": "3c7d9a0fd345ec83a11af50134fee6255000dec07d735632387c5ea64b6cc4c1",
+    "https://json.tarkov.dev/regular/tasks_en": "ded9766661add1a59412e5d8133dae3ffd45a686b67f60c092a0a3d4645637bb",
+    "https://json.tarkov.dev/regular/tasks_zh": "bf84537d03f20b34e1ae7338c11d28cbde1c011e9c9e25ce05dd8e7e6e023bb1",
+    "https://json.tarkov.dev/regular/traders": "716831b15b6b6d3e7499f6dc8db35153da7c03d1f78ad41220bada7ec5fe445a",
+    "https://json.tarkov.dev/regular/traders_en": "1d837a5d33dbde4b8860ba49488b3f885af8adbb13c5c52bcecd26637a6568c7",
+    "https://json.tarkov.dev/regular/traders_zh": "97ee70d26787648c185228822d7cbca266235a1a5e79b68c2f4db9763bdfe908"
+  },
+  "structureModes": [
+    "regular",
+    "pve"
+  ],
+  "supportedSourceLocales": [
+    "en",
+    "zh"
+  ]
+}

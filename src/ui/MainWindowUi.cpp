@@ -66,6 +66,9 @@ bool MainWindowUi::OnBackButton(int x,int y) const noexcept {
     return HitNavigationButton(D2D1::RectF(theme_.sidebarWidth+8,26,theme_.sidebarWidth+40,58),dx,dy,CanGoBack());
 }
 bool MainWindowUi::GoBack() {
+    if(navigation_.Active()==MainPage::Tasks&&tasks_.GoBackTask()){
+        CancelScrollDrag();Invalidate();return true;
+    }
     if(!return_page_) return false;
     // 返回复用仍驻留的页面状态，不重新初始化查询、等级或滚动位置。
     // Return to resident page state without reinitializing query, level or scroll position.
@@ -77,6 +80,7 @@ bool MainWindowUi::SelectPage(MainPage page) {
     if(page==navigation_.Active()) return false;
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
+    if(page==MainPage::Tasks)tasks_.Activate();
     Invalidate();return true;
 }
 void MainWindowUi::RefreshPriceRows(bool animateSearch) {
@@ -140,7 +144,7 @@ void MainWindowUi::RefreshPriceRows(bool animateSearch) {
     for (const std::string& id : price_image_ids_) {
         if (std::none_of(recent_.begin(), recent_.end(), [&](const auto& entry) {
                 return entry.stableItemId == id;
-            }) && !hideout_image_ids_.contains(id)) image_cache_.Forget(id);
+            }) && !hideout_image_ids_.contains(id) && !task_image_ids_.contains(id)) image_cache_.Forget(id);
     }
     price_image_ids_.clear();
     price_image_window_start_ = static_cast<std::size_t>(-1);
@@ -154,13 +158,30 @@ void MainWindowUi::RequestVisibleHideoutImages() {
     const auto visible=visiblePage ? hideout_.VisibleImages() : std::vector<std::string>{};
     const std::unordered_set<std::string> next(visible.begin(),visible.end());
     for (const auto& id : hideout_image_ids_) {
-        if (!next.contains(id) && !price_image_ids_.contains(id)
+        if (!next.contains(id) && !price_image_ids_.contains(id) && !task_image_ids_.contains(id)
             && std::none_of(recent_.begin(),recent_.end(),[&](const auto& e){return e.stableItemId==id;})) {
             image_cache_.Forget(id); image_pixels_.erase(id); item_bitmaps_.erase(id);
         }
     }
     for (const auto& id : next) if (!hideout_image_ids_.contains(id)) image_cache_.Request(id);
     hideout_image_ids_=next;
+}
+
+void MainWindowUi::RequestVisibleTaskImages() {
+    const bool visiblePage=navigation_.Active()==MainPage::Tasks
+        || page_transition_.ShowingOutgoing(MainPage::Tasks);
+    const auto visible=visiblePage?tasks_.VisibleImages():std::vector<std::string>{};
+    const std::unordered_set<std::string> next(visible.begin(),visible.end());
+    for(const auto& id:task_image_ids_)if(!next.contains(id)){
+        const bool recent=std::any_of(recent_.begin(),recent_.end(),[&](const auto& entry){
+            return entry.stableItemId==id;
+        });
+        if(!price_image_ids_.contains(id)&&!hideout_image_ids_.contains(id)&&!recent){
+            image_cache_.Forget(id);image_pixels_.erase(id);item_bitmaps_.erase(id);
+        }
+    }
+    for(const auto& id:next)if(!task_image_ids_.contains(id))image_cache_.Request(id,true);
+    task_image_ids_=next;
 }
 
 void MainWindowUi::RequestVisiblePriceImages() {
@@ -177,7 +198,7 @@ void MainWindowUi::RequestVisiblePriceImages() {
     for (const std::string& id : price_image_ids_) {
         if (std::none_of(recent_.begin(), recent_.end(), [&](const auto& entry) {
                 return entry.stableItemId == id;
-            }) && !hideout_image_ids_.contains(id)) image_cache_.Forget(id);
+            }) && !hideout_image_ids_.contains(id) && !task_image_ids_.contains(id)) image_cache_.Forget(id);
     }
     price_image_ids_.clear();
     price_image_window_start_ = first;
@@ -190,6 +211,9 @@ void MainWindowUi::RequestVisiblePriceImages() {
 bool MainWindowUi::KeyDown(WPARAM key, bool control) {
     if (navigation_.Active()==MainPage::Hideout) {
         const bool handled=hideout_.Key(key,control); if (handled) Invalidate(); return handled;
+    }
+    if (navigation_.Active()==MainPage::Tasks) {
+        const bool handled=tasks_.Key(key,control); if (handled) Invalidate(); return handled;
     }
     if (navigation_.Active() != MainPage::Prices) return false;
     if (!price_search_.HandleKeyDown(key, control)) return false;
@@ -204,6 +228,9 @@ bool MainWindowUi::KeyDown(WPARAM key, bool control) {
 bool MainWindowUi::Char(wchar_t character) {
     if (navigation_.Active()==MainPage::Hideout) {
         const bool handled=hideout_.Char(character); if (handled) Invalidate(); return handled;
+    }
+    if (navigation_.Active()==MainPage::Tasks) {
+        const bool handled=tasks_.Char(character); if (handled) Invalidate(); return handled;
     }
     if (navigation_.Active() != MainPage::Prices) return false;
     if (!price_search_.HandleChar(character)) return false;
@@ -323,7 +350,8 @@ void MainWindowUi::ItemImagesReady() {
     for (auto& image : image_cache_.TakeReady()) {
         if (std::none_of(recent_.begin(), recent_.end(), [&](const auto& entry) {
                 return entry.stableItemId == image.id;
-            }) && !price_image_ids_.contains(image.id) && !hideout_image_ids_.contains(image.id)) {
+            }) && !price_image_ids_.contains(image.id) && !hideout_image_ids_.contains(image.id)
+                && !task_image_ids_.contains(image.id)) {
             image_cache_.Forget(image.id);
             continue;
         }
@@ -345,7 +373,9 @@ void MainWindowUi::Paint() {
             RefreshPriceRows();
         const D2D1_SIZE_F size = render_target_->GetSize();
         hideout_.Prepare(size.width,size.height,theme_);
+        tasks_.Prepare(size.width,size.height,theme_);
         RequestVisibleHideoutImages();
+        RequestVisibleTaskImages();
         UiCanvas canvas{*render_target_.Get(), *brush_.Get(), *title_format_.Get(),
                         *page_title_format_.Get(), *label_format_.Get(),
                         *body_format_.Get(), *small_format_.Get(), write_factory_.Get()};
@@ -357,7 +387,9 @@ void MainWindowUi::Paint() {
             D2D1::RectF(theme_.sidebarWidth, 0, size.width, size.height),
             D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
         const auto drawPage=[&](MainPage page) {
+        canvas.inputWindow = page == navigation_.Active() ? window_ : nullptr;
         if (page==MainPage::Hideout) hideout_.Draw(canvas,theme_,item_bitmaps_);
+        else if (page==MainPage::Tasks) tasks_.Draw(canvas,theme_,item_bitmaps_);
         else pages_.Draw(canvas, theme_, size.width, size.height,
                     page, scanner_, mode_menu_open_,
                     mode_hovered_, hovered_mode_, recent_, recent_filter_,
@@ -579,6 +611,7 @@ void MainWindowUi::MouseMove(int x, int y) {
     const bool back=OnBackButton(x,y);
     if(back!=back_hovered_) { back_hovered_=back;Invalidate(); }
     if (navigation_.Active()==MainPage::Hideout) { hideout_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
+    if (navigation_.Active()==MainPage::Tasks) { tasks_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
     if (navigation_.Active() == MainPage::Prices && price_details_.open) {
         price_details_.pointer.reset();
         const float dy = y / Scale();
@@ -664,6 +697,9 @@ void MainWindowUi::MouseDown(int x, int y) {
     if (navigation_.Active()==MainPage::Hideout) {
         hideout_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
     }
+    if (navigation_.Active()==MainPage::Tasks) {
+        tasks_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
+    }
     if (const auto bar = Scrollbar()) {
         const float dx = static_cast<float>(x) / Scale();
         const float dy = static_cast<float>(y) / Scale();
@@ -728,6 +764,11 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     if (navigation_.Active()==MainPage::Hideout) {
         if(const auto item=hideout_.MouseUp(x/Scale(),y/Scale())) {
             OpenPriceItem(*item,hideout_.Mode()); return std::nullopt;
+        }
+    }
+    if (navigation_.Active()==MainPage::Tasks) {
+        if(const auto item=tasks_.MouseUp(x/Scale(),y/Scale())) {
+            OpenPriceItem(*item,tasks_.Mode()); return std::nullopt;
         }
     }
     const auto language = LanguageAt(x, y);
@@ -946,6 +987,7 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
 
 bool MainWindowUi::MouseWheel(int x, int y, int delta) {
     if (navigation_.Active()==MainPage::Hideout && x/Scale()>=theme_.sidebarWidth) return hideout_.Wheel(delta,x/Scale(),y/Scale());
+    if (navigation_.Active()==MainPage::Tasks && x/Scale()>=theme_.sidebarWidth) return tasks_.Wheel(delta,x/Scale(),y/Scale());
     if (navigation_.Active() == MainPage::Settings && x / Scale() >= theme_.sidebarWidth) {
         const float maximum = (std::max)(0.0F,
             static_cast<float>(UiLocalization().AvailableLocales().size()) * 42 - (DipHeight() - 178));
@@ -978,7 +1020,9 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta) {
 }
 
 bool MainWindowUi::AnimationActive() const noexcept {
-    return page_transition_.Active() || hideout_.Animating() || recent_transition_.progress < 1.0F
+    const bool tasksVisible=navigation_.Active()==MainPage::Tasks
+        || page_transition_.ShowingOutgoing(MainPage::Tasks);
+    return page_transition_.Active() || hideout_.Animating() || (tasksVisible&&tasks_.Animating()) || recent_transition_.progress < 1.0F
         || price_transition_.progress < 1.0F
         || price_search_transition_.progress < 1.0F
         || price_details_.tabProgress < 1 || price_details_.chartProgress < 1
@@ -1003,6 +1047,8 @@ bool MainWindowUi::AnimationTick() {
         : std::chrono::duration<float>(now - recent_scroll_tick_).count();
     recent_scroll_tick_ = now;
     hideout_.Tick(elapsed);
+    if (navigation_.Active()==MainPage::Tasks || page_transition_.ShowingOutgoing(MainPage::Tasks))
+        tasks_.Tick(elapsed);
     const float remaining = recent_scroll_target_ - recent_scroll_;
     if (std::abs(remaining) < 0.75F) {
         recent_scroll_ = recent_scroll_target_;

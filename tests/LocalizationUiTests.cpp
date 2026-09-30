@@ -1,6 +1,7 @@
 #include "ui/MainWindowUi.h"
 #include "ui/Dropdown.h"
 #include "ui/NavigationButton.h"
+#include "ui/OverflowText.h"
 #include "ui/SearchBox.h"
 #include "ui/ExpandableCard.h"
 #include "ui/LineChart.h"
@@ -219,6 +220,18 @@ int wmain(int argc, wchar_t** argv) try {
     Require(HitNavigationButton(D2D1::RectF(10,20,34,64),10,20)
         && !HitNavigationButton(D2D1::RectF(10,20,34,64),34,20)
         && !HitNavigationButton(D2D1::RectF(10,20,34,64),20,30,false),"navigation button shares bounds and disabled state");
+    const float overflowDuration=(std::min)(6.0F,1.8F+84.0F/42.0F);
+    const float overflowCycle=0.75F+overflowDuration+2.5F;
+    Require(SampleOverflowTextOffset(84.0F,0.5F)==0.0F
+        && SampleOverflowTextOffset(84.0F,0.75F+overflowDuration+2.0F)==84.0F,
+        "overflow text pauses at both endpoints");
+    Require(std::abs(SampleOverflowTextOffset(84.0F,overflowCycle+1.2F)
+        -SampleOverflowTextOffset(84.0F,1.2F))<0.01F,
+        "overflow text repeats continuously after its end pause");
+    const auto imeAnchor = SearchImeAnchor(D2D1::Point2F(100, 40),
+        D2D1::Matrix3x2F::Translation(0, 8), 144, 144);
+    Require(imeAnchor.x == 150 && imeAnchor.y == 72,
+        "IME anchor includes DPI and page transform");
     SearchBox editor; editor.SetText(L"电路板"); editor.Focus();
     Require(editor.HandleKeyDown(VK_LEFT,false) && editor.Caret()==2,"left moves caret");
     Require(editor.HandleChar(L'新') && editor.Text()==L"电路新板","insert at caret");
@@ -274,6 +287,46 @@ int wmain(int argc, wchar_t** argv) try {
     Require(argc == 2, "locale directory required");
     std::wstring error;
     Require(UiLocalization().DiscoverLocales(argv[1], error), "UI source loads");
+    {
+        const UiTheme theme;
+        TasksPage tasks;
+        noven::data::ItemCatalog taskCatalog;
+        Require(taskCatalog.Load(std::filesystem::path(argv[1]).parent_path()/"data"/"items_catalog.tsv",error),"Tasks item catalog loads");
+        tasks.Initialize(std::filesystem::path(argv[1]).parent_path()/"data",taskCatalog);
+        tasks.Prepare(1400, 700, theme);
+        Require(!tasks.Narrow() && !tasks.SelectedTrader().empty() && !tasks.SelectedTask().empty(),
+            "Tasks prototype initializes a wide two-column selection");
+        tasks.MouseDown(theme.sidebarWidth + theme.contentPadding + 20, 100);
+        for (const wchar_t c : std::wstring(L"Debut")) Require(tasks.Char(c),
+            "Tasks search accepts committed text");
+        Require(tasks.QueryText() == L"Debut" && tasks.SelectedTrader() == "54cb50c76803fa8b248b4571",
+            "Tasks search filters generated trader data");
+        UiLocalization().SetLocale("en-US");
+        tasks.Prepare(1000, 600, theme);
+        Require(tasks.Narrow() && tasks.QueryText() == L"Debut"
+            && tasks.SelectedTrader() == "54cb50c76803fa8b248b4571",
+            "Tasks narrow layout and locale refresh preserve query and identity");
+        tasks.Wheel(-WHEEL_DELTA, 700, 500);
+        for (int i = 0; i < 30; ++i) tasks.Tick(0.016F);
+        Require(tasks.Scroll() > 0, "Tasks detail owns independent vertical scrolling");
+        Require(tasks.Key(VK_ESCAPE,false),"Tasks search clears before chain navigation test");
+        for(const wchar_t c:std::wstring(L"Postman Pat - Part 1"))
+            Require(tasks.Char(c),"Tasks chain source search accepts text");
+        Require(tasks.SelectedTask()=="59675ea386f77414b32bded2","Tasks chain source selected");
+        Require(tasks.Key(VK_ESCAPE,false),"Tasks chain source remains selected after clearing query");
+        tasks.Prepare(1400,700,theme);
+        const float taskLeft=theme.sidebarWidth+theme.contentPadding;
+        const float taskRight=1400.0F-theme.contentPadding;
+        const float taskRail=(taskRight-taskLeft-16.0F)*0.21F;
+        const float chainX=taskLeft+taskRail+16.0F+48.0F;
+        tasks.MouseDown(chainX,660.0F);
+        (void)tasks.MouseUp(chainX,660.0F);
+        Require(tasks.SelectedTask()=="596760e186f7741e11214d58",
+            "clicking a follow-up row navigates by stable task ID");
+        Require(tasks.GoBackTask()&&tasks.SelectedTask()=="59675ea386f77414b32bded2",
+            "task-local back history restores the previous task");
+        UiLocalization().SetLocale("zh-CN");
+    }
     const HWND window = CreateWindowExW(0, L"STATIC", L"Noven localization test", WS_OVERLAPPEDWINDOW,
         0, 0, 1100, 800, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
     Require(window != nullptr, "hidden test window created");
@@ -295,6 +348,7 @@ int wmain(int argc, wchar_t** argv) try {
         const UiTheme theme;
         ui.SetPriceDataSources(catalog, economy);
         ui.SetHideoutDataSources(std::filesystem::path(argv[1]).parent_path()/"data",catalog,economy);
+        ui.SetTaskDataSources(std::filesystem::path(argv[1]).parent_path()/"data",catalog);
         Sidebar sidebar;
         const auto selectPage = [&](MainPage page) {
             const auto rect = sidebar.ItemRect(page, height, theme);

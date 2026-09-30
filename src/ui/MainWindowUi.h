@@ -6,6 +6,7 @@
 #include "ui/SearchBox.h"
 #include "data/PriceBrowser.h"
 #include "ui/HideoutPage.h"
+#include "ui/TasksPage.h"
 #include "ui/PageTransition.h"
 
 #include <d2d1.h>
@@ -32,7 +33,7 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
-    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); }
+    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); }
     [[nodiscard]] std::optional<data::GameMode> MouseUp(int x, int y);
     [[nodiscard]] bool MouseWheel(int x, int y, int delta);
     [[nodiscard]] bool AnimationTick();
@@ -48,6 +49,9 @@ public:
     void SetPriceDataSources(const data::ItemCatalog& catalog, const data::ItemEconomyStore& economy);
     void SetHideoutDataSources(const std::filesystem::path& directory, const data::ItemCatalog& catalog,
         const data::ItemEconomyStore& economy) { hideout_.Initialize(directory,catalog,economy); }
+    void SetTaskDataSources(const std::filesystem::path& directory,const data::ItemCatalog& catalog) {
+        tasks_.Initialize(directory,catalog);
+    }
     [[nodiscard]] bool KeyDown(WPARAM key, bool control);
     [[nodiscard]] bool Char(wchar_t character);
     [[nodiscard]] bool Ready() const noexcept { return window_ != nullptr; }
@@ -72,6 +76,7 @@ private:
     void OpenPriceItem(const std::string& id,data::GameMode mode);
     void RequestVisiblePriceImages();
     void RequestVisibleHideoutImages();
+    void RequestVisibleTaskImages();
     [[nodiscard]] std::optional<std::size_t> PriceCardAt(int x, int y) const;
     [[nodiscard]] std::optional<int> PriceHistoryRangeAt(int x, int y) const;
     void RequestPriceHistory();
@@ -100,7 +105,9 @@ private:
     Sidebar sidebar_;
     PageHost pages_;
     HideoutPage hideout_;
+    TasksPage tasks_;
     std::unordered_set<std::string> hideout_image_ids_;
+    std::unordered_set<std::string> task_image_ids_;
     std::unique_ptr<data::PriceBrowserModel> price_browser_;
     std::vector<data::PriceRow> price_rows_;
     std::wstring price_query_;
