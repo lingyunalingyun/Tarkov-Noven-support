@@ -72,7 +72,8 @@ std::vector<MapPage::FilterEntry> MapPage::FilterEntries() const {
         entries.push_back({Tr(TextKey::MapLayerGeometry),filters_.geometry,{}});
     }else{
         const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
-        for(const auto& p:MapPrototype::Points)if(p.mapId==map_id_&&p.category==MapPointCategory::Task)
+        for(const auto& p:MapPrototype::Points)if(p.mapId==map_id_&&p.category==MapPointCategory::Task
+            &&(Matches(p.chinese,search_.Text())||Matches(p.english,search_.Text())))
             entries.push_back({std::wstring(chinese?p.chinese:p.english),!filters_.hiddenTasks.contains(p.id),p.id});
     }
     return entries;
@@ -93,6 +94,7 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
     canvas.Text(Tr(FilterKeys[static_cast<std::size_t>(*panel_)]),canvas.smallFormat,
         {r.left+12,r.top+6,r.right-8,r.top+32},theme.accent);
     canvas.target.PushAxisAlignedClip(list.Body(),D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    if(entries.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,list.Body(),theme.secondaryText);
     for(std::size_t i=0;i<entries.size();++i)DrawMapCheck(canvas,theme,list.Row(i),entries[i].label,entries[i].enabled);
     DrawScrollbar(canvas,theme,{list.Bar(entries.size()),1});
     canvas.target.PopAxisAlignedClip();canvas.target.PopAxisAlignedClip();canvas.brush.SetOpacity(opacity);

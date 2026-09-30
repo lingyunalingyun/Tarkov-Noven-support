@@ -140,6 +140,17 @@ int main(){
     filtered.Overview();settle();Require(!filtered.Panel()&&!filtered.Selected(),"overview closes filters");
     filtered.SelectFloor("demo-b2");settle();Require(!filtered.Filters().grid&&filtered.Filters().hiddenTasks.contains("demo-task"),
         "overview preserves independent filters");
+    MapPage taskSearch;taskSearch.Prepare(1280,800,{});taskSearch.SelectFloor("demo-1");
+    for(int tick=0;tick<30;++tick)taskSearch.Tick(.016F);taskSearch.Prepare(1280,800,{});
+    taskSearch.MouseDown(taskSearch.Layout().search.left+10,100);
+    for(const wchar_t c:std::wstring(L"task two"))taskSearch.Char(c);
+    const auto tasksButton=taskSearch.Layout().filters[2];
+    taskSearch.MouseDown(tasksButton.left+10,tasksButton.top+10);taskSearch.MouseUp(tasksButton.left+10,tasksButton.top+10);
+    for(int tick=0;tick<30;++tick)taskSearch.Tick(.016F);
+    const auto taskRow=taskSearch.FilterList().Row(0);
+    taskSearch.MouseDown(taskRow.left+50,taskRow.top+12);taskSearch.MouseUp(taskRow.left+50,taskRow.top+12);
+    Require(taskSearch.InteractionId()=="demo-task-two"&&taskSearch.Points().size()==1,
+        "task flyout follows search and focuses a visible matching identity");
     for(float width:{850.0F,1100.0F,1600.0F}){const auto layout=MapLayout::Sample(width,700,{},1,count);
         Require(layout.strip.bottom<layout.viewport.top&&layout.viewport.bottom-layout.viewport.top>200,"categories preserve map priority");
         for(std::size_t i=0;i<MapCategoryCount;++i){const auto cell=MapCategoryStrip{layout.strip}.Cell(i);
