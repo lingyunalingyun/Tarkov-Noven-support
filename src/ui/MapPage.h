@@ -17,6 +17,8 @@ public:
     bool Selected() const noexcept{return expanded_;}
     void Overview(){expanded_=false;search_.Blur();CancelDrag();}
     std::string_view FloorId() const noexcept{return floor_id_;}
+    std::string_view MapId() const noexcept{return map_id_;}
+    void SelectMap(std::string_view id);
     std::string_view InteractionId() const noexcept{return interaction_id_;}
     const MapViewport& Viewport() const noexcept{return viewport_;}
     const MapLayout& Layout() const noexcept{return layout_;}
@@ -31,7 +33,7 @@ public:
     bool Wheel(int delta,float x,float y);
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value){return search_.HandleChar(value);}
-    void CancelDrag(){drag_.reset();pressed_floor_.reset();pressed_point_={};reset_pressed_=false;back_pressed_=false;}
+    void CancelDrag(){drag_.reset();pressed_floor_.reset();pressed_point_={};pressed_map_.reset();reset_pressed_=false;back_pressed_=false;}
 private:
     std::size_t FloorIndex() const;
     float FloorPosition() const noexcept;
@@ -41,6 +43,8 @@ private:
     MapViewport viewport_{MapPrototype::World};
     SearchBox search_;
     std::string_view floor_id_,interaction_id_,pressed_point_;
+    std::string_view map_id_{MapPrototype::Maps.front().id};
+    std::optional<std::string_view> pressed_map_;
     float progress_{},floor_from_{},floor_to_{},floor_progress_{1},clock_{};
     std::optional<std::size_t> hovered_floor_,pressed_floor_;
     std::optional<D2D1_POINT_2F> drag_;

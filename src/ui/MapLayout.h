@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/FloorStack.h"
+#include "ui/TabBar.h"
 #include <algorithm>
 
 namespace noven::ui {
@@ -9,6 +10,7 @@ struct MapLayout final {
     D2D1_RECT_F content,search,strip,viewport;
     FloorStack stack;
     D2D1_RECT_F back;
+    TabBarLayout maps;
     static float Ease(float progress) noexcept {
         const float t=1-std::clamp(progress,0.0F,1.0F);return 1-t*t*t;
     }
@@ -19,15 +21,15 @@ struct MapLayout final {
         const float rail=148;
         const float last=static_cast<float>(floorCount?floorCount-1:0),stackHeight=.32F+last*.2F;
         const float compact=rail-60;
-        const float large=std::min({320.0F,available*.55F,(bottom-150)*.7F/stackHeight});
-        const D2D1_POINT_2F overview{left+available*.5F-large*(1-last*.13F)*.5F,150+(bottom-150-large*stackHeight)*.5F};
-        const D2D1_POINT_2F selected{left+52,204};const float t=Ease(progress);
-        const float viewLeft=left+rail+12,viewTop=narrow?272.0F:250.0F;
-        return {{left,140,right,bottom},{left,84,right,122},
-            {viewLeft,146,right,viewTop-16},{viewLeft,viewTop,right,bottom},
+        const float large=std::min({320.0F,available*.55F,(bottom-190)*.7F/stackHeight});
+        const D2D1_POINT_2F overview{left+available*.5F-large*(1-last*.13F)*.5F,190+(bottom-190-large*stackHeight)*.5F};
+        const D2D1_POINT_2F selected{left+52,244};const float t=Ease(progress);
+        const float viewLeft=left+rail+12,viewTop=narrow?312.0F:290.0F;
+        return {{left,180,right,bottom},{left,84,right,122},
+            {viewLeft,186,right,viewTop-16},{viewLeft,viewTop,right,bottom},
             {{overview.x+(selected.x-overview.x)*t,overview.y+(selected.y-overview.y)*t},
                 large+(compact-large)*t,floorCount,.13F*(1-t)},
-            {left+8,148,left+44,184}};
+            {left+8,188,left+44,224},{left,130,166,available/3,std::min(36.0F,available/9)}};
     }
 };
 }

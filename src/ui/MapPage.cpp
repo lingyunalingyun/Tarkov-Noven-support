@@ -9,6 +9,13 @@ namespace {
 std::wstring Fold(std::wstring_view text){std::wstring value(text);
     for(auto& c:value)c=static_cast<wchar_t>(std::towlower(c));return value;}
 bool Matches(std::wstring_view value,std::wstring_view query){return Fold(value).find(Fold(query))!=std::wstring::npos;}
+auto MapItems(){
+    std::array<TabBarItem<std::string_view>,MapPrototype::Maps.size()> items{};
+    const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
+    for(std::size_t i=0;i<items.size();++i){const auto& map=MapPrototype::Maps[i];
+        items[i]={map.id,chinese?map.chinese:map.english};}
+    return items;
+}
 }
 void MapPage::Prepare(float width,float height,const UiTheme& theme){
     layout_=MapLayout::Sample(width,height,theme,progress_,MapPrototype::Floors.size());viewport_.SetBounds(layout_.viewport);
@@ -18,6 +25,11 @@ std::size_t MapPage::FloorIndex() const {
     return 0;
 }
 float MapPage::FloorPosition() const noexcept{return floor_from_+(floor_to_-floor_from_)*MapLayout::Ease(floor_progress_);}
+void MapPage::SelectMap(std::string_view id){
+    const auto found=std::find_if(MapPrototype::Maps.begin(),MapPrototype::Maps.end(),[&](const auto& map){return map.id==id;});
+    if(found==MapPrototype::Maps.end()||map_id_==id)return;
+    map_id_=found->id;Overview();interaction_id_={};viewport_.Fit();
+}
 void MapPage::SelectFloor(std::string_view id){
     const auto found=std::find_if(MapPrototype::Floors.begin(),MapPrototype::Floors.end(),[&](const auto& floor){return floor.id==id;});
     if(found==MapPrototype::Floors.end()||(Selected()&&floor_id_==id))return;
@@ -30,12 +42,14 @@ void MapPage::SelectFloor(std::string_view id){
 bool MapPage::FocusInteraction(std::string_view id){
     const auto found=std::find_if(MapPrototype::Points.begin(),MapPrototype::Points.end(),[&](const auto& point){return point.id==id;});
     if(found==MapPrototype::Points.end())return false;
+    SelectMap(found->mapId);
     SelectFloor(found->floorId);interaction_id_=found->id;viewport_.Focus(found->coordinate);return true;
 }
 std::vector<MapInteractionPoint> MapPage::Points() const {
     std::vector<MapInteractionPoint> result;
     const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
     for(const auto& p:MapPrototype::Points){
+        if(p.mapId!=map_id_)continue;
         if(!Matches(p.chinese,search_.Text())&&!Matches(p.english,search_.Text()))continue;
         result.push_back({p.id,p.floorId,p.type,p.coordinate,chinese?p.chinese:p.english});
     }
@@ -52,6 +66,9 @@ D2D1_RECT_F MapPage::ResetBounds() const noexcept {
 void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     DrawPageHeader(canvas,theme,layout_.search.left,layout_.search.right,Tr(TextKey::NavMap));
     search_.Draw(canvas,theme,layout_.search,Tr(TextKey::MapSearch),clock_<.5F);
+    const auto maps=MapItems();float mapIndex=0;
+    for(std::size_t i=0;i<maps.size();++i)if(maps[i].id==map_id_)mapIndex=static_cast<float>(i);
+    DrawTabBar(canvas,theme,canvas.smallFormat,maps,layout_.maps,map_id_,std::optional<std::string_view>{},map_id_,1,mapIndex);
     canvas.target.PushAxisAlignedClip(layout_.content,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(progress_>0){
         const float reveal=MapLayout::Ease(progress_);const auto points=Points();
@@ -105,6 +122,7 @@ void MapPage::MouseMove(float x,float y){
 void MapPage::MouseDown(float x,float y){
     const D2D1_POINT_2F p{x,y};CancelDrag();
     if(MapContains(layout_.search,p)){search_.Focus();return;}search_.Blur();
+    pressed_map_=HitTestTabBar(MapItems(),layout_.maps,x,y);if(pressed_map_)return;
     if(Selected()&&MapContains(layout_.back,p)){back_pressed_=true;return;}
     pressed_floor_=layout_.stack.Hit(p);if(pressed_floor_)return;
     if(!Selected()||progress_<1)return;
@@ -115,6 +133,7 @@ void MapPage::MouseDown(float x,float y){
 }
 void MapPage::MouseUp(float x,float y){
     const D2D1_POINT_2F p{x,y};
+    if(pressed_map_&&HitTestTabBar(MapItems(),layout_.maps,x,y)==pressed_map_){SelectMap(*pressed_map_);CancelDrag();return;}
     if(back_pressed_&&MapContains(layout_.back,p)){Overview();return;}
     if(pressed_floor_&&layout_.stack.Hit(p)==pressed_floor_)SelectFloor(MapPrototype::Floors[*pressed_floor_].id);
     if(!pressed_point_.empty()){

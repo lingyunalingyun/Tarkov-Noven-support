@@ -89,5 +89,12 @@ int main(){
     page.Prepare(1280,800,{});
     Require(!page.Animating(),"overview transition settles");
     page.SelectFloor(demo.floorId);Require(page.Selected(),"same floor can reopen from overview");
+    const auto maps=page.Layout().maps;
+    const float mapX=maps.left+maps.itemWidth*1.5F;
+    page.MouseDown(mapX,maps.top+10);page.MouseUp(mapX,maps.top+10);
+    Require(page.MapId()==MapPrototype::Maps[1].id&&!page.Selected(),"map selector returns to overview");
+    Require(page.Points().empty(),"map identity isolates markers");
+    page.SelectMap("unknown");Require(page.MapId()==MapPrototype::Maps[1].id,"invalid map ID ignored");
+    Require(page.FocusInteraction(demo.id)&&page.MapId()==demo.mapId,"focus selects matching map identity");
     std::cout<<"Map prototype geometry and transform checks passed\n";
 }
