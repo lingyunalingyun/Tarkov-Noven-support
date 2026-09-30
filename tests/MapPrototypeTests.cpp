@@ -1,5 +1,6 @@
 #include "ui/FloorStack.h"
 #include "ui/MapPrototypeData.h"
+#include "ui/MapLayout.h"
 #include <cstdlib>
 #include <iostream>
 
@@ -18,5 +19,14 @@ int main(){
         Require(plate.Contains(point),"selected geometry contains hit point");
     }
     Require(!stack.Hit({0,0}),"outside stack does not select floor");
+    const auto overview=MapLayout::Sample(1400,800,{},0),selected=MapLayout::Sample(1400,800,{},1);
+    Require(overview.stack.width>selected.stack.width,"selection shrinks stack");
+    Require(overview.stack.origin.x>selected.stack.origin.x,"selection moves stack left");
+    Require(MapLayout::Ease(0)==0&&MapLayout::Ease(1)==1,"transition endpoints exact");
+    for(float width:{850.0F,1100.0F,1600.0F}){
+        const auto layout=MapLayout::Sample(width,700,{},1);
+        Require(layout.viewport.right-layout.viewport.left>250,"responsive map keeps useful width");
+        Require(layout.stack.Plate(0).vertices[1].x<layout.viewport.left,"stack stays left of map");
+    }
     std::cout<<"Map prototype geometry passed\n";
 }
