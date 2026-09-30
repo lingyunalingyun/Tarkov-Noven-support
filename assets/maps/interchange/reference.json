@@ -1,0 +1,858 @@
+{
+  "_heightRange": [
+    -1000,
+    25
+  ],
+  "author": "Shebuka",
+  "authorLink": "https://github.com/the-hideout/tarkov-dev-svg-maps/",
+  "bounds": [
+    [
+      598,
+      -442
+    ],
+    [
+      -433,
+      426
+    ]
+  ],
+  "coordinateRotation": 180,
+  "key": "interchange",
+  "labels": [
+    {
+      "bottom": -1,
+      "position": [
+        -186.4,
+        -318.7
+      ],
+      "size": 100,
+      "text": "Power Station",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        155,
+        -253
+      ],
+      "size": 80,
+      "text": "Go Kart",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        158,
+        -78.5
+      ],
+      "size": 80,
+      "text": "Four Camp",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        68.2,
+        312.9
+      ],
+      "size": 80,
+      "text": "Cargo Containers",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        -260.2,
+        123.8
+      ],
+      "size": 80,
+      "text": "Wall Break",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        -175.5,
+        145.1
+      ],
+      "size": 80,
+      "text": "Ramps",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        202.3,
+        219.4
+      ],
+      "size": 80,
+      "text": "Oli Tower",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        46.5,
+        -358.5
+      ],
+      "size": 80,
+      "text": "Idea Tower",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        263.2,
+        -11.1
+      ],
+      "size": 80,
+      "text": "Scav Camp",
+      "top": 10
+    },
+    {
+      "bottom": -1,
+      "position": [
+        373.5,
+        -391.2
+      ],
+      "text": "Highway Construction",
+      "top": 10
+    },
+    {
+      "bottom": -1000,
+      "position": [
+        33,
+        -222
+      ],
+      "size": 80,
+      "text": "Garage A",
+      "top": 24
+    },
+    {
+      "bottom": -1000,
+      "position": [
+        47,
+        -112
+      ],
+      "size": 80,
+      "text": "Garage B",
+      "top": 24
+    },
+    {
+      "bottom": -1000,
+      "position": [
+        0,
+        47
+      ],
+      "size": 80,
+      "text": "Garage C",
+      "top": 24
+    },
+    {
+      "bottom": -1000,
+      "position": [
+        20,
+        138
+      ],
+      "size": 80,
+      "text": "Garage D",
+      "top": 24
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -34,
+        -235
+      ],
+      "size": 80,
+      "text": "IDEA",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -115,
+        -45
+      ],
+      "size": 80,
+      "text": "Goshan",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -28,
+        140
+      ],
+      "size": 80,
+      "text": "OLI",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        87,
+        -165
+      ],
+      "size": 65,
+      "text": "Nortex",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        60,
+        -152
+      ],
+      "size": 65,
+      "text": "TRend",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        69.5,
+        -134
+      ],
+      "size": 65,
+      "text": "Mode7",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        19,
+        -129
+      ],
+      "size": 65,
+      "text": "TTS",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -38,
+        -129
+      ],
+      "size": 65,
+      "text": "Book Store",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        91,
+        -119
+      ],
+      "size": 65,
+      "text": "Dino Clothes",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        18,
+        -103
+      ],
+      "size": 65,
+      "text": "EMERCOM",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -28,
+        -103
+      ],
+      "size": 65,
+      "text": "Kostin",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -65,
+        -103
+      ],
+      "size": 65,
+      "text": "Bizarro",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        92,
+        -87
+      ],
+      "size": 65,
+      "text": "Spiel",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -18,
+        -87
+      ],
+      "size": 65,
+      "text": "Voyage",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        57,
+        -66
+      ],
+      "size": 65,
+      "text": "Viking",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        13,
+        -66
+      ],
+      "size": 65,
+      "text": "Mantis",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -18,
+        -72
+      ],
+      "size": 65,
+      "text": "German",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        57,
+        -32
+      ],
+      "size": 65,
+      "text": "The National",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        13,
+        -32
+      ],
+      "size": 65,
+      "text": "Brutal",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -18,
+        -25
+      ],
+      "size": 65,
+      "text": "Kiba",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -34,
+        -20
+      ],
+      "size": 65,
+      "text": "Pretty Lights",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        92,
+        -18
+      ],
+      "size": 65,
+      "text": "Telespot",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        62,
+        -12
+      ],
+      "size": 65,
+      "text": "Revis",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        19,
+        -6
+      ],
+      "size": 65,
+      "text": "ADIK",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -28,
+        0.5
+      ],
+      "size": 65,
+      "text": "Generic",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        92,
+        15
+      ],
+      "size": 65,
+      "text": "Top Brand",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        61,
+        15
+      ],
+      "size": 65,
+      "text": "Sports",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        70,
+        32
+      ],
+      "size": 65,
+      "text": "Yushka",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        19.5,
+        26
+      ],
+      "size": 65,
+      "text": "Rasmussen",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        -37,
+        26
+      ],
+      "size": 65,
+      "text": "Avokado",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        91,
+        55
+      ],
+      "size": 65,
+      "text": "Boots 4 Life",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        61,
+        50
+      ],
+      "size": 65,
+      "text": "Texho",
+      "top": 33
+    },
+    {
+      "bottom": 25,
+      "position": [
+        6,
+        49
+      ],
+      "size": 65,
+      "text": "Dom",
+      "top": 33
+    },
+    {
+      "bottom": 34,
+      "position": [
+        38,
+        -170
+      ],
+      "size": 65,
+      "text": "Father & Sons",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        69,
+        -150
+      ],
+      "size": 65,
+      "text": "Tarkovstar",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        26,
+        -149
+      ],
+      "size": 65,
+      "text": "Eastland",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        71,
+        -130
+      ],
+      "size": 65,
+      "text": "Arena",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        54,
+        -128
+      ],
+      "size": 65,
+      "text": "ТАРЗДРАВ",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        20,
+        -128
+      ],
+      "size": 65,
+      "text": "МЕБЕЛЬ МК",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        69,
+        -116
+      ],
+      "size": 65,
+      "text": "Intourist",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        -27,
+        -103
+      ],
+      "size": 65,
+      "text": "Burger Spot",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        70,
+        -94
+      ],
+      "size": 65,
+      "text": "FCK",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        70,
+        -87
+      ],
+      "size": 65,
+      "text": "McDaniels",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        64,
+        -69
+      ],
+      "size": 65,
+      "text": "Tarducks",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        43,
+        -69
+      ],
+      "size": 65,
+      "text": "Coffee Joy",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        15,
+        -74
+      ],
+      "size": 65,
+      "text": "Jacob & Jacob",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        -34,
+        -79
+      ],
+      "size": 65,
+      "text": "ПУШКИН",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        64,
+        -34
+      ],
+      "size": 65,
+      "text": "Sushi Huyushi",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        -17,
+        -32
+      ],
+      "size": 65,
+      "text": "Underway",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        67,
+        -23.5
+      ],
+      "size": 65,
+      "text": "Burger House",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        -34,
+        -24
+      ],
+      "size": 65,
+      "text": "Philly Cute",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        67,
+        -16
+      ],
+      "size": 65,
+      "text": "Shiccos",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        17,
+        0
+      ],
+      "size": 65,
+      "text": "МУЗЕЙ ИСТОРИИ",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        92,
+        17
+      ],
+      "size": 65,
+      "text": "Papillon",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        58,
+        13
+      ],
+      "size": 60,
+      "text": "ЗАКРЫТО НА РЕМОНТ",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        70,
+        27
+      ],
+      "size": 65,
+      "text": "НА-СВЯЗИ",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        54,
+        24
+      ],
+      "size": 65,
+      "text": "СКОРО ОТКРЫТИЕ",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        19,
+        26
+      ],
+      "size": 65,
+      "text": "Figaro",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        71,
+        47
+      ],
+      "size": 65,
+      "text": "АПТЕКА",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        53,
+        47
+      ],
+      "size": 65,
+      "text": "SARA",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        26,
+        46
+      ],
+      "size": 65,
+      "text": "Urban Clothes",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        91,
+        54
+      ],
+      "size": 65,
+      "text": "TECHLIGHT",
+      "top": 999
+    },
+    {
+      "bottom": 34,
+      "position": [
+        39,
+        67
+      ],
+      "size": 65,
+      "text": "Fashion Store",
+      "top": 999
+    }
+  ],
+  "layers": [
+    {
+      "extents": [
+        {
+          "bounds": [
+            [
+              [
+                120,
+                218
+              ],
+              [
+                -222,
+                -327
+              ],
+              "mall"
+            ]
+          ],
+          "height": [
+            25,
+            34
+          ]
+        }
+      ],
+      "name": "2nd Floor",
+      "show": true,
+      "svgLayer": "First_Floor"
+    },
+    {
+      "extents": [
+        {
+          "bounds": [
+            [
+              [
+                120,
+                218
+              ],
+              [
+                -222,
+                -327
+              ],
+              "mall"
+            ]
+          ],
+          "height": [
+            34,
+            1000
+          ]
+        }
+      ],
+      "name": "3rd Floor",
+      "show": false,
+      "svgLayer": "Second_Floor"
+    }
+  ],
+  "maxZoom": 6,
+  "minZoom": 1,
+  "projection": "interactive",
+  "svgLayer": "Ground_Level",
+  "svgPath": "https://assets.tarkov.dev/maps/svg/Interchange.svg",
+  "tilePath": "https://assets.tarkov.dev/maps/interchange/main/{z}/{x}/{y}.png",
+  "tileSize": 256,
+  "transform": [
+    0.265,
+    150.6,
+    0.265,
+    134.6
+  ]
+}

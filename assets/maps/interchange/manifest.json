@@ -1,0 +1,21 @@
+{
+  "author": "Shebuka",
+  "authorLink": "https://github.com/the-hideout/tarkov-dev-svg-maps/",
+  "layoutSource": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/main/src/data/maps.json",
+  "license": "CC BY-NC-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "pngHashes": {
+    "First_Floor.png": "4212ebbee2438ebaefa3662328c2622cf30cafbbb7094087a8bde3aa6214955f",
+    "Ground_Level.png": "6cfc72582699cefaf1496a5882d7e52346fbfc395d52c2031508bc5f31a090bb",
+    "Second_Floor.png": "83b3dcce551066456c68694525e70d9a07371500673de670634c53dd2ffbef7a"
+  },
+  "renderer": "resvg-py 0.5.0; width 2048; system fonts disabled",
+  "source": "https://assets.tarkov.dev/maps/svg/Interchange.svg",
+  "svgSha256": "31a44112cd5fe33484ce6be7b7dc80d13db6077cba2583a4425ed94c665f47c4",
+  "viewBox": [
+    0.0,
+    0.0,
+    1127.6852,
+    947.02582
+  ]
+}

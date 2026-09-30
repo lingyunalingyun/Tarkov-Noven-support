@@ -1,0 +1,2 @@
+# Development-only SVG rasterizer; no Python dependency in the application.
+resvg-py==0.5.0
