@@ -2,6 +2,7 @@
 #include "ui/UiCanvas.h"
 #include "ui/Theme.h"
 #include <array>
+#include <cmath>
 #include <optional>
 #include <span>
 
@@ -25,7 +26,7 @@ class FloorStack final {
 public:
     D2D1_POINT_2F origin{};
     float width{250};
-    std::size_t count{4};
+    std::size_t count{};
     FloorPlate Plate(std::size_t index,float pull=0) const noexcept {
         const float x=origin.x-static_cast<float>(index)*width*.13F+pull;
         const float y=origin.y+static_cast<float>(index)*width*.20F-pull;
@@ -55,8 +56,11 @@ public:
             canvas.target.FillGeometry(path.Get(),&canvas.brush);
             canvas.brush.SetColor(selected==i?theme.accent:theme.divider);
             canvas.target.DrawGeometry(path.Get(),&canvas.brush,selected==i?2.0F:1.0F);
-            if(i<labels.size())canvas.Text(labels[i],canvas.body,plate.label,
-                selected==i?theme.accent:theme.secondaryText);
+            const float separation=selected?std::abs(static_cast<float>(i)-static_cast<float>(*selected))*width*.2F:100;
+            const bool showLabel=width>=150||selected==i||((i==0||i==count-1)&&separation>=24);
+            if(i<labels.size()&&showLabel){auto label=plate.label;
+                if(label.bottom-label.top<24)label.bottom=label.top+24;
+                canvas.Text(labels[i],canvas.body,label,selected==i?theme.accent:theme.secondaryText);}
         }
     }
 };

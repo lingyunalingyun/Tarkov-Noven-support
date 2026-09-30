@@ -2,6 +2,7 @@
 #include "ui/MapPrototypeData.h"
 #include "ui/MapLayout.h"
 #include "ui/MapViewport.h"
+#include "ui/MapPage.h"
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -22,12 +23,13 @@ int main(){
         Require(plate.Contains(point),"selected geometry contains hit point");
     }
     Require(!stack.Hit({0,0}),"outside stack does not select floor");
-    const auto overview=MapLayout::Sample(1400,800,{},0),selected=MapLayout::Sample(1400,800,{},1);
+    const auto count=MapPrototype::Floors.size();
+    const auto overview=MapLayout::Sample(1400,800,{},0,count),selected=MapLayout::Sample(1400,800,{},1,count);
     Require(overview.stack.width>selected.stack.width,"selection shrinks stack");
     Require(overview.stack.origin.x>selected.stack.origin.x,"selection moves stack left");
     Require(MapLayout::Ease(0)==0&&MapLayout::Ease(1)==1,"transition endpoints exact");
     for(float width:{850.0F,1100.0F,1600.0F}){
-        const auto layout=MapLayout::Sample(width,700,{},1);
+        const auto layout=MapLayout::Sample(width,700,{},1,count);
         Require(layout.viewport.right-layout.viewport.left>250,"responsive map keeps useful width");
         Require(layout.stack.Plate(0).vertices[1].x<layout.viewport.left,"stack stays left of map");
     }
@@ -54,5 +56,30 @@ int main(){
     MapInteractionStrip strip{{400,140,1000,235}};
     Require(strip.Hit({450,190},points)==demo.id,"strip hit returns stable marker ID");
     Require(!strip.Hit({0,0},points),"outside strip has no marker identity");
+    MapPage page;page.Prepare(1280,800,{});Require(!page.Selected(),"page starts in overview");
+    Require(page.FocusInteraction(demo.id)&&page.FloorId()==demo.floorId&&page.InteractionId()==demo.id,
+        "cross-floor focus uses shared ID and expands layout");
+    for(int tick=0;tick<30;++tick)page.Tick(.016F);
+    page.Prepare(1280,800,{});Require(!page.Animating(),"layout transition settles");
+    const auto destination=page.Viewport().ToScreen(demo.coordinate);
+    const auto bounds=page.Viewport().Bounds();
+    Require(Near(destination.x,(bounds.left+bounds.right)/2)&&Near(destination.y,(bounds.top+bounds.bottom)/2),
+        "cross-floor interaction centers viewport");
+    int active=0;for(const auto& p:page.Points())if(p.floorId==page.FloorId())++active;
+    Require(active==1,"only current floor marker is active");
+    page.SelectFloor(MapPrototype::Floors[2].id);Require(page.Selected(),"floor switching never collapses layout");
+    Require(!page.FocusInteraction("invalid"),"unknown interaction ID cannot change selection");
+    page.MouseDown(page.Layout().search.left+20,100);page.MouseUp(page.Layout().search.left+20,100);
+    for(const auto c:std::wstring(L"demo exit"))Require(page.Char(c),"persistent search accepts input");
+    Require(page.Points().size()==1,"search filters isolated preview points");
+    Require(page.Key(VK_LEFT,false)&&page.Search().Caret()==8,"search retains shared caret behavior");
+    Require(page.Key(VK_RETURN,false)&&page.FloorId()==demo.floorId,"Enter focuses filtered cross-floor marker");
+    Require(page.Key(VK_ESCAPE,false)&&page.Search().Text().empty(),"Escape clears prototype query");
+    page.MouseDown(0,0);page.MouseUp(0,0);
+    const auto markerPosition=page.Viewport().ToScreen(demo.coordinate);
+    page.MouseDown(markerPosition.x,markerPosition.y);page.MouseMove(markerPosition.x+3,markerPosition.y);
+    page.MouseUp(markerPosition.x+3,markerPosition.y);
+    const auto unpanned=page.Viewport().ToScreen(demo.coordinate);
+    Require(Near(unpanned.x,markerPosition.x),"marker click never starts a map pan");
     std::cout<<"Map prototype geometry and transform checks passed\n";
 }

@@ -22,7 +22,7 @@
   "page.prices.description": "物价浏览功能将在后续阶段接入。",
   "page.hideout.description": "浏览藏身处升级需求、制造配方和材料估价。",
   "page.tasks.description": "浏览商人任务、目标、任务链和奖励。",
-  "page.map.description": "地图功能将在后续阶段接入。",
+  "page.map.description": "交互地图布局预览；仅使用演示几何。",
   "page.raid_history.description": "对局记录功能将在后续阶段接入。",
   "page.squad.description": "开黑伙伴功能将在后续阶段接入。",
   "page.events.description": "活动信息功能将在后续阶段接入。",
@@ -162,5 +162,10 @@
   "tasks.location.any": "任意地点",
   "tasks.marker.kappa": "3×4 保险箱任务",
   "tasks.marker.lightkeeper": "“仙女棒”任务",
-  "tasks.marker.unrelated": "非 3×4 / “仙女棒”任务"
+  "tasks.marker.unrelated": "非 3×4 / “仙女棒”任务",
+  "map.search.placeholder": "搜索楼层或标识，回车定位……",
+  "map.interactions": "地图标识信息",
+  "map.reset_view": "重置视图",
+  "map.preview": "交互原型 · 非真实地图",
+  "map.no_results": "没有匹配的标识"
 }

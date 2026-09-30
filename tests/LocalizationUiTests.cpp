@@ -460,6 +460,22 @@ int wmain(int argc, wchar_t** argv) try {
         click(rect.left + 30, rect.top + 10);
         Require(!click(rect.left + 30, rect.bottom + 4 + 32 + 10), "PvE selection survived locale and page switches");
         ui.Paint();
+        selectPage(MainPage::Map);ui.Paint();
+        const auto floor=ui.Map().Layout().stack.Plate(0);
+        Require(!click(floor.anchor.x,floor.anchor.y-2),"map floor click emits no scanner mode change");
+        for(int tick=0;tick<60&&ui.AnimationActive();++tick){Sleep(16);if(!ui.AnimationTick())break;}
+        ui.Paint();Require(ui.Map().Selected(),"Map placeholder replaced with interactive floor selection");
+        const auto selectedFloor=ui.Map().FloorId();const auto viewBounds=ui.Map().Viewport().Bounds();
+        Require(ui.MouseWheel(static_cast<int>((viewBounds.left+50)*scale),
+            static_cast<int>((viewBounds.top+80)*scale),120),"map wheel handled inside viewport");
+        const float mapScale=ui.Map().Viewport().Scale();
+        Require(!click(ui.Map().Layout().search.left+20,100),"map search gains focus without mode change");
+        Require(ui.Char(L'演')&&ui.Char(L'示'),"Map uses shared committed Unicode input");
+        Require(!click(viewBounds.left+30,viewBounds.top+100),"map click blurs search");
+        const auto mapQuery=ui.Map().Search().Text();
+        selectPage(MainPage::Scanner);selectPage(MainPage::Map);ui.Paint();
+        Require(ui.Map().FloorId()==selectedFloor&&ui.Map().Viewport().Scale()==mapScale&&ui.Map().Search().Text()==mapQuery,
+            "main navigation preserves selected Map floor, query and zoom");
         for(const auto& info:kPages) {
             selectPage(info.id);
             Require(!ui.AnimationActive(),"main-page animation settles for every sidebar page");

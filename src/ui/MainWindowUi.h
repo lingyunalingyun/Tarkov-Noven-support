@@ -7,6 +7,7 @@
 #include "data/PriceBrowser.h"
 #include "ui/HideoutPage.h"
 #include "ui/TasksPage.h"
+#include "ui/MapPage.h"
 #include "ui/PageTransition.h"
 
 #include <d2d1.h>
@@ -33,7 +34,7 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
-    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); }
+    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); }
     [[nodiscard]] std::optional<data::GameMode> MouseUp(int x, int y);
     [[nodiscard]] bool MouseWheel(int x, int y, int delta);
     [[nodiscard]] bool AnimationTick();
@@ -59,6 +60,7 @@ public:
     bool GoBack();
     bool CanGoBack() const noexcept { return return_page_.has_value(); }
     const SearchBox& PriceSearch() const noexcept { return price_search_; }
+    const MapPage& Map() const noexcept { return map_; }
 
 private:
     bool SelectPage(MainPage page);
@@ -106,6 +108,7 @@ private:
     PageHost pages_;
     HideoutPage hideout_;
     TasksPage tasks_;
+    MapPage map_;
     std::unordered_set<std::string> hideout_image_ids_;
     std::unordered_set<std::string> task_image_ids_;
     std::unique_ptr<data::PriceBrowserModel> price_browser_;

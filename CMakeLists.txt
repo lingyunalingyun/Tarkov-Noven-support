@@ -60,6 +60,7 @@ add_executable(NovenTarkovSupport WIN32
     src/data/TaskBrowser.cpp
     src/ui/HideoutPage.cpp
     src/ui/TasksPage.cpp
+    src/ui/MapPage.cpp
     src/data/PriceHistory.cpp
     src/data/RecentScanStore.cpp
     src/hotkey/GlobalHotkey.cpp
@@ -477,7 +478,7 @@ if(BUILD_TESTING)
     add_executable(NovenLocalizationUiTests
         tests/LocalizationUiTests.cpp
         src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
-        src/ui/HideoutPage.cpp src/ui/TasksPage.cpp src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
+        src/ui/HideoutPage.cpp src/ui/TasksPage.cpp src/ui/MapPage.cpp src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
         src/data/TaskCatalog.cpp src/data/TaskBrowser.cpp
         src/data/ItemCatalog.cpp src/data/ItemEconomyStore.cpp src/data/PriceBrowser.cpp
         src/data/PriceHistory.cpp
@@ -518,11 +519,12 @@ if(BUILD_TESTING)
         target_compile_options(NovenTaskTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME tasks COMMAND NovenTaskTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
-    add_executable(NovenMapPrototypeTests tests/MapPrototypeTests.cpp)
+    add_executable(NovenMapPrototypeTests tests/MapPrototypeTests.cpp src/ui/MapPage.cpp src/ui/localization/LocalizationService.cpp)
     target_include_directories(NovenMapPrototypeTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_definitions(NovenMapPrototypeTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
     if(MSVC)
         target_compile_options(NovenMapPrototypeTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME map_prototype COMMAND NovenMapPrototypeTests)
+    target_link_libraries(NovenMapPrototypeTests PRIVATE d2d1 dwrite imm32)
 endif()

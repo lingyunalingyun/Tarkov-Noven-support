@@ -209,6 +209,9 @@ void MainWindowUi::RequestVisiblePriceImages() {
 }
 
 bool MainWindowUi::KeyDown(WPARAM key, bool control) {
+    if (navigation_.Active()==MainPage::Map) {
+        const bool handled=map_.Key(key,control); if(handled) Invalidate(); return handled;
+    }
     if (navigation_.Active()==MainPage::Hideout) {
         const bool handled=hideout_.Key(key,control); if (handled) Invalidate(); return handled;
     }
@@ -226,6 +229,9 @@ bool MainWindowUi::KeyDown(WPARAM key, bool control) {
 }
 
 bool MainWindowUi::Char(wchar_t character) {
+    if (navigation_.Active()==MainPage::Map) {
+        const bool handled=map_.Char(character); if(handled) Invalidate(); return handled;
+    }
     if (navigation_.Active()==MainPage::Hideout) {
         const bool handled=hideout_.Char(character); if (handled) Invalidate(); return handled;
     }
@@ -374,6 +380,7 @@ void MainWindowUi::Paint() {
         const D2D1_SIZE_F size = render_target_->GetSize();
         hideout_.Prepare(size.width,size.height,theme_);
         tasks_.Prepare(size.width,size.height,theme_);
+        map_.Prepare(size.width,size.height,theme_);
         RequestVisibleHideoutImages();
         RequestVisibleTaskImages();
         UiCanvas canvas{*render_target_.Get(), *brush_.Get(), *title_format_.Get(),
@@ -390,6 +397,7 @@ void MainWindowUi::Paint() {
         canvas.inputWindow = page == navigation_.Active() ? window_ : nullptr;
         if (page==MainPage::Hideout) hideout_.Draw(canvas,theme_,item_bitmaps_);
         else if (page==MainPage::Tasks) tasks_.Draw(canvas,theme_,item_bitmaps_);
+        else if (page==MainPage::Map) map_.Draw(canvas,theme_);
         else pages_.Draw(canvas, theme_, size.width, size.height,
                     page, scanner_, mode_menu_open_,
                     mode_hovered_, hovered_mode_, recent_, recent_filter_,
@@ -608,6 +616,7 @@ void MainWindowUi::Invalidate() const {
 }
 
 void MainWindowUi::MouseMove(int x, int y) {
+    if(navigation_.Active()==MainPage::Map){map_.MouseMove(x/Scale(),y/Scale());Invalidate();}
     const bool back=OnBackButton(x,y);
     if(back!=back_hovered_) { back_hovered_=back;Invalidate(); }
     if (navigation_.Active()==MainPage::Hideout) { hideout_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
@@ -666,6 +675,7 @@ void MainWindowUi::MouseMove(int x, int y) {
 }
 
 void MainWindowUi::MouseLeave() {
+    map_.MouseLeave();
     if(back_hovered_) { back_hovered_=false;Invalidate(); }
     price_details_.hoverIndex.reset();
     if (price_details_.pointer) { price_details_.pointer.reset(); Invalidate(); }
@@ -699,6 +709,9 @@ void MainWindowUi::MouseDown(int x, int y) {
     }
     if (navigation_.Active()==MainPage::Tasks) {
         tasks_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
+    }
+    if (navigation_.Active()==MainPage::Map) {
+        map_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
     }
     if (const auto bar = Scrollbar()) {
         const float dx = static_cast<float>(x) / Scale();
@@ -771,6 +784,7 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
             OpenPriceItem(*item,tasks_.Mode()); return std::nullopt;
         }
     }
+    if (navigation_.Active()==MainPage::Map) {map_.MouseUp(x/Scale(),y/Scale());Invalidate();}
     const auto language = LanguageAt(x, y);
     if (pressed_language_ && pressed_language_ == language) {
         const auto previous = UiLocalization().ActiveLocale();
@@ -986,6 +1000,8 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
 }
 
 bool MainWindowUi::MouseWheel(int x, int y, int delta) {
+    if(navigation_.Active()==MainPage::Map){const bool handled=map_.Wheel(delta,x/Scale(),y/Scale());
+        if(handled)Invalidate();return handled;}
     if (navigation_.Active()==MainPage::Hideout && x/Scale()>=theme_.sidebarWidth) return hideout_.Wheel(delta,x/Scale(),y/Scale());
     if (navigation_.Active()==MainPage::Tasks && x/Scale()>=theme_.sidebarWidth) return tasks_.Wheel(delta,x/Scale(),y/Scale());
     if (navigation_.Active() == MainPage::Settings && x / Scale() >= theme_.sidebarWidth) {
@@ -1020,9 +1036,10 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta) {
 }
 
 bool MainWindowUi::AnimationActive() const noexcept {
+    const bool mapVisible=navigation_.Active()==MainPage::Map||page_transition_.ShowingOutgoing(MainPage::Map);
     const bool tasksVisible=navigation_.Active()==MainPage::Tasks
         || page_transition_.ShowingOutgoing(MainPage::Tasks);
-    return page_transition_.Active() || hideout_.Animating() || (tasksVisible&&tasks_.Animating()) || recent_transition_.progress < 1.0F
+    return page_transition_.Active() || hideout_.Animating() || (tasksVisible&&tasks_.Animating()) || (mapVisible&&map_.Animating()) || recent_transition_.progress < 1.0F
         || price_transition_.progress < 1.0F
         || price_search_transition_.progress < 1.0F
         || price_details_.tabProgress < 1 || price_details_.chartProgress < 1
@@ -1047,6 +1064,7 @@ bool MainWindowUi::AnimationTick() {
         : std::chrono::duration<float>(now - recent_scroll_tick_).count();
     recent_scroll_tick_ = now;
     hideout_.Tick(elapsed);
+    if(navigation_.Active()==MainPage::Map||page_transition_.ShowingOutgoing(MainPage::Map))map_.Tick(elapsed);
     if (navigation_.Active()==MainPage::Tasks || page_transition_.ShowingOutgoing(MainPage::Tasks))
         tasks_.Tick(elapsed);
     const float remaining = recent_scroll_target_ - recent_scroll_;

@@ -54,7 +54,10 @@ struct MapInteractionStrip final {
         for(std::size_t i=0;i<points.size();++i){const auto r=Entry(i,points.size());
             canvas.Round(r,5,points[i].id==selected?theme.selected:theme.background);
             DrawMapMarker(canvas,theme,points[i].type,{r.left+18,(r.top+r.bottom)*.5F},false);
+            const auto wrapping=canvas.smallFormat.GetWordWrapping();
+            canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
             canvas.Text(points[i].title,canvas.smallFormat,{r.left+36,r.top+3,r.right-5,r.bottom},theme.primaryText);
+            canvas.smallFormat.SetWordWrapping(wrapping);
         }
     }
 };

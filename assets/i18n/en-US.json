@@ -22,7 +22,7 @@
   "page.prices.description": "Price browsing is coming in a future phase.",
   "page.hideout.description": "Browse hideout upgrades, crafts, and material estimates.",
   "page.tasks.description": "Browse trader tasks, objectives, chains, and rewards.",
-  "page.map.description": "Maps are coming in a future phase.",
+  "page.map.description": "Interactive map layout preview with demo geometry only.",
   "page.raid_history.description": "Raid history is coming in a future phase.",
   "page.squad.description": "Squad tools are coming in a future phase.",
   "page.events.description": "Event information is coming in a future phase.",
@@ -162,5 +162,10 @@
   "tasks.location.any": "Any location",
   "tasks.marker.kappa": "3×4 secure-container task",
   "tasks.marker.lightkeeper": "“Fairy wand” task",
-  "tasks.marker.unrelated": "Not required for either chain"
+  "tasks.marker.unrelated": "Not required for either chain",
+  "map.search.placeholder": "Search floors or markers; Enter to focus…",
+  "map.interactions": "Map interaction information",
+  "map.reset_view": "Reset view",
+  "map.preview": "Interaction prototype · not a real map",
+  "map.no_results": "No matching markers"
 }
