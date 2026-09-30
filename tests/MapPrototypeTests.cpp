@@ -49,5 +49,10 @@ int main(){
     Require(Near(focused.x,800)&&Near(focused.y,500),"focus centers requested coordinate");
     const auto oldScale=view.Scale();view.SetBounds({400,250,1200,750});
     Require(view.Scale()==oldScale,"unchanged bounds preserve view");
+    const auto& demo=MapPrototype::Points[1];
+    const std::array points{MapInteractionPoint{demo.id,demo.floorId,demo.type,demo.coordinate,demo.english}};
+    MapInteractionStrip strip{{400,140,1000,235}};
+    Require(strip.Hit({450,190},points)==demo.id,"strip hit returns stable marker ID");
+    Require(!strip.Hit({0,0},points),"outside strip has no marker identity");
     std::cout<<"Map prototype geometry and transform checks passed\n";
 }
