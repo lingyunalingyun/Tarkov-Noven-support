@@ -63,6 +63,8 @@ def main():
         if layer["extents"] != [{"height": list(heights), "bounds": [[[120, 218], [-222, -327], "mall"]]}]:
             raise ValueError("floor extents changed; review native adapter")
     images, view = variants(raw)
+    if view != [0, 0, 1127.6852, 947.02582]:
+        raise ValueError("SVG bounds changed; review native projection")
     import resvg_py
     outputs = {f"{layer}.png": resvg_py.svg_to_bytes(svg_string=svg, width=2048, skip_system_fonts=True)
                for layer, svg in images.items()}

@@ -334,6 +334,10 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->SetPriceDataSources(*item_catalog_, *item_economy_store_);
     main_ui_->SetHideoutDataSources(executable_directory / L"assets" / L"data", *item_catalog_, *item_economy_store_);
     main_ui_->SetTaskDataSources(executable_directory / L"assets" / L"data", *item_catalog_);
+    std::wstring map_error;
+    if(!main_ui_->SetMapDataSources(executable_directory / L"assets",map_error)){
+        common::DebugLog(L"[map] reference unavailable: "+map_error);
+    }
 
     data_refresh_service_->Start(executable_directory / L"data" / L"economy-cache");
 

@@ -499,6 +499,17 @@ int wmain(int argc, wchar_t** argv) try {
         }
         for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
         Require(!ui.AnimationActive() && ui.ActivePage()==MainPage::Hideout,"rapid page transitions settle at final destination");
+        Require(ui.SetMapDataSources(std::filesystem::path(argv[1]).parent_path(),error),"native Map binds Interchange local data and images");
+        selectPage(MainPage::Map);ui.Paint();
+        Require(ui.Map().RealData()&&ui.Map().Points().size()==1070&&ui.Map().Search().Text().empty(),"native production Map replaces demo data and clears old catalog search");
+        const auto realFloor=ui.Map().Layout().stack.Plate(1).anchor;
+        Require(!click(realFloor.x,realFloor.y-2),"real floor selection preserves game mode");
+        for(int tick=0;tick<60&&ui.AnimationActive();++tick){Sleep(16);if(!ui.AnimationTick())break;}
+        ui.Paint();
+        Require(ui.Map().FloorId()=="First_Floor"&&ui.Map().Selected(),"native production floor transition draws real image");
+        const auto realScale=ui.Map().Viewport().Scale();
+        selectPage(MainPage::Prices);selectPage(MainPage::Map);ui.Paint();
+        Require(ui.Map().FloorId()=="First_Floor"&&ui.Map().Viewport().Scale()==realScale,"real map state persists across navigation");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

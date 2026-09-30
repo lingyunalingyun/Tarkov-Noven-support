@@ -17,7 +17,7 @@ struct MapLayout final {
     static float Ease(float progress) noexcept {
         const float t=1-std::clamp(progress,0.0F,1.0F);return 1-t*t*t;
     }
-    static MapLayout Sample(float width,float height,const UiTheme& theme,float progress,std::size_t floorCount){
+    static MapLayout Sample(float width,float height,const UiTheme& theme,float progress,std::size_t floorCount,std::size_t mapCount=3){
         const float left=theme.sidebarWidth+theme.contentPadding,right=width-theme.contentPadding;
         const float available=std::max(120.0F,right-left),bottom=std::max(300.0F,height-24);
         const float rail=148;
@@ -35,7 +35,7 @@ struct MapLayout final {
             {stripLeft,186,right,stripBottom},{viewLeft,viewTop,right,bottom},
             {{overview.x+(selected.x-overview.x)*t,overview.y+(selected.y-overview.y)*t},
                 large+(compact-large)*t,floorCount,.13F*(1-t)},
-            {left+8,188,left+44,224},{left,130,166,available/3,std::min(36.0F,available/9)},
+            {left+8,188,left+44,224},{left,130,166,available/static_cast<float>(std::max(std::size_t{1},mapCount)),std::min(36.0F,available/9)},
             {{{left+8,filterTop,left+132,filterTop+36},{left+8,filterTop+48,left+132,filterTop+84},
               {left+8,filterTop+96,left+132,filterTop+132}}},
             {viewLeft+8,std::max(186.0F,std::min(filterTop,bottom-220)),std::min(right-8,viewLeft+338),bottom-8}};

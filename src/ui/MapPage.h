@@ -3,13 +3,20 @@
 #include "ui/MapPrototypeData.h"
 #include "ui/MapViewport.h"
 #include "ui/SearchBox.h"
+#include "ui/LocalImage.h"
+#include "data/MapCatalog.h"
 #include <vector>
 
 namespace noven::ui {
-// 常驻 UI 状态独立于任务/藏身处；演示数据仅从 MapPrototypeData 读取。
-// Resident UI state is independent of Tasks/Hideout; demo data comes only from MapPrototypeData.
+// 常驻 UI 状态独立于任务/藏身处；生产绑定失败不能回退成演示地图。
+// Resident state is independent of Tasks/Hideout; failed production binding never displays demo maps.
 class MapPage final {
 public:
+    MapPage();
+    MapPage(const MapPage&)=delete;
+    MapPage& operator=(const MapPage&)=delete;
+    bool Initialize(const std::filesystem::path& assets,std::wstring& error);
+    bool RealData() const noexcept{return real_;}
     void Prepare(float width,float height,const UiTheme& theme);
     void Draw(const UiCanvas& canvas,const UiTheme& theme) const;
     void Tick(float elapsed);
@@ -40,6 +47,22 @@ public:
     void CancelDrag(){drag_.reset();scroll_drag_.reset();pressed_floor_.reset();pressed_point_={};pressed_map_.reset();
         pressed_filter_.reset();pressed_row_.reset();reset_pressed_=false;back_pressed_=false;}
 private:
+    std::vector<TabBarItem<std::string_view>> MapItems() const;
+    struct Floor {std::string id;std::wstring label;};
+    struct Map {std::string id;std::wstring chinese,english;};
+    struct Point {
+        std::string id,floorId,mapId;MapMarkerType type;D2D1_POINT_2F coordinate;
+        std::wstring chinese,english;MapPointCategory category;
+        bool sharedExtract{};
+    };
+    bool Allows(const Point& point) const;
+    std::vector<Floor> floors_;
+    std::vector<Map> maps_;
+    std::vector<Point> points_;
+    std::vector<LocalImage> images_;
+    data::MapCatalog catalog_;
+    D2D1_SIZE_F world_{MapPrototype::World};
+    bool real_{},unavailable_{};
     std::size_t FloorIndex() const;
     float FloorPosition() const noexcept;
     D2D1_RECT_F ResetBounds() const noexcept;

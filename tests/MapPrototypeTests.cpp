@@ -12,7 +12,9 @@ namespace {
 void Require(bool value,const char* message){if(!value){std::cerr<<message<<'\n';std::exit(1);}}
 bool Near(float a,float b){return std::abs(a-b)<.002F;}
 }
-int main(){
+int main(int argc,char** argv){
+    Require(SUCCEEDED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)),"WIC COM initializes");
+    struct ComScope {~ComScope(){CoUninitialize();}} comScope;
     using namespace noven::ui;
     MapFilters filters;
     Require(filters.Allows(MapPointCategory::Task,"task-a"),"filters default to visible");
@@ -172,5 +174,34 @@ int main(){
         Require(Near(layout.strip.bottom-layout.strip.top,100)&&Near(layout.strip.right,layout.viewport.right),
             "information strip remains compact and aligned across widths");
         Require(layout.filters.back().bottom<layout.content.bottom,"left filter buttons fit content");}
-    std::cout<<"Map prototype geometry and transform checks passed\n";
+    Require(argc==2,"assets directory required");
+    MapPage actual;std::wstring error;
+    Require(actual.Initialize(std::filesystem::path(argv[1]),error)&&actual.RealData(),"real local Interchange binds with all three images");
+    actual.Prepare(1400,850,{});
+    Require(actual.MapId()=="5714dbc024597771384a510d"&&actual.Points().size()==1070,"production has real stable map and point identities");
+    Require(actual.Layout().stack.count==3&&!actual.Selected(),"real overview has three floors and no expanded viewport");
+    const auto realPoints=actual.Points();
+    for(const auto floor:{"Ground_Level","First_Floor","Second_Floor"}){
+        const auto point=std::find_if(realPoints.begin(),realPoints.end(),[&](const auto& p){return p.floorId==floor;});
+        Require(point!=realPoints.end()&&actual.FocusInteraction(point->id),"each real floor contains focusable source points");
+        Require(actual.FloorId()==floor&&actual.SelectedPoint()->id==point->id,"real focus selects correct floor and retains source ID");
+    }
+    actual.Overview();actual.SelectFloor("First_Floor");
+    Require(actual.Selected()&&actual.FloorId()=="First_Floor","real overview back retains floor selection contract");
+    LocalImage image;
+    Require(!image.Load(std::filesystem::path(argv[1])/L"maps"/L"missing.png")&&!image.Ready(),"missing local image rejects without invented background");
+    Require(image.Load(std::filesystem::path(argv[1])/L"maps"/L"interchange"/L"First_Floor.png")&&image.Ready(),"full-size local PNG decodes");
+    Microsoft::WRL::ComPtr<ID2D1Factory> factory;Microsoft::WRL::ComPtr<IWICImagingFactory> wic;
+    Require(SUCCEEDED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,factory.GetAddressOf()))
+        &&SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&wic))),"native image test factories initialize");
+    for(int targetIndex=0;targetIndex<3;++targetIndex){
+        Microsoft::WRL::ComPtr<IWICBitmap> bitmap;Microsoft::WRL::ComPtr<ID2D1RenderTarget> target;
+        Require(SUCCEEDED(wic->CreateBitmap(64,64,GUID_WICPixelFormat32bppPBGRA,WICBitmapCacheOnLoad,&bitmap))
+            &&SUCCEEDED(factory->CreateWicBitmapRenderTarget(bitmap.Get(),D2D1::RenderTargetProperties(),&target)),"independent image target creates");
+        target->BeginDraw();Require(image.Draw(*target.Get(),{0,0,64,64}),"local image creates target-owned bitmap");
+        Require(SUCCEEDED(target->EndDraw()),"target recreation retains valid image rendering");
+    }
+    MapPage missing;
+    Require(!missing.Initialize(std::filesystem::path(argv[1])/L"missing",error)&&!missing.RealData(),"missing production data rejects");
+    std::cout<<"Map prototype and real Interchange geometry, transforms, identity and state checks passed\n";
 }
