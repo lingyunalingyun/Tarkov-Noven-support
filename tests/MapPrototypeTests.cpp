@@ -42,6 +42,14 @@ int main(){
     Require(overview.stack.width>selected.stack.width,"selection shrinks stack");
     Require(overview.stack.origin.x>selected.stack.origin.x,"selection moves stack left");
     Require(Near(selected.stack.Plate(0).anchor.x,selected.stack.Plate(3).anchor.x),"expanded floors align vertically");
+    for(std::size_t activeFloor=0;activeFloor<count;++activeFloor)
+        for(std::size_t i=0;i<count;++i){
+            Require(selected.stack.LabelVisible(i,activeFloor)==(i==activeFloor),"expanded stack labels only selected floor");
+            Require(overview.stack.LabelVisible(i,activeFloor)==(i==activeFloor),"selection transition hides other floor labels");
+        }
+    Require(selected.stack.LabelVisible(0,std::nullopt)&&selected.stack.LabelVisible(count-1,std::nullopt)
+        &&!selected.stack.LabelVisible(1,std::nullopt),"compact overview retains endpoint labels");
+    Require(overview.stack.LabelVisible(1,std::nullopt),"large overview retains intermediate floor labels");
     Require(MapLayout::Ease(0)==0&&MapLayout::Ease(1)==1,"transition endpoints exact");
     for(float width:{850.0F,1100.0F,1600.0F}){
         const auto layout=MapLayout::Sample(width,700,{},1,count);

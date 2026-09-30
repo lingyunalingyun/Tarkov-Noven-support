@@ -41,6 +41,11 @@ public:
         for(std::size_t i=0;i<count;++i)if(Plate(i).Contains(point))return i;
         return std::nullopt;
     }
+    bool LabelVisible(std::size_t index,std::optional<std::size_t> selected) const noexcept {
+        // 展开后只标注选中层；概览保持大尺寸全部标注或小尺寸首尾标注。
+        // Selection labels only the active floor; overview labels all large plates or compact endpoints.
+        return selected?selected==index:width>=150||index==0||index==count-1;
+    }
     void Draw(const UiCanvas& canvas,const UiTheme& theme,std::span<const std::wstring_view> labels,
         std::optional<std::size_t> selected,std::optional<std::size_t> hovered) const {
         Microsoft::WRL::ComPtr<ID2D1Factory> factory;canvas.target.GetFactory(&factory);
@@ -57,9 +62,7 @@ public:
             canvas.target.FillGeometry(path.Get(),&canvas.brush);
             canvas.brush.SetColor(selected==i?theme.accent:theme.divider);
             canvas.target.DrawGeometry(path.Get(),&canvas.brush,selected==i?2.0F:1.0F);
-            const float separation=selected?std::abs(static_cast<float>(i)-static_cast<float>(*selected))*width*.2F:100;
-            const bool showLabel=width>=150||selected==i||((i==0||i==count-1)&&separation>=24);
-            if(i<labels.size()&&showLabel){auto label=plate.label;
+            if(i<labels.size()&&LabelVisible(i,selected)){auto label=plate.label;
                 if(label.bottom-label.top<24)label.bottom=label.top+24;
                 canvas.Text(labels[i],canvas.body,label,selected==i?theme.accent:theme.secondaryText);}
         }
