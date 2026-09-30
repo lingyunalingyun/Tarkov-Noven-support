@@ -1,11 +1,14 @@
 #include "ui/FloorStack.h"
 #include "ui/MapPrototypeData.h"
 #include "ui/MapLayout.h"
+#include "ui/MapViewport.h"
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 
 namespace {
 void Require(bool value,const char* message){if(!value){std::cerr<<message<<'\n';std::exit(1);}}
+bool Near(float a,float b){return std::abs(a-b)<.002F;}
 }
 int main(){
     using namespace noven::ui;
@@ -28,5 +31,23 @@ int main(){
         Require(layout.viewport.right-layout.viewport.left>250,"responsive map keeps useful width");
         Require(layout.stack.Plate(0).vertices[1].x<layout.viewport.left,"stack stays left of map");
     }
-    std::cout<<"Map prototype geometry passed\n";
+    MapViewport view(MapPrototype::World);view.SetBounds({400,250,1200,750});
+    const D2D1_POINT_2F map{420,310};const auto screen=view.ToScreen(map),roundTrip=view.ToMap(screen);
+    Require(Near(map.x,roundTrip.x)&&Near(map.y,roundTrip.y),"map/screen round trip");
+    const D2D1_POINT_2F cursor{790,480};const auto anchor=view.ToMap(cursor);view.ZoomAt(cursor,2);
+    const auto after=view.ToMap(cursor);
+    Require(Near(anchor.x,after.x)&&Near(anchor.y,after.y),"cursor zoom preserves map anchor");
+    view.ZoomAt(cursor,1000);Require(Near(view.Scale(),view.MaximumScale()),"maximum scale clamps");
+    view.ZoomAt(cursor,-1000);Require(Near(view.Scale(),view.MinimumScale()),"minimum scale clamps");
+    view.Fit();const auto center=view.ToScreen({500,350});
+    Require(Near(center.x,800)&&Near(center.y,500),"fit centers map");
+    view.Pan({100000,100000});const auto corner=view.ToScreen({0,0});
+    Require(corner.x<1200&&corner.y<750,"positive pan cannot lose map");
+    view.Pan({-100000,-100000});const auto farCorner=view.ToScreen({1000,700});
+    Require(farCorner.x>400&&farCorner.y>250,"negative pan cannot lose map");
+    view.Fit();view.Focus({400,300});const auto focused=view.ToScreen({400,300});
+    Require(Near(focused.x,800)&&Near(focused.y,500),"focus centers requested coordinate");
+    const auto oldScale=view.Scale();view.SetBounds({400,250,1200,750});
+    Require(view.Scale()==oldScale,"unchanged bounds preserve view");
+    std::cout<<"Map prototype geometry and transform checks passed\n";
 }
