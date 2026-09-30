@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <span>
 #include <cmath>
 #include <cstddef>
 #include <optional>
@@ -57,25 +58,25 @@ struct TabTransitionPose final {
             1.0F - 0.035F * fadeOut, 0.965F + 0.035F * fadeIn};
 }
 
-template <typename Id, std::size_t Count>
+template <typename Id>
 [[nodiscard]] std::optional<Id> HitTestTabBar(
-    const std::array<TabBarItem<Id>, Count>& items,
+    std::span<const TabBarItem<Id>> items,
     TabBarLayout layout, float x, float y) noexcept {
     if (y < layout.top || y >= layout.bottom || x < layout.left
-        || x >= layout.left + layout.itemWidth * static_cast<float>(Count))
+        || x >= layout.left + layout.itemWidth * static_cast<float>(items.size()))
         return std::nullopt;
     return items[static_cast<std::size_t>((x - layout.left) / layout.itemWidth)].id;
 }
 
-template <typename Id, std::size_t Count>
+template <typename Id>
 void DrawTabBar(const UiCanvas& canvas, const UiTheme& theme,
-    IDWriteTextFormat& font, const std::array<TabBarItem<Id>, Count>& items,
+    IDWriteTextFormat& font, std::span<const TabBarItem<Id>> items,
     TabBarLayout layout, Id selected, std::optional<Id> hovered, Id outgoing,
     float progress, float underlineIndex) {
     const auto pose = SampleTabTransition(progress);
     const auto previousAlignment = font.GetTextAlignment();
     font.SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-    for (std::size_t index = 0; index < Count; ++index) {
+    for (std::size_t index = 0; index < items.size(); ++index) {
         const auto& item = items[index];
         const float left = layout.left + static_cast<float>(index) * layout.itemWidth;
         const float selectedWeight = progress < 1.0F
@@ -102,4 +103,17 @@ void DrawTabBar(const UiCanvas& canvas, const UiTheme& theme,
         &canvas.brush, 2.0F);
 }
 
+// 保留固定数组调用合同，同时允许目录提供动态标签。
+// Preserve fixed-array callers while accepting catalog-driven dynamic tabs.
+template <typename Id, std::size_t Count>
+[[nodiscard]] std::optional<Id> HitTestTabBar(const std::array<TabBarItem<Id>,Count>& items,
+    TabBarLayout layout,float x,float y) noexcept {
+    return HitTestTabBar<Id>(std::span<const TabBarItem<Id>>(items),layout,x,y);
+}
+template <typename Id, std::size_t Count>
+void DrawTabBar(const UiCanvas& canvas,const UiTheme& theme,IDWriteTextFormat& font,
+    const std::array<TabBarItem<Id>,Count>& items,TabBarLayout layout,Id selected,
+    std::optional<Id> hovered,Id outgoing,float progress,float underlineIndex){
+    DrawTabBar<Id>(canvas,theme,font,std::span<const TabBarItem<Id>>(items),layout,selected,hovered,outgoing,progress,underlineIndex);
+}
 } // namespace noven::ui

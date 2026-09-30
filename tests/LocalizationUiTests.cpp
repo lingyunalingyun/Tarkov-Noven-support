@@ -16,6 +16,9 @@ void Require(bool value, const char* message) {
 }
 int wmain(int argc, wchar_t** argv) try {
     using namespace noven::ui;
+    const std::vector<TabBarItem<int>> dynamicTabs{{1,L"One"},{2,L"Two"}};
+    Require(HitTestTabBar<int>(dynamicTabs,{100,20,60,100,20},250,30)==2
+        &&!HitTestTabBar<int>(dynamicTabs,{100,20,60,100,20},300,30),"dynamic tabs preserve shared hit boundaries");
     Require(FormatSignedRoubles(2000) == L"+₽2,000"
         && FormatSignedRoubles(-1234.5) == L"−₽1,234.5"
         && FormatSignedRoubles(0) == L"₽0"
