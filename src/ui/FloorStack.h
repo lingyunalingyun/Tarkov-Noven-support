@@ -27,8 +27,9 @@ public:
     D2D1_POINT_2F origin{};
     float width{250};
     std::size_t count{};
+    float stagger{.13F};
     FloorPlate Plate(std::size_t index,float pull=0) const noexcept {
-        const float x=origin.x-static_cast<float>(index)*width*.13F+pull;
+        const float x=origin.x-static_cast<float>(index)*width*stagger+pull;
         const float y=origin.y+static_cast<float>(index)*width*.20F-pull;
         return {{{{x+width*.55F,y},{x+width,y+width*.18F},
             {x+width*.45F,y+width*.32F},{x,y+width*.14F}}},

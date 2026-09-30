@@ -13,8 +13,9 @@ public:
     void Prepare(float width,float height,const UiTheme& theme);
     void Draw(const UiCanvas& canvas,const UiTheme& theme) const;
     void Tick(float elapsed);
-    bool Animating() const noexcept{return (Selected()&&progress_<1)||floor_progress_<1||search_.Focused();}
-    bool Selected() const noexcept{return !floor_id_.empty();}
+    bool Animating() const noexcept{return progress_!=(expanded_?1.0F:0.0F)||floor_progress_<1||search_.Focused();}
+    bool Selected() const noexcept{return expanded_;}
+    void Overview(){expanded_=false;search_.Blur();CancelDrag();}
     std::string_view FloorId() const noexcept{return floor_id_;}
     std::string_view InteractionId() const noexcept{return interaction_id_;}
     const MapViewport& Viewport() const noexcept{return viewport_;}
@@ -30,7 +31,7 @@ public:
     bool Wheel(int delta,float x,float y);
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value){return search_.HandleChar(value);}
-    void CancelDrag(){drag_.reset();pressed_floor_.reset();pressed_point_={};reset_pressed_=false;}
+    void CancelDrag(){drag_.reset();pressed_floor_.reset();pressed_point_={};reset_pressed_=false;back_pressed_=false;}
 private:
     std::size_t FloorIndex() const;
     float FloorPosition() const noexcept;
@@ -43,6 +44,6 @@ private:
     float progress_{},floor_from_{},floor_to_{},floor_progress_{1},clock_{};
     std::optional<std::size_t> hovered_floor_,pressed_floor_;
     std::optional<D2D1_POINT_2F> drag_;
-    bool reset_pressed_{};
+    bool reset_pressed_{},expanded_{},back_pressed_{};
 };
 }

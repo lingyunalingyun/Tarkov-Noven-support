@@ -1,6 +1,7 @@
 #include "ui/MapPage.h"
 #include "ui/FloorConnector.h"
 #include "ui/PageComponents.h"
+#include "ui/NavigationButton.h"
 #include <cwctype>
 
 namespace noven::ui {
@@ -19,10 +20,11 @@ std::size_t MapPage::FloorIndex() const {
 float MapPage::FloorPosition() const noexcept{return floor_from_+(floor_to_-floor_from_)*MapLayout::Ease(floor_progress_);}
 void MapPage::SelectFloor(std::string_view id){
     const auto found=std::find_if(MapPrototype::Floors.begin(),MapPrototype::Floors.end(),[&](const auto& floor){return floor.id==id;});
-    if(found==MapPrototype::Floors.end()||floor_id_==id)return;
+    if(found==MapPrototype::Floors.end()||(Selected()&&floor_id_==id))return;
     const bool first=!Selected();floor_from_=FloorPosition();floor_id_=found->id;
     floor_to_=static_cast<float>(FloorIndex());floor_progress_=first?1.0F:0.0F;
     if(first)floor_from_=floor_to_;
+    expanded_=true;
     interaction_id_={};CancelDrag();
 }
 bool MapPage::FocusInteraction(std::string_view id){
@@ -41,7 +43,7 @@ std::vector<MapInteractionPoint> MapPage::Points() const {
 }
 void MapPage::Tick(float elapsed){
     const float dt=std::clamp(elapsed,0.0F,.05F);
-    if(Selected())progress_=std::min(1.0F,progress_+dt/.36F);
+    progress_=std::clamp(progress_+(Selected()?dt:-dt)/.36F,0.0F,1.0F);
     floor_progress_=std::min(1.0F,floor_progress_+dt/.22F);clock_=std::fmod(clock_+dt,1.0F);
 }
 D2D1_RECT_F MapPage::ResetBounds() const noexcept {
@@ -51,7 +53,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     DrawPageHeader(canvas,theme,layout_.search.left,layout_.search.right,Tr(TextKey::NavMap));
     search_.Draw(canvas,theme,layout_.search,Tr(TextKey::MapSearch),clock_<.5F);
     canvas.target.PushAxisAlignedClip(layout_.content,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-    if(Selected()){
+    if(progress_>0){
         const float reveal=MapLayout::Ease(progress_);const auto points=Points();
         const auto opacity=canvas.brush.GetOpacity();canvas.brush.SetOpacity(opacity*reveal);
         MapInteractionStrip{layout_.strip}.Draw(canvas,theme,Tr(TextKey::MapInteractions),points,interaction_id_);
@@ -77,9 +79,10 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.Text(Tr(TextKey::MapPreview),canvas.smallFormat,{r.left+14,r.bottom-30,r.right-14,r.bottom-6},theme.secondaryText);
         canvas.target.PopAxisAlignedClip();
         auto anchor=layout_.stack.Plate(0).anchor;const float index=FloorPosition();
-        anchor.x-=index*layout_.stack.width*.13F;anchor.y+=index*layout_.stack.width*.20F;
+        anchor.x-=index*layout_.stack.width*layout_.stack.stagger;anchor.y+=index*layout_.stack.width*.20F;
         FloorConnector{anchor,{r.left,r.top+(r.bottom-r.top)*.45F}}.Draw(canvas,theme.secondaryText,reveal);
         canvas.brush.SetOpacity(opacity);
+        DrawNavigationButton(canvas,theme,layout_.back,NavigationGlyph::Back,Selected(),false,back_pressed_);
     }else{
         canvas.Text(Tr(TextKey::MapPreview),canvas.smallFormat,
             {layout_.content.left,layout_.content.bottom-35,layout_.content.right,layout_.content.bottom},theme.secondaryText);
@@ -102,6 +105,7 @@ void MapPage::MouseMove(float x,float y){
 void MapPage::MouseDown(float x,float y){
     const D2D1_POINT_2F p{x,y};CancelDrag();
     if(MapContains(layout_.search,p)){search_.Focus();return;}search_.Blur();
+    if(Selected()&&MapContains(layout_.back,p)){back_pressed_=true;return;}
     pressed_floor_=layout_.stack.Hit(p);if(pressed_floor_)return;
     if(!Selected()||progress_<1)return;
     if(const auto id=MapInteractionStrip{layout_.strip}.Hit(p,Points())){pressed_point_=*id;return;}
@@ -111,6 +115,7 @@ void MapPage::MouseDown(float x,float y){
 }
 void MapPage::MouseUp(float x,float y){
     const D2D1_POINT_2F p{x,y};
+    if(back_pressed_&&MapContains(layout_.back,p)){Overview();return;}
     if(pressed_floor_&&layout_.stack.Hit(p)==pressed_floor_)SelectFloor(MapPrototype::Floors[*pressed_floor_].id);
     if(!pressed_point_.empty()){
         auto id=MapInteractionStrip{layout_.strip}.Hit(p,Points());if(!id)id=MarkerAt(p);

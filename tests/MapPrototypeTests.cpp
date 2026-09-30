@@ -27,6 +27,7 @@ int main(){
     const auto overview=MapLayout::Sample(1400,800,{},0,count),selected=MapLayout::Sample(1400,800,{},1,count);
     Require(overview.stack.width>selected.stack.width,"selection shrinks stack");
     Require(overview.stack.origin.x>selected.stack.origin.x,"selection moves stack left");
+    Require(Near(selected.stack.Plate(0).anchor.x,selected.stack.Plate(3).anchor.x),"expanded floors align vertically");
     Require(MapLayout::Ease(0)==0&&MapLayout::Ease(1)==1,"transition endpoints exact");
     for(float width:{850.0F,1100.0F,1600.0F}){
         const auto layout=MapLayout::Sample(width,700,{},1,count);
@@ -81,5 +82,12 @@ int main(){
     page.MouseUp(markerPosition.x+3,markerPosition.y);
     const auto unpanned=page.Viewport().ToScreen(demo.coordinate);
     Require(Near(unpanned.x,markerPosition.x),"marker click never starts a map pan");
+    const auto back=page.Layout().back;
+    page.MouseDown(back.left+10,back.top+10);page.MouseUp(back.left+10,back.top+10);
+    Require(!page.Selected()&&page.Animating(),"back starts reverse overview transition");
+    for(int tick=0;tick<30;++tick)page.Tick(.016F);
+    page.Prepare(1280,800,{});
+    Require(!page.Animating(),"overview transition settles");
+    page.SelectFloor(demo.floorId);Require(page.Selected(),"same floor can reopen from overview");
     std::cout<<"Map prototype geometry and transform checks passed\n";
 }
