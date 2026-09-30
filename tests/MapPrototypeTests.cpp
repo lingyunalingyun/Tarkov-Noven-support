@@ -3,6 +3,7 @@
 #include "ui/MapLayout.h"
 #include "ui/MapViewport.h"
 #include "ui/MapPage.h"
+#include "ui/MapFilters.h"
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -13,6 +14,19 @@ bool Near(float a,float b){return std::abs(a-b)<.002F;}
 }
 int main(){
     using namespace noven::ui;
+    MapFilters filters;
+    Require(filters.Allows(MapPointCategory::Task,"task-a"),"filters default to visible");
+    filters.ToggleTask("task-a");Require(!filters.Allows(MapPointCategory::Task,"task-a"),"task identity filter hides target");
+    Require(filters.Allows(MapPointCategory::Task,"task-b"),"task identity filter does not affect other tasks");
+    filters.categories[static_cast<std::size_t>(MapPointCategory::Task)]=false;
+    filters.categories[static_cast<std::size_t>(MapPointCategory::Task)]=true;
+    Require(!filters.Allows(MapPointCategory::Task,"task-a"),"category changes preserve task exclusions");
+    filters.ToggleTask("task-a");Require(filters.Allows(MapPointCategory::Task,"task-a"),"task toggle restores identity");
+    MapFilterList list{{450,350,750,550},0};
+    Require(list.Hit({470,400},14)==0,"filter row uses shared geometry");
+    Require(!list.Hit({470,560},14),"clipped rows cannot be clicked");
+    const auto bar=list.Bar(14);Require(bar&&bar->maximum>0,"long filters get shared scrollbar");
+    list.scroll=bar->maximum;Require(list.Hit({470,520},14).has_value(),"scrolled filters remain selectable");
     FloorStack stack{{150,100},200,4};
     Require(MapPrototype::Floors.front().label==L"1F"&&MapPrototype::Floors.back().label==L"-3F",
         "demo floor order is deterministic");
