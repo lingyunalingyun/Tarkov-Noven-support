@@ -165,6 +165,7 @@
   "tasks.marker.unrelated": "Not required for either chain",
   "map.search.placeholder": "Search floors or markers; Enter to focus…",
   "map.interactions": "Map interaction information",
+  "map.information.hint": "Select a marker or task title to view details.",
   "map.reset_view": "Reset view",
   "map.preview": "Interaction prototype · not a real map",
   "map.no_results": "No matching markers",

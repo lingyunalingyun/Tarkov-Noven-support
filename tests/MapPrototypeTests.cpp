@@ -74,6 +74,7 @@ int main(){
     MapPage page;page.Prepare(1280,800,{});Require(!page.Selected(),"page starts in overview");
     Require(page.FocusInteraction(demo.id)&&page.FloorId()==demo.floorId&&page.InteractionId()==demo.id,
         "cross-floor focus uses shared ID and expands layout");
+    Require(page.SelectedPoint()&&page.SelectedPoint()->id==demo.id,"information uses selected marker identity");
     for(int tick=0;tick<30;++tick)page.Tick(.016F);
     page.Prepare(1280,800,{});Require(!page.Animating(),"layout transition settles");
     const auto destination=page.Viewport().ToScreen(demo.coordinate);
@@ -83,6 +84,7 @@ int main(){
     int active=0;for(const auto& p:page.Points())if(p.floorId==page.FloorId())++active;
     Require(active==1,"only current floor marker is active");
     page.SelectFloor(MapPrototype::Floors[2].id);Require(page.Selected(),"floor switching never collapses layout");
+    Require(!page.SelectedPoint(),"floor switching clears marker information");
     Require(!page.FocusInteraction("invalid"),"unknown interaction ID cannot change selection");
     page.MouseDown(page.Layout().search.left+20,100);page.MouseUp(page.Layout().search.left+20,100);
     for(const auto c:std::wstring(L"demo exit"))Require(page.Char(c),"persistent search accepts input");
@@ -114,9 +116,15 @@ int main(){
     const auto settle=[&]{for(int tick=0;tick<30;++tick)filtered.Tick(.016F);filtered.Prepare(1280,800,{});};
     const auto click=[&](D2D1_RECT_F r,float inset=12){filtered.MouseDown(r.left+inset,r.top+12);filtered.MouseUp(r.left+inset,r.top+12);};
     const auto has=[&](std::string_view id){for(const auto& p:filtered.Points())if(p.id==id)return true;return false;};
-    settle();const auto category=MapCategoryStrip{filtered.Layout().strip}.Cell(0);
+    settle();const auto categoriesBefore=filtered.Filters().categories;
+    click(filtered.Layout().strip);
+    Require(filtered.Filters().categories==categoriesBefore&&!filtered.Panel(),"information strip is not a second filter control");
+    Require(filtered.FocusInteraction("demo-container")&&filtered.SelectedPoint(),"visible marker has information");
+    click(filtered.Layout().filters[0]);settle();const auto category=filtered.FilterList().Row(0);
     click(category);Require(!has("demo-container")&&has("demo-mine"),"category hides only matching point types");
+    Require(!filtered.SelectedPoint(),"hidden selected marker does not retain stale information");
     click(category);Require(has("demo-container"),"category restores matching point types");
+    Require(filtered.SelectedPoint()&&filtered.SelectedPoint()->id=="demo-container","restored visible identity restores information");
     click(filtered.Layout().filters[1]);settle();Require(filtered.Panel()==MapFilterPanel::Layers,"layer flyout opens");
     click(filtered.FilterList().Row(0));Require(!filtered.Filters().grid&&filtered.Filters().geometry,"grid layer toggle independent");
     click(filtered.FilterList().Row(1));Require(!filtered.Filters().geometry,"geometry layer toggles");
@@ -152,9 +160,9 @@ int main(){
     Require(taskSearch.InteractionId()=="demo-task-two"&&taskSearch.Points().size()==1,
         "task flyout follows search and focuses a visible matching identity");
     for(float width:{850.0F,1100.0F,1600.0F}){const auto layout=MapLayout::Sample(width,700,{},1,count);
-        Require(layout.strip.bottom<layout.viewport.top&&layout.viewport.bottom-layout.viewport.top>200,"categories preserve map priority");
-        for(std::size_t i=0;i<MapCategoryCount;++i){const auto cell=MapCategoryStrip{layout.strip}.Cell(i);
-            Require(cell.right<=layout.strip.right&&cell.bottom<=layout.strip.bottom,"category wrapping stays inside strip");}
+        Require(layout.strip.bottom<layout.viewport.top&&layout.viewport.bottom-layout.viewport.top>200,"information preserves map priority");
+        Require(Near(layout.strip.bottom-layout.strip.top,100)&&Near(layout.strip.right,layout.viewport.right),
+            "information strip remains compact and aligned across widths");
         Require(layout.filters.back().bottom<layout.content.bottom,"left filter buttons fit content");}
     std::cout<<"Map prototype geometry and transform checks passed\n";
 }

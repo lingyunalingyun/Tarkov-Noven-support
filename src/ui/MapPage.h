@@ -29,6 +29,7 @@ public:
     void SelectFloor(std::string_view id);
     bool FocusInteraction(std::string_view id);
     std::vector<MapInteractionPoint> Points() const;
+    std::optional<MapInteractionPoint> SelectedPoint() const;
     void MouseMove(float x,float y);
     void MouseLeave(){hovered_floor_.reset();}
     void MouseDown(float x,float y);
@@ -37,7 +38,7 @@ public:
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value){return search_.HandleChar(value);}
     void CancelDrag(){drag_.reset();scroll_drag_.reset();pressed_floor_.reset();pressed_point_={};pressed_map_.reset();
-        pressed_filter_.reset();pressed_row_.reset();pressed_category_.reset();reset_pressed_=false;back_pressed_=false;}
+        pressed_filter_.reset();pressed_row_.reset();reset_pressed_=false;back_pressed_=false;}
 private:
     std::size_t FloorIndex() const;
     float FloorPosition() const noexcept;
@@ -57,7 +58,7 @@ private:
     std::optional<std::string_view> pressed_map_;
     MapFilters filters_;
     std::optional<MapFilterPanel> panel_,pressed_filter_;
-    std::optional<std::size_t> pressed_row_,pressed_category_;
+    std::optional<std::size_t> pressed_row_;
     std::optional<float> scroll_drag_;
     float filter_scroll_{},panel_progress_{};
     bool panel_open_{},pressed_row_check_{};

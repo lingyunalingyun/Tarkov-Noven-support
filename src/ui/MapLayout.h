@@ -28,8 +28,7 @@ struct MapLayout final {
         const D2D1_POINT_2F selected{left+52,244};const float t=Ease(progress);
         const float viewLeft=left+rail+12;
         const float stripLeft=viewLeft+std::min(100.0F,(right-viewLeft)*.12F);
-        const auto columns=MapCategoryStrip{{stripLeft,186,right,0}}.Columns();
-        const float stripBottom=186+40+static_cast<float>((MapCategoryCount+columns-1)/columns)*32;
+        const float stripBottom=186+100;
         const float viewTop=stripBottom+16;
         const float filterTop=std::min(350.0F,bottom-144);
         return {{left,180,right,bottom},{left,84,right,122},

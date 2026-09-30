@@ -63,6 +63,12 @@ std::vector<MapInteractionPoint> MapPage::Points() const {
     }
     return result;
 }
+std::optional<MapInteractionPoint> MapPage::SelectedPoint() const {
+    // 信息区只描述当前可见楼层的选中标识，不显示已被搜索或筛选隐藏的身份。
+    // Information describes the visible selected marker, never an identity hidden by search or filters.
+    for(const auto& point:Points())if(point.id==interaction_id_&&point.floorId==floor_id_)return point;
+    return std::nullopt;
+}
 std::vector<MapPage::FilterEntry> MapPage::FilterEntries() const {
     std::vector<FilterEntry> entries;if(!panel_)return entries;
     if(*panel_==MapFilterPanel::Points){
@@ -121,8 +127,23 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.Round(layout_.strip,theme.cornerRadius,theme.surface);
         canvas.Text(Tr(TextKey::MapInteractions),canvas.smallFormat,
             {layout_.strip.left+14,layout_.strip.top+6,layout_.strip.right-8,layout_.strip.top+30},theme.secondaryText);
-        for(std::size_t i=0;i<MapCategoryCount;++i)
-            DrawMapCheck(canvas,theme,MapCategoryStrip{layout_.strip}.Cell(i),Tr(CategoryKeys[i]),filters_.categories[i]);
+        const auto info=layout_.strip;
+        if(const auto point=SelectedPoint()){
+            DrawMapMarker(canvas,theme,point->type,{info.left+26,info.top+50},false);
+            canvas.Text(point->title,canvas.smallFormat,
+                {info.left+46,info.top+34,info.right-14,info.top+62},theme.primaryText);
+            const auto source=std::find_if(MapPrototype::Points.begin(),MapPrototype::Points.end(),
+                [&](const auto& p){return p.id==point->id;});
+            const auto label=Tr(CategoryKeys[static_cast<std::size_t>(source->category)])+L" · "
+                +std::wstring(MapPrototype::Floors[FloorIndex()].label);
+            canvas.Text(label,canvas.smallFormat,{info.left+46,info.top+64,info.right-14,info.bottom-8},theme.accent);
+        }else{
+            const auto wrapping=canvas.smallFormat.GetWordWrapping();
+            canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+            canvas.Text(Tr(TextKey::MapInformationHint),canvas.smallFormat,
+                {info.left+14,info.top+34,info.right-14,info.bottom-8},theme.secondaryText);
+            canvas.smallFormat.SetWordWrapping(wrapping);
+        }
         const auto r=layout_.viewport;
         const D2D1_RECT_F expanded{r.left,r.top,r.right,r.top+(r.bottom-r.top)*reveal};
         canvas.target.PushAxisAlignedClip(expanded,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
@@ -140,8 +161,6 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.Round(ResetBounds(),5,theme.surface);
         canvas.Text(Tr(TextKey::MapReset),canvas.smallFormat,ResetBounds(),theme.primaryText);
         canvas.Text(MapPrototype::Floors[FloorIndex()].label,canvas.body,{r.left+14,r.top+10,r.left+70,r.top+38},theme.accent);
-        for(const auto& p:points)if(p.id==interaction_id_)
-            canvas.Text(p.title,canvas.smallFormat,{r.left+72,r.top+10,ResetBounds().left-8,r.top+38},theme.primaryText);
         if(points.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,
             {r.left+16,r.top+50,r.right-16,r.top+80},theme.secondaryText);
         canvas.Text(Tr(TextKey::MapPreview),canvas.smallFormat,{r.left+14,r.bottom-30,r.right-14,r.bottom-6},theme.secondaryText);
@@ -194,7 +213,6 @@ void MapPage::MouseDown(float x,float y){
             }
             panel_open_=false;
         }
-        pressed_category_=MapCategoryStrip{layout_.strip}.Hit(p);if(pressed_category_)return;
     }
     pressed_floor_=layout_.stack.Hit(p);if(pressed_floor_)return;
     if(!Selected()||progress_<1)return;
@@ -208,8 +226,6 @@ void MapPage::MouseUp(float x,float y){
     if(back_pressed_&&MapContains(layout_.back,p)){Overview();return;}
     if(pressed_filter_&&MapContains(layout_.filters[static_cast<std::size_t>(*pressed_filter_)],p)){
         TogglePanel(*pressed_filter_);CancelDrag();return;}
-    if(pressed_category_&&MapCategoryStrip{layout_.strip}.Hit(p)==pressed_category_){
-        filters_.categories[*pressed_category_]=!filters_.categories[*pressed_category_];CancelDrag();return;}
     if(pressed_row_&&panel_open_&&FilterList().Hit(p,FilterEntries().size())==pressed_row_){
         const auto row=*pressed_row_;const auto entries=FilterEntries();
         if(*panel_==MapFilterPanel::Points)filters_.categories[row]=!filters_.categories[row];
