@@ -1,0 +1,1097 @@
+{
+  "outputs": {
+    "Satellite.png": "52999940a4559f1c8b1b6c7737200e2e3e46f884b464286afb50552742cf167a",
+    "Satellite.tiles": "e70bcc4ded60730e4a924b53921930ee803b20257876b6e23f49ddda4d2cabca"
+  },
+  "pixelBounds": [
+    -125.92000000000007,
+    279.51999999999975,
+    4245.52,
+    3959.84
+  ],
+  "projection": "same rotated world bounds as local SVG; subpixel edge crop",
+  "source": "https://assets.tarkov.dev/maps/interchange/main/{z}/{x}/{y}.png",
+  "sources": [
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/1.png"
+    },
+    {
+      "sha256": "2a8005edca8a5689ca8feee231101349ee8638a424c25e29a6dd1c0618647f7a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/1.png"
+    },
+    {
+      "sha256": "f7cf9df77a06d61a57d597127e7151f2207c00add72fe6bd83f85cc06f5adad1",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/1.png"
+    },
+    {
+      "sha256": "e3f1377499949e2336e06c29cfb79e0e8c813988e580763351febdfc03d038f0",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/1.png"
+    },
+    {
+      "sha256": "fa5c6b424e85734ea526edbde826c113fa42b1479f9634a1a12dbd81afbfd919",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/1.png"
+    },
+    {
+      "sha256": "6b611e1db36decbf82dc3f277df58b6dc308507d703e7997f46b43aced471884",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/1.png"
+    },
+    {
+      "sha256": "aee8df1e427d4720a2289908b2140f3e194959c9e53c5f507215a098baf64ca3",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/1.png"
+    },
+    {
+      "sha256": "efc70537d30b98abe58f35065120d0a21ababfc1c6da4ebb94519e4c1c131578",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/1.png"
+    },
+    {
+      "sha256": "1391caae9fc787094731937d7b0ce1dbdb75947e41c67757f71488d6ccc3c5b1",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/1.png"
+    },
+    {
+      "sha256": "86c225350252453a8d2d3b305ed2b4962b95aff4cf6db9484cee27d24ebf9360",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/1.png"
+    },
+    {
+      "sha256": "29ca3bf5a795db7c329beb4027a7a7fac663b46a0625ac7a753550db535ddd67",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/1.png"
+    },
+    {
+      "sha256": "c97077036e76e4bc1ae4b67a0c8b34de06cab9580a9cecd6cb0a67947851f642",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/1.png"
+    },
+    {
+      "sha256": "f9a067263d49e55f67bfc0f9b073dccbfe03cd7b9a722e00c5d3a21bcb0f26c3",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/1.png"
+    },
+    {
+      "sha256": "992212117837cfb3972bbdc9c256a8d7137547a5831f8227e4770a7dc94d059c",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/1.png"
+    },
+    {
+      "sha256": "363dab7afe900eaaae4cdf2a403ffc0bb04d13114289e5af1c35da545705695f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/1.png"
+    },
+    {
+      "sha256": "9bfbe32142cb1eb1bb0893bfde02ebef28d27011bb728ebd0b0a48e623301a23",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/1.png"
+    },
+    {
+      "sha256": "800f05f656f00cf88d3f436bc97f8bf0afc561b072e099d5d7dc6c994c3eb071",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/1.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/1.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/2.png"
+    },
+    {
+      "sha256": "ca7520a7c81becf48168ad370d93b8d718215ef54f07c52348c3ed7afdd5d572",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/2.png"
+    },
+    {
+      "sha256": "a60859e43607a1d0cb983c3a70dfef78bacf65f002e1946b40bb39a87e4fb9d1",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/2.png"
+    },
+    {
+      "sha256": "a14224bfa9b52d50f732c9de5fcf7b193239556d96ae7d0f250dcbfa62e6202b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/2.png"
+    },
+    {
+      "sha256": "6d1a74653fdee7eb1130b0aacf38a1f1c7f7af2b04dc696882ee41ff1ed099ae",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/2.png"
+    },
+    {
+      "sha256": "34c3665e852a9b066c2bf8286ff2729c9343df4465747b07980ca15e4416f94b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/2.png"
+    },
+    {
+      "sha256": "5806b2a512339a7a052421e32dc8fa7d044fcc7434a62cb992e567874fadc6e5",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/2.png"
+    },
+    {
+      "sha256": "bea4c082d9a3ac3ab4de236e4fc6ab956ddeca9ac1987a7596711fd10935f433",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/2.png"
+    },
+    {
+      "sha256": "c7f1ea9949d8fc4918800a6edee6f4102ce0f0751fc4b129c5a813f10b18c2c2",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/2.png"
+    },
+    {
+      "sha256": "3f7534588e32ad53a965b2c680cc435b99f911b9ac64c2c6eef17199cd85854d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/2.png"
+    },
+    {
+      "sha256": "8b6833ab34711b1643efd4d334d4838b048b06197c3a004ca0ab885546db053a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/2.png"
+    },
+    {
+      "sha256": "e50f1d9cbaf12f4c767101c06eff4b61323a7eb19f4d1e43a9cc416df712f912",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/2.png"
+    },
+    {
+      "sha256": "5c95cfc7db7fe3afb87f24452b7730584952b8d08e98805e7e2e505070ac44e0",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/2.png"
+    },
+    {
+      "sha256": "44cea271929a7d547dbaa2776480fa3098df836bb0261a2f13b3fed3dcf94840",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/2.png"
+    },
+    {
+      "sha256": "ddb7596d70d0cb02de00231fb4db76bc91c0cc2cde7f018416f08e8910709ffa",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/2.png"
+    },
+    {
+      "sha256": "611ca98ac4bb299c3fd2460707cb29b762bed3f645d2d7562e2a633ccbfdbcc4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/2.png"
+    },
+    {
+      "sha256": "baa3c0ae9fc9bb631616775a6950ba53fbc206d88a4e289d6701c02224314637",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/2.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/2.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/3.png"
+    },
+    {
+      "sha256": "e3069b638afa480b700509c4649bfa137c62d1debc70f89ffc6b425df3722d1a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/3.png"
+    },
+    {
+      "sha256": "b0aa3a71f533d0164c02e114e6082e82d4bd151668b16431a449a8638103f72a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/3.png"
+    },
+    {
+      "sha256": "a56dc4354738ada2f909a776227bae7e38fd939c3b093b20ff503a89a27851f6",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/3.png"
+    },
+    {
+      "sha256": "d8c62f38de1a10cefb9d225e3b406df25b36fadd650a059fd808181455f18e42",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/3.png"
+    },
+    {
+      "sha256": "967137efa37aa5114ad4b3fca07d4eb1e94ac76b1ecdb8f7178f5a85f0061dbe",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/3.png"
+    },
+    {
+      "sha256": "99003ec8fee997c8ae389d8d2f35e9a41494c108f540fef7855053707c1f900e",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/3.png"
+    },
+    {
+      "sha256": "2ccf0c544995fcc7ef0ca622bc234d95f9ebafb4b9793d27b257690d93f50f48",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/3.png"
+    },
+    {
+      "sha256": "2310ce33761d0e54192cecf433cfa90be9eb21c18952e41c3360027efb5727e7",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/3.png"
+    },
+    {
+      "sha256": "da2101519c564f99c57598d0bca8c581d74453543d34ea849e1f974bbfa79c83",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/3.png"
+    },
+    {
+      "sha256": "09b44aa670adf4cc2a7a2febaee62e77eb5e6c5742b20a66e3934b3fb658e3f3",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/3.png"
+    },
+    {
+      "sha256": "380b072f27679d0696711cabdf99a0a062e30c51b924e98ef2407e6ce6402522",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/3.png"
+    },
+    {
+      "sha256": "2f655b436441a52eea5eadfc8b2733d9b531df7e735578e27ab8d1859344b60d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/3.png"
+    },
+    {
+      "sha256": "57fda41c36dc070e48ed63c1039400fa35c4c9e3e3e9534132ed2dfe3e6f59ae",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/3.png"
+    },
+    {
+      "sha256": "50682b7f69b5e1b65d869762df1ec695de5943ad589c43e4cd480253ad3ec676",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/3.png"
+    },
+    {
+      "sha256": "112da4803447a815afb73312a5f03de839bc5b0447a8cb1316c5ebd66c79b449",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/3.png"
+    },
+    {
+      "sha256": "f4d595e6b6d30a954096814a44b9a8c4bafcb2a7561cd7940979aa3907e2134f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/3.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/3.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/4.png"
+    },
+    {
+      "sha256": "91df97503c56e49c2460da232c52e72545fcc562187c413f84cfcab6d5c50ec4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/4.png"
+    },
+    {
+      "sha256": "7080af915e5d9e6bb66d3ec209e6bd996b8ef4a4d6e80a4a7044a185af72d273",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/4.png"
+    },
+    {
+      "sha256": "4e0bbfa150313729f0a1f5e49768ab08ac66dc990d6e7aeeae04205f56192732",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/4.png"
+    },
+    {
+      "sha256": "285a5887f76e3620d58097d5162c4eb35e37c2225587f289d8315625568cf128",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/4.png"
+    },
+    {
+      "sha256": "02bc6ea2c6242a6f0d161d39d6314aa3e95e158ae90ece769b66437c56ceb033",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/4.png"
+    },
+    {
+      "sha256": "539118dec6cff511a23d79da36bf372f4e3d4b150d7581140f474d32f4a60104",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/4.png"
+    },
+    {
+      "sha256": "53b4478e4b2f2da74cc8b1ba61f8d1a5890a31b4ea742a023f66194c126d8d50",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/4.png"
+    },
+    {
+      "sha256": "fdeac2a3c1e27ee317745beeaa9f9afe5fee5fbfaecb57ec8ce023bde413560d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/4.png"
+    },
+    {
+      "sha256": "7d72ca0fb05ef577542a5a6e639b71976b99ce9aa590eeab0cfa86f8955be65d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/4.png"
+    },
+    {
+      "sha256": "33180b1cf411ae8f3584000f039e70a190373102fd018e1281ca432029e8fe7f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/4.png"
+    },
+    {
+      "sha256": "15f6765f3fb1731031d1e7f3a8ad3e810572f1e2e2aeba821700ea791cf5f3f9",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/4.png"
+    },
+    {
+      "sha256": "b965ccc8695fef6025905df94032f6e8ff7eb189423d7841e3b47404ffdba9ee",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/4.png"
+    },
+    {
+      "sha256": "2879c1392b95a417e8c31cb86f23b99fcbe5181f0cce8fca1eccfba6c4b9e3ab",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/4.png"
+    },
+    {
+      "sha256": "485ed1146d134c42193100d016a8df38b1610a8a65c71c0d0a0b2529dc2facd6",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/4.png"
+    },
+    {
+      "sha256": "34ccb09ca0e8ac0ade0d8f5c7a8fb9ee526526ad6a509e2b033bdee201826e79",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/4.png"
+    },
+    {
+      "sha256": "ffbb2b9a9e11eae0a7e59b096cac25ace45dda177a3bd42bc9695d4083b5924e",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/4.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/4.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/5.png"
+    },
+    {
+      "sha256": "a4a596b95c7ec4e60914628747c0e881ba0b00cf3323d6696242a788e9d2f70c",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/5.png"
+    },
+    {
+      "sha256": "8b041b1f663803f4deb1d5dbc44cafc2b13730f9c7eda9ed0eea7fe98cce4765",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/5.png"
+    },
+    {
+      "sha256": "d77179a746b44655bd805aa06606f4b0d9c34693ca57d3844cfc52513c2388e4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/5.png"
+    },
+    {
+      "sha256": "b4cdc5486c9758f5679ff6145683e5cf255d266406ac02e8ad38d9c0262c3078",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/5.png"
+    },
+    {
+      "sha256": "16b82e2d69870d50900906f1463b2480b51b442f72636d2e53fa7cdc145a05dc",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/5.png"
+    },
+    {
+      "sha256": "64a465d3981516de5f41c6af462369b8e311b325ad7c35a34688483aa47205a1",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/5.png"
+    },
+    {
+      "sha256": "6e1eeb4478432e7349eac13ae6790a13bd04ffa127b328487c3f797979aabd7f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/5.png"
+    },
+    {
+      "sha256": "0a4a79e4a3aea7e858da7bdef5111da29cfa91783f63e0fbfd7f22d0f6894151",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/5.png"
+    },
+    {
+      "sha256": "5e47181cea91419d3db27b44074767cfaa43d5d6708d7489151742bbba78d432",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/5.png"
+    },
+    {
+      "sha256": "567d85777022feff2879bdeea12e4a9cb86ea01501a09a53c0210b64f20aa37a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/5.png"
+    },
+    {
+      "sha256": "7779be6f5709289efaf937a2f87620747818282427dd93c5308389977340ef5a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/5.png"
+    },
+    {
+      "sha256": "b317f3f5f7166929c32d275d22bc5027a3badd1af742c9247d82b814847b9bc4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/5.png"
+    },
+    {
+      "sha256": "56c00e6d230ca64ee5d0de54c22f3ca7ee64e68bfba15c09c03f20012d48e441",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/5.png"
+    },
+    {
+      "sha256": "17509ee426303e628a3b58ccf03c2d1b77be23dbb89cfa902c31ec376c1232ed",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/5.png"
+    },
+    {
+      "sha256": "28c276ea3d86cdcbffb808649465359010b1d23a4288a5464f8758f68f84f82f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/5.png"
+    },
+    {
+      "sha256": "9e802b773711896b07f519a89059043d9d367a052ffe95028a15650ea3956bb3",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/5.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/5.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/6.png"
+    },
+    {
+      "sha256": "97d6de8ee7db5ebee383081045fc3ab5e02e180e29949049d6ed89d5c6da8c40",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/6.png"
+    },
+    {
+      "sha256": "607fe9fc0d6202dfc097c551b5a86039d95fba4dd55cd0c4430608036ca30f90",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/6.png"
+    },
+    {
+      "sha256": "63e3e0e096fbb226c50a4626e7c1d7b9ef6272dbe00b475ca97dbd07e11869c5",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/6.png"
+    },
+    {
+      "sha256": "ff4a07a0d03a49c35b6610f909928bb3cddf9178e4d942289d14ea7ba0f5a8fa",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/6.png"
+    },
+    {
+      "sha256": "0a14102bd3cb4f71834c0e10e05c487014c1ffd892f1ee8a331a0d01fe16dd95",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/6.png"
+    },
+    {
+      "sha256": "bd12c373ff85bd3013b92d2cbe7a6a01ca66a83d1739baddf05910f936fb3285",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/6.png"
+    },
+    {
+      "sha256": "f82f05714918271dbf2c6fa946c8d8f438786a778864b08bc2508f762b6ebb16",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/6.png"
+    },
+    {
+      "sha256": "96c482d2ae7a8531f7eff76669029c1b750e4c9f868907e412d75143dd0ca5f0",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/6.png"
+    },
+    {
+      "sha256": "55e3243927fd2355e845c5c651b5233ced9798796fb975bcc95e5181695828d6",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/6.png"
+    },
+    {
+      "sha256": "912e7c1406a3b3aafff1326e179e29e5eeb5eab288b6b69565508d33d09508d0",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/6.png"
+    },
+    {
+      "sha256": "91f51099da5addbdb2a900ad015d0094de458d7e4e97df6fc189198212fb237f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/6.png"
+    },
+    {
+      "sha256": "f02188ac716a454605388a8aa19ca964d1ce661c97ee9affd0f054d688073612",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/6.png"
+    },
+    {
+      "sha256": "c18d7353fcb964bdfb8467c1efcba8c7b87112799231265e1ea566eb4133b24b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/6.png"
+    },
+    {
+      "sha256": "b521554c4df0419bd5e0bc4a78189fc01fce442ad90f4f01ab8afc66b7df851f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/6.png"
+    },
+    {
+      "sha256": "f26b3565c8a45014c4046500287caa56165a0ad8026930af4f8c97a3ca960e69",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/6.png"
+    },
+    {
+      "sha256": "3aced2a756c674a380020ec7a71854ebc147bd8eba24a5e475a3d04ab328e110",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/6.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/6.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/7.png"
+    },
+    {
+      "sha256": "1f53eb9c0ff096036aa0598f5332250935349db3d5f2b4aadad260407049551e",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/7.png"
+    },
+    {
+      "sha256": "203a7a13da56da07858fcf6eddd1099cdd60a19f70ad27acf747fbe67b6daca4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/7.png"
+    },
+    {
+      "sha256": "52dc980eaf1ecef03ad366e57ecd5348502199d7337c4c6fdfcd9982455c0315",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/7.png"
+    },
+    {
+      "sha256": "003ccc6e26a8349098d3619f0bc2328ef1a4bbd745f34bfefd592c7010274a94",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/7.png"
+    },
+    {
+      "sha256": "fa1337cae1e3b294d2aabfce1ffe519036a8ad3b39c9a383a0588027d4b5358c",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/7.png"
+    },
+    {
+      "sha256": "800dbe0308a25926afe614cb927e06d37dba162671cb08473e0792e1f16028c5",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/7.png"
+    },
+    {
+      "sha256": "82844e2ba3eb6f464483725b704d0c768481d5adff5f20db6bd10a9032bc4ef5",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/7.png"
+    },
+    {
+      "sha256": "14d0165e2035aa0c95897c11972d48de6e1cdb53e90bb2c22ec0659709c270ba",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/7.png"
+    },
+    {
+      "sha256": "c287caac0845ae62a3550fe60390c21ddfa3295ef4ba34bd605918fbc261f92c",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/7.png"
+    },
+    {
+      "sha256": "d50e27d164b258a9ff90987e2e25be04e46d151f7bcd8748b55828192fc0d6b3",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/7.png"
+    },
+    {
+      "sha256": "896cafe8db2beeacd9221fbd746157fce29ad3dff28bf48be0f22069a12adc76",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/7.png"
+    },
+    {
+      "sha256": "44bec968ff72bd841d1336c36d7a4e2147bb39297e76d066bdda04fe7503a9af",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/7.png"
+    },
+    {
+      "sha256": "8eda9fd66638a544307dd4ef4376f50942ff1c30d3e6d7dedef220c29c1cfcf7",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/7.png"
+    },
+    {
+      "sha256": "657b4d1f680e2de7d81cfc30a773d185e115ac97d1c231ec5ca87347c551f63b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/7.png"
+    },
+    {
+      "sha256": "62b3bdfec75502e01d1e63a35366d1f719b73aad9a475ba20859795f3446ab54",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/7.png"
+    },
+    {
+      "sha256": "972b938b6a546daf7393c806113c9d9023ee001fa79ab2fcae8c19a8e8820674",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/7.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/7.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/8.png"
+    },
+    {
+      "sha256": "63cc4dd7e5aa6825b86178f35129d13bfa2f8e89b960a6f1af8e5b007a2dfb47",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/8.png"
+    },
+    {
+      "sha256": "7d9d790f203a14d8da24069e34e7aac3528259d2a80e2be985ea5d545d62990c",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/8.png"
+    },
+    {
+      "sha256": "66965b9d9410add51a35671827fdcd04696a6082c423448428b2b43a5f0f60e8",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/8.png"
+    },
+    {
+      "sha256": "e5a84a1d6bfedb6ab84f6b35bca3e0e99055053cc333e2b2e457c59326face3b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/8.png"
+    },
+    {
+      "sha256": "1b8072d0cf35024454f59eb236305de81ec379f13fb0b7ce112a37115055373b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/8.png"
+    },
+    {
+      "sha256": "1efd02643f76a3f42e83965c82f544decd7c2a8feb10f9d1e2a01d93ef3bbcb6",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/8.png"
+    },
+    {
+      "sha256": "451af32d70cb517a62880db37757d35d0dad749517b4d9bd9c69cb11017a270b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/8.png"
+    },
+    {
+      "sha256": "40c88840c66b7312bae89d654f593a41bfca88a0e18b6ee8071592508a702075",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/8.png"
+    },
+    {
+      "sha256": "0f206950ef899554ecce7408ff2bd4f19029f1beb9d79940e8d3f216c9b89801",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/8.png"
+    },
+    {
+      "sha256": "7570ddde0f65f89d435c064903acbb5f52fa366d97da73c2b2a3b869a8cb4b97",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/8.png"
+    },
+    {
+      "sha256": "10fd675b238ab94948577cc3d3d8374b4777445517f96d544fc8eba6cfa55780",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/8.png"
+    },
+    {
+      "sha256": "31dc31ff66aa288bdb67d7911c65c36331bd90c85459f14f8986c0043bbb8240",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/8.png"
+    },
+    {
+      "sha256": "1f8c63cdf1c65e79f77b19efdc6794e98c1968d2e0ca7e93a9de6ac249e2dfd1",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/8.png"
+    },
+    {
+      "sha256": "c3c57abfdc8ef9ca4ac536e4898f423505bc8558e3973a7310da2f706d657f72",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/8.png"
+    },
+    {
+      "sha256": "e08cbeb3bed6305330475ecb1abae6ae5154667f87f75555916c643e48e1d9cd",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/8.png"
+    },
+    {
+      "sha256": "6806899a6aa47a8d8c5898f0d2f42fa8399e723f3818fea296898014570f0cca",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/8.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/8.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/9.png"
+    },
+    {
+      "sha256": "e24ae2e394a26f04319619e37d2247e4bc2b10436507fb2d28906c0e21903173",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/9.png"
+    },
+    {
+      "sha256": "d2a0b2d65a58d9a8e451a8160bbd67d3083573141021cac9fac31da1e82e1af4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/9.png"
+    },
+    {
+      "sha256": "3400f52999c5ef6588ff067b90dafee60607cfc10a4ed7a4d424395bb1e2ad0a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/9.png"
+    },
+    {
+      "sha256": "69f805884644e7b7e0180a68cb557d691816f4b2d77fd5046fe393a1cfd2ae86",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/9.png"
+    },
+    {
+      "sha256": "c4a15dd527dba95e187f62f5f7383b06c217bc8a734b7d184cceca1f044cada4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/9.png"
+    },
+    {
+      "sha256": "0524a81793358760f2edd0d6dc9a3cab116d144542779260f37f8c7c930a4d2a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/9.png"
+    },
+    {
+      "sha256": "efc71cbcac59c686dee3b1fee852f6ec82fd09fb2d01e5db3cef1fcc6dca1084",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/9.png"
+    },
+    {
+      "sha256": "ea6b90f078db361a862546db3912afd4d7a4ce50ad69b5ff28cac053ccb835dd",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/9.png"
+    },
+    {
+      "sha256": "28012dd6f4800fd4032d21f51e4bb0e6ea9b5ef24c7e5d788ff6291bcbad82db",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/9.png"
+    },
+    {
+      "sha256": "847020173b896a747beaf9b3799685ce4ba6d22291b326b2ee2ffd7860904598",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/9.png"
+    },
+    {
+      "sha256": "2379c825a7d3d13f8eac53b67679d7e1207ab116a70169e4f40f88615eadee8d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/9.png"
+    },
+    {
+      "sha256": "f8766e01841ec9b5a0e7461d03609853cac1e88eedf0a6052f29a8485cda2516",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/9.png"
+    },
+    {
+      "sha256": "03472a1b44bb1641d8d8317627503df78af06fa74a7749cc8d1d490967f0495b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/9.png"
+    },
+    {
+      "sha256": "3ca5833a964109ac5337093779fd98ec84f32f2e2dc61681953af0f4a59faf89",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/9.png"
+    },
+    {
+      "sha256": "949451bf94594975a4268547e1e2aed764a884c3c29b7022c0afa5394b724e6e",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/9.png"
+    },
+    {
+      "sha256": "876c067d6cff023d1f6ceac4754aaad221add8b000eb4245ad2f1b1f072a531a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/9.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/9.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/10.png"
+    },
+    {
+      "sha256": "8ba71f2d8a361ed9f952d20a69dc3697dbd7493bee3079769736228e031a0004",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/10.png"
+    },
+    {
+      "sha256": "46f66edef2c624412b1ed6b3f493866522b6880e91833db38c5cefd4f6b4481a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/10.png"
+    },
+    {
+      "sha256": "3663f2faba054c0dd4e81136d2b3abcbbdaa8ae66eb2ea17caefc3de60cef76d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/10.png"
+    },
+    {
+      "sha256": "ecdb5c7e441f0882cdbbc9da90f083043fbe4fb7c93c4693145f50bbee9e0712",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/10.png"
+    },
+    {
+      "sha256": "16dce2f41c8c8f854b85bf1da622217ef5b33c2ac20b59a9a043c3af9459e673",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/10.png"
+    },
+    {
+      "sha256": "e6bda3096831da6f737e52a3a37d95fa82725f0015bbfe4b9735be3c3d99d9cc",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/10.png"
+    },
+    {
+      "sha256": "f4475f5a634fcd991abe3484b923d0192f5c86e1c467429005ebf8abc2698582",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/10.png"
+    },
+    {
+      "sha256": "e9cb6b1435e2adbad48ca9a8fd901f6bb1d30f1a15ede30ebaf0749cb45afa7b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/10.png"
+    },
+    {
+      "sha256": "af5e96347e40e01be578a0e39018a46188418d368d6683af34bd6e4200a68340",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/10.png"
+    },
+    {
+      "sha256": "3b18ad116132907b6e5657bd9c7522f8464eb1a2bb1068a1e65dda83af2ae1ad",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/10.png"
+    },
+    {
+      "sha256": "ede78e7d8cd9bf5e0a20b53b769ded5b3fd47448726185e2f2aff2178df4edb0",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/10.png"
+    },
+    {
+      "sha256": "4c9a1261605ea0154eec9000b7566433c5937fcf44c8cb94e2b7bb24a8320c31",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/10.png"
+    },
+    {
+      "sha256": "530a9e41088a13293b3ad7a66ebec611d4cf5ad2a8d8a7ef8fd565b2aa80625d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/10.png"
+    },
+    {
+      "sha256": "3af7a4bf8582bb76627b420135dbbc91dce1c8ebd59b337445176b98fd4110a1",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/10.png"
+    },
+    {
+      "sha256": "ebb6ed551059e770bf5eef0fe7b1c86c1dd8415b013cb2eddab0fb92f575c20f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/10.png"
+    },
+    {
+      "sha256": "d20c6ce2b03921ff75739bbfc5f5949f4f8418accef477136695f8ce363e410b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/10.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/10.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/11.png"
+    },
+    {
+      "sha256": "0b580ee5e21e8f2011bd41b1f8cbc74b0490679ce42f969a11bd972ea6f205a3",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/11.png"
+    },
+    {
+      "sha256": "45af4b006d22de5758201934a02c11bd5e8934ce2495c45fbac7eb818096108b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/11.png"
+    },
+    {
+      "sha256": "add0a1dfee5c8d33893b2bdbf745db38bc5b2d1a5f64bf7252615491a156acef",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/11.png"
+    },
+    {
+      "sha256": "86f4b166d63b4d3ceea9f06960f294da21c3bf1c2ebf943749047d19a42c2d19",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/11.png"
+    },
+    {
+      "sha256": "a841a2cb3cee38e0ccd77f98f9d0e361c46769ea2ad669f683d44997595f5a33",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/11.png"
+    },
+    {
+      "sha256": "91b12ce9cf09533993403f645f8e81255ff53bc52a85a83e26f6a3211a99a5d7",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/11.png"
+    },
+    {
+      "sha256": "215d730ccf8cd75fc2f24dd287ca29f8e9fe7676df64d5b55a672e52fff2b5da",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/11.png"
+    },
+    {
+      "sha256": "f1ac50e4c1ce37a3413be128bd547e645e73b19c9ac590220b14e174a4a27600",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/11.png"
+    },
+    {
+      "sha256": "ce7a1c009b953c9cb46ad39ee40e3e59286366167828db5e0900eba573bfb30e",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/11.png"
+    },
+    {
+      "sha256": "24c1575a85d584b7e34c9f176579bd87288bdb2b31dd9efb188ffa2e925d1939",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/11.png"
+    },
+    {
+      "sha256": "d5feb45556e0c6f98af61ac27411e144ff31917272aca5992cf25888839799d8",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/11.png"
+    },
+    {
+      "sha256": "99553c8f7597e778f017854d745835568b2169166778867ed537a54fe0f11d19",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/11.png"
+    },
+    {
+      "sha256": "b6f603b29391ecda7a00a2ab4922011d9d52bb97f96d1e78d49c0e9bb939aa67",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/11.png"
+    },
+    {
+      "sha256": "1a42b26e4f0476d6c441bc9fd595b30b85610ff1bec03a2ddfff483588567e5f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/11.png"
+    },
+    {
+      "sha256": "fe8124b28949da8ef60fce692804b75cc460fcc274365b5306a151881b69f1bc",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/11.png"
+    },
+    {
+      "sha256": "5a7fd67589c7b48f2b82295d0e19f67c95a595e94f419ee44238c132a05bd964",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/11.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/11.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/12.png"
+    },
+    {
+      "sha256": "b2dfa07360664f2954933ce8e1586c76469b45c8e4d51d94c85340e2c2c3391a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/12.png"
+    },
+    {
+      "sha256": "ad912bd937df669121829e38fb803d5fda7a1debb38d05d9b822f2e39860d8f7",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/12.png"
+    },
+    {
+      "sha256": "acef4474c34e4a5a509f75c173c9c4b8dab628c1e7abbde97aebb47417746490",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/12.png"
+    },
+    {
+      "sha256": "002bcce3260e77bf3a3f862bb8415b169fdff37e5103fd08d09bd0d895502ac7",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/12.png"
+    },
+    {
+      "sha256": "8b75499fe64a723bc01549c115c37dfb599cf14f39d1a7ac45beb0e5d1dec68d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/12.png"
+    },
+    {
+      "sha256": "569ff6db3113920863b0f7672441498962fb2acbd32f359673fe39e3b38bdbdb",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/12.png"
+    },
+    {
+      "sha256": "8e46f7a8b9c32f8cc6333b8ee690b32f82ea75b8464b8119889eac3348cd3068",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/12.png"
+    },
+    {
+      "sha256": "21925ea95e62f71aeac4aba3022c35d6a9030c635e0c92bf82b2f44cc8f875fa",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/12.png"
+    },
+    {
+      "sha256": "4b83264f0855ed7213a494602a25140f90e66c9366e11187c28f33e56d3b0735",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/12.png"
+    },
+    {
+      "sha256": "d98536e0b6b5728cd30dcedf6a6e0294d3010311896ed6fff6c2c4dd6f97f4f2",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/12.png"
+    },
+    {
+      "sha256": "b09e682b39ec13de009e748b4edcc8b274af38bc20842b515f9458fd301eecbe",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/12.png"
+    },
+    {
+      "sha256": "da4ffab3938e397cf40b36395d96fe321b7da18dc40df960ba0b47adea198b89",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/12.png"
+    },
+    {
+      "sha256": "772eb292a4c399f50202780ccf9a2db2df7f8fcc1bc91f1ad83f900b303af1fc",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/12.png"
+    },
+    {
+      "sha256": "4ca36c51e53afb3f99b4e41d5b508155cbf081c10538646d953bea279e59bfb6",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/12.png"
+    },
+    {
+      "sha256": "55c609a8a42872b11805b3d7a565d58f70a7aeab518d2bc9bcda0bd4aade7e23",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/12.png"
+    },
+    {
+      "sha256": "748f4f62b21a838f4cb87fdf0a8824ff19ca0cf60dab09c418486c24ef7ad7f4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/12.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/12.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/13.png"
+    },
+    {
+      "sha256": "0e2cb09369122c8fe4bf65a39eb0d7275402e4040e4c518e4e2fca662a51637a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/13.png"
+    },
+    {
+      "sha256": "ecb3d0b88037c44473eaeb826e5485ee72ec94ee405d77479d27db44360c1d3b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/13.png"
+    },
+    {
+      "sha256": "1751a2928c8385445a225febd4c1efa597b0825657519f1a939019336a61f14b",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/13.png"
+    },
+    {
+      "sha256": "6e7be19b7d267f4ebee5215b3dad547f88447e3e5165bcb3dcdab31a6e74c42e",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/13.png"
+    },
+    {
+      "sha256": "b6149b5c90ea9f88c7f71d0bcbcfde96500d4e4b11d8eea048dee9e192a4123c",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/13.png"
+    },
+    {
+      "sha256": "d2c5e5b2727feb615f04e8fd1c5616bf182c27520e105fe719266e5ed5eee5ba",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/13.png"
+    },
+    {
+      "sha256": "29aeb8be3cf85e03ccbff2b0fc16279729c26b2255907529fd91615daf27a2f3",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/13.png"
+    },
+    {
+      "sha256": "34b38235789015ee9de8df9536bcb3a7ce45abd2e94aeabffa04b1455203d62f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/13.png"
+    },
+    {
+      "sha256": "6ba5b427556a1f802617859ff37d6d11e3be4c6dda49de9c24f00502f8b78869",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/13.png"
+    },
+    {
+      "sha256": "69a8f694e86e3b2504839999e921a840888addfea5c0351995da392ac909c4ac",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/13.png"
+    },
+    {
+      "sha256": "5b887c5af42e6da84df04c1f2d8c42818afb48cf300d9907f5f6ad9806bfb6f9",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/13.png"
+    },
+    {
+      "sha256": "a258fc9d111034089578a66ed17ccef467d8092bb6a10e765520e9a567374ebd",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/13.png"
+    },
+    {
+      "sha256": "a282492b9fe54bf7efecd817878878eb853162ec1cf19f7a8e5fa635929f23fb",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/13.png"
+    },
+    {
+      "sha256": "01f52766f73afc355e4ae453ed1193adb36f660119621ff8f092ade53a28d641",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/13.png"
+    },
+    {
+      "sha256": "a2d2c33bc82a555e5aa02bdc9cc110a6fe22b6fb23cd61651f11b5f48444b7bb",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/13.png"
+    },
+    {
+      "sha256": "202cc747fb37079967065aeaa649c92b4e305eb0542c647fdcf65ce045e9aa96",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/13.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/13.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/14.png"
+    },
+    {
+      "sha256": "6ceefc929ac7fb58d74605ca1c98b00dc6007a3529fa0427b7e910e81baccd28",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/14.png"
+    },
+    {
+      "sha256": "639332aa0bd8247e84536f1d49cd8d0bc25564d8e57c231bc3be96c02fe9d25f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/14.png"
+    },
+    {
+      "sha256": "7bd641919e35a76dc6dfeae2aff5247abc3f6d53a176485a87596d6601f27cee",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/14.png"
+    },
+    {
+      "sha256": "b85adbf2ad79a834b1ab1563e128b9bec317430b512d24217fe3a20bb58408bd",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/14.png"
+    },
+    {
+      "sha256": "12fffb47cbb921022aaa419ebf87904e28e6504986ded18d4dd06351b34d55bf",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/14.png"
+    },
+    {
+      "sha256": "be8e785efda834584b49ff901b761632a3fd59ac45aea9499a388c2c40ef42fb",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/14.png"
+    },
+    {
+      "sha256": "f23a1b09221c2148fa4bf033beeecc3feb4202795ad214d7a70ee7883d50fddb",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/14.png"
+    },
+    {
+      "sha256": "2baae32f2e71e0971b35a741b16ce96e896cdcd632dbfbefab0fbdf14b2db2c3",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/14.png"
+    },
+    {
+      "sha256": "7f019cde281602d98c2417629fe6aaf25df8ca3f02629f7675c10864bf88c983",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/14.png"
+    },
+    {
+      "sha256": "b66e53ba27aadd77fc4a9ed92a0dc3b29a6fd668cf8825fd0c806be8c4838e2c",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/14.png"
+    },
+    {
+      "sha256": "e673ad674a863bf8cf460019e1504fb1908a0e6cafd1bd1476a3d8f1f2d5668d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/14.png"
+    },
+    {
+      "sha256": "34b9a7bdf32efa2ae0ad07f19b61af61440dcc9da3fc148f4a811d32d12ac8ce",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/14.png"
+    },
+    {
+      "sha256": "7cbf26800ca75062aadd65c9a7fe33f518b9d5a88066c195e516f5cfe2008b61",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/14.png"
+    },
+    {
+      "sha256": "e7473e351e1ba251de5cda32e8213fcb6660d5abbc1cd39b8287ff4952b9ecdc",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/14.png"
+    },
+    {
+      "sha256": "c4d357dc9058497cab16210e61227fcc5394c8398f132a9dc653dbbf30ee6cdf",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/14.png"
+    },
+    {
+      "sha256": "114b3d2481caeb13e64cf21608429606f10f95fd7996b29eba0e25e646d21abf",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/14.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/14.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/-1/15.png"
+    },
+    {
+      "sha256": "5a8ab62a20db8f8e406e118b79bc15866f436c2bf303824e3037e07d3eaeeddc",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/0/15.png"
+    },
+    {
+      "sha256": "6f8fdaec457cbd73f64feae12d8d8e7e6c173a995be54ab42323330e75a576d8",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/1/15.png"
+    },
+    {
+      "sha256": "0767db00f0b6ffd93a5bd77911513708c05072df85bfa920a287abf20246abe7",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/2/15.png"
+    },
+    {
+      "sha256": "b14b805a52d799706406a04c6b24679ea24aa7e2bab75b8d4f949ab4785c3e2e",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/3/15.png"
+    },
+    {
+      "sha256": "c420e482cb4349b7b257d357cd6fafa8642669ba00796407f2e344256618039f",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/4/15.png"
+    },
+    {
+      "sha256": "8d3ae7d87e18b2e8b667b1200943b9660f2660bdbbeca87b0c876bb6ee6aac1d",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/5/15.png"
+    },
+    {
+      "sha256": "1908064b632fc8e5db94aa0f2ef74e6e7bdc67fe864e504aca122a7eaf4a7195",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/6/15.png"
+    },
+    {
+      "sha256": "5c50a22fdfa090dff33d0510639472a921a1ac12ea7416eaa69496c5d0125ac8",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/7/15.png"
+    },
+    {
+      "sha256": "dce843d3dc6b7db692c06f41da711065fd5db1361ad6f86007cf2ab73204a725",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/8/15.png"
+    },
+    {
+      "sha256": "8e68331c1a5cf9629616f19f1b5a75cc3b262948ebdcdd68577edcdcb416a672",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/9/15.png"
+    },
+    {
+      "sha256": "4625474f96734921c63cc5df833696f26f51a0597c5918f372fb52c4150435f2",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/10/15.png"
+    },
+    {
+      "sha256": "8016546ddf7c56d9b3a0dda9e4d03bfdaaf403cd246e7b88954ac71f47b6725a",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/11/15.png"
+    },
+    {
+      "sha256": "fc1aaaf85b001f101dd46343e5526af0f21aba554def98a1af7a73245e11df81",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/12/15.png"
+    },
+    {
+      "sha256": "e7f95dbeb16f0b59abcc153b515f34c8e6f3d216455024b1cfd9e3b330bded68",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/13/15.png"
+    },
+    {
+      "sha256": "d7c0c4c28f7cc1f0beebe30012ef206f4eeac6335dd0c95e0bf4ac2a4f372ac4",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/14/15.png"
+    },
+    {
+      "sha256": "e1d70617596ff34d124497b71320183da7ac011059a8f55b6bbd3e5c7323b040",
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/15/15.png"
+    },
+    {
+      "sha256": null,
+      "url": "https://assets.tarkov.dev/maps/interchange/main/4/16/15.png"
+    }
+  ],
+  "zoom": 4
+}
