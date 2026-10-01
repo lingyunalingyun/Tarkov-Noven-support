@@ -55,7 +55,10 @@ public:
     void SetTaskDataSources(const std::filesystem::path& directory,const data::ItemCatalog& catalog) {
         tasks_.Initialize(directory,catalog);
     }
-    bool SetMapDataSources(const std::filesystem::path& assets,std::wstring& error){return map_.Initialize(assets,error);}
+    bool SetMapDataSources(const std::filesystem::path& assets,std::wstring& error){
+        const bool loaded=map_.Initialize(assets,error);
+        if(loaded)tasks_.SetMapLinks(map_.Catalog());else tasks_.SetMapLinks(data::MapCatalog{});return loaded;}
+    const TasksPage& Tasks() const noexcept{return tasks_;}
     [[nodiscard]] bool KeyDown(WPARAM key, bool control);
     [[nodiscard]] bool Char(wchar_t character);
     [[nodiscard]] bool Ready() const noexcept { return window_ != nullptr; }

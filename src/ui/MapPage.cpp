@@ -162,6 +162,16 @@ bool MapPage::FocusInteraction(std::string_view id){
     SelectMap(found->mapId);
     SelectFloor(found->floorId);interaction_id_=found->id;viewport_.FocusSmooth(found->coordinate);return true;
 }
+bool MapPage::OpenInteraction(std::string_view id){
+    const auto found=std::find_if(points_.begin(),points_.end(),[&](const auto& p){return p.id==id;});
+    if(found==points_.end())return false;
+    // 精确外部导航解除遮挡目标的查询/筛选，保留其他地图状态。
+    // Exact external navigation reveals the target through query/filters, preserving other map state.
+    search_.SetText(L"");search_.Blur();panel_open_=false;
+    filters_.categories[static_cast<std::size_t>(found->category)]=true;
+    filters_.hiddenTasks.erase(found->id);filters_.hiddenIcons&=~found->icons;
+    return FocusInteraction(found->id);
+}
 const std::vector<MapInteractionPoint>& MapPage::Points() const {
     const auto& locale=UiLocalization().ActiveLocale();
     if(point_cache_valid_&&cached_query_==search_.Text()&&cached_map_==map_id_&&cached_locale_==locale

@@ -5,6 +5,7 @@
 #include "ui/SearchBox.h"
 #include "ui/TabSelectionAnimation.h"
 #include "data/TaskBrowser.h"
+#include "data/TaskMapLinks.h"
 
 #include <optional>
 #include <unordered_map>
@@ -16,12 +17,15 @@ namespace noven::ui {
 // The page owns selection and scroll state only; the read-only catalog owns task identity and content.
 class TasksPage final {
 public:
+    struct Action {enum class Destination {Prices,Map};Destination destination;std::string id;};
+    void SetMapLinks(const data::MapCatalog& catalog){mapLinks_.Bind(catalog);}
     void Initialize(const std::filesystem::path& directory,const data::ItemCatalog& items);
     void Prepare(float width, float height, const UiTheme& theme);
     void Draw(const UiCanvas& canvas, const UiTheme& theme,
         const std::unordered_map<std::string,Microsoft::WRL::ComPtr<ID2D1Bitmap>>& images) const;
     void MouseDown(float x, float y);
-    std::optional<std::string> MouseUp(float x, float y);
+    std::optional<Action> MouseUp(float x, float y);
+    [[nodiscard]] std::optional<D2D1_RECT_F> ObjectiveBounds(std::string_view id) const;
     void MouseMove(float x, float y);
     void CancelDrag();
     bool Wheel(int delta, float x, float y);
@@ -70,6 +74,7 @@ private:
     [[nodiscard]] std::optional<std::size_t> TaskAt(float x, float y) const;
     [[nodiscard]] std::optional<std::string> ChainAt(float x, float y) const;
     [[nodiscard]] std::optional<std::string> RewardItemAt(float x, float y) const;
+    [[nodiscard]] std::optional<std::string> ObjectiveMapPointAt(float x,float y) const;
     [[nodiscard]] std::optional<ScrollbarGeometry> Bar() const;
     [[nodiscard]] std::optional<ScrollbarGeometry> TaskBar() const;
     [[nodiscard]] ScrollbarPose TaskBarPose() const;
@@ -80,6 +85,7 @@ private:
 
     SearchBox search_;
     data::TaskCatalog catalog_;
+    data::TaskMapLinks mapLinks_;
     std::unique_ptr<data::TaskBrowser> browser_;
     std::vector<data::TaskView> rows_;
     HorizontalCardStrip traderStrip_;
@@ -111,6 +117,7 @@ private:
     std::optional<std::size_t> hoveredTask_;
     std::optional<std::string> pressedChain_;
     std::optional<std::string> pressedRewardItem_;
+    std::optional<std::string> pressedMapPoint_,hoveredMapPoint_;
     std::optional<int> pressedArrow_;
     std::optional<int> hoveredArrow_;
 };

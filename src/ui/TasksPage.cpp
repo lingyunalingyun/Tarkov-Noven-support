@@ -427,7 +427,28 @@ std::optional<std::string> TasksPage::RewardItemAt(float x,float y) const {
     return hit(rewards.offers);
 }
 
+std::optional<D2D1_RECT_F> TasksPage::ObjectiveBounds(std::string_view id) const {
+    const auto* task=Task();if(!task)return {};
+    const auto viewport=DetailBounds();const float left=viewport.left+28,width=viewport.right-viewport.left-56;
+    const float leftWidth=stackedDetails_?width:(width-26)*.42F;
+    const float column=stackedDetails_?left:left+leftWidth+26;
+    const float chainEnd=viewport.top-scroll_+28+184+24*static_cast<float>(MarkerRows(*task))+47
+        +ChainEntriesHeight(task->prerequisites.size())+ChainEntriesHeight(Unlocks().size());
+    float y=(stackedDetails_?chainEnd+20:viewport.top-scroll_+28)+46;
+    for(const auto& objective:task->objectives){const float height=objective.itemIds.empty()?54.0F:70.0F;
+        if(objective.id==id)return D2D1_RECT_F{column,y,viewport.right-28,y+height};y+=height+8;}
+    return {};
+}
+std::optional<std::string> TasksPage::ObjectiveMapPointAt(float x,float y) const {
+    const auto* task=Task();const auto viewport=DetailBounds();
+    if(!task||mode_==data::GameMode::Pve||x<viewport.left||x>=viewport.right||y<viewport.top||y>=viewport.bottom)return {};
+    for(const auto& objective:task->objectives){const auto targets=mapLinks_.Targets(task->id,objective.id);
+        if(targets.empty())continue;const auto row=ObjectiveBounds(objective.id);
+        if(row&&x>=row->left&&x<row->right&&y>=row->top&&y<row->bottom)return targets.front();}
+    return {};
+}
 void TasksPage::MouseDown(float x, float y) {
+    pressedMapPoint_.reset();
     pressedTrader_.reset(); pressedTask_.reset(); pressedChain_.reset(); pressedRewardItem_.reset(); pressedArrow_.reset(); scrollGrab_.reset(); taskScrollGrab_.reset();
     if (search_.HitTest(SearchBounds(), x, y)) search_.Focus(); else search_.Blur();
     taskBackPressed_=HitNavigationButton(TaskBackBounds(),x,y,!taskHistory_.empty()
@@ -453,9 +474,10 @@ void TasksPage::MouseDown(float x, float y) {
     pressedTask_ = TaskAt(x, y);
     pressedChain_ = ChainAt(x, y);
     pressedRewardItem_=RewardItemAt(x,y);
+    pressedMapPoint_=ObjectiveMapPointAt(x,y);
 }
 
-std::optional<std::string> TasksPage::MouseUp(float x, float y) {
+std::optional<TasksPage::Action> TasksPage::MouseUp(float x, float y) {
     if(taskBackPressed_){
         taskBackPressed_=false;
         if(HitNavigationButton(TaskBackBounds(),x,y,!taskHistory_.empty()
@@ -471,11 +493,15 @@ std::optional<std::string> TasksPage::MouseUp(float x, float y) {
     if(pressedChain_&&pressedChain_==ChainAt(x,y))NavigateTask(*pressedChain_);
     const auto reward=pressedRewardItem_&&pressedRewardItem_==RewardItemAt(x,y)
         ?pressedRewardItem_:std::optional<std::string>{};
+    const auto point=pressedMapPoint_&&pressedMapPoint_==ObjectiveMapPointAt(x,y)?pressedMapPoint_:std::optional<std::string>{};
+    pressedMapPoint_.reset();
     pressedTrader_.reset(); pressedTask_.reset(); pressedChain_.reset(); pressedRewardItem_.reset(); pressedArrow_.reset();
-    return reward;
+    if(point)return Action{Action::Destination::Map,*point};
+    if(reward)return Action{Action::Destination::Prices,*reward};return {};
 }
 
 void TasksPage::MouseMove(float x, float y) {
+    hoveredMapPoint_=ObjectiveMapPointAt(x,y);
     taskBackHovered_=HitNavigationButton(TaskBackBounds(),x,y,!taskHistory_.empty()
         &&y>=DetailBounds().top&&y<DetailBounds().bottom);
     traderStrip_.Drag(x);
@@ -490,6 +516,7 @@ void TasksPage::MouseMove(float x, float y) {
 }
 
 void TasksPage::CancelDrag() {
+    pressedMapPoint_.reset();
     traderStrip_.Release();
     scrollGrab_.reset();
     taskScrollGrab_.reset();
@@ -769,9 +796,15 @@ void TasksPage::Draw(const UiCanvas& canvas, const UiTheme& theme,
         float objectiveY = objectivesTop + 46.0F;
         for (const auto& objective : task->objectives) {
             const bool hasItem=!objective.itemIds.empty();
+            const auto targets=mapLinks_.Targets(task->id,objective.id);
+            const bool linked=mode_!=data::GameMode::Pve&&!targets.empty();
             const float rowHeight = hasItem ? 70.0F : 54.0F;
             canvas.Round(D2D1::RectF(rightColumn, objectiveY, rightColumn + rightWidth,
-                objectiveY + rowHeight), 7.0F, theme.background);
+                objectiveY + rowHeight), 7.0F, linked&&hoveredMapPoint_==targets.front()?theme.hover:theme.background);
+            if(linked){const D2D1_POINT_2F center{rightColumn+rightWidth-18,objectiveY+20};
+                canvas.brush.SetColor(theme.accent);canvas.target.DrawEllipse(D2D1::Ellipse(center,5,5),&canvas.brush,1.5F);
+                canvas.target.DrawLine({center.x,center.y+5},{center.x,center.y+10},&canvas.brush,1.5F);
+                canvas.Text(Tr("tasks.map.focus"),canvas.smallFormat,{rightColumn+rightWidth-98,objectiveY+34,rightColumn+rightWidth-12,objectiveY+rowHeight-5},theme.accent);}
             canvas.Circle(D2D1::Point2F(rightColumn + 18.0F, objectiveY + 20.0F), 7.0F, theme.accent);
             canvas.Circle(D2D1::Point2F(rightColumn + 18.0F, objectiveY + 20.0F), 4.0F, theme.background);
             float textLeft = rightColumn + 34.0F;
@@ -783,11 +816,11 @@ void TasksPage::Draw(const UiCanvas& canvas, const UiTheme& theme,
                 textLeft += 54.0F;
             }
             canvas.Text(Text(objective.descriptionZh,objective.descriptionEn), canvas.body, D2D1::RectF(textLeft, objectiveY + 8.0F,
-                rightColumn + rightWidth - 12.0F, objectiveY + 33.0F), theme.primaryText);
+                rightColumn + rightWidth - (linked?32.0F:12.0F), objectiveY + 33.0F), theme.primaryText);
             std::wstring detail;
             if(hasItem){const auto* item=browser_->Item(objective.itemIds.front());detail=item?Text(item->nameZh,item->nameEn):std::wstring(objective.itemIds.front().begin(),objective.itemIds.front().end());if(objective.count>0){std::wostringstream out;out<<detail<<L" ×"<<objective.count;detail=out.str();}}
             canvas.Text(detail, canvas.smallFormat, D2D1::RectF(textLeft, objectiveY + 34.0F,
-                rightColumn + rightWidth - 12.0F, objectiveY + rowHeight - 5.0F), theme.secondaryText);
+                rightColumn + rightWidth - (linked?104.0F:12.0F), objectiveY + rowHeight - 5.0F), theme.secondaryText);
             objectiveY += rowHeight + 8.0F;
         }
 

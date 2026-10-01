@@ -1,4 +1,5 @@
 #include "data/MapCatalog.h"
+#include "data/TaskMapLinks.h"
 #include "data/InterchangeReference.h"
 #include <windows.h>
 #include <cmath>
@@ -31,6 +32,16 @@ int main(int argc,char** argv){
     Require(containers==795&&extracts==9,"deduplicated containers and faction extract records retained");
     Require(loose==483&&locks==28&&switches==6&&stationary==2&&tasks==45,
         "all positioned Interchange API groups are retained");
+    noven::data::TaskMapLinks links;links.Bind(catalog);
+    const std::string pathfinder="5ae449c386f7744bde357697";
+    std::string previousPoint;
+    for(const auto objective:{"5bb60cbc88a45011a8235cc5","6a60968c58aab7961885e537","6a6096d81284478fd859003a"}){
+        const auto targets=links.Targets(pathfinder,pathfinder+"_"+objective);
+        Require(targets.size()==1&&catalog.Point(targets.front())->kind=="task"&&targets.front()!=previousPoint,"Pathfinder objectives resolve three distinct exact DEV positions");
+        previousPoint=targets.front();
+    }
+    Require(links.Targets("wrong",pathfinder+"_5bb60cbc88a45011a8235cc5").empty()
+        &&links.Targets(pathfinder,pathfinder+"_missing").empty(),"task links never use name or prefix approximations");
     namespace reference=noven::data::InterchangeReference;
     const auto top=reference::Project({598,20,-442}),bottom=reference::Project({-433,20,426});
     Require(top.x==0&&top.y==0&&bottom.x==reference::Width&&bottom.y==reference::Height,"dev rotated bounds project to SVG corners");

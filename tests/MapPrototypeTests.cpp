@@ -324,6 +324,9 @@ int main(int argc,char** argv){
     Require(categoryCount(MapPointCategory::LooseLoot)==483&&categoryCount(MapPointCategory::Lock)==28
         &&categoryCount(MapPointCategory::Switch)==6&&categoryCount(MapPointCategory::StationaryWeapon)==2
         &&categoryCount(MapPointCategory::Task)==45,"production point kinds retain independent marker categories");
+    const auto linkedPoint=std::find_if(realPoints.begin(),realPoints.end(),[](const auto& p){return p.category==MapPointCategory::Task;});
+    Require(actual.OpenInteraction(linkedPoint->id)&&actual.SelectedPoint()&&actual.Search().Text().empty(),"exact external task navigation reveals target independent of stale search");
+    const auto selectedLink=actual.InteractionId();Require(!actual.OpenInteraction("missing")&&actual.InteractionId()==selectedLink,"invalid external target leaves existing map state unchanged");
     for(const auto floor:{"Ground_Level","First_Floor","Second_Floor"}){
         const auto point=std::find_if(realPoints.begin(),realPoints.end(),[&](const auto& p){return p.floorId==floor;});
         Require(point!=realPoints.end()&&actual.FocusInteraction(point->id),"each real floor contains focusable source points");

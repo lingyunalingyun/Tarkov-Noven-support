@@ -22,6 +22,8 @@ public:
     bool Initialize(const std::filesystem::path& assets,std::wstring& error);
     bool RealData() const noexcept{return real_;}
     const data::MapRecord* Information() const noexcept{return catalog_.Map(map_id_);}
+    const data::MapCatalog& Catalog() const noexcept{return catalog_;}
+    bool OpenInteraction(std::string_view id);
     void Prepare(float width,float height,const UiTheme& theme);
     void Draw(const UiCanvas& canvas,const UiTheme& theme) const;
     void Tick(float elapsed);

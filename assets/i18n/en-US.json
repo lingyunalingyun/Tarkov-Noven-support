@@ -160,6 +160,7 @@
   "tasks.level": "Minimum level",
   "tasks.location": "Location",
   "tasks.location.any": "Any location",
+  "tasks.map.focus": "Show on map",
   "tasks.marker.kappa": "3×4 secure-container task",
   "tasks.marker.lightkeeper": "“Fairy wand” task",
   "tasks.marker.unrelated": "Not required for either chain",

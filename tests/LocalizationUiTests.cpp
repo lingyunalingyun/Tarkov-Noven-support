@@ -328,6 +328,21 @@ int wmain(int argc, wchar_t** argv) try {
             "clicking a follow-up row navigates by stable task ID");
         Require(tasks.GoBackTask()&&tasks.SelectedTask()=="59675ea386f77414b32bded2",
             "task-local back history restores the previous task");
+        noven::data::MapCatalog taskMap;Require(taskMap.Load(std::filesystem::path(argv[1]).parent_path()/"data",error),"task link source loads");
+        tasks.SetMapLinks(taskMap);tasks.MouseDown(taskLeft+20,100);
+        for(const wchar_t c:std::wstring(L"Pathfinder"))Require(tasks.Char(c),"map-linked task search accepts text");
+        tasks.Prepare(1400,1000,theme);
+        for(int i=0;i<40;++i)tasks.Tick(.016F);
+        const std::string pathfinder="5ae449c386f7744bde357697";
+        Require(tasks.SelectedTask()==pathfinder,"Pathfinder selected by ordinary task search");
+        std::string previousMapPoint;
+        for(const auto id:{"5bb60cbc88a45011a8235cc5","6a60968c58aab7961885e537","6a6096d81284478fd859003a"}){
+            const auto row=tasks.ObjectiveBounds(pathfinder+"_"+id);Require(row.has_value(),"linked objective exposes shared row geometry");
+            tasks.MouseDown(row->left+40,row->top+12);const auto action=tasks.MouseUp(row->left+40,row->top+12);
+            Require(action&&action->destination==TasksPage::Action::Destination::Map&&action->id!=previousMapPoint
+                &&taskMap.Point(action->id)->sourceId.starts_with(pathfinder+"_"+id),"each Pathfinder objective click emits its own exact map point identity");
+            previousMapPoint=action->id;
+        }
         UiLocalization().SetLocale("zh-CN");
     }
     const HWND window = CreateWindowExW(0, L"STATIC", L"Noven localization test", WS_OVERLAPPEDWINDOW,
@@ -510,6 +525,23 @@ int wmain(int argc, wchar_t** argv) try {
         const auto realScale=ui.Map().Viewport().Scale();
         selectPage(MainPage::Prices);selectPage(MainPage::Map);ui.Paint();
         Require(ui.Map().FloorId()=="First_Floor"&&ui.Map().Viewport().Scale()==realScale,"real map state persists across navigation");
+        selectPage(MainPage::Tasks);Require(!click(theme.sidebarWidth+theme.contentPadding+20,100),"focus Tasks for map jump");
+        Require(ui.KeyDown(VK_ESCAPE,false),"clear prior Tasks query before map link search");for(const wchar_t c:std::wstring(L"探路者"))Require(ui.Char(c),"Pathfinder query accepts Chinese");
+        ui.Paint();
+        const std::string taskId="5ae449c386f7744bde357697";
+        const std::string objectiveId=taskId+"_5bb60cbc88a45011a8235cc5";
+        auto objectiveRow=ui.Tasks().ObjectiveBounds(objectiveId);Require(objectiveRow.has_value(),"task map row exists in shell layout");
+        if(objectiveRow->top+12>height-30){
+            const int wheel=-WHEEL_DELTA*static_cast<int>(std::ceil((objectiveRow->top+12-(height-60))/66));
+            Require(ui.MouseWheel(static_cast<int>((objectiveRow->left+40)*scale),static_cast<int>((height-50)*scale),wheel),"task detail scroll reveals linked row");
+            for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);if(!ui.AnimationTick())break;}ui.Paint();objectiveRow=ui.Tasks().ObjectiveBounds(objectiveId);
+        }
+        Require(objectiveRow->top>=274&&objectiveRow->top+12<height-24,"task map link is visible after scroll");
+        const auto sourceScroll=ui.Tasks().Scroll();const auto sourceQuery=ui.Tasks().QueryText();
+        Require(!click(objectiveRow->left+40,objectiveRow->top+12)&&ui.ActivePage()==MainPage::Map&&ui.CanGoBack(),"native task objective click navigates to map with contextual back");
+        Require(ui.Map().SelectedPoint()&&ui.Map().SelectedPoint()->category==MapPointCategory::Task,"task navigation reveals selected map target");
+        Require(ui.GoBack()&&ui.ActivePage()==MainPage::Tasks&&ui.Tasks().SelectedTask()==taskId
+            &&ui.Tasks().QueryText()==sourceQuery&&ui.Tasks().Scroll()==sourceScroll,"contextual back restores task, query and exact detail scroll");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

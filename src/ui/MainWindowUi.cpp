@@ -787,8 +787,11 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
         }
     }
     if (navigation_.Active()==MainPage::Tasks) {
-        if(const auto item=tasks_.MouseUp(x/Scale(),y/Scale())) {
-            OpenPriceItem(*item,tasks_.Mode()); return std::nullopt;
+        if(const auto action=tasks_.MouseUp(x/Scale(),y/Scale())) {
+            if(action->destination==TasksPage::Action::Destination::Prices)OpenPriceItem(action->id,tasks_.Mode());
+            else if(map_.OpenInteraction(action->id)){
+                return_page_=MainPage::Tasks;SelectPage(MainPage::Map);CancelScrollDrag();Invalidate();}
+            return std::nullopt;
         }
     }
     if (navigation_.Active()==MainPage::Map) {map_.MouseUp(x/Scale(),y/Scale());Invalidate();}
