@@ -4,6 +4,7 @@
 #include "ui/MapViewport.h"
 #include "ui/MapClock.h"
 #include "ui/MapSearch.h"
+#include "ui/MapSidebar.h"
 #include "ui/MapViewportControls.h"
 #include "ui/SearchBox.h"
 #include "ui/LocalImage.h"
@@ -24,7 +25,8 @@ public:
     void Prepare(float width,float height,const UiTheme& theme);
     void Draw(const UiCanvas& canvas,const UiTheme& theme) const;
     void Tick(float elapsed);
-    bool Animating() const noexcept{return progress_!=(expanded_?1.0F:0.0F)||panel_progress_!=(panel_open_?1.0F:0.0F)||floor_progress_<1||viewport_.Focusing()||search_.Focused();}
+    bool Animating() const noexcept{return progress_!=(expanded_?1.0F:0.0F)||panel_progress_!=(panel_open_?1.0F:0.0F)||floor_progress_<1||viewport_.Focusing();}
+    bool ClockTick(std::int64_t utc) noexcept;
     bool Selected() const noexcept{return expanded_;}
     void Overview(){expanded_=false;panel_open_=false;search_.Blur();viewport_.StopFocus();CancelDrag();}
     std::string_view FloorId() const noexcept{return floor_id_;}
@@ -43,7 +45,7 @@ public:
     const std::vector<MapInteractionPoint>& Points() const;
     std::size_t PointQueryBuilds() const noexcept{return point_query_builds_;}
     std::optional<MapInteractionPoint> SelectedPoint() const;
-    void MouseMove(float x,float y);
+    bool MouseMove(float x,float y);
     void MouseLeave(){hovered_floor_.reset();}
     void MouseDown(float x,float y);
     void MouseUp(float x,float y);
@@ -107,7 +109,9 @@ private:
     float filter_scroll_{},panel_progress_{};
     bool panel_open_{},pressed_row_check_{};
     bool opacity_drag_{};
-    float progress_{},floor_from_{},floor_to_{},floor_progress_{1},clock_{};
+    float progress_{},floor_from_{},floor_to_{},floor_progress_{1};
+    std::int64_t clock_utc_{MapUtcMilliseconds()};
+    bool caret_visible_{true};
     std::optional<std::size_t> hovered_floor_,pressed_floor_;
     std::optional<D2D1_POINT_2F> drag_;
     bool reset_pressed_{},expanded_{},back_pressed_{};

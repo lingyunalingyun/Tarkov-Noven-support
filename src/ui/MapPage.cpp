@@ -232,11 +232,15 @@ void MapPage::TogglePanel(MapFilterPanel panel){
     panel_=panel;panel_open_=true;panel_progress_=0;filter_scroll_=0;
 }
 void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
+    const auto motion=MapSidebarMotion::Sample(progress_);const float originalOpacity=canvas.brush.GetOpacity();
+    D2D1_MATRIX_3X2_F original;canvas.target.GetTransform(&original);
+    canvas.target.SetTransform(D2D1::Matrix3x2F::Translation(0,motion.offset)*original);canvas.brush.SetOpacity(originalOpacity*motion.opacity);
     for(std::size_t i=0;i<layout_.filters.size();++i)
         DrawDropdownHeader(canvas,theme,layout_.filters[i],Tr(FilterKeys[i]),panel_open_&&panel_==static_cast<MapFilterPanel>(i),false);
+    canvas.target.SetTransform(original);canvas.brush.SetOpacity(originalOpacity);
     if(!panel_||panel_progress_==0)return;
     const auto list=FilterList();const auto r=list.bounds;const auto entries=FilterEntries();
-    const float opacity=canvas.brush.GetOpacity();canvas.brush.SetOpacity(opacity*panel_progress_);
+    const float opacity=canvas.brush.GetOpacity();canvas.brush.SetOpacity(opacity*panel_progress_*motion.opacity);
     canvas.target.PushAxisAlignedClip({r.left,r.top,r.left+(r.right-r.left)*MapLayout::Ease(panel_progress_),r.bottom},D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     canvas.Round(r,8,theme.surface);canvas.brush.SetColor(theme.divider);
     canvas.target.DrawRoundedRectangle(D2D1::RoundedRect(r,8,8),&canvas.brush,1);
@@ -245,6 +249,7 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
     canvas.target.PushAxisAlignedClip(list.Body(),D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(entries.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,list.Body(),theme.secondaryText);
     for(std::size_t i=0;i<entries.size();++i){auto row=list.Row(i);if(entries[i].detail)row.left+=12;
+        if(row.bottom<=list.Body().top||row.top>=list.Body().bottom)continue;
         if(*panel_==MapFilterPanel::Layers&&(i==3||i==4)){
             if(i==3)canvas.Text(entries[i].label,canvas.smallFormat,row,theme.secondaryText);
             else MapOpacitySlider{row}.Draw(canvas,theme,filters_.otherFloorOpacity);
@@ -260,11 +265,17 @@ void MapPage::Tick(float elapsed){
     viewport_.Tick(dt);
     progress_=std::clamp(progress_+(Selected()?dt:-dt)/.36F,0.0F,1.0F);
     panel_progress_=std::clamp(panel_progress_+(panel_open_?dt:-dt)/.18F,0.0F,1.0F);
-    floor_progress_=std::min(1.0F,floor_progress_+dt/.22F);clock_=std::fmod(clock_+dt,1.0F);
+    floor_progress_=std::min(1.0F,floor_progress_+dt/.22F);
+}
+bool MapPage::ClockTick(std::int64_t utc) noexcept {
+    const bool caret=(utc%1000+1000)%1000<500;
+    const bool repaint=(search_.Focused()&&caret!=caret_visible_)
+        ||(Selected()&&MapInformationCard::Bounds(layout_)&&MapGameSeconds(utc)!=MapGameSeconds(clock_utc_));
+    clock_utc_=utc;caret_visible_=caret;return repaint;
 }
 void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     DrawPageHeader(canvas,theme,layout_.search.left,layout_.search.right,Tr(TextKey::NavMap));
-    search_.Draw(canvas,theme,layout_.search,Tr(TextKey::MapSearch),clock_<.5F);
+    search_.Draw(canvas,theme,layout_.search,Tr(TextKey::MapSearch),caret_visible_);
     if(unavailable_){canvas.Text(Tr(TextKey::Unavailable),canvas.body,layout_.content,theme.secondaryText);return;}
     const auto maps=MapItems();float mapIndex=0;
     for(std::size_t i=0;i<maps.size();++i)if(maps[i].id==map_id_)mapIndex=static_cast<float>(i);
@@ -348,19 +359,12 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         overlays.push_back(filters_.satellite&&upper_images_[i].Ready()?&upper_images_[i]:nullptr);}
     layout_.stack.Draw(canvas,theme,labels,Selected()?std::optional<std::size_t>(FloorIndex()):std::nullopt,hovered_floor_,previews,overlays,FloorPosition());
     if(progress_>0)DrawFilters(canvas,theme);
-    if(Selected()&&layout_.content.bottom-layout_.filters.back().bottom>=134){
-        const auto left=layout_.filters.back().left,right=layout_.filters.back().right;
-        const float top=layout_.content.bottom-128;
-        canvas.Round({left,top,right,layout_.content.bottom-4},8,theme.surface);
-        const auto text=[&](std::wstring_view value,int row,D2D1_COLOR_F color){
-            canvas.Text(value,canvas.smallFormat,{left+8,top+4+row*19.0F,right-4,top+23+row*19.0F},color);};
-        text(Tr("map.info"),0,theme.accent);
-        if(const auto info=Information()){
-            text(Tr("map.players")+L" · "+Wide(info->players),1,theme.primaryText);
-            text(Tr("map.duration")+L" · "+std::to_wstring(info->raidDuration)+L" "+Tr("map.minutes"),2,theme.primaryText);
-        }else{text(Tr(TextKey::MapPreview),1,theme.secondaryText);}
-        text(Tr("map.game_time"),3,theme.secondaryText);
-        const auto utc=MapUtcMilliseconds();text(MapClockText(utc),4,theme.primaryText);text(MapClockText(utc,true),5,theme.primaryText);
+    if(progress_>0)if(const auto bounds=MapInformationCard::Bounds(layout_);bounds&&Information()){
+        const auto motion=MapSidebarMotion::Sample(progress_);const float opacity=canvas.brush.GetOpacity();
+        D2D1_MATRIX_3X2_F original;canvas.target.GetTransform(&original);
+        canvas.target.SetTransform(D2D1::Matrix3x2F::Translation(0,motion.offset)*original);canvas.brush.SetOpacity(opacity*motion.opacity);
+        const auto* info=Information();MapInformationCard{*bounds}.Draw(canvas,theme,Wide(info->players),info->raidDuration,clock_utc_);
+        canvas.target.SetTransform(original);canvas.brush.SetOpacity(opacity);
     }
     canvas.target.PopAxisAlignedClip();
 }
@@ -377,11 +381,12 @@ std::optional<std::string_view> MapPage::MarkerAt(D2D1_POINT_2F p) const {
     }
     return std::nullopt;
 }
-void MapPage::MouseMove(float x,float y){
-    const D2D1_POINT_2F p{x,y};hovered_floor_=layout_.stack.Hit(p);
-    if(opacity_drag_){filters_.otherFloorOpacity=MapOpacitySlider{FilterList().Row(4)}.Value(x);return;}
-    if(scroll_drag_){if(const auto bar=FilterList().Bar(FilterEntries().size()))filter_scroll_=bar->OffsetFromThumbTop(y-*scroll_drag_);return;}
-    if(drag_){viewport_.Pan({p.x-drag_->x,p.y-drag_->y});drag_=p;}
+bool MapPage::MouseMove(float x,float y){
+    const D2D1_POINT_2F p{x,y};const auto hovered=layout_.stack.Hit(p);const bool changed=hovered!=hovered_floor_;hovered_floor_=hovered;
+    if(opacity_drag_){const float previous=filters_.otherFloorOpacity;filters_.otherFloorOpacity=MapOpacitySlider{FilterList().Row(4)}.Value(x);return changed||previous!=filters_.otherFloorOpacity;}
+    if(scroll_drag_){const float previous=filter_scroll_;if(const auto bar=FilterList().Bar(FilterEntries().size()))filter_scroll_=bar->OffsetFromThumbTop(y-*scroll_drag_);return changed||previous!=filter_scroll_;}
+    if(drag_){const bool moved=p.x!=drag_->x||p.y!=drag_->y;viewport_.Pan({p.x-drag_->x,p.y-drag_->y});drag_=p;return changed||moved;}
+    return changed;
 }
 void MapPage::MouseDown(float x,float y){
     const D2D1_POINT_2F p{x,y};CancelDrag();
@@ -444,7 +449,9 @@ void MapPage::MouseUp(float x,float y){
         auto id=MarkerAt(p);
         if(id&&*id==pressed_point_)FocusInteraction(*id);
     }
-    if(reset_pressed_&&MapResetButton{layout_.viewport}.Hit(p))viewport_.Fit();CancelDrag();
+    if(reset_pressed_&&MapResetButton{layout_.viewport}.Hit(p)){
+        if(const auto point=SelectedPoint())viewport_.FitSmooth(point->coordinate);else viewport_.FitSmooth();}
+    CancelDrag();
 }
 bool MapPage::Wheel(int delta,float x,float y){
     if(panel_&&panel_progress_>0&&MapContains(layout_.flyout,{x,y})){

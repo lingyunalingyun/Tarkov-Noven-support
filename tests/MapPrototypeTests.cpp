@@ -74,6 +74,11 @@ int main(int argc,char** argv){
         &&!selected.stack.LabelVisible(1,std::nullopt),"compact overview retains endpoint labels");
     Require(overview.stack.LabelVisible(1,std::nullopt),"large overview retains intermediate floor labels");
     Require(MapLayout::Ease(0)==0&&MapLayout::Ease(1)==1,"transition endpoints exact");
+    const auto hiddenSidebar=MapSidebarMotion::Sample(0),partialSidebar=MapSidebarMotion::Sample(.5F),visibleSidebar=MapSidebarMotion::Sample(1);
+    Require(hiddenSidebar.opacity==0&&hiddenSidebar.offset==10&&partialSidebar.opacity>0&&partialSidebar.opacity<1
+        &&partialSidebar.offset>0&&visibleSidebar.opacity==1&&visibleSidebar.offset==0,"sidebar fade/slide has exact reversible endpoints");
+    Require(MapInformationCard::Bounds(MapLayout::Sample(1400,800,{},1,count)).has_value()
+        &&!MapInformationCard::Bounds(MapLayout::Sample(1400,600,{},1,count)),"information card never overlaps filters in short layouts");
     for(float width:{850.0F,1100.0F,1600.0F}){
         const auto layout=MapLayout::Sample(width,700,{},1,count);
         Require(layout.viewport.right-layout.viewport.left>250,"responsive map keeps useful width");
@@ -111,6 +116,13 @@ int main(int argc,char** argv){
     view.Pan({10,0});Require(!view.Focusing(),"manual pan cancels focus");
     view.FocusSmooth({300,250});view.ZoomAt({800,500},1);Require(!view.Focusing(),"manual zoom cancels focus");
     view.FocusSmooth({300,250});view.Fit();Require(!view.Focusing(),"reset cancels focus");
+    const float resetFitScale=view.Scale();view.ZoomAt({800,500},5);view.Pan({30,20});
+    const float resetFromScale=view.Scale();const auto resetFrom=view.ToScreen({400,300});view.FitSmooth({400,300});
+    Require(view.Focusing()&&view.Scale()==resetFromScale&&Near(view.ToScreen({400,300}).x,resetFrom.x),"smooth reset starts without zoom or focus jump");
+    view.Tick(.16F);Require(view.Scale()<resetFromScale&&view.Scale()>resetFitScale,"reset interpolates fit zoom");
+    view.SetBounds({430,280,1230,780});view.Tick(.16F);
+    Require(!view.Focusing()&&Near(view.Scale(),resetFitScale)&&Near(view.ToScreen({400,300}).x,830),"reset centers selected focus and fit zoom after resize");
+    view.FitSmooth();view.Pan({1,0});Require(!view.Focusing(),"manual input cancels smooth reset");
     const auto& demo=MapPrototype::Points[1];
     const std::array points{MapInteractionPoint{demo.id,demo.floorId,demo.type,demo.coordinate,demo.english,demo.category}};
     MapInteractionStrip strip{{400,140,1000,235}};
@@ -123,6 +135,7 @@ int main(int argc,char** argv){
         "information uses selected marker identity and category icon");
     for(int tick=0;tick<30;++tick)page.Tick(.016F);
     page.Prepare(1280,800,{});Require(!page.Animating(),"layout transition settles");
+    Require(!page.MouseMove(1100,650)&&!page.MouseMove(1101,651),"pointer movement without hover/drag does not request redraw");
     const auto destination=page.Viewport().ToScreen(demo.coordinate);
     const auto bounds=page.Viewport().Bounds();
     Require(Near(destination.x,(bounds.left+bounds.right)/2)&&Near(destination.y,(bounds.top+bounds.bottom)/2),
@@ -270,6 +283,11 @@ int main(int argc,char** argv){
     for(const auto& point:actual.Points())Require(point.title.find(L"[missing:")==std::wstring_view::npos&&!point.title.empty(),"every English point title resolves");
     Require(UiLocalization().SetLocale("zh-CN"),"Chinese locale restores");
     const auto pointSearch=actual.Layout().search;actual.MouseDown(pointSearch.left+8,pointSearch.top+8);
+    for(int i=0;i<30;++i)actual.Tick(.016F);
+    Require(!actual.Animating(),"focused search does not keep high-frequency map animation running");
+    actual.ClockTick(0);Require(actual.ClockTick(250)&&actual.ClockTick(500),"visible reference clocks repaint when the displayed game second changes");
+    MapPage quietSearch;quietSearch.Prepare(1280,800,{});quietSearch.MouseDown(quietSearch.Layout().search.left+8,100);
+    quietSearch.ClockTick(0);Require(!quietSearch.ClockTick(250)&&quietSearch.ClockTick(500)&&!quietSearch.Animating(),"overview caret repaints only on phase changes without permanent animation");
     for(const auto c:std::wstring(L"#收银机"))actual.Char(c);
     const auto verifyRegisterSearch=[&]{
         const auto matches=actual.Points();
@@ -350,6 +368,7 @@ int main(int argc,char** argv){
         const auto parentTransform=D2D1::Matrix3x2F::Translation(2,3);target->SetTransform(parentTransform);
         target->BeginDraw();FloorStack{{12,4},30,3,0}.Draw(iconCanvas,{},floorLabels,1,std::nullopt,thumbnails,{},.5F);
         MapResetButton{{0,0,64,64}}.Draw(iconCanvas,{});
+        MapInformationCard{{0,0,124,164}}.Draw(iconCanvas,{},L"11-15",40,0);
         Require(SUCCEEDED(target->EndDraw()),"textured floor previews and vector reset render on recreated targets");
         D2D1_MATRIX_3X2_F restored;target->GetTransform(&restored);
         Require(restored._31==parentTransform._31&&restored._32==parentTransform._32&&restored._11==1,"thumbnail restores inherited page transform");

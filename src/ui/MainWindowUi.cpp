@@ -42,7 +42,7 @@ bool MainWindowUi::Initialize(HWND window, std::wstring& error) {
 void MainWindowUi::MapClockTick(){
     // 时钟刷新与 60Hz 动画分离，只重绘当前地图页。
     // Clock refresh is separate from 60Hz animation and repaints only the active Map page.
-    if(navigation_.Active()==MainPage::Map&&map_.Selected())Invalidate();
+    if(navigation_.Active()==MainPage::Map&&map_.ClockTick(MapUtcMilliseconds()))Invalidate();
 }
 
 void MainWindowUi::SetPriceDataSources(const data::ItemCatalog& catalog,
@@ -623,7 +623,7 @@ void MainWindowUi::Invalidate() const {
 }
 
 void MainWindowUi::MouseMove(int x, int y) {
-    if(navigation_.Active()==MainPage::Map){map_.MouseMove(x/Scale(),y/Scale());Invalidate();}
+    if(navigation_.Active()==MainPage::Map&&map_.MouseMove(x/Scale(),y/Scale()))Invalidate();
     const bool back=OnBackButton(x,y);
     if(back!=back_hovered_) { back_hovered_=back;Invalidate(); }
     if (navigation_.Active()==MainPage::Hideout) { hideout_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
