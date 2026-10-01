@@ -35,7 +35,14 @@ bool MainWindowUi::Initialize(HWND window, std::wstring& error) {
         error = L"Could not initialize DirectWrite for the main window";
         return false;
     }
-    return CreateTextFormats(error) && CreateRenderTarget(error);
+    if(!CreateTextFormats(error)||!CreateRenderTarget(error))return false;
+    SetTimer(window_,MapClockTimerId,250,nullptr);return true;
+}
+
+void MainWindowUi::MapClockTick(){
+    // 时钟刷新与 60Hz 动画分离，只重绘当前地图页。
+    // Clock refresh is separate from 60Hz animation and repaints only the active Map page.
+    if(navigation_.Active()==MainPage::Map&&map_.Selected())Invalidate();
 }
 
 void MainWindowUi::SetPriceDataSources(const data::ItemCatalog& catalog,

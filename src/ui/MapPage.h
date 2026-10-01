@@ -2,6 +2,7 @@
 #include "ui/MapLayout.h"
 #include "ui/MapPrototypeData.h"
 #include "ui/MapViewport.h"
+#include "ui/MapClock.h"
 #include "ui/SearchBox.h"
 #include "ui/LocalImage.h"
 #include "data/MapCatalog.h"
@@ -17,6 +18,7 @@ public:
     MapPage& operator=(const MapPage&)=delete;
     bool Initialize(const std::filesystem::path& assets,std::wstring& error);
     bool RealData() const noexcept{return real_;}
+    const data::MapRecord* Information() const noexcept{return catalog_.Map(map_id_);}
     void Prepare(float width,float height,const UiTheme& theme);
     void Draw(const UiCanvas& canvas,const UiTheme& theme) const;
     void Tick(float elapsed);

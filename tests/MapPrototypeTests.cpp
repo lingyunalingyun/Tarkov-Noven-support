@@ -18,6 +18,9 @@ int main(int argc,char** argv){
     struct ComScope {~ComScope(){CoUninitialize();}} comScope;
     using namespace noven::ui;
     MapFilters filters;
+    Require(MapClockText(0)==L"03:00:00"&&MapClockText(0,true)==L"15:00:00","DEV clock epoch and twelve-hour pair");
+    Require(MapGameSeconds(1000)-MapGameSeconds(0)==7,"DEV clock runs seven times real time");
+    Require(MapClockText(86400000)==MapClockText(0)&&MapClockText(-1000)==L"02:59:53","clock wraps daily and handles negative epoch");
     const auto lootIcons=MapIconFor("drink")|MapIconFor("food");
     Require(MapDetailIcons.size()==44&&MapIconFor("toolbox")!=MapIconFor("duffle")&&MapIconFor("unknown")==0,
         "detail icons have distinct stable identities and unknown coarse fallback");
@@ -234,6 +237,7 @@ int main(int argc,char** argv){
     Require(actual.Initialize(std::filesystem::path(argv[1]),error)&&actual.RealData(),"real local Interchange binds with all three images");
     actual.Prepare(1400,850,{});
     Require(actual.MapId()=="5714dbc024597771384a510d"&&actual.Points().size()==1634,"production has all positioned map point identities");
+    Require(actual.Information()&&actual.Information()->players=="11-15"&&actual.Information()->raidDuration==40,"map information comes from the recorded DEV catalog");
     Require(actual.Layout().stack.count==3&&!actual.Selected(),"real overview has three floors and no expanded viewport");
     const auto realPoints=actual.Points();
     noven::data::MapCatalog raw;

@@ -47,6 +47,8 @@ public:
     void StopPriceHistory() { price_history_.Stop(); }
     void PriceHistoryReady();
     void ItemImagesReady();
+    static constexpr UINT_PTR MapClockTimerId=4;
+    void MapClockTick();
     void SetPriceDataSources(const data::ItemCatalog& catalog, const data::ItemEconomyStore& economy);
     void SetHideoutDataSources(const std::filesystem::path& directory, const data::ItemCatalog& catalog,
         const data::ItemEconomyStore& economy) { hideout_.Initialize(directory,catalog,economy); }

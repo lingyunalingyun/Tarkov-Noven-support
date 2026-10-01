@@ -845,6 +845,7 @@ LRESULT CALLBACK App::WindowProc(
             app->OnHotkey(w_param);
             return 0;
         case WM_TIMER:
+            if(w_param==ui::MainWindowUi::MapClockTimerId){app->main_ui_->MapClockTick();return 0;}
             if (w_param == kRecentAnimationTimerId) {
                 if (!app->main_ui_->AnimationTick()) {
                     KillTimer(window, kRecentAnimationTimerId);
@@ -869,6 +870,7 @@ LRESULT CALLBACK App::WindowProc(
     }
 
     if (message == WM_DESTROY) {
+        KillTimer(window,ui::MainWindowUi::MapClockTimerId);
         if (app != nullptr && app->main_ui_ != nullptr) {
             app->main_ui_->StopPriceHistory();
             app->main_ui_->StopItemImages();

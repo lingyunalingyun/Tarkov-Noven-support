@@ -309,6 +309,20 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     for(const auto& floor:floors_)labels.push_back(floor.label);
     layout_.stack.Draw(canvas,theme,labels,Selected()?std::optional<std::size_t>(FloorIndex()):std::nullopt,hovered_floor_);
     if(progress_>0)DrawFilters(canvas,theme);
+    if(Selected()&&layout_.content.bottom-layout_.filters.back().bottom>=134){
+        const auto left=layout_.filters.back().left,right=layout_.filters.back().right;
+        const float top=layout_.content.bottom-128;
+        canvas.Round({left,top,right,layout_.content.bottom-4},8,theme.surface);
+        const auto text=[&](std::wstring_view value,int row,D2D1_COLOR_F color){
+            canvas.Text(value,canvas.smallFormat,{left+8,top+4+row*19.0F,right-4,top+23+row*19.0F},color);};
+        text(Tr("map.info"),0,theme.accent);
+        if(const auto info=Information()){
+            text(Tr("map.players")+L" · "+Wide(info->players),1,theme.primaryText);
+            text(Tr("map.duration")+L" · "+std::to_wstring(info->raidDuration)+L" "+Tr("map.minutes"),2,theme.primaryText);
+        }else{text(Tr(TextKey::MapPreview),1,theme.secondaryText);}
+        text(Tr("map.game_time"),3,theme.secondaryText);
+        const auto utc=MapUtcMilliseconds();text(MapClockText(utc),4,theme.primaryText);text(MapClockText(utc,true),5,theme.primaryText);
+    }
     canvas.target.PopAxisAlignedClip();
 }
 std::optional<std::string_view> MapPage::MarkerAt(D2D1_POINT_2F p) const {
