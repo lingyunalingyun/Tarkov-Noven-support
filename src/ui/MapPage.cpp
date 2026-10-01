@@ -125,7 +125,7 @@ std::vector<MapInteractionPoint> MapPage::Points() const {
         if(p.mapId!=map_id_||!Allows(p))continue;
         if(floor!=floors_.end()){if(p.floorId!=floor->id)continue;}
         else if(!Matches(p.chinese,search_.Text())&&!Matches(p.english,search_.Text()))continue;
-        result.push_back({p.id,p.floorId,p.type,p.coordinate,chinese?p.chinese:p.english});
+        result.push_back({p.id,p.floorId,p.type,p.coordinate,chinese?p.chinese:p.english,p.category});
     }
     return result;
 }
@@ -138,15 +138,15 @@ std::optional<MapInteractionPoint> MapPage::SelectedPoint() const {
 std::vector<MapPage::FilterEntry> MapPage::FilterEntries() const {
     std::vector<FilterEntry> entries;if(!panel_)return entries;
     if(*panel_==MapFilterPanel::Points){
-        for(std::size_t i=0;i<CategoryKeys.size();++i)entries.push_back({Tr(CategoryKeys[i]),filters_.categories[i],{}});
+        for(std::size_t i=0;i<CategoryKeys.size();++i)entries.push_back({Tr(CategoryKeys[i]),filters_.categories[i],{},static_cast<MapPointCategory>(i)});
     }else if(*panel_==MapFilterPanel::Layers){
-        entries.push_back({Tr(TextKey::MapLayerGrid),filters_.grid,{}});
-        entries.push_back({Tr(TextKey::MapLayerGeometry),filters_.geometry,{}});
+        entries.push_back({Tr(TextKey::MapLayerGrid),filters_.grid,{},std::nullopt});
+        entries.push_back({Tr(TextKey::MapLayerGeometry),filters_.geometry,{},std::nullopt});
     }else{
         const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
         for(const auto& p:points_)if(p.mapId==map_id_&&p.category==MapPointCategory::Task
             &&(Matches(p.chinese,search_.Text())||Matches(p.english,search_.Text())))
-            entries.push_back({std::wstring(chinese?p.chinese:p.english),!filters_.hiddenTasks.contains(p.id),p.id});
+            entries.push_back({std::wstring(chinese?p.chinese:p.english),!filters_.hiddenTasks.contains(p.id),p.id,MapPointCategory::Task});
     }
     return entries;
 }
@@ -167,7 +167,7 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
         {r.left+12,r.top+6,r.right-8,r.top+32},theme.accent);
     canvas.target.PushAxisAlignedClip(list.Body(),D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(entries.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,list.Body(),theme.secondaryText);
-    for(std::size_t i=0;i<entries.size();++i)DrawMapCheck(canvas,theme,list.Row(i),entries[i].label,entries[i].enabled);
+    for(std::size_t i=0;i<entries.size();++i)DrawMapCheck(canvas,theme,list.Row(i),entries[i].label,entries[i].enabled,entries[i].category);
     DrawScrollbar(canvas,theme,{list.Bar(entries.size()),1});
     canvas.target.PopAxisAlignedClip();canvas.target.PopAxisAlignedClip();canvas.brush.SetOpacity(opacity);
 }
@@ -196,7 +196,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
             {layout_.strip.left+14,layout_.strip.top+6,layout_.strip.right-8,layout_.strip.top+30},theme.secondaryText);
         const auto info=layout_.strip;
         if(const auto point=SelectedPoint()){
-            DrawMapMarker(canvas,theme,point->type,{info.left+26,info.top+50},false);
+            DrawMapMarkerIcon(canvas,theme,point->category,{info.left+26,info.top+50});
             canvas.Text(point->title,canvas.smallFormat,
                 {info.left+46,info.top+34,info.right-14,info.top+62},theme.primaryText);
             const auto source=std::find_if(points_.begin(),points_.end(),
@@ -229,7 +229,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
             const auto marker=viewport_.ToScreen(p.coordinate);
             if(marker.x<r.left-16||marker.x>r.right+16||marker.y<r.top-16||marker.y>r.bottom+16)continue;
             if(dense&&p.id!=interaction_id_)canvas.Circle(marker,2.5F,theme.accent);
-            else DrawMapMarker(canvas,theme,p.type,marker,p.id==interaction_id_);
+            else DrawMapMarkerIcon(canvas,theme,p.category,marker,p.id==interaction_id_);
         }
         canvas.Round(ResetBounds(),5,theme.surface);
         canvas.Text(Tr(TextKey::MapReset),canvas.smallFormat,ResetBounds(),theme.primaryText);

@@ -77,14 +77,15 @@ int main(int argc,char** argv){
     const auto oldScale=view.Scale();view.SetBounds({400,250,1200,750});
     Require(view.Scale()==oldScale,"unchanged bounds preserve view");
     const auto& demo=MapPrototype::Points[1];
-    const std::array points{MapInteractionPoint{demo.id,demo.floorId,demo.type,demo.coordinate,demo.english}};
+    const std::array points{MapInteractionPoint{demo.id,demo.floorId,demo.type,demo.coordinate,demo.english,demo.category}};
     MapInteractionStrip strip{{400,140,1000,235}};
     Require(strip.Hit({450,190},points)==demo.id,"strip hit returns stable marker ID");
     Require(!strip.Hit({0,0},points),"outside strip has no marker identity");
     MapPage page;page.Prepare(1280,800,{});Require(!page.Selected(),"page starts in overview");
     Require(page.FocusInteraction(demo.id)&&page.FloorId()==demo.floorId&&page.InteractionId()==demo.id,
         "cross-floor focus uses shared ID and expands layout");
-    Require(page.SelectedPoint()&&page.SelectedPoint()->id==demo.id,"information uses selected marker identity");
+    Require(page.SelectedPoint()&&page.SelectedPoint()->id==demo.id&&page.SelectedPoint()->category==demo.category,
+        "information uses selected marker identity and category icon");
     for(int tick=0;tick<30;++tick)page.Tick(.016F);
     page.Prepare(1280,800,{});Require(!page.Animating(),"layout transition settles");
     const auto destination=page.Viewport().ToScreen(demo.coordinate);
@@ -181,6 +182,11 @@ int main(int argc,char** argv){
     Require(actual.MapId()=="5714dbc024597771384a510d"&&actual.Points().size()==1634,"production has all positioned map point identities");
     Require(actual.Layout().stack.count==3&&!actual.Selected(),"real overview has three floors and no expanded viewport");
     const auto realPoints=actual.Points();
+    const auto categoryCount=[&](MapPointCategory category){return static_cast<std::size_t>(std::count_if(
+        realPoints.begin(),realPoints.end(),[&](const auto& point){return point.category==category;}));};
+    Require(categoryCount(MapPointCategory::LooseLoot)==483&&categoryCount(MapPointCategory::Lock)==28
+        &&categoryCount(MapPointCategory::Switch)==6&&categoryCount(MapPointCategory::StationaryWeapon)==2
+        &&categoryCount(MapPointCategory::Task)==45,"production point kinds retain independent marker categories");
     for(const auto floor:{"Ground_Level","First_Floor","Second_Floor"}){
         const auto point=std::find_if(realPoints.begin(),realPoints.end(),[&](const auto& p){return p.floorId==floor;});
         Require(point!=realPoints.end()&&actual.FocusInteraction(point->id),"each real floor contains focusable source points");

@@ -1,6 +1,7 @@
 #pragma once
 #include "ui/UiCanvas.h"
 #include "ui/Theme.h"
+#include "ui/MapMarkerIcon.h"
 #include <span>
 #include <string_view>
 #include <optional>
@@ -12,24 +13,10 @@ struct MapInteractionPoint final {
     MapMarkerType type;
     D2D1_POINT_2F coordinate;
     std::wstring_view title;
+    MapPointCategory category{MapPointCategory::EasterEgg};
 };
 inline bool MapContains(D2D1_RECT_F r,D2D1_POINT_2F p) noexcept {
     return p.x>=r.left&&p.x<r.right&&p.y>=r.top&&p.y<r.bottom;
-}
-inline void DrawMapMarker(const UiCanvas& canvas,const UiTheme& theme,MapMarkerType type,
-    D2D1_POINT_2F p,bool selected){
-    canvas.Circle(p,10,theme.background);canvas.brush.SetColor(theme.accent);
-    if(type==MapMarkerType::Task){
-        canvas.target.DrawLine({p.x-5,p.y},{p.x+5,p.y},&canvas.brush,2);
-        canvas.target.DrawLine({p.x,p.y-5},{p.x,p.y+5},&canvas.brush,2);
-    }else if(type==MapMarkerType::Extract){
-        canvas.target.DrawEllipse(D2D1::Ellipse(p,5,5),&canvas.brush,2);
-    }else{
-        const D2D1_POINT_2F a{p.x,p.y-5},b{p.x+5,p.y},c{p.x,p.y+5},d{p.x-5,p.y};
-        canvas.target.DrawLine(a,b,&canvas.brush,2);canvas.target.DrawLine(b,c,&canvas.brush,2);
-        canvas.target.DrawLine(c,d,&canvas.brush,2);canvas.target.DrawLine(d,a,&canvas.brush,2);
-    }
-    if(selected)canvas.target.DrawEllipse(D2D1::Ellipse(p,15,15),&canvas.brush,1.5F);
 }
 // 条目与地图标识共享稳定 ID；组件不保存独立的索引选择状态。
 // Strip entries share marker IDs; the component retains no independent index selection.
@@ -53,7 +40,7 @@ struct MapInteractionStrip final {
         canvas.Text(heading,canvas.smallFormat,{bounds.left+14,bounds.top+8,bounds.right-12,bounds.top+32},theme.secondaryText);
         for(std::size_t i=0;i<points.size();++i){const auto r=Entry(i,points.size());
             canvas.Round(r,5,points[i].id==selected?theme.selected:theme.background);
-            DrawMapMarker(canvas,theme,points[i].type,{r.left+18,(r.top+r.bottom)*.5F},false);
+            DrawMapMarkerIcon(canvas,theme,points[i].category,{r.left+18,(r.top+r.bottom)*.5F});
             const auto wrapping=canvas.smallFormat.GetWordWrapping();
             canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
             canvas.Text(points[i].title,canvas.smallFormat,{r.left+36,r.top+3,r.right-5,r.bottom},theme.primaryText);

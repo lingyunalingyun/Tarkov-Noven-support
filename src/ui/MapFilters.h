@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/MapMarkerIcon.h"
 #include "ui/MapInteractionStrip.h"
 #include "ui/Scrollbar.h"
 #include <array>
@@ -6,10 +7,6 @@
 #include <string>
 
 namespace noven::ui {
-enum class MapPointCategory { Container, LooseLoot, Lock, Switch, StationaryWeapon, Mine, Artillery,
-    Boss, Task, PmcExtract, ScavExtract, CoopExtract, Transit, HiddenExtract, Sniper, Spawn,
-    ScavSpawn, Btr, EasterEgg, Count };
-inline constexpr std::size_t MapCategoryCount=static_cast<std::size_t>(MapPointCategory::Count);
 enum class MapFilterPanel { Points, Layers, Tasks };
 // 分类开关与任务身份独立；任务被隐藏后不能因分类重新打开而出现。
 // Category switches and task identities are independent; enabling a category does not unhide a task.
@@ -45,15 +42,16 @@ struct MapFilterList final {
     }
 };
 inline void DrawMapCheck(const UiCanvas& canvas,const UiTheme& theme,D2D1_RECT_F row,
-    std::wstring_view label,bool checked){
+    std::wstring_view label,bool checked,std::optional<MapPointCategory> category=std::nullopt){
     canvas.Round(row,4,checked?theme.selected:theme.background);
     const float x=row.left+12,y=(row.top+row.bottom)*.5F;
     canvas.brush.SetColor(checked?theme.accent:theme.secondaryText);
     canvas.target.DrawRectangle({x-5,y-5,x+5,y+5},&canvas.brush,1);
     if(checked){canvas.target.DrawLine({x-3,y},{x-1,y+3},&canvas.brush,1.5F);
         canvas.target.DrawLine({x-1,y+3},{x+4,y-3},&canvas.brush,1.5F);}
+    if(category)DrawMapMarkerIcon(canvas,theme,*category,{row.left+34,y},false,7);
     const auto wrapping=canvas.smallFormat.GetWordWrapping();canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
-    canvas.Text(label,canvas.smallFormat,{row.left+24,row.top,row.right-4,row.bottom},
+    canvas.Text(label,canvas.smallFormat,{row.left+(category?46.0F:24.0F),row.top,row.right-4,row.bottom},
         checked?theme.primaryText:theme.secondaryText);
     canvas.smallFormat.SetWordWrapping(wrapping);
 }
