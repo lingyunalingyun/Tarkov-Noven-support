@@ -1,8 +1,18 @@
 import unittest
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parents[1]))
 import generate_satellite as satellite
 
 
 class SatelliteTests(unittest.TestCase):
+    def test_overlay_removes_ground_and_other_floor(self):
+        raw = b'<svg xmlns="http://www.w3.org/2000/svg"><defs/><g id="Ground_Level"/><g id="First_Floor"/><g id="Second_Floor"/></svg>'
+        result = satellite.upper_overlay(raw, 'First_Floor')
+        self.assertIn('First_Floor', result)
+        self.assertNotIn('Ground_Level', result)
+        self.assertNotIn('Second_Floor', result)
+        self.assertIn('defs', result)
     def config(self):
         return {'bounds': [[598, -442], [-433, 426]], 'coordinateRotation': 180,
                 'transform': [0.265, 150.6, 0.265, 134.6]}

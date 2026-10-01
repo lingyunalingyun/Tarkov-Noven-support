@@ -8,11 +8,20 @@ import math
 from pathlib import Path
 import urllib.error
 import urllib.request
+import xml.etree.ElementTree as ET
 from PIL import Image
 from generate_images import tile_pack
 
 ZOOM = 4
 TILE = 256
+
+
+def upper_overlay(raw, floor):
+    root = ET.fromstring(raw)
+    for group in list(root):
+        if group.tag.endswith('}g') and group.attrib.get('id') != floor:
+            root.remove(group)
+    return ET.tostring(root, encoding='unicode')
 
 
 def projected_bounds(config, zoom=ZOOM):
@@ -88,6 +97,14 @@ def main():
     preview_bytes = io.BytesIO()
     preview.save(preview_bytes, format='PNG')
     outputs = {'Satellite.png': preview_bytes.getvalue(), 'Satellite.tiles': tile_pack(detail.getvalue())}
+    # DEV 上层无卫星瓦片时使用 SVG 上层覆盖；地面不重复覆盖卫星底图。
+    # DEV uses SVG upper overlays when upper satellite tiles are absent; never repaint the ground.
+    import resvg_py
+    svg = (args.output / 'Interchange.svg').read_bytes()
+    for floor in ('First_Floor', 'Second_Floor'):
+        overlay = upper_overlay(svg, floor)
+        outputs[f'{floor}.overlay.png'] = resvg_py.svg_to_bytes(svg_string=overlay, width=2048, skip_system_fonts=True)
+        outputs[f'{floor}.overlay.tiles'] = tile_pack(resvg_py.svg_to_bytes(svg_string=overlay, width=8192, skip_system_fonts=True))
     for name, raw in outputs.items():
         (args.output / name).write_bytes(raw)
     result = {'source': config['tilePath'], 'zoom': ZOOM, 'pixelBounds': bounds,

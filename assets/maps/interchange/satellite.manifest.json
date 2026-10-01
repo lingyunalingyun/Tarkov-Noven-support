@@ -1,7 +1,11 @@
 {
   "outputs": {
+    "First_Floor.overlay.png": "739bc70e3dee38cb7a5a6ecfb5e2c250b8197314f79efc0e0086739e07c48ce5",
+    "First_Floor.overlay.tiles": "409e1828fa99e235f774f3e7b85565db14a6b4474ff97466ec74d6155bc69129",
     "Satellite.png": "52999940a4559f1c8b1b6c7737200e2e3e46f884b464286afb50552742cf167a",
-    "Satellite.tiles": "e70bcc4ded60730e4a924b53921930ee803b20257876b6e23f49ddda4d2cabca"
+    "Satellite.tiles": "e70bcc4ded60730e4a924b53921930ee803b20257876b6e23f49ddda4d2cabca",
+    "Second_Floor.overlay.png": "7e967611b22424e0d5cd35ca926ec757e203fc642a21028f8777e8ffdb272684",
+    "Second_Floor.overlay.tiles": "c401aa42b9c8b0c8ce5bda3f9ec3c70c61880011d73f8a64de710fcbdadd344b"
   },
   "pixelBounds": [
     -125.92000000000007,

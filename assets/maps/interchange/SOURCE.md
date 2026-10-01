@@ -23,3 +23,9 @@ projection. `satellite.manifest.json` records source tile hashes. Missing upstre
 edge coverage remains transparent; interior gaps reject generation. Game imagery
 rights remain with Battlestate Games and respective owners; do not automatically
 apply the SVG license to all satellite imagery. Runtime remains local-only.
+
+卫星模式上层叠加从原 SVG 单独导出的 First_Floor / Second_Floor，不重复地面组；
+这些 `.overlay` 图像沿用上述 SVG 作者与许可，与卫星瓦片的权利边界分开记录。
+Upper-floor `.overlay` assets retain only the corresponding original SVG group,
+not its ground. They retain the SVG attribution/license above, separately from
+satellite-tile rights. This follows DEV's SVG fallback for floors without tiles.
