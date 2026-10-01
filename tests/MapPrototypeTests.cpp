@@ -186,11 +186,45 @@ int main(int argc,char** argv){
         Require(layout.filters.back().bottom<layout.content.bottom,"left filter buttons fit content");}
     Require(argc==2,"assets directory required");
     MapPage actual;std::wstring error;
+    Require(UiLocalization().DiscoverLocales(std::filesystem::path(argv[1])/"i18n",error),"real point labels load bilingual resources");
     Require(actual.Initialize(std::filesystem::path(argv[1]),error)&&actual.RealData(),"real local Interchange binds with all three images");
     actual.Prepare(1400,850,{});
     Require(actual.MapId()=="5714dbc024597771384a510d"&&actual.Points().size()==1634,"production has all positioned map point identities");
     Require(actual.Layout().stack.count==3&&!actual.Selected(),"real overview has three floors and no expanded viewport");
     const auto realPoints=actual.Points();
+    noven::data::MapCatalog raw;
+    Require(raw.Load(std::filesystem::path(argv[1])/"data",error),"source catalog available for identity and coordinate comparison");
+    std::string cashRegister;
+    for(const auto& point:realPoints){
+        const auto* source=raw.Point(point.id);
+        Require(source&&point.title.find(L"[missing:")==std::wstring_view::npos&&!point.title.empty(),"every point has a resolved readable title");
+        if(source->kind=="container")Require(point.title!=std::wstring(source->sourceId.begin(),source->sourceId.end()),"all container titles exclude source IDs");
+        if(source->kind=="spawn")Require(point.title!=std::wstring(source->sourceId.begin(),source->sourceId.end())
+            &&!point.title.starts_with(L"Zone"),"all spawn titles exclude raw UUIDs and zone tokens");
+        if(source->sourceId=="578f879c24597735401e6bc6"){
+            Require(point.title==L"收银机","reported container ID resolves to correct Chinese type");cashRegister=point.id;
+        }
+    }
+    Require(!cashRegister.empty()&&actual.FocusInteraction(cashRegister)&&actual.SelectedPoint()->title==L"收银机",
+        "information strip uses readable container title");
+    Require(UiLocalization().SetLocale("en-US")&&actual.SelectedPoint()->title==L"Cash register","locale switch updates selected title without rebinding");
+    for(const auto& point:actual.Points())Require(point.title.find(L"[missing:")==std::wstring_view::npos&&!point.title.empty(),"every English point title resolves");
+    Require(UiLocalization().SetLocale("zh-CN"),"Chinese locale restores");
+    const auto pointSearch=actual.Layout().search;actual.MouseDown(pointSearch.left+8,pointSearch.top+8);
+    for(const auto c:std::wstring(L"收银机"))actual.Char(c);
+    const auto verifyRegisterSearch=[&]{
+        const auto matches=actual.Points();
+        Require(matches.size()==133,"semantic search retains 130 containers and three related task positions");
+        Require(std::count_if(matches.begin(),matches.end(),[](const auto& p){return p.category==MapPointCategory::Container;})==130,
+            "semantic search finds every cash register container");
+        Require(std::count_if(matches.begin(),matches.end(),[](const auto& p){return p.category==MapPointCategory::Task;})==3,
+            "semantic search also retains related task positions");
+    };
+    verifyRegisterSearch();
+    Require(actual.Key(VK_ESCAPE,false),"Chinese query clears");
+    for(const auto c:std::wstring(L"Cash register"))actual.Char(c);
+    verifyRegisterSearch();
+    Require(actual.Key(VK_ESCAPE,false),"English query clears");actual.MouseDown(0,0);actual.MouseUp(0,0);
     for(const auto& point:realPoints)if(point.category==MapPointCategory::Container||point.category==MapPointCategory::LooseLoot||point.category==MapPointCategory::Task)
         Require(point.icons!=0,"all production containers, loot and tasks carry detailed icon identities");
     const auto categoryCount=[&](MapPointCategory category){return static_cast<std::size_t>(std::count_if(

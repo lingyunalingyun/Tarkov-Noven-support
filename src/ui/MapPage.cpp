@@ -11,6 +11,17 @@ namespace {
 std::wstring Fold(std::wstring_view text){std::wstring value(text);
     for(auto& c:value)c=static_cast<wchar_t>(std::towlower(c));return value;}
 bool Matches(std::wstring_view value,std::wstring_view query){return Fold(value).find(Fold(query))!=std::wstring::npos;}
+bool InternalName(std::wstring_view name){
+    const auto hex=[](wchar_t c){return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f')||(c>=L'A'&&c<=L'F');};
+    if(name.size()==24&&std::all_of(name.begin(),name.end(),hex))return true;
+    if(name.size()==36){
+        for(std::size_t i=0;i<name.size();++i)
+            if(i==8||i==13||i==18||i==23){if(name[i]!=L'-')return false;}
+            else if(!hex(name[i]))return false;
+        return true;
+    }
+    return name.starts_with(L"Zone")||name.starts_with(L"[missing:");
+}
 constexpr std::array<std::string_view,MapCategoryCount> CategoryKeys{TextKey::MapContainers,"map.category.loose_loot",
     "map.category.locks","map.category.switches","map.category.stationary_weapons",TextKey::MapMines,
     "map.category.artillery",TextKey::MapBoss,TextKey::MapTasks,
@@ -50,6 +61,25 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     map=catalog_.Map(reference::MapId);maps_.push_back({map->id,Wide(map->nameZh),Wide(map->nameEn)});
     map_id_=maps_.front().id;
     for(const auto& f:reference::Floors)floors_.push_back({std::string(f.id),std::wstring(f.label)});
+    auto labels=UiLocalization();
+    // 展示名称与上游身份分离；一次解析双语并由点位持有，搜索与信息区共用。
+    // Resolve owned bilingual labels once, separate from source identity, for search and information.
+    const auto displayName=[&](const data::MapPointRecord& point,MapPointCategory category,MapIconMask icons,std::string_view locale){
+        labels.SetLocale(locale);
+        const auto categoryName=labels.Get(CategoryKeys[static_cast<std::size_t>(category)]);
+        if(point.kind=="container"||point.kind=="loose"){
+            std::wstring result;
+            for(std::size_t i=0;i<MapDetailIcons.size();++i)if(icons&(MapIconMask{1}<<i)){
+                if(!result.empty())result+=L" / ";result+=labels.Get(MapDetailIcons[i].key);
+            }
+            return result.empty()?categoryName:result;
+        }
+        auto name=Wide(locale=="zh-CN"?point.nameZh:point.nameEn);
+        if(name.empty()||InternalName(name))return categoryName;
+        // 出生记录的 zoneName 不保证是人类可读名称；可读区域作为分类的附加信息。
+        // Spawn zoneName is not guaranteed readable; retain readable locations as category context.
+        return point.kind=="spawn"?categoryName+L" · "+name:name;
+    };
     for(const auto& p:catalog_.Points()){
         MapPointCategory category=MapPointCategory::Container;MapMarkerType type=MapMarkerType::Point;bool shared=false;
         if(p.kind=="loose")category=MapPointCategory::LooseLoot;
@@ -74,7 +104,8 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
         const auto xy=reference::Project(p.position);
         MapIconMask icons=0;for(const auto& icon:p.icons)icons|=MapIconFor(icon);
         points_.push_back({p.id,std::string(reference::FloorFor(p.position)),p.mapId,type,
-            {static_cast<float>(xy.x),static_cast<float>(xy.y)},Wide(p.nameZh),Wide(p.nameEn),category,shared,icons});
+            {static_cast<float>(xy.x),static_cast<float>(xy.y)},displayName(p,category,icons,"zh-CN"),
+            displayName(p,category,icons,"en-US"),category,shared,icons});
     }
     world_={static_cast<float>(reference::Width),static_cast<float>(reference::Height)};
     viewport_=MapViewport(world_);real_=true;unavailable_=false;filters_.grid=false;error.clear();return true;
