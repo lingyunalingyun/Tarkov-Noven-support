@@ -174,6 +174,8 @@
   "map.filter.tasks": "任务筛选",
   "map.layer.grid": "网格",
   "map.layer.geometry": "地图底图",
+  "map.layer.other_floors": "显示非当前层标记",
+  "map.layer.other_opacity": "非当前层不透明度",
   "map.reference": "静态参考 · Tarkov.dev · 底图 Shebuka / CC BY-NC-SA 4.0",
   "map.category.containers": "容器",
   "map.category.loose_loot": "散落物",

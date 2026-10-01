@@ -20,9 +20,9 @@ public:
     void Prepare(float width,float height,const UiTheme& theme);
     void Draw(const UiCanvas& canvas,const UiTheme& theme) const;
     void Tick(float elapsed);
-    bool Animating() const noexcept{return progress_!=(expanded_?1.0F:0.0F)||panel_progress_!=(panel_open_?1.0F:0.0F)||floor_progress_<1||search_.Focused();}
+    bool Animating() const noexcept{return progress_!=(expanded_?1.0F:0.0F)||panel_progress_!=(panel_open_?1.0F:0.0F)||floor_progress_<1||viewport_.Focusing()||search_.Focused();}
     bool Selected() const noexcept{return expanded_;}
-    void Overview(){expanded_=false;panel_open_=false;search_.Blur();CancelDrag();}
+    void Overview(){expanded_=false;panel_open_=false;search_.Blur();viewport_.StopFocus();CancelDrag();}
     std::string_view FloorId() const noexcept{return floor_id_;}
     std::string_view MapId() const noexcept{return map_id_;}
     void SelectMap(std::string_view id);
@@ -31,6 +31,7 @@ public:
     const MapLayout& Layout() const noexcept{return layout_;}
     const SearchBox& Search() const noexcept{return search_;}
     const MapFilters& Filters() const noexcept{return filters_;}
+    float MarkerOpacity(const MapInteractionPoint& point) const {return MapFloorOpacity(filters_,floor_id_,point.floorId);}
     std::optional<MapFilterPanel> Panel() const noexcept{return panel_open_?panel_:std::nullopt;}
     MapFilterList FilterList() const noexcept{return {layout_.flyout,filter_scroll_};}
     void SelectFloor(std::string_view id);
@@ -44,7 +45,7 @@ public:
     bool Wheel(int delta,float x,float y);
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value){return search_.HandleChar(value);}
-    void CancelDrag(){drag_.reset();scroll_drag_.reset();pressed_floor_.reset();pressed_point_={};pressed_map_.reset();
+    void CancelDrag(){drag_.reset();scroll_drag_.reset();opacity_drag_=false;pressed_floor_.reset();pressed_point_={};pressed_map_.reset();
         pressed_filter_.reset();pressed_row_.reset();reset_pressed_=false;back_pressed_=false;}
 private:
     std::vector<TabBarItem<std::string_view>> MapItems() const;
@@ -88,6 +89,7 @@ private:
     std::optional<float> scroll_drag_;
     float filter_scroll_{},panel_progress_{};
     bool panel_open_{},pressed_row_check_{};
+    bool opacity_drag_{};
     float progress_{},floor_from_{},floor_to_{},floor_progress_{1},clock_{};
     std::optional<std::size_t> hovered_floor_,pressed_floor_;
     std::optional<D2D1_POINT_2F> drag_;

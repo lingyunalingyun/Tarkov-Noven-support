@@ -13,6 +13,8 @@ enum class MapFilterPanel { Points, Layers, Tasks };
 struct MapFilters final {
     std::array<bool,MapCategoryCount> categories=[] {std::array<bool,MapCategoryCount> a{};a.fill(true);return a;}();
     bool grid{true},geometry{true};
+    bool otherFloors{true};
+    float otherFloorOpacity{.30F};
     std::set<std::string,std::less<>> hiddenTasks;
     MapIconMask hiddenIcons{};
     // 多种可能物资共享一个点位；只在全部所属类型隐藏时隐藏点位。
@@ -24,6 +26,23 @@ struct MapFilters final {
     }
     void ToggleTask(std::string_view id){
         if(hiddenTasks.contains(id))hiddenTasks.erase(std::string(id));else hiddenTasks.emplace(id);
+    }
+};
+// 非当前层开关只影响画布，不改变搜索/任务列表；0 不透明度也不接受命中。
+// Other-floor visibility affects only the canvas, not search/tasks; zero opacity also rejects hits.
+inline float MapFloorOpacity(const MapFilters& filters,std::string_view current,std::string_view floor){
+    return current==floor?1.0F:filters.otherFloors?filters.otherFloorOpacity:0.0F;
+}
+struct MapOpacitySlider final {
+    D2D1_RECT_F row;
+    float Left() const {return row.left+12;}
+    float Right() const {return row.right-12;}
+    float Value(float x) const {return std::clamp((x-Left())/std::max(1.0F,Right()-Left()),0.0F,1.0F);}
+    void Draw(const UiCanvas& canvas,const UiTheme& theme,float value) const {
+        const float y=(row.top+row.bottom)*.5F,x=Left()+(Right()-Left())*value;
+        canvas.brush.SetColor(theme.divider);canvas.target.DrawLine({Left(),y},{Right(),y},&canvas.brush,3);
+        canvas.brush.SetColor(theme.accent);canvas.target.DrawLine({Left(),y},{x,y},&canvas.brush,3);
+        canvas.Circle({x,y},5,theme.accent);
     }
 };
 // 侧展列表覆盖画布，不改变地图视口；裁剪、行命中和滚条共用 DIP 布局。

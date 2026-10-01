@@ -145,13 +145,13 @@ void MapPage::SelectFloor(std::string_view id){
     floor_to_=static_cast<float>(FloorIndex());floor_progress_=first?1.0F:0.0F;
     if(first)floor_from_=floor_to_;
     expanded_=true;
-    interaction_id_={};CancelDrag();
+    interaction_id_={};viewport_.StopFocus();CancelDrag();
 }
 bool MapPage::FocusInteraction(std::string_view id){
     const auto found=std::find_if(points_.begin(),points_.end(),[&](const auto& point){return point.id==id;});
     if(found==points_.end()||!Allows(*found))return false;
     SelectMap(found->mapId);
-    SelectFloor(found->floorId);interaction_id_=found->id;viewport_.Focus(found->coordinate);return true;
+    SelectFloor(found->floorId);interaction_id_=found->id;viewport_.FocusSmooth(found->coordinate);return true;
 }
 std::vector<MapInteractionPoint> MapPage::Points() const {
     std::vector<MapInteractionPoint> result;
@@ -185,6 +185,9 @@ std::vector<MapPage::FilterEntry> MapPage::FilterEntries() const {
     }else if(*panel_==MapFilterPanel::Layers){
         entries.push_back({Tr(TextKey::MapLayerGrid),filters_.grid,{},std::nullopt});
         entries.push_back({Tr(TextKey::MapLayerGeometry),filters_.geometry,{},std::nullopt});
+        entries.push_back({Tr("map.layer.other_floors"),filters_.otherFloors,{},std::nullopt});
+        entries.push_back({Tr("map.layer.other_opacity")+L" · "+std::to_wstring(static_cast<int>(std::lround(filters_.otherFloorOpacity*100)))+L"%",true,{},std::nullopt});
+        entries.push_back({L"",true,{},std::nullopt});
     }else{
         const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
         for(const auto& p:points_)if(p.mapId==map_id_&&p.category==MapPointCategory::Task
@@ -211,6 +214,11 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
     canvas.target.PushAxisAlignedClip(list.Body(),D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(entries.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,list.Body(),theme.secondaryText);
     for(std::size_t i=0;i<entries.size();++i){auto row=list.Row(i);if(entries[i].detail)row.left+=12;
+        if(*panel_==MapFilterPanel::Layers&&i>=3){
+            if(i==3)canvas.Text(entries[i].label,canvas.smallFormat,row,theme.secondaryText);
+            else MapOpacitySlider{row}.Draw(canvas,theme,filters_.otherFloorOpacity);
+            continue;
+        }
         DrawMapCheck(canvas,theme,row,entries[i].label,entries[i].enabled,entries[i].category,
             entries[i].detail?MapIconBit(*entries[i].detail):0,&marker_images_);}
     DrawScrollbar(canvas,theme,{list.Bar(entries.size()),1});
@@ -218,6 +226,7 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
 }
 void MapPage::Tick(float elapsed){
     const float dt=std::clamp(elapsed,0.0F,.05F);
+    viewport_.Tick(dt);
     progress_=std::clamp(progress_+(Selected()?dt:-dt)/.36F,0.0F,1.0F);
     panel_progress_=std::clamp(panel_progress_+(panel_open_?dt:-dt)/.18F,0.0F,1.0F);
     floor_progress_=std::min(1.0F,floor_progress_+dt/.22F);clock_=std::fmod(clock_+dt,1.0F);
@@ -270,12 +279,16 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         if(!real_&&filters_.geometry)for(const auto block:MapPrototype::Buildings){const auto a=viewport_.ToScreen({block.left,block.top}),b=viewport_.ToScreen({block.right,block.bottom});
             canvas.Round({a.x,a.y,b.x,b.y},3,theme.selected);}
         const bool dense=points.size()>300&&viewport_.Scale()<viewport_.MinimumScale()*1.8F;
-        for(const auto& p:points)if(p.floorId==floor_id_){
+        // 先画半透明其他楼层，再画当前层；绘制与命中共用同一可见性规则。
+        // Paint ghost floors before current-floor markers; rendering and hits share visibility.
+        for(bool current:{false,true})for(const auto& p:points)if((p.floorId==floor_id_)==current&&MarkerOpacity(p)>0){
             const auto marker=viewport_.ToScreen(p.coordinate);
             if(marker.x<r.left-16||marker.x>r.right+16||marker.y<r.top-16||marker.y>r.bottom+16)continue;
+            canvas.brush.SetOpacity(opacity*reveal*MarkerOpacity(p));
             if(dense&&p.id!=interaction_id_)canvas.Circle(marker,2.5F,theme.accent);
             else marker_images_.Draw(canvas,theme,p.category,p.icons,marker,p.id==interaction_id_);
         }
+        canvas.brush.SetOpacity(opacity*reveal);
         canvas.Round(ResetBounds(),5,theme.surface);
         canvas.Text(Tr(TextKey::MapReset),canvas.smallFormat,ResetBounds(),theme.primaryText);
         canvas.Text(floors_[FloorIndex()].label,canvas.body,{r.left+14,r.top+10,r.left+70,r.top+38},theme.accent);
@@ -300,12 +313,20 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
 }
 std::optional<std::string_view> MapPage::MarkerAt(D2D1_POINT_2F p) const {
     if(!Selected()||!MapContains(layout_.viewport,p))return std::nullopt;
-    for(const auto& marker:Points())if(marker.floorId==floor_id_){const auto q=viewport_.ToScreen(marker.coordinate);
-        if(std::hypot(p.x-q.x,p.y-q.y)<=14)return marker.id;}
+    const auto points=Points();
+    for(bool current:{true,false}){
+        std::optional<std::string_view> closest;float distance=14;
+        for(const auto& marker:points)if((marker.floorId==floor_id_)==current&&MarkerOpacity(marker)>0){
+            const auto q=viewport_.ToScreen(marker.coordinate);const float d=std::hypot(p.x-q.x,p.y-q.y);
+            if(d<=distance){distance=d;closest=marker.id;}
+        }
+        if(closest)return closest;
+    }
     return std::nullopt;
 }
 void MapPage::MouseMove(float x,float y){
     const D2D1_POINT_2F p{x,y};hovered_floor_=layout_.stack.Hit(p);
+    if(opacity_drag_){filters_.otherFloorOpacity=MapOpacitySlider{FilterList().Row(4)}.Value(x);return;}
     if(scroll_drag_){if(const auto bar=FilterList().Bar(FilterEntries().size()))filter_scroll_=bar->OffsetFromThumbTop(y-*scroll_drag_);return;}
     if(drag_){viewport_.Pan({p.x-drag_->x,p.y-drag_->y});drag_=p;}
 }
@@ -326,7 +347,9 @@ void MapPage::MouseDown(float x,float y){
                         const float h=bar->thumb.bottom-bar->thumb.top;
                         scroll_drag_=MapContains(bar->thumb,p)?p.y-bar->thumb.top:h*.5F;
                         filter_scroll_=bar->OffsetFromThumbTop(p.y-*scroll_drag_);return;}
-                    pressed_row_=list.Hit(p,FilterEntries().size());pressed_row_check_=p.x<list.Body().left+28;}
+                    pressed_row_=list.Hit(p,FilterEntries().size());pressed_row_check_=p.x<list.Body().left+28;
+                    if(panel_==MapFilterPanel::Layers&&pressed_row_==4){
+                        opacity_drag_=true;filters_.otherFloorOpacity=MapOpacitySlider{list.Row(4)}.Value(x);pressed_row_.reset();}}
                 return;
             }
             panel_open_=false;
@@ -336,10 +359,11 @@ void MapPage::MouseDown(float x,float y){
     if(!Selected()||progress_<1)return;
     if(MapContains(ResetBounds(),p)){reset_pressed_=true;return;}
     if(const auto id=MarkerAt(p)){pressed_point_=*id;return;}
-    if(MapContains(layout_.viewport,p))drag_=p;
+    if(MapContains(layout_.viewport,p)){viewport_.StopFocus();drag_=p;}
 }
 void MapPage::MouseUp(float x,float y){
     const D2D1_POINT_2F p{x,y};
+    if(opacity_drag_){filters_.otherFloorOpacity=MapOpacitySlider{FilterList().Row(4)}.Value(x);CancelDrag();return;}
     const auto maps=MapItems();
     if(pressed_map_&&HitTestTabBar<std::string_view>(maps,layout_.maps,x,y)==pressed_map_){SelectMap(*pressed_map_);CancelDrag();return;}
     if(back_pressed_&&MapContains(layout_.back,p)){Overview();return;}
@@ -351,7 +375,11 @@ void MapPage::MouseUp(float x,float y){
             if(entries[row].detail)filters_.hiddenIcons^=MapIconBit(*entries[row].detail);
             else {const auto category=static_cast<std::size_t>(*entries[row].category);filters_.categories[category]=!filters_.categories[category];}
         }
-        else if(*panel_==MapFilterPanel::Layers){if(row==0)filters_.grid=!filters_.grid;else filters_.geometry=!filters_.geometry;}
+        else if(*panel_==MapFilterPanel::Layers){
+            if(row==0)filters_.grid=!filters_.grid;
+            else if(row==1)filters_.geometry=!filters_.geometry;
+            else if(row==2)filters_.otherFloors=!filters_.otherFloors;
+        }
         else if(pressed_row_check_)filters_.ToggleTask(entries[row].pointId);
         else if(FocusInteraction(entries[row].pointId))panel_open_=false;
         CancelDrag();return;
