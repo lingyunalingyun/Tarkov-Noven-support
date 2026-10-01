@@ -9,7 +9,8 @@ that provide unfair advantages in Escape from Tarkov. Preserve this attribution
 and upstream terms when redistributing these assets. These assets are separate
 from the application's source-code license.
 
-Changes: development-time rasterization into three PNG backgrounds, retaining
+Changes: development-time rasterization into three PNG previews and three local tile packs, retaining
 the ground group plus only the selected upper-floor group. No geometry changes.
 `manifest.json` records source identity, renderer and hashes; `reference.json`
-records upstream projection/layer configuration. Runtime uses local PNGs only.
+records upstream projection/layer configuration. Runtime uses local PNG previews
+and independently compressed PNG detail tiles; no runtime rasterization or network fetch.

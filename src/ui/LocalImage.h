@@ -7,6 +7,9 @@
 #include <array>
 #include <algorithm>
 #include <optional>
+#include <fstream>
+#include <cstdint>
+#include <cstring>
 
 namespace noven::ui {
 // 概览使用缩略底图，放大时按需解码可见高清块；缓存有界且属于创建它的 target。
@@ -38,14 +41,29 @@ public:
         std::vector<BYTE> pixels(static_cast<std::size_t>(previewWidth)*previewHeight*4);
         if(FAILED(converter->CopyPixels(nullptr,previewWidth*4,static_cast<UINT>(pixels.size()),pixels.data())))return false;
         pixels_=std::move(pixels);width_=previewWidth;height_=previewHeight;
-        sourceWidth_=width;sourceHeight_=height;file_=file;devices_={};tiles_={};return true;
+        sourceWidth_=width;sourceHeight_=height;file_=file;devices_={};tiles_={};tileIndex_.clear();
+        auto pack=file;pack.replace_extension(L".tiles");
+        if(std::filesystem::exists(pack)){
+            std::ifstream input(pack,std::ios::binary);char magic[8]{};std::array<std::uint32_t,4> header{};
+            input.read(magic,8);input.read(reinterpret_cast<char*>(header.data()),sizeof(header));
+            if(!input||std::memcmp(magic,"NVTILES1",8)!=0||!header[0]||!header[1]
+                ||header[0]>8192||header[1]>8192||header[2]!=512
+                ||header[3]!=((header[0]+511)/512)*((header[1]+511)/512))return false;
+            std::vector<TileSource> index(header[3]);input.read(reinterpret_cast<char*>(index.data()),static_cast<std::streamsize>(index.size()*sizeof(TileSource)));
+            const auto length=std::filesystem::file_size(pack);
+            for(const auto& tile:index)if(tile.offset<24+index.size()*8||!tile.length||tile.length>2*1024*1024
+                ||static_cast<std::uint64_t>(tile.offset)+tile.length>length)return false;
+            if(!input)return false;
+            tileIndex_=std::move(index);file_=pack;sourceWidth_=header[0];sourceHeight_=header[1];
+        }
+        return true;
     }
     bool Ready() const noexcept{return !pixels_.empty();}
     bool Draw(ID2D1RenderTarget& target,D2D1_RECT_F rectangle,float opacity=1,
         std::optional<D2D1_RECT_F> clip=std::nullopt) const {
         if(!Ready())return false;
         float dpiX=96,dpiY=96;target.GetDpi(&dpiX,&dpiY);
-        if(sourceWidth_>width_&&((rectangle.right-rectangle.left)*dpiX/96>width_*1.5F
+        if(!tileIndex_.empty()&&sourceWidth_>width_&&((rectangle.right-rectangle.left)*dpiX/96>width_*1.5F
             ||(rectangle.bottom-rectangle.top)*dpiY/96>height_*1.5F))
             return DrawTiles(target,rectangle,opacity,clip.value_or(rectangle));
         // 主窗口与页面转场可使用不同 target；每个 bitmap 保留其创建 target 的身份。
@@ -65,8 +83,8 @@ private:
             ~Apartment(){if(SUCCEEDED(result))CoUninitialize();}} apartment;
         if(FAILED(apartment.result)&&apartment.result!=RPC_E_CHANGED_MODE)return false;
         using Microsoft::WRL::ComPtr;
-        ComPtr<IWICImagingFactory> factory;ComPtr<IWICBitmapDecoder> decoder;
-        ComPtr<IWICBitmapFrameDecode> frame;ComPtr<IWICFormatConverter> converter;
+        ComPtr<IWICImagingFactory> factory;
+        std::ifstream pack;
         const float sx=(rectangle.right-rectangle.left)/sourceWidth_,sy=(rectangle.bottom-rectangle.top)/sourceHeight_;
         if(sx<=0||sy<=0)return false;
         constexpr UINT tileSize=512;
@@ -78,15 +96,22 @@ private:
             if(destination.right<=clip.left||destination.left>=clip.right||destination.bottom<=clip.top||destination.top>=clip.bottom)continue;
             auto entry=std::find_if(tiles_.begin(),tiles_.end(),[&](const Tile& tile){return tile.target.Get()==&target&&tile.x==x&&tile.y==y;});
             if(entry==tiles_.end()){
-                if(!converter){
-                    if(FAILED(CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&factory)))
-                        ||FAILED(factory->CreateDecoderFromFilename(file_.c_str(),nullptr,GENERIC_READ,WICDecodeMetadataCacheOnLoad,&decoder))
-                        ||FAILED(decoder->GetFrame(0,&frame))||FAILED(factory->CreateFormatConverter(&converter))
-                        ||FAILED(converter->Initialize(frame.Get(),GUID_WICPixelFormat32bppPBGRA,WICBitmapDitherTypeNone,nullptr,0,WICBitmapPaletteTypeCustom)))return false;
-                }
+                if(tileIndex_.empty())return false;
+                if(!factory&&FAILED(CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&factory))))return false;
+                if(!pack.is_open())pack.open(file_,std::ios::binary);
+                const auto& source=tileIndex_[(y/tileSize)*((sourceWidth_+tileSize-1)/tileSize)+x/tileSize];
+                std::vector<BYTE> encoded(source.length);pack.seekg(source.offset);
+                pack.read(reinterpret_cast<char*>(encoded.data()),source.length);if(!pack)return false;
+                ComPtr<IWICStream> stream;ComPtr<IWICBitmapDecoder> decoder;
+                ComPtr<IWICBitmapFrameDecode> frame;ComPtr<IWICFormatConverter> converter;
+                if(FAILED(factory->CreateStream(&stream))||FAILED(stream->InitializeFromMemory(encoded.data(),source.length))
+                    ||FAILED(factory->CreateDecoderFromStream(stream.Get(),nullptr,WICDecodeMetadataCacheOnLoad,&decoder))
+                    ||FAILED(decoder->GetFrame(0,&frame))||FAILED(factory->CreateFormatConverter(&converter))
+                    ||FAILED(converter->Initialize(frame.Get(),GUID_WICPixelFormat32bppPBGRA,WICBitmapDitherTypeNone,nullptr,0,WICBitmapPaletteTypeCustom)))return false;
+                UINT decodedWidth=0,decodedHeight=0;
+                if(FAILED(frame->GetSize(&decodedWidth,&decodedHeight))||decodedWidth!=w||decodedHeight!=h)return false;
                 std::vector<BYTE> pixels(static_cast<std::size_t>(w)*h*4);
-                const WICRect source{static_cast<INT>(x),static_cast<INT>(y),static_cast<INT>(w),static_cast<INT>(h)};
-                if(FAILED(converter->CopyPixels(&source,w*4,static_cast<UINT>(pixels.size()),pixels.data())))return false;
+                if(FAILED(converter->CopyPixels(nullptr,w*4,static_cast<UINT>(pixels.size()),pixels.data())))return false;
                 ComPtr<ID2D1Bitmap> bitmap;
                 if(FAILED(target.CreateBitmap(D2D1::SizeU(w,h),pixels.data(),w*4,
                     D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED)),&bitmap)))return false;
@@ -98,6 +123,11 @@ private:
         return true;
     }
     struct Device {Microsoft::WRL::ComPtr<ID2D1RenderTarget> target;Microsoft::WRL::ComPtr<ID2D1Bitmap> bitmap;};
+    // 固定 little-endian 的包目录，块内 PNG 独立压缩；磁盘读取不会触碰其他区域。
+    // Fixed little-endian directory with independently compressed PNGs; reads touch only requested tiles.
+    struct TileSource {std::uint32_t offset{},length{};};
+    static_assert(sizeof(TileSource)==8);
+    std::vector<TileSource> tileIndex_;
     struct Tile {Microsoft::WRL::ComPtr<ID2D1RenderTarget> target;Microsoft::WRL::ComPtr<ID2D1Bitmap> bitmap;
         UINT x{},y{};std::size_t used{};};
     std::vector<BYTE> pixels_;

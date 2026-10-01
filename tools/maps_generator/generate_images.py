@@ -4,6 +4,8 @@ Generate local Interchange backgrounds at development time, not runtime.
 import argparse
 import hashlib
 import json
+import io
+import struct
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -12,6 +14,7 @@ SVG_URL = "https://assets.tarkov.dev/maps/svg/Interchange.svg"
 LAYOUT_URL = "https://raw.githubusercontent.com/the-hideout/tarkov-dev/main/src/data/maps.json"
 LAYERS = ("Ground_Level", "First_Floor", "Second_Floor")
 RASTER_WIDTH = 8192
+TILE_SIZE = 512
 NS = "http://www.w3.org/2000/svg"
 ET.register_namespace("", NS)
 
@@ -38,6 +41,26 @@ def fetch(url):
     request = urllib.request.Request(url, headers={"User-Agent": "Noven-maps-generator/1.0"})
     with urllib.request.urlopen(request, timeout=30) as response:
         return response.read()
+
+
+def tile_pack(png):
+    # 每块独立 PNG；运行时不必为一小块重新解压整幅地图。
+    # Independent PNG tiles avoid runtime decompression of an entire map for one region.
+    from PIL import Image
+    with Image.open(io.BytesIO(png)) as image:
+        chunks = []
+        for y in range(0, image.height, TILE_SIZE):
+            for x in range(0, image.width, TILE_SIZE):
+                output = io.BytesIO()
+                image.crop((x, y, min(x + TILE_SIZE, image.width), min(y + TILE_SIZE, image.height))).save(output, format="PNG")
+                chunks.append(output.getvalue())
+        header = b"NVTILES1" + struct.pack("<4I", image.width, image.height, TILE_SIZE, len(chunks))
+    offset = len(header) + len(chunks) * 8
+    table = []
+    for chunk in chunks:
+        table.append(struct.pack("<2I", offset, len(chunk)))
+        offset += len(chunk)
+    return header + b"".join(table) + b"".join(chunks)
 
 
 def main():
@@ -67,8 +90,10 @@ def main():
     if view != [0, 0, 1127.6852, 947.02582]:
         raise ValueError("SVG bounds changed; review native projection")
     import resvg_py
-    outputs = {f"{layer}.png": resvg_py.svg_to_bytes(svg_string=svg, width=RASTER_WIDTH, skip_system_fonts=True)
-               for layer, svg in images.items()}
+    outputs = {}
+    for layer, svg in images.items():
+        outputs[f"{layer}.png"] = resvg_py.svg_to_bytes(svg_string=svg, width=2048, skip_system_fonts=True)
+        outputs[f"{layer}.tiles"] = tile_pack(resvg_py.svg_to_bytes(svg_string=svg, width=RASTER_WIDTH, skip_system_fonts=True))
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "Interchange.svg").write_bytes(raw)
     (args.output / "reference.json").write_text(json.dumps(config, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
@@ -78,8 +103,10 @@ def main():
                 "authorLink": config["authorLink"], "license": "CC BY-NC-SA 4.0",
                 "licenseUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
                 "svgSha256": hashlib.sha256(raw).hexdigest(), "viewBox": view,
-                "renderer": f"resvg-py 0.5.0; width {RASTER_WIDTH}; system fonts disabled",
-                "pngHashes": {name: hashlib.sha256(data).hexdigest() for name, data in outputs.items()}}
+                "renderer": f"resvg-py 0.5.0; detail width {RASTER_WIDTH}; preview width 2048; system fonts disabled",
+                "tileFormat": "NVTILES1; little-endian width/height/tileSize/count; offset/length table; independent PNG chunks",
+                "pngHashes": {name: hashlib.sha256(data).hexdigest() for name, data in outputs.items() if name.endswith('.png')},
+                "tileHashes": {name: hashlib.sha256(data).hexdigest() for name, data in outputs.items() if name.endswith('.tiles')}}
     (args.output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
 

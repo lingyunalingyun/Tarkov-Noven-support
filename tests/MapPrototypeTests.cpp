@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <chrono>
 
 namespace {
 void Require(bool value,const char* message){if(!value){std::cerr<<message<<'\n';std::exit(1);}}
@@ -215,6 +216,19 @@ int main(int argc,char** argv){
         target->BeginDraw();Require(image.Draw(*target.Get(),{-2000,-2000,6192,4880},1,D2D1_RECT_F{0,0,64,64}),
             "zoomed local image renders visible native-resolution tiles");
         Require(SUCCEEDED(target->EndDraw()),"high-resolution tiles survive target recreation");
+        if(targetIndex==0){
+            for(int pass=0;pass<2;++pass){
+                const auto start=std::chrono::steady_clock::now();
+                for(int step=0;step<8;++step){
+                    const float x=-static_cast<float>(step*512);
+                    target->BeginDraw();
+                    Require(image.Draw(*target.Get(),{x,-2000,x+8192,4880},1,D2D1_RECT_F{0,0,64,64}),"pan across detail tiles renders");
+                    Require(SUCCEEDED(target->EndDraw()),"detail pan completes");
+                }
+                std::cout<<"Detail pan "<<(pass==0?"cold":"cached")<<" (8 views): "
+                    <<std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count()<<" ms\n";
+            }
+        }
     }
     MapPage missing;
     Require(!missing.Initialize(std::filesystem::path(argv[1])/L"missing",error)&&!missing.RealData(),"missing production data rejects");
