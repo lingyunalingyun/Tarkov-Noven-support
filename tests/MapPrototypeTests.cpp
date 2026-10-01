@@ -245,15 +245,30 @@ int main(int argc,char** argv){
         "real floor search retains floor markers even without floor names in API titles");
     for(const auto& point:actual.Points())Require(point.floorId=="First_Floor","floor query excludes other-floor markers");
     LocalImage image;
+    MapIconImages officialIcons;
+    Require(!officialIcons.Load(std::filesystem::path(argv[1])/L"missing")&&!officialIcons.Ready(),"missing local DEV icon set rejects");
+    Require(officialIcons.Load(std::filesystem::path(argv[1])/L"maps"/L"icons")&&officialIcons.Ready(),
+        "all 44 detail and 19 category DEV icon bindings decode offline");
     Require(!image.Load(std::filesystem::path(argv[1])/L"maps"/L"missing.png")&&!image.Ready(),"missing local image rejects without invented background");
     Require(image.Load(std::filesystem::path(argv[1])/L"maps"/L"interchange"/L"First_Floor.png")&&image.Ready(),"full-size local PNG decodes");
     Microsoft::WRL::ComPtr<ID2D1Factory> factory;Microsoft::WRL::ComPtr<IWICImagingFactory> wic;
     Require(SUCCEEDED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,factory.GetAddressOf()))
         &&SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&wic))),"native image test factories initialize");
+    Microsoft::WRL::ComPtr<IDWriteFactory> textFactory;Microsoft::WRL::ComPtr<IDWriteTextFormat> iconFormat;
+    Require(SUCCEEDED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED,__uuidof(IDWriteFactory),reinterpret_cast<IUnknown**>(textFactory.GetAddressOf())))
+        &&SUCCEEDED(textFactory->CreateTextFormat(L"Segoe UI",nullptr,DWRITE_FONT_WEIGHT_NORMAL,DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL,12,L"en-US",&iconFormat)),"icon canvas text resources create");
     for(int targetIndex=0;targetIndex<3;++targetIndex){
         Microsoft::WRL::ComPtr<IWICBitmap> bitmap;Microsoft::WRL::ComPtr<ID2D1RenderTarget> target;
         Require(SUCCEEDED(wic->CreateBitmap(64,64,GUID_WICPixelFormat32bppPBGRA,WICBitmapCacheOnLoad,&bitmap))
             &&SUCCEEDED(factory->CreateWicBitmapRenderTarget(bitmap.Get(),D2D1::RenderTargetProperties(),&target)),"independent image target creates");
+        Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> iconBrush;
+        Require(SUCCEEDED(target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White),&iconBrush)),"icon brush creates");
+        const UiCanvas iconCanvas{*target.Get(),*iconBrush.Get(),*iconFormat.Get(),*iconFormat.Get(),*iconFormat.Get(),*iconFormat.Get(),*iconFormat.Get()};
+        target->BeginDraw();
+        for(std::size_t i=0;i<MapDetailIcons.size();++i)officialIcons.Draw(iconCanvas,{},MapDetailIcons[i].category,MapIconMask{1}<<i,{32,32},true);
+        for(std::size_t i=0;i<MapCategoryCount;++i)officialIcons.Draw(iconCanvas,{},static_cast<MapPointCategory>(i),0,{32,32});
+        Require(SUCCEEDED(target->EndDraw()),"official marker icons survive independent render-target recreation");
         target->BeginDraw();Require(image.Draw(*target.Get(),{0,0,64,64}),"local image creates target-owned bitmap");
         Require(SUCCEEDED(target->EndDraw()),"target recreation retains valid image rendering");
         target->BeginDraw();Require(image.Draw(*target.Get(),{-2000,-2000,6192,4880},1,D2D1_RECT_F{0,0,64,64}),

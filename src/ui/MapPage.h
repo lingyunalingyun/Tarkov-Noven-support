@@ -61,6 +61,7 @@ private:
     std::vector<Map> maps_;
     std::vector<Point> points_;
     std::vector<LocalImage> images_;
+    MapIconImages marker_images_;
     data::MapCatalog catalog_;
     D2D1_SIZE_F world_{MapPrototype::World};
     bool real_{},unavailable_{};

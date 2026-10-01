@@ -46,14 +46,18 @@ struct MapFilterList final {
     }
 };
 inline void DrawMapCheck(const UiCanvas& canvas,const UiTheme& theme,D2D1_RECT_F row,
-    std::wstring_view label,bool checked,std::optional<MapPointCategory> category=std::nullopt,MapIconMask icons=0){
+    std::wstring_view label,bool checked,std::optional<MapPointCategory> category=std::nullopt,MapIconMask icons=0,
+    const MapIconImages* images=nullptr){
     canvas.Round(row,4,checked?theme.selected:theme.background);
     const float x=row.left+12,y=(row.top+row.bottom)*.5F;
     canvas.brush.SetColor(checked?theme.accent:theme.secondaryText);
     canvas.target.DrawRectangle({x-5,y-5,x+5,y+5},&canvas.brush,1);
     if(checked){canvas.target.DrawLine({x-3,y},{x-1,y+3},&canvas.brush,1.5F);
         canvas.target.DrawLine({x-1,y+3},{x+4,y-3},&canvas.brush,1.5F);}
-    if(category)DrawMapDetailIcon(canvas,theme,*category,icons,{row.left+34,y},false,7);
+    if(category){
+        if(images)images->Draw(canvas,theme,*category,icons,{row.left+34,y},false,9);
+        else DrawMapDetailIcon(canvas,theme,*category,icons,{row.left+34,y},false,7);
+    }
     const auto wrapping=canvas.smallFormat.GetWordWrapping();canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
     canvas.Text(label,canvas.smallFormat,{row.left+(category?46.0F:24.0F),row.top,row.right-4,row.bottom},
         checked?theme.primaryText:theme.secondaryText);

@@ -1,7 +1,7 @@
 #pragma once
 #include "ui/UiCanvas.h"
 #include "ui/Theme.h"
-#include "ui/MapDetailIcon.h"
+#include "ui/MapIconImages.h"
 #include <span>
 #include <string_view>
 #include <optional>
@@ -36,12 +36,13 @@ struct MapInteractionStrip final {
         return std::nullopt;
     }
     void Draw(const UiCanvas& canvas,const UiTheme& theme,std::wstring_view heading,
-        std::span<const MapInteractionPoint> points,std::string_view selected) const {
+        std::span<const MapInteractionPoint> points,std::string_view selected,const MapIconImages* images=nullptr) const {
         canvas.Round(bounds,theme.cornerRadius,theme.surface);
         canvas.Text(heading,canvas.smallFormat,{bounds.left+14,bounds.top+8,bounds.right-12,bounds.top+32},theme.secondaryText);
         for(std::size_t i=0;i<points.size();++i){const auto r=Entry(i,points.size());
             canvas.Round(r,5,points[i].id==selected?theme.selected:theme.background);
-            DrawMapDetailIcon(canvas,theme,points[i].category,points[i].icons,{r.left+18,(r.top+r.bottom)*.5F});
+            if(images)images->Draw(canvas,theme,points[i].category,points[i].icons,{r.left+18,(r.top+r.bottom)*.5F});
+            else DrawMapDetailIcon(canvas,theme,points[i].category,points[i].icons,{r.left+18,(r.top+r.bottom)*.5F});
             const auto wrapping=canvas.smallFormat.GetWordWrapping();
             canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
             canvas.Text(points[i].title,canvas.smallFormat,{r.left+36,r.top+3,r.right-5,r.bottom},theme.primaryText);

@@ -51,6 +51,9 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     if(!map||candidate.Maps().size()!=1||map->normalizedName!="interchange"){
         error=L"Unsupported map reference";unavailable_=true;return false;}
     std::vector<LocalImage> images(reference::Floors.size());
+    MapIconImages markerImages;
+    if(!markerImages.Load(assets/L"maps"/L"icons")){
+        error=L"Local DEV marker icons unavailable";unavailable_=true;return false;}
     for(std::size_t i=0;i<images.size();++i)
         if(!images[i].Load(assets/L"maps"/L"interchange"/(std::string(reference::Floors[i].id)+".png"))){
             error=L"Interchange background unavailable";unavailable_=true;return false;}
@@ -58,6 +61,7 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     // A new catalog clears old catalog queries/filters; ordinary navigation never rebinds.
     Overview();floor_id_={};map_id_={};interaction_id_={};progress_=0;search_.SetText(L"");filters_={};
     catalog_=std::move(candidate);maps_.clear();floors_.clear();points_.clear();images_=std::move(images);
+    marker_images_=std::move(markerImages);
     map=catalog_.Map(reference::MapId);maps_.push_back({map->id,Wide(map->nameZh),Wide(map->nameEn)});
     map_id_=maps_.front().id;
     for(const auto& f:reference::Floors)floors_.push_back({std::string(f.id),std::wstring(f.label)});
@@ -208,7 +212,7 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
     if(entries.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,list.Body(),theme.secondaryText);
     for(std::size_t i=0;i<entries.size();++i){auto row=list.Row(i);if(entries[i].detail)row.left+=12;
         DrawMapCheck(canvas,theme,row,entries[i].label,entries[i].enabled,entries[i].category,
-            entries[i].detail?MapIconBit(*entries[i].detail):0);}
+            entries[i].detail?MapIconBit(*entries[i].detail):0,&marker_images_);}
     DrawScrollbar(canvas,theme,{list.Bar(entries.size()),1});
     canvas.target.PopAxisAlignedClip();canvas.target.PopAxisAlignedClip();canvas.brush.SetOpacity(opacity);
 }
@@ -237,7 +241,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
             {layout_.strip.left+14,layout_.strip.top+6,layout_.strip.right-8,layout_.strip.top+30},theme.secondaryText);
         const auto info=layout_.strip;
         if(const auto point=SelectedPoint()){
-            DrawMapDetailIcon(canvas,theme,point->category,point->icons,{info.left+26,info.top+50});
+            marker_images_.Draw(canvas,theme,point->category,point->icons,{info.left+26,info.top+50});
             canvas.Text(point->title,canvas.smallFormat,
                 {info.left+46,info.top+34,info.right-14,info.top+62},theme.primaryText);
             const auto source=std::find_if(points_.begin(),points_.end(),
@@ -270,7 +274,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
             const auto marker=viewport_.ToScreen(p.coordinate);
             if(marker.x<r.left-16||marker.x>r.right+16||marker.y<r.top-16||marker.y>r.bottom+16)continue;
             if(dense&&p.id!=interaction_id_)canvas.Circle(marker,2.5F,theme.accent);
-            else DrawMapDetailIcon(canvas,theme,p.category,p.icons,marker,p.id==interaction_id_);
+            else marker_images_.Draw(canvas,theme,p.category,p.icons,marker,p.id==interaction_id_);
         }
         canvas.Round(ResetBounds(),5,theme.surface);
         canvas.Text(Tr(TextKey::MapReset),canvas.smallFormat,ResetBounds(),theme.primaryText);
