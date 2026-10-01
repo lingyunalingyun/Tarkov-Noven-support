@@ -1,0 +1,323 @@
+{
+  "conversion": "Pillow RGBA PNG with transparent square padding; no resizing or redrawing",
+  "images": {
+    "category_artillery": {
+      "pngSha256": "074a31e01a0de8066d61d19a80ad55eccd6357fe45111b24ad362d593854f03e",
+      "sourceSha256": "c6f159eae46482b3c918e50579d4f4286e2b3c69ecfa3815fafdde3cb28fe59f",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/hazard_mortar.png"
+    },
+    "category_boss": {
+      "pngSha256": "b4c66805f990da7165a7fbc7fc5d8e9b0e84f448c13ab1e9ffbc892dc9642a26",
+      "sourceSha256": "a651f82114311f3da3e40eb1e277072f4112a9ce73750149b1d84bd44c1f36e5",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/spawn_boss.png"
+    },
+    "category_btr": {
+      "pngSha256": "a239e3641f75c4b6610e4c4b7c58e240d9c1d30b91204a3cbf497b0a2086480a",
+      "sourceSha256": "5de4086f5728af54d0363bbbe2f7152a0cdd450752c45152486658505e1bfed1",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/btr_stop.png"
+    },
+    "category_container": {
+      "pngSha256": "9369820ad9227ffc904420bd9eba554767f30ee9bbbc1d52c58851b00504d88c",
+      "sourceSha256": "5815eb212a0eff94d62ce432d166ea161e689ec1ff40ce927b942ea6b6a099ba",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_crate.png"
+    },
+    "category_coop_extract": {
+      "pngSha256": "ebc10f912e5e8371b623c6ee7eaddf6215bb076bd550e213194197d6faa09c04",
+      "sourceSha256": "5a0e9f87fea424c8f898e4f700d711ae5f37d5b4966c9f42b9a1a27862bb70b8",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/extract_shared.png"
+    },
+    "category_easter_egg": {
+      "pngSha256": "127ea1dcfa5c13633779edf4ed086c1ae3d74a7bc85309dc9142f8c14633c0d4",
+      "sourceSha256": "ae8c9985765a1efc2e57b5737092bcb52067678801492f8fc05c1977519e9132",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/loose_loot.png"
+    },
+    "category_hidden_extract": {
+      "pngSha256": "31034a434ee6a66d244d8e7fee67ec796af6a6f1539379ea1a1c14320c74ef8c",
+      "sourceSha256": "da48913f71ac6a08041e0d5b4eb34ae2133b6b3934c1e2ac461a4899dd0b5920",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/extract_pmc.png"
+    },
+    "category_lock": {
+      "pngSha256": "758bce54cae548db3c33835f05f380c8735728eb0193de286170b13b2775bcd7",
+      "sourceSha256": "a2b6eb3b54dc97336e33672863f1d6db1b3735c40e9d58035439a8ed69849ae4",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/lock.png"
+    },
+    "category_loose_loot": {
+      "pngSha256": "127ea1dcfa5c13633779edf4ed086c1ae3d74a7bc85309dc9142f8c14633c0d4",
+      "sourceSha256": "ae8c9985765a1efc2e57b5737092bcb52067678801492f8fc05c1977519e9132",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/loose_loot.png"
+    },
+    "category_mine": {
+      "pngSha256": "2ff95b1fc4164cae15e6e07710f0ec19a55d701130f8f09fb1dba6ee07f64d6a",
+      "sourceSha256": "e7f5f84932c02cb99372b5d4e38c51450d34c12c0477079141ac79c9a46007e5",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/hazard.png"
+    },
+    "category_pmc_extract": {
+      "pngSha256": "31034a434ee6a66d244d8e7fee67ec796af6a6f1539379ea1a1c14320c74ef8c",
+      "sourceSha256": "da48913f71ac6a08041e0d5b4eb34ae2133b6b3934c1e2ac461a4899dd0b5920",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/extract_pmc.png"
+    },
+    "category_scav_extract": {
+      "pngSha256": "522600f457adc452cb1157f20cd8ecbb1cdb6f9d860b195ecc0b43a92c0a6e1c",
+      "sourceSha256": "a80da3cd00c5becf77bda243954b6bd69867b1f6348a2aac5831e3f23bdb4d09",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/extract_scav.png"
+    },
+    "category_scav_spawn": {
+      "pngSha256": "3b02cba9f997429eea1bb39f94b13b083f6113b2cf3935d630c632aef910bd77",
+      "sourceSha256": "0f47bdea41e9d143bfb18617714b9fdea2079b04e70cba99c0a23deeed31c5aa",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/spawn_scav.png"
+    },
+    "category_sniper": {
+      "pngSha256": "2ff95b1fc4164cae15e6e07710f0ec19a55d701130f8f09fb1dba6ee07f64d6a",
+      "sourceSha256": "e7f5f84932c02cb99372b5d4e38c51450d34c12c0477079141ac79c9a46007e5",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/hazard.png"
+    },
+    "category_spawn": {
+      "pngSha256": "1ec7ce80cc6a2f4fce2d6b1a14879cf27021897278a1d4f59a29762cf7b07ed2",
+      "sourceSha256": "09ba9cc9b74084d4c2a1468fde0924cd2e48de4e2f48cc526b8cfdcd9b072f8f",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/spawn_pmc.png"
+    },
+    "category_stationary": {
+      "pngSha256": "7462b1de1a46b9f672ba84b8a51462e14b3e3c2b75f700bd91564697c63783f1",
+      "sourceSha256": "6dd4ba9ff50b2854a657f4ec3dcb3111ff0e26e2ef9b83a4601695cf745505f8",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/stationarygun.png"
+    },
+    "category_switch": {
+      "pngSha256": "bbe1f4effe25355e2f0d6c341d1ffe92230a82db4afd494889afd9fcd82ab8df",
+      "sourceSha256": "aff3ecadd8b514469361a380242bcf5c4cc8964fc6f57d93ec028670436e577d",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/switch.png"
+    },
+    "category_task": {
+      "pngSha256": "1c4286a2b976cc7e0421e35f6a46f7a637044f582b11c0dc7e67c257538326bc",
+      "sourceSha256": "6c24721094fafc97c85c07bdcf2a7af5facfce47947f2ac0a51b1fc7c9959e40",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/quest_objective.png"
+    },
+    "category_transit": {
+      "pngSha256": "43fc99b0edfc3beb79c4dfe30e56c75e7a42f9542c612d7dcbbb59d4098f847a",
+      "sourceSha256": "b45a525aece2a1e6b9b94b17fff27e0fd81256fdf7cb31347e2328d4d34d3e80",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/extract_transit.png"
+    },
+    "detail_ammo": {
+      "pngSha256": "18a6ca1cf6b47402b8cbffcf188b834bbeeaedf8a0ed29ac039522ed09473059",
+      "sourceSha256": "89c1cc4cb0d169f7fc25e133dea49592d5256f895b10bde7b82606f3c1ca93af",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b33b-icon.webp"
+    },
+    "detail_ammo_box": {
+      "pngSha256": "61a991a1eefd91f3400aa1983b48c2fd8d1d38522ebc9a1cf52663115c0fa22f",
+      "sourceSha256": "098cee04ed66e01a9d8b7993534bf54be9926c1e1fc7dc52b5e64ef415a6e8cb",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_wooden-ammo-box.png"
+    },
+    "detail_barrel_cache": {
+      "pngSha256": "d518ca5b420c71cc70ec4b23786a58e7c3d93e6bae44834b73817cc8ae3ff8da",
+      "sourceSha256": "7ef42664b5a29a51f71287b128a4f53206e856dc14b0f5db958b4810bf31c96e",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_buried-barrel-cache.png"
+    },
+    "detail_battlepass": {
+      "pngSha256": "3d83233f6d3a0aaf7b2d12a0acb6cdf80f8a5faf63529f3ab53f4076bf4725e2",
+      "sourceSha256": "0f72787b3c119bb8d0acad737d71cc6515dcaf32d00735d79c85a7dd01e1a125",
+      "url": "https://assets.tarkov.dev/handbook-category-6a35427afc3f27b15905a876-icon.webp"
+    },
+    "detail_building": {
+      "pngSha256": "9709d01e577c9db89068b6bdc9eb540be91061361e1a4552520dd0781dbe0be7",
+      "sourceSha256": "3f729f22260a6628738500cd223e3a6e26d156821ee45834f815b0b200bf7c5c",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b2ee-icon.webp"
+    },
+    "detail_cash_register": {
+      "pngSha256": "1a22d7debc464abda3e65c8f7c0bf4576d94402a5df6943038e21976a49598f6",
+      "sourceSha256": "ff43716e4c96e3d6253a46093bddc4352cf506b07d5ed6b545ce152e761cf1a4",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_cash-register.png"
+    },
+    "detail_civilian_body": {
+      "pngSha256": "1a75ccb6eb1f672cdead7a0bf067ca6b4910ecad31886d9334f4bf54ff7eb5b9",
+      "sourceSha256": "12b29c51c2b16d1b10681660a5ada3870f20eeda1ffa69e8ec1ae7a9a062d632",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_dead-scav.png"
+    },
+    "detail_dead_scav": {
+      "pngSha256": "1a75ccb6eb1f672cdead7a0bf067ca6b4910ecad31886d9334f4bf54ff7eb5b9",
+      "sourceSha256": "12b29c51c2b16d1b10681660a5ada3870f20eeda1ffa69e8ec1ae7a9a062d632",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_dead-scav.png"
+    },
+    "detail_drawer": {
+      "pngSha256": "4019887ab2ad5152f7d3f0dd4c374cc8c54d7199d1a1913ac30d221ce3f506bd",
+      "sourceSha256": "a858f0176e10b581c3e90c9c5ab9e09431c6952c98536b1dbf774ba7cfd58749",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_drawer.png"
+    },
+    "detail_drink": {
+      "pngSha256": "37a7890b2ef658e4f96b8bc5bb1ca8da0d4e818fa9e5962f31952028880dd731",
+      "sourceSha256": "a4eb75298532c55721184ea2400eaff3844d23e1f6503664e023e1fe9f4f91bf",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b335-icon.webp"
+    },
+    "detail_duffle": {
+      "pngSha256": "64702f83de6d35d1967d0da496832acdc9d6f2220afa652c06bed4a965ca5d8a",
+      "sourceSha256": "cae6c3221259607ab222bb4f10d04ab80764133c3eb47b92739674ff10924cd4",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_duffle-bag.png"
+    },
+    "detail_electronics": {
+      "pngSha256": "391d3a29be7011dbd6bec8191f63adea5d8a096b70dab0a2758f2d269e3fc298",
+      "sourceSha256": "e25918e67bf9f8524680facda59337422a663a2096fa69f8da5f36bd15c76b2a",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b2ef-icon.webp"
+    },
+    "detail_energy": {
+      "pngSha256": "18501cb1bce80151b63e693ddeded5300d93ce3ac13dfc9b519f0d5cef1da56a",
+      "sourceSha256": "99f90a3c020abb1ed62315299f5671b56c83eb622f210b9f276471de1543fb61",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b2ed-icon.webp"
+    },
+    "detail_flammable": {
+      "pngSha256": "e2a45449b95fdd9a73dde5c8cc1e3d47cab19be045524a930342fb49f836981f",
+      "sourceSha256": "27aa5a8a6394408bf05d18a4f7e1d566e929d21cfa459075c2bebca3dfb2c1af",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b2f2-icon.webp"
+    },
+    "detail_food": {
+      "pngSha256": "00c25e8f58b13db0f1d6afab2a1cb29d0467120817c5190bd013ead2373901db",
+      "sourceSha256": "9944f5f80c609cc910a68a3207c3cf7ec2bcc726404bce6e2c2d3d9957e1d617",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b336-icon.webp"
+    },
+    "detail_grenade_box": {
+      "pngSha256": "50ed320fbc02b716e87ea448bdf13907d6daa1acf201d51e8eaaa130b0b86e56",
+      "sourceSha256": "ac299bb40cfd5f4319c775c842a8bd28245a01a86055a8af9455d6c7b05efdef",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_grenade-box.png"
+    },
+    "detail_ground_cache": {
+      "pngSha256": "b6cff4234636138e8f3637e6dae6f42ee708eef26671a5770cd6705a03cb0f2e",
+      "sourceSha256": "b4c66e61b3dbcaf1e181dd1d3b2d30960c97d94477e73785aa75609de3039a15",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_ground-cache.png"
+    },
+    "detail_injector": {
+      "pngSha256": "35119a9eeae321a530ef1e66ea82f12d3e0b16835a8fac4237e16719e234a40a",
+      "sourceSha256": "44da7b56fd6647403ee832689cf0ed61db3034c952667c8f248260bda4595694",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b33a-icon.webp"
+    },
+    "detail_intel": {
+      "pngSha256": "9375385d1b2576d8a531809acafe8a45195961862b7c5e2c40d6acb424a24fd4",
+      "sourceSha256": "aebb3dd542398fa06048c5baf5709865bcf2ef937703d0bcd132d7225873553a",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b341-icon.webp"
+    },
+    "detail_jacket": {
+      "pngSha256": "a81f2053c26df83e3e5b21f2eca8c5588ff351817aebd06b45c61441d6c022d7",
+      "sourceSha256": "09830e6eb9b1da265c549e3cf7e89068e3c66c36779aeed31e713ad8b4cd5ddb",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_jacket.png"
+    },
+    "detail_key": {
+      "pngSha256": "500c9ba7bc99d51a1656c58a0eb4d532a13327475be2ab538087938802fd2f1b",
+      "sourceSha256": "9a6a3e7d5f52cb00d85ec2007e33ef6059e4894e66bb6e35262629ea483dd122",
+      "url": "https://assets.tarkov.dev/handbook-category-5c518ec986f7743b68682ce2-icon.webp"
+    },
+    "detail_keycard": {
+      "pngSha256": "f25c589deff2050f6401542813708df529fe053a30a73251c672e4c632082b6e",
+      "sourceSha256": "6568500c8d147147c7648b984688e1d19358d4e4f5ca12c8643c13a919014eec",
+      "url": "https://assets.tarkov.dev/handbook-category-5c518ed586f774119a772aee-icon.webp"
+    },
+    "detail_lab_body": {
+      "pngSha256": "1a75ccb6eb1f672cdead7a0bf067ca6b4910ecad31886d9334f4bf54ff7eb5b9",
+      "sourceSha256": "12b29c51c2b16d1b10681660a5ada3870f20eeda1ffa69e8ec1ae7a9a062d632",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_dead-scav.png"
+    },
+    "detail_medbag": {
+      "pngSha256": "b21d7e98376ef2592ca412ee8663ed9cd4eff68bbf5592c6b1318a9ed26282ba",
+      "sourceSha256": "09f8ede33dd363de88cedbcf3f00c7c5baba1706fb08a2842597576b42e8ed36",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_medbag.png"
+    },
+    "detail_medcase": {
+      "pngSha256": "e63a7ca279efdf435b9d01de9b205f61352f0c2b5d220c60e0a330ae1776502d",
+      "sourceSha256": "907e5f06f0e50cdf8709c21b2125eca33c556064d4e446e29c5f08a6ccefef60",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_medcase.png"
+    },
+    "detail_medical": {
+      "pngSha256": "5359db456e74fb7ee6a9c2b344024f1c972044b3839ed3ea844577ffa6a15a3f",
+      "sourceSha256": "cb3ca46dd5b01d315c92fe3232af7e87c186cab02b79bb8d77a10b4b8f62c1f8",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b2f3-icon.webp"
+    },
+    "detail_medical_crate": {
+      "pngSha256": "9369820ad9227ffc904420bd9eba554767f30ee9bbbc1d52c58851b00504d88c",
+      "sourceSha256": "5815eb212a0eff94d62ce432d166ea161e689ec1ff40ce927b942ea6b6a099ba",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_crate.png"
+    },
+    "detail_other": {
+      "pngSha256": "dd0a266f64d3984a891ffc17b7fe0cdbfe263c4277786f0b960ad02b737a7e6b",
+      "sourceSha256": "70959562a9cbec021ea3c692a2cb962a7ab6dff1f1a48f20d5d04888e6bd8785",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b2f4-icon.webp"
+    },
+    "detail_pc": {
+      "pngSha256": "5098a324ff2960089f0a916d9283121829d6d48456db9a2b4e1f93feb9ecb1ea",
+      "sourceSha256": "7d7756fcb452c6193cec4b62cfe760f3cbbedd4b3d81287a47e7c7421fe1d17f",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_pc-block.png"
+    },
+    "detail_pmc_body": {
+      "pngSha256": "1a75ccb6eb1f672cdead7a0bf067ca6b4910ecad31886d9334f4bf54ff7eb5b9",
+      "sourceSha256": "12b29c51c2b16d1b10681660a5ada3870f20eeda1ffa69e8ec1ae7a9a062d632",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_dead-scav.png"
+    },
+    "detail_ration_crate": {
+      "pngSha256": "9369820ad9227ffc904420bd9eba554767f30ee9bbbc1d52c58851b00504d88c",
+      "sourceSha256": "5815eb212a0eff94d62ce432d166ea161e689ec1ff40ce927b942ea6b6a099ba",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_crate.png"
+    },
+    "detail_safe": {
+      "pngSha256": "c6cb69c5b4aca9db5b7933437b503deb9f9ecd475dbcfbe8e141b51fe3c94be1",
+      "sourceSha256": "024a7aa6d797132881a4ff3809e12f9db97a66f0246144a6a74245ffc414656f",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_safe.png"
+    },
+    "detail_special": {
+      "pngSha256": "e2ec9f4e8edbbf25d15e93146156b9d3fdedb7a63d34254ec272829901a14c30",
+      "sourceSha256": "8f6aa6fc216732b36f8af51c43dee670e3507776cc57652639bcc4204038ded6",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b345-icon.webp"
+    },
+    "detail_stash": {
+      "pngSha256": "40b90705ab31734740acafd2c5b46a9d86691ea5028df95e5c82e1647e31660e",
+      "sourceSha256": "406950cbd309ebf55f7a1bc8cd97c65a2f85c836c087b2adc4fa86526419b080",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_weapon-box.png"
+    },
+    "detail_suitcase": {
+      "pngSha256": "091465e80e1930e50c1f0b5d33e8fd5a057ccb5dbb4246190b6293fa7b703b4e",
+      "sourceSha256": "6eb42a3546fbed2a30f520314aa13e7f8bfc3a2bc226859a956fffa010620936",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_plastic-suitcase.png"
+    },
+    "detail_task_item": {
+      "pngSha256": "da7749969f6de07ba40248959b55509df5f147965320d40c6f569cb8f5758287",
+      "sourceSha256": "a4d1b6c98708dd9fe54b8d9f53e3134a817f80bb3248019c854a1b7db8d06361",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/quest_item.png"
+    },
+    "detail_task_objective": {
+      "pngSha256": "1c4286a2b976cc7e0421e35f6a46f7a637044f582b11c0dc7e67c257538326bc",
+      "sourceSha256": "6c24721094fafc97c85c07bdcf2a7af5facfce47947f2ac0a51b1fc7c9959e40",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/quest_objective.png"
+    },
+    "detail_technical_crate": {
+      "pngSha256": "9369820ad9227ffc904420bd9eba554767f30ee9bbbc1d52c58851b00504d88c",
+      "sourceSha256": "5815eb212a0eff94d62ce432d166ea161e689ec1ff40ce927b942ea6b6a099ba",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_crate.png"
+    },
+    "detail_toolbox": {
+      "pngSha256": "b6027fb8aa94babb514ecc6c57e92d349ed8b36ffb2947fb8a7d52d29855aa32",
+      "sourceSha256": "57e7aa4c7d980aa97fa347642de4afe95eb5280188733566dffe9b0dd52754c2",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_toolbox.png"
+    },
+    "detail_tools": {
+      "pngSha256": "756c40a3b1fbbf086721cebba88f43c8c78a522b6eb03a1d4bcddf82753b734f",
+      "sourceSha256": "446e1f96b904be65df7c5d88dc70fc996275f10434f807b2bbf798f3b90dcc0b",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b2f6-icon.webp"
+    },
+    "detail_valuable": {
+      "pngSha256": "3d83233f6d3a0aaf7b2d12a0acb6cdf80f8a5faf63529f3ab53f4076bf4725e2",
+      "sourceSha256": "0f72787b3c119bb8d0acad737d71cc6515dcaf32d00735d79c85a7dd01e1a125",
+      "url": "https://assets.tarkov.dev/handbook-category-5b47574386f77428ca22b2f1-icon.webp"
+    },
+    "detail_weapon": {
+      "pngSha256": "1680388f2c4bb7481e95614fa1100c48dc13e3a049583b6168da910884677c3e",
+      "sourceSha256": "6cc13b11fbc31dbbca772e08bc83a8ff5fc7910949e8fcf217e64072b23b8d64",
+      "url": "https://assets.tarkov.dev/handbook-category-5b5f78dc86f77409407a7f8e-icon.webp"
+    },
+    "detail_weapon_box": {
+      "pngSha256": "40b90705ab31734740acafd2c5b46a9d86691ea5028df95e5c82e1647e31660e",
+      "sourceSha256": "406950cbd309ebf55f7a1bc8cd97c65a2f85c836c087b2adc4fa86526419b080",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_weapon-box.png"
+    },
+    "detail_wood_crate": {
+      "pngSha256": "ea04d6be2b9083f7e498dca1b4681fec8f5b4ebdb0fcdc76a68593d1bf74455c",
+      "sourceSha256": "09793ddcf6401f39ff511e32337c92f7815dffc38a840e59bb9595e610c0208c",
+      "url": "https://raw.githubusercontent.com/the-hideout/tarkov-dev/ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e/public/maps/interactive/container_wooden-crate.png"
+    }
+  },
+  "metadataSha256": "6e7de11278c68da061710099a052b0bf4c2b2c5fdff2ce5c9cbb6fd7505e2ff1",
+  "metadataSource": "https://json.tarkov.dev/regular/items",
+  "repositoryCommit": "ef62766bbd7ffb294c7184f9b8bfe8ed0f18320e"
+}
