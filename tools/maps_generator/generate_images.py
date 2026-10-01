@@ -11,6 +11,7 @@ from pathlib import Path
 SVG_URL = "https://assets.tarkov.dev/maps/svg/Interchange.svg"
 LAYOUT_URL = "https://raw.githubusercontent.com/the-hideout/tarkov-dev/main/src/data/maps.json"
 LAYERS = ("Ground_Level", "First_Floor", "Second_Floor")
+RASTER_WIDTH = 8192
 NS = "http://www.w3.org/2000/svg"
 ET.register_namespace("", NS)
 
@@ -66,7 +67,7 @@ def main():
     if view != [0, 0, 1127.6852, 947.02582]:
         raise ValueError("SVG bounds changed; review native projection")
     import resvg_py
-    outputs = {f"{layer}.png": resvg_py.svg_to_bytes(svg_string=svg, width=2048, skip_system_fonts=True)
+    outputs = {f"{layer}.png": resvg_py.svg_to_bytes(svg_string=svg, width=RASTER_WIDTH, skip_system_fonts=True)
                for layer, svg in images.items()}
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "Interchange.svg").write_bytes(raw)
@@ -77,7 +78,7 @@ def main():
                 "authorLink": config["authorLink"], "license": "CC BY-NC-SA 4.0",
                 "licenseUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
                 "svgSha256": hashlib.sha256(raw).hexdigest(), "viewBox": view,
-                "renderer": "resvg-py 0.5.0; width 2048; system fonts disabled",
+                "renderer": f"resvg-py 0.5.0; width {RASTER_WIDTH}; system fonts disabled",
                 "pngHashes": {name: hashlib.sha256(data).hexdigest() for name, data in outputs.items()}}
     (args.output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(manifest, ensure_ascii=False, indent=2))

@@ -18,7 +18,7 @@ public:
     D2D1_RECT_F Bounds() const noexcept{return bounds_;}
     float Scale() const noexcept{return scale_;}
     float MinimumScale() const noexcept{return FitScale()*.65F;}
-    float MaximumScale() const noexcept{return FitScale()*8;}
+    float MaximumScale() const noexcept{return FitScale()*32;}
     D2D1_POINT_2F ToScreen(D2D1_POINT_2F map) const noexcept{return {offset_.x+map.x*scale_,offset_.y+map.y*scale_};}
     D2D1_POINT_2F ToMap(D2D1_POINT_2F screen) const noexcept{return {(screen.x-offset_.x)/scale_,(screen.y-offset_.y)/scale_};}
     void Fit() noexcept {

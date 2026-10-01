@@ -65,6 +65,7 @@ int main(int argc,char** argv){
     const auto after=view.ToMap(cursor);
     Require(Near(anchor.x,after.x)&&Near(anchor.y,after.y),"cursor zoom preserves map anchor");
     view.ZoomAt(cursor,1000);Require(Near(view.Scale(),view.MaximumScale()),"maximum scale clamps");
+    Require(view.MaximumScale()/view.MinimumScale()>40,"detail zoom remains useful beyond overview scale");
     view.ZoomAt(cursor,-1000);Require(Near(view.Scale(),view.MinimumScale()),"minimum scale clamps");
     view.Fit();const auto center=view.ToScreen({500,350});
     Require(Near(center.x,800)&&Near(center.y,500),"fit centers map");
@@ -211,6 +212,9 @@ int main(int argc,char** argv){
             &&SUCCEEDED(factory->CreateWicBitmapRenderTarget(bitmap.Get(),D2D1::RenderTargetProperties(),&target)),"independent image target creates");
         target->BeginDraw();Require(image.Draw(*target.Get(),{0,0,64,64}),"local image creates target-owned bitmap");
         Require(SUCCEEDED(target->EndDraw()),"target recreation retains valid image rendering");
+        target->BeginDraw();Require(image.Draw(*target.Get(),{-2000,-2000,6192,4880},1,D2D1_RECT_F{0,0,64,64}),
+            "zoomed local image renders visible native-resolution tiles");
+        Require(SUCCEEDED(target->EndDraw()),"high-resolution tiles survive target recreation");
     }
     MapPage missing;
     Require(!missing.Initialize(std::filesystem::path(argv[1])/L"missing",error)&&!missing.RealData(),"missing production data rejects");

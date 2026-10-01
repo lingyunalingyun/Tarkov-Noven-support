@@ -217,7 +217,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.Round(r,theme.cornerRadius,theme.surface);
         const auto origin=viewport_.ToScreen({0,0}),end=viewport_.ToScreen({world_.width,world_.height});
         canvas.Fill({origin.x,origin.y,end.x,end.y},theme.background);canvas.brush.SetColor(theme.divider);
-        if(real_&&filters_.geometry)images_[FloorIndex()].Draw(canvas.target,{origin.x,origin.y,end.x,end.y},opacity*reveal);
+        if(real_&&filters_.geometry)images_[FloorIndex()].Draw(canvas.target,{origin.x,origin.y,end.x,end.y},opacity*reveal,expanded);
         for(float x=0;filters_.grid&&x<=world_.width;x+=100)
             canvas.target.DrawLine(viewport_.ToScreen({x,0}),viewport_.ToScreen({x,world_.height}),&canvas.brush,.5F);
         for(float y=0;filters_.grid&&y<=world_.height;y+=100)
