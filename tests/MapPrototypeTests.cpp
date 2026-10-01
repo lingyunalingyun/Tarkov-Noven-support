@@ -17,6 +17,8 @@ int main(int argc,char** argv){
     Require(SUCCEEDED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)),"WIC COM initializes");
     struct ComScope {~ComScope(){CoUninitialize();}} comScope;
     using namespace noven::ui;
+    const MapSearchQuery markerQuery(L"  # 保险箱  "),ordinaryQuery(L" TASK ");
+    Require(markerQuery.markers&&markerQuery.term==L"保险箱"&&!ordinaryQuery.markers&&ordinaryQuery.term==L"task","hash marker mode trims and folds independently from content search");
     MapFilters filters;
     Require(MapClockText(0)==L"03:00:00"&&MapClockText(0,true)==L"15:00:00","DEV clock epoch and twelve-hour pair");
     Require(MapGameSeconds(1000)-MapGameSeconds(0)==7,"DEV clock runs seven times real time");
@@ -162,9 +164,9 @@ int main(int argc,char** argv){
     Require(!page.SelectedPoint(),"floor switching clears marker information");
     Require(!page.FocusInteraction("invalid"),"unknown interaction ID cannot change selection");
     page.MouseDown(page.Layout().search.left+20,100);page.MouseUp(page.Layout().search.left+20,100);
-    for(const auto c:std::wstring(L"demo exit"))Require(page.Char(c),"persistent search accepts input");
+    for(const auto c:std::wstring(L"#demo exit"))Require(page.Char(c),"persistent search accepts input");
     Require(page.Points().size()==1,"search filters isolated preview points");
-    Require(page.Key(VK_LEFT,false)&&page.Search().Caret()==8,"search retains shared caret behavior");
+    Require(page.Key(VK_LEFT,false)&&page.Search().Caret()==9,"search retains shared caret behavior");
     Require(page.Key(VK_RETURN,false)&&page.FloorId()==demo.floorId,"Enter focuses filtered cross-floor marker");
     Require(page.Key(VK_ESCAPE,false)&&page.Search().Text().empty(),"Escape clears prototype query");
     page.MouseDown(0,0);page.MouseUp(0,0);
@@ -268,7 +270,7 @@ int main(int argc,char** argv){
     for(const auto& point:actual.Points())Require(point.title.find(L"[missing:")==std::wstring_view::npos&&!point.title.empty(),"every English point title resolves");
     Require(UiLocalization().SetLocale("zh-CN"),"Chinese locale restores");
     const auto pointSearch=actual.Layout().search;actual.MouseDown(pointSearch.left+8,pointSearch.top+8);
-    for(const auto c:std::wstring(L"收银机"))actual.Char(c);
+    for(const auto c:std::wstring(L"#收银机"))actual.Char(c);
     const auto verifyRegisterSearch=[&]{
         const auto matches=actual.Points();
         Require(matches.size()==133,"semantic search retains 130 containers and three related task positions");
@@ -279,9 +281,24 @@ int main(int argc,char** argv){
     };
     verifyRegisterSearch();
     Require(actual.Key(VK_ESCAPE,false),"Chinese query clears");
-    for(const auto c:std::wstring(L"Cash register"))actual.Char(c);
+    for(const auto c:std::wstring(L"#Cash register"))actual.Char(c);
     verifyRegisterSearch();
-    Require(actual.Key(VK_ESCAPE,false),"English query clears");actual.MouseDown(0,0);actual.MouseUp(0,0);
+    Require(actual.Key(VK_ESCAPE,false),"English query clears");
+    for(const auto c:std::wstring(L"收银机"))actual.Char(c);
+    Require(actual.Points().size()==3&&std::all_of(actual.Points().begin(),actual.Points().end(),[](const auto& p){return p.category==MapPointCategory::Task;}),"ordinary content search excludes icon names but includes task descriptions");
+    Require(actual.Key(VK_ESCAPE,false),"content query clears");
+    for(const auto c:std::wstring(L"#保险箱"))actual.Char(c);
+    Require(std::none_of(realPoints.begin(),realPoints.end(),[](const auto& p){return (p.icons&MapIconFor("safe"))!=0;})
+        &&actual.Points().empty(),"snapshot without safe markers returns no invented safe search results");
+    Require(actual.Key(VK_ESCAPE,false),"missing type query clears");
+    for(const auto c:std::wstring(L"#收银机"))actual.Char(c);verifyRegisterSearch();
+    const auto warmedBuilds=actual.PointQueryBuilds();const auto queryStart=std::chrono::steady_clock::now();
+    for(int i=0;i<5000;++i){actual.Points();actual.SelectedPoint();}
+    Require(actual.PointQueryBuilds()==warmedBuilds,"unchanged frames and hit queries reuse one result without rescanning points");
+    std::cout<<"5000 cached query/information pairs: "<<std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-queryStart).count()<<" ms\n";
+    Require(actual.Key(VK_ESCAPE,false),"marker query clears");actual.Points();
+    Require(actual.PointQueryBuilds()==warmedBuilds+1,"query changes invalidate visible-point cache exactly once");
+    actual.MouseDown(0,0);actual.MouseUp(0,0);
     for(const auto& point:realPoints)if(point.category==MapPointCategory::Container||point.category==MapPointCategory::LooseLoot||point.category==MapPointCategory::Task)
         Require(point.icons!=0,"all production containers, loot and tasks carry detailed icon identities");
     const auto categoryCount=[&](MapPointCategory category){return static_cast<std::size_t>(std::count_if(

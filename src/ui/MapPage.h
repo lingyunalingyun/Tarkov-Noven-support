@@ -3,6 +3,7 @@
 #include "ui/MapPrototypeData.h"
 #include "ui/MapViewport.h"
 #include "ui/MapClock.h"
+#include "ui/MapSearch.h"
 #include "ui/MapViewportControls.h"
 #include "ui/SearchBox.h"
 #include "ui/LocalImage.h"
@@ -39,7 +40,8 @@ public:
     MapFilterList FilterList() const noexcept{return {layout_.flyout,filter_scroll_};}
     void SelectFloor(std::string_view id);
     bool FocusInteraction(std::string_view id);
-    std::vector<MapInteractionPoint> Points() const;
+    const std::vector<MapInteractionPoint>& Points() const;
+    std::size_t PointQueryBuilds() const noexcept{return point_query_builds_;}
     std::optional<MapInteractionPoint> SelectedPoint() const;
     void MouseMove(float x,float y);
     void MouseLeave(){hovered_floor_.reset();}
@@ -59,11 +61,21 @@ private:
         std::wstring chinese,english;MapPointCategory category;
         bool sharedExtract{};
         MapIconMask icons{};
+        std::wstring searchChinese,searchEnglish;
     };
     bool Allows(const Point& point) const;
     std::vector<Floor> floors_;
     std::vector<Map> maps_;
     std::vector<Point> points_;
+    // 返回值借用页面名称；只有查询、地图、语言或可见性筛选改变时重建，禁止跨重绑保存引用。
+    // Results borrow page-owned labels; rebuild only on query/map/locale/visibility changes, not across rebinds.
+    mutable std::vector<MapInteractionPoint> visible_points_;
+    mutable std::wstring cached_query_;
+    mutable std::string cached_locale_;
+    mutable std::string_view cached_map_;
+    mutable MapFilters cached_filters_;
+    mutable bool point_cache_valid_{};
+    mutable std::size_t point_query_builds_{};
     std::vector<LocalImage> images_;
     MapIconImages marker_images_;
     LocalImage satellite_;

@@ -163,7 +163,7 @@
   "tasks.marker.kappa": "3×4 secure-container task",
   "tasks.marker.lightkeeper": "“Fairy wand” task",
   "tasks.marker.unrelated": "Not required for either chain",
-  "map.search.placeholder": "Search floors or markers; Enter to focus…",
+  "map.search.placeholder": "Search maps, floors or tasks; #marker name; Enter to focus…",
   "map.interactions": "Map interaction information",
   "map.information.hint": "Select a marker or task title to view details.",
   "map.reset_view": "Reset view",

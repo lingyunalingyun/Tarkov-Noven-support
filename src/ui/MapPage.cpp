@@ -42,6 +42,7 @@ MapPage::MapPage(){
     for(const auto& p:MapPrototype::Points)points_.push_back({std::string(p.id),std::string(p.floorId),std::string(p.mapId),
         p.type,p.coordinate,std::wstring(p.chinese),std::wstring(p.english),p.category});
     map_id_=maps_.front().id;
+    for(auto& p:points_){p.searchChinese=Fold(p.chinese);p.searchEnglish=Fold(p.english);}
 }
 bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error){
     data::MapCatalog candidate;
@@ -65,6 +66,7 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     // 绑定新目录清除旧目录的查询/筛选；普通页面导航不重新绑定。
     // A new catalog clears old catalog queries/filters; ordinary navigation never rebinds.
     Overview();floor_id_={};map_id_={};interaction_id_={};progress_=0;search_.SetText(L"");filters_={};
+    point_cache_valid_=false;visible_points_.clear();
     catalog_=std::move(candidate);maps_.clear();floors_.clear();points_.clear();images_=std::move(images);
     marker_images_=std::move(markerImages);
     satellite_=std::move(satellite);upper_images_=std::move(upperImages);
@@ -118,6 +120,7 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
             displayName(p,category,icons,"en-US"),category,shared,icons});
     }
     world_={static_cast<float>(reference::Width),static_cast<float>(reference::Height)};
+    for(auto& p:points_){p.searchChinese=Fold(p.chinese);p.searchEnglish=Fold(p.english);}
     viewport_=MapViewport(world_);real_=true;unavailable_=false;filters_.grid=false;error.clear();return true;
 }
 bool MapPage::Allows(const Point& p) const {
@@ -159,17 +162,37 @@ bool MapPage::FocusInteraction(std::string_view id){
     SelectMap(found->mapId);
     SelectFloor(found->floorId);interaction_id_=found->id;viewport_.FocusSmooth(found->coordinate);return true;
 }
-std::vector<MapInteractionPoint> MapPage::Points() const {
-    std::vector<MapInteractionPoint> result;
-    const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
-    const auto floor=std::find_if(floors_.begin(),floors_.end(),[&](const auto& f){return Fold(f.label)==Fold(search_.Text());});
+const std::vector<MapInteractionPoint>& MapPage::Points() const {
+    const auto& locale=UiLocalization().ActiveLocale();
+    if(point_cache_valid_&&cached_query_==search_.Text()&&cached_map_==map_id_&&cached_locale_==locale
+        &&cached_filters_.categories==filters_.categories&&cached_filters_.hiddenIcons==filters_.hiddenIcons
+        &&cached_filters_.hiddenTasks==filters_.hiddenTasks)return visible_points_;
+    cached_query_=search_.Text();cached_map_=map_id_;cached_locale_=locale;cached_filters_=filters_;
+    point_cache_valid_=true;++point_query_builds_;visible_points_.clear();
+    const bool chinese=locale=="zh-CN";const MapSearchQuery query(search_.Text());
+    const auto floor=std::find_if(floors_.begin(),floors_.end(),[&](const auto& f){return Fold(f.label)==query.term;});
+    const auto map=std::find_if(maps_.begin(),maps_.end(),[&](const auto& m){return m.id==map_id_;});
+    const bool mapMatch=!query.markers&&map!=maps_.end()&&(query.Matches(Fold(map->chinese))||query.Matches(Fold(map->english)));
+    MapIconMask matchingIcons=0;
+    if(query.markers){auto labels=UiLocalization();
+        for(std::size_t i=0;i<MapDetailIcons.size();++i){
+            labels.SetLocale("zh-CN");const bool zh=query.Matches(Fold(labels.Get(MapDetailIcons[i].key)));
+            labels.SetLocale("en-US");if(zh||query.Matches(Fold(labels.Get(MapDetailIcons[i].key))))matchingIcons|=MapIconMask{1}<<i;
+        }
+    }
     for(const auto& p:points_){
         if(p.mapId!=map_id_||!Allows(p))continue;
-        if(floor!=floors_.end()){if(p.floorId!=floor->id)continue;}
-        else if(!Matches(p.chinese,search_.Text())&&!Matches(p.english,search_.Text()))continue;
-        result.push_back({p.id,p.floorId,p.type,p.coordinate,chinese?p.chinese:p.english,p.category,p.icons&~filters_.hiddenIcons});
+        const auto icons=p.icons&~filters_.hiddenIcons;
+        const bool nameMatch=query.Matches(p.searchChinese)||query.Matches(p.searchEnglish);
+        if(query.markers){if(!nameMatch&&!(icons&matchingIcons))continue;}
+        else if(!query.term.empty()&&!mapMatch){
+            if(floor!=floors_.end()){if(p.floorId!=floor->id)continue;}
+            else if(p.category!=MapPointCategory::Task||!nameMatch)continue;
+        }
+        visible_points_.push_back({p.id,p.floorId,p.type,p.coordinate,chinese?p.chinese:p.english,p.category,
+            query.markers&&(icons&matchingIcons)?icons&matchingIcons:icons});
     }
-    return result;
+    return visible_points_;
 }
 std::optional<MapInteractionPoint> MapPage::SelectedPoint() const {
     // 信息区只描述当前可见楼层的选中标识，不显示已被搜索或筛选隐藏的身份。
@@ -248,7 +271,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     DrawTabBar<std::string_view>(canvas,theme,canvas.smallFormat,maps,layout_.maps,map_id_,std::optional<std::string_view>{},map_id_,1,mapIndex);
     canvas.target.PushAxisAlignedClip(layout_.content,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(progress_>0){
-        const float reveal=MapLayout::Ease(progress_);const auto points=Points();
+        const float reveal=MapLayout::Ease(progress_);const auto& points=Points();
         const auto opacity=canvas.brush.GetOpacity();canvas.brush.SetOpacity(opacity*reveal);
         canvas.Round(layout_.strip,theme.cornerRadius,theme.surface);
         canvas.Text(Tr(TextKey::MapInteractions),canvas.smallFormat,
@@ -343,7 +366,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
 }
 std::optional<std::string_view> MapPage::MarkerAt(D2D1_POINT_2F p) const {
     if(!Selected()||!MapContains(layout_.viewport,p))return std::nullopt;
-    const auto points=Points();
+    const auto& points=Points();
     for(bool current:{true,false}){
         std::optional<std::string_view> closest;float distance=14;
         for(const auto& marker:points)if((marker.floorId==floor_id_)==current&&MarkerOpacity(marker)>0){
@@ -435,7 +458,10 @@ bool MapPage::Wheel(int delta,float x,float y){
 bool MapPage::Key(WPARAM key,bool control){
     if(search_.Focused()&&key==VK_RETURN){
         for(const auto& floor:floors_)if(Fold(floor.label)==Fold(search_.Text())){SelectFloor(floor.id);return true;}
-        const auto matches=Points();if(!matches.empty())FocusInteraction(matches.front().id);return true;
+        const MapSearchQuery query(search_.Text());
+        if(!query.markers)for(const auto& map:maps_)if(query.Matches(Fold(map.chinese))||query.Matches(Fold(map.english))){
+            SelectMap(map.id);break;}
+        const auto& matches=Points();if(!matches.empty())FocusInteraction(matches.front().id);return true;
     }
     return search_.HandleKeyDown(key,control);
 }

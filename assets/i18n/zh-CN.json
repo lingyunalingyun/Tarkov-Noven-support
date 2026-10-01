@@ -163,7 +163,7 @@
   "tasks.marker.kappa": "3×4 保险箱任务",
   "tasks.marker.lightkeeper": "“仙女棒”任务",
   "tasks.marker.unrelated": "非 3×4 / “仙女棒”任务",
-  "map.search.placeholder": "搜索楼层或标识，回车定位……",
+  "map.search.placeholder": "搜索地图、楼层或任务；#标记名，回车定位……",
   "map.interactions": "地图标识信息",
   "map.information.hint": "点击地图标识或任务标题，查看详情。",
   "map.reset_view": "重置视图",
