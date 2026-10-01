@@ -14,6 +14,10 @@ struct MapFilters final {
     std::array<bool,MapCategoryCount> categories=[] {std::array<bool,MapCategoryCount> a{};a.fill(true);return a;}();
     bool grid{true},geometry{true};
     std::set<std::string,std::less<>> hiddenTasks;
+    MapIconMask hiddenIcons{};
+    // 多种可能物资共享一个点位；只在全部所属类型隐藏时隐藏点位。
+    // Possible loot types share one point; hide it only when all its types are hidden.
+    bool AllowsIcons(MapIconMask icons) const {return !icons||(icons&~hiddenIcons)!=0;}
     bool Allows(MapPointCategory category,std::string_view id) const {
         return categories[static_cast<std::size_t>(category)]
             &&(category!=MapPointCategory::Task||!hiddenTasks.contains(id));
@@ -42,14 +46,14 @@ struct MapFilterList final {
     }
 };
 inline void DrawMapCheck(const UiCanvas& canvas,const UiTheme& theme,D2D1_RECT_F row,
-    std::wstring_view label,bool checked,std::optional<MapPointCategory> category=std::nullopt){
+    std::wstring_view label,bool checked,std::optional<MapPointCategory> category=std::nullopt,MapIconMask icons=0){
     canvas.Round(row,4,checked?theme.selected:theme.background);
     const float x=row.left+12,y=(row.top+row.bottom)*.5F;
     canvas.brush.SetColor(checked?theme.accent:theme.secondaryText);
     canvas.target.DrawRectangle({x-5,y-5,x+5,y+5},&canvas.brush,1);
     if(checked){canvas.target.DrawLine({x-3,y},{x-1,y+3},&canvas.brush,1.5F);
         canvas.target.DrawLine({x-1,y+3},{x+4,y-3},&canvas.brush,1.5F);}
-    if(category)DrawMapMarkerIcon(canvas,theme,*category,{row.left+34,y},false,7);
+    if(category)DrawMapDetailIcon(canvas,theme,*category,icons,{row.left+34,y},false,7);
     const auto wrapping=canvas.smallFormat.GetWordWrapping();canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
     canvas.Text(label,canvas.smallFormat,{row.left+(category?46.0F:24.0F),row.top,row.right-4,row.bottom},
         checked?theme.primaryText:theme.secondaryText);

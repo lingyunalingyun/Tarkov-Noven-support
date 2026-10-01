@@ -68,6 +68,16 @@ int main(int argc,char** argv){
     Write(dir/"map_points.tsv",header+row);Require(!fixture.Load(dir,error),"duplicate maps reject");
     Write(dir/"map_maps.tsv",maps);Write(dir/"map_points.tsv",header);
     Require(!fixture.Load(dir,error),"empty points reject");
+    Write(dir/"map_points.tsv",header+row);
+    Write(dir/"map_point_icons.tsv","id\ticons\np1\ttoolbox,duffle\n");
+    Require(fixture.Load(dir,error)&&fixture.Point("p1")->icons.size()==2,"optional detailed icons bind to stable point identity");
+    Write(dir/"map_point_icons.tsv","id\ticons\nmissing\ttoolbox\n");
+    Require(!fixture.Load(dir,error)&&fixture.Point("p1")->icons.size()==2,"unknown icon reference rejects atomically");
+    Write(dir/"map_point_icons.tsv","id\ticons\np1\ttoolbox,\n");
+    Require(!fixture.Load(dir,error),"empty icon token rejects");
+    Write(dir/"map_point_icons.tsv","id\ticons\np1\ttoolbox\np1\tduffle\n");
+    Require(!fixture.Load(dir,error),"duplicate point icon assignment rejects");
+    std::filesystem::remove(dir/"map_point_icons.tsv");
     std::filesystem::remove(dir/"map_points.tsv");Require(!fixture.Load(dir,error),"missing table rejects");
     std::filesystem::remove(dir/"map_maps.tsv");Require(std::filesystem::remove(dir),"fixture cleanup removes only owned empty directory");
     std::cout<<"Map catalog snapshot and validation checks passed\n";

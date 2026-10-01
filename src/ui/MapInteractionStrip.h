@@ -1,7 +1,7 @@
 #pragma once
 #include "ui/UiCanvas.h"
 #include "ui/Theme.h"
-#include "ui/MapMarkerIcon.h"
+#include "ui/MapDetailIcon.h"
 #include <span>
 #include <string_view>
 #include <optional>
@@ -14,6 +14,7 @@ struct MapInteractionPoint final {
     D2D1_POINT_2F coordinate;
     std::wstring_view title;
     MapPointCategory category{MapPointCategory::EasterEgg};
+    MapIconMask icons{};
 };
 inline bool MapContains(D2D1_RECT_F r,D2D1_POINT_2F p) noexcept {
     return p.x>=r.left&&p.x<r.right&&p.y>=r.top&&p.y<r.bottom;
@@ -40,7 +41,7 @@ struct MapInteractionStrip final {
         canvas.Text(heading,canvas.smallFormat,{bounds.left+14,bounds.top+8,bounds.right-12,bounds.top+32},theme.secondaryText);
         for(std::size_t i=0;i<points.size();++i){const auto r=Entry(i,points.size());
             canvas.Round(r,5,points[i].id==selected?theme.selected:theme.background);
-            DrawMapMarkerIcon(canvas,theme,points[i].category,{r.left+18,(r.top+r.bottom)*.5F});
+            DrawMapDetailIcon(canvas,theme,points[i].category,points[i].icons,{r.left+18,(r.top+r.bottom)*.5F});
             const auto wrapping=canvas.smallFormat.GetWordWrapping();
             canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
             canvas.Text(points[i].title,canvas.smallFormat,{r.left+36,r.top+3,r.right-5,r.bottom},theme.primaryText);

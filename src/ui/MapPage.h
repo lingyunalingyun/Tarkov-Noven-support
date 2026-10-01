@@ -54,6 +54,7 @@ private:
         std::string id,floorId,mapId;MapMarkerType type;D2D1_POINT_2F coordinate;
         std::wstring chinese,english;MapPointCategory category;
         bool sharedExtract{};
+        MapIconMask icons{};
     };
     bool Allows(const Point& point) const;
     std::vector<Floor> floors_;
@@ -70,7 +71,7 @@ private:
     // 本地化返回值由条目拥有，不能保存临时翻译字符串的视图。
     // Entries own translated labels, never views into temporary localization results.
     struct FilterEntry {std::wstring label;bool enabled;std::string_view pointId;
-        std::optional<MapPointCategory> category;};
+        std::optional<MapPointCategory> category;std::optional<MapDetailIcon> detail;};
     std::vector<FilterEntry> FilterEntries() const;
     void TogglePanel(MapFilterPanel panel);
     void DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const;

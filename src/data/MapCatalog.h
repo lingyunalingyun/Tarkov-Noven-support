@@ -14,6 +14,7 @@ struct MapRecord final {
 struct MapPointRecord final {
     std::string id,mapId,kind,subtype,sourceId,nameZh,nameEn;
     MapWorldPosition position;
+    std::vector<std::string> icons;
 };
 
 // 目录拥有静态数据与身份；世界坐标不等于屏幕坐标或实时游戏状态。

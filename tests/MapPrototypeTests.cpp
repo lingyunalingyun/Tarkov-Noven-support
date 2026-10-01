@@ -18,6 +18,12 @@ int main(int argc,char** argv){
     struct ComScope {~ComScope(){CoUninitialize();}} comScope;
     using namespace noven::ui;
     MapFilters filters;
+    const auto lootIcons=MapIconFor("drink")|MapIconFor("food");
+    Require(MapDetailIcons.size()==44&&MapIconFor("toolbox")!=MapIconFor("duffle")&&MapIconFor("unknown")==0,
+        "detail icons have distinct stable identities and unknown coarse fallback");
+    filters.hiddenIcons=MapIconFor("drink");Require(filters.AllowsIcons(lootIcons),"one possible visible loot type retains source point");
+    filters.hiddenIcons|=MapIconFor("food");Require(!filters.AllowsIcons(lootIcons)&&filters.AllowsIcons(0),"all loot types hide point but preserve coarse-only points");
+    filters.hiddenIcons=0;
     Require(filters.Allows(MapPointCategory::Task,"task-a"),"filters default to visible");
     filters.ToggleTask("task-a");Require(!filters.Allows(MapPointCategory::Task,"task-a"),"task identity filter hides target");
     Require(filters.Allows(MapPointCategory::Task,"task-b"),"task identity filter does not affect other tasks");
@@ -146,13 +152,14 @@ int main(int argc,char** argv){
     click(filtered.FilterList().Row(1),50);Require(filtered.FloorId()=="demo-b3"&&filtered.InteractionId()=="demo-task-two",
         "task label focuses another floor without collapsing");
     Require(!filtered.Panel(),"focused task closes flyout");
-    click(filtered.Layout().filters[0]);settle();const auto filterBar=filtered.FilterList().Bar(MapCategoryCount);
+    click(filtered.Layout().filters[0]);settle();const auto filterCount=MapCategoryCount+MapDetailIcons.size();
+    const auto filterBar=filtered.FilterList().Bar(filterCount);
     Require(filterBar.has_value(),"point flyout has draggable overflow scrollbar");
     const auto scaleBefore=filtered.Viewport().Scale();
     Require(filtered.Wheel(-120,filtered.Layout().flyout.left+20,filtered.Layout().flyout.top+60),"flyout consumes wheel");
     Require(filtered.FilterList().scroll>0&&filtered.Viewport().Scale()==scaleBefore,"filter scrolling does not zoom map");
     filtered.Wheel(120,filtered.Layout().flyout.left+20,filtered.Layout().flyout.top+60);
-    const auto thumb=filtered.FilterList().Bar(MapCategoryCount)->thumb;
+    const auto thumb=filtered.FilterList().Bar(filterCount)->thumb;
     filtered.MouseDown((thumb.left+thumb.right)/2,thumb.top+5);filtered.MouseMove((thumb.left+thumb.right)/2,thumb.top+500);
     filtered.MouseUp((thumb.left+thumb.right)/2,thumb.top+500);
     Require(Near(filtered.FilterList().scroll,filterBar->maximum),"filter scrollbar drag reaches calculated maximum");
@@ -184,6 +191,8 @@ int main(int argc,char** argv){
     Require(actual.MapId()=="5714dbc024597771384a510d"&&actual.Points().size()==1634,"production has all positioned map point identities");
     Require(actual.Layout().stack.count==3&&!actual.Selected(),"real overview has three floors and no expanded viewport");
     const auto realPoints=actual.Points();
+    for(const auto& point:realPoints)if(point.category==MapPointCategory::Container||point.category==MapPointCategory::LooseLoot||point.category==MapPointCategory::Task)
+        Require(point.icons!=0,"all production containers, loot and tasks carry detailed icon identities");
     const auto categoryCount=[&](MapPointCategory category){return static_cast<std::size_t>(std::count_if(
         realPoints.begin(),realPoints.end(),[&](const auto& point){return point.category==category;}));};
     Require(categoryCount(MapPointCategory::LooseLoot)==483&&categoryCount(MapPointCategory::Lock)==28

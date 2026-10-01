@@ -81,6 +81,21 @@ bool MapCatalog::Load(const std::filesystem::path& directory,std::wstring& error
                 ||f[4].empty()||(f[5].empty()&&f[6].empty()))throw std::runtime_error("invalid point/reference");
             next.points_.push_back({f[0],f[1],f[2],f[3],f[4],f[5],f[6],{Number(f[7]),Number(f[8]),Number(f[9])}});
         });
+        if(std::filesystem::exists(directory/"map_point_icons.tsv")){
+            std::unordered_set<std::string> iconPoints;
+            Read(directory,"map_point_icons.tsv","id\ticons",[&](const auto& f){
+                auto point=std::find_if(next.points_.begin(),next.points_.end(),[&](const auto& p){return p.id==f[0];});
+                if(point==next.points_.end()||!iconPoints.insert(f[0]).second)throw std::runtime_error("invalid icon reference");
+                std::size_t start=0;
+                while(start<f[1].size()){
+                    const auto end=f[1].find(',',start);
+                    auto token=f[1].substr(start,end==std::string::npos?end:end-start);Identity(token);
+                    point->icons.push_back(std::move(token));
+                    if(end==std::string::npos)break;start=end+1;
+                }
+                if(point->icons.empty()||f[1].back()==',')throw std::runtime_error("empty icon identity");
+            });
+        }
         if(!next.Ready())throw std::runtime_error("empty catalog");
         for(const auto& map:next.maps_)if(std::none_of(next.points_.begin(),next.points_.end(),[&](const auto& p){return p.mapId==map.id;}))
             throw std::runtime_error("map without points");
