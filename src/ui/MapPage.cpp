@@ -51,6 +51,11 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     if(!map||candidate.Maps().size()!=1||map->normalizedName!="interchange"){
         error=L"Unsupported map reference";unavailable_=true;return false;}
     std::vector<LocalImage> images(reference::Floors.size());
+    std::vector<LocalImage> upperImages(reference::Floors.size());LocalImage satellite;
+    if(!satellite.Load(assets/L"maps"/L"interchange"/L"Satellite.png")){
+        error=L"Satellite background unavailable";unavailable_=true;return false;}
+    for(std::size_t i=0;i<2;++i)if(!upperImages[i].Load(assets/L"maps"/L"interchange"/(std::string(reference::Floors[i].id)+".overlay.png"))){
+        error=L"Upper floor overlay unavailable";unavailable_=true;return false;}
     MapIconImages markerImages;
     if(!markerImages.Load(assets/L"maps"/L"icons")){
         error=L"Local DEV marker icons unavailable";unavailable_=true;return false;}
@@ -62,6 +67,7 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     Overview();floor_id_={};map_id_={};interaction_id_={};progress_=0;search_.SetText(L"");filters_={};
     catalog_=std::move(candidate);maps_.clear();floors_.clear();points_.clear();images_=std::move(images);
     marker_images_=std::move(markerImages);
+    satellite_=std::move(satellite);upper_images_=std::move(upperImages);
     map=catalog_.Map(reference::MapId);maps_.push_back({map->id,Wide(map->nameZh),Wide(map->nameEn)});
     map_id_=maps_.front().id;
     for(const auto& f:reference::Floors)floors_.push_back({std::string(f.id),std::wstring(f.label)});
@@ -141,7 +147,7 @@ void MapPage::SelectMap(std::string_view id){
 void MapPage::SelectFloor(std::string_view id){
     const auto found=std::find_if(floors_.begin(),floors_.end(),[&](const auto& floor){return floor.id==id;});
     if(found==floors_.end()||(Selected()&&floor_id_==id))return;
-    const bool first=!Selected();floor_from_=FloorPosition();floor_id_=found->id;
+    const bool first=!Selected();previous_floor_=FloorIndex();floor_from_=FloorPosition();floor_id_=found->id;
     floor_to_=static_cast<float>(FloorIndex());floor_progress_=first?1.0F:0.0F;
     if(first)floor_from_=floor_to_;
     expanded_=true;
@@ -188,6 +194,8 @@ std::vector<MapPage::FilterEntry> MapPage::FilterEntries() const {
         entries.push_back({Tr("map.layer.other_floors"),filters_.otherFloors,{},std::nullopt});
         entries.push_back({Tr("map.layer.other_opacity")+L" · "+std::to_wstring(static_cast<int>(std::lround(filters_.otherFloorOpacity*100)))+L"%",true,{},std::nullopt});
         entries.push_back({L"",true,{},std::nullopt});
+        entries.push_back({Tr("map.layer.satellite"),filters_.satellite,{},std::nullopt});
+        entries.push_back({Tr("map.layer.abstract"),!filters_.satellite,{},std::nullopt});
     }else{
         const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
         for(const auto& p:points_)if(p.mapId==map_id_&&p.category==MapPointCategory::Task
@@ -214,7 +222,7 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
     canvas.target.PushAxisAlignedClip(list.Body(),D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(entries.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,list.Body(),theme.secondaryText);
     for(std::size_t i=0;i<entries.size();++i){auto row=list.Row(i);if(entries[i].detail)row.left+=12;
-        if(*panel_==MapFilterPanel::Layers&&i>=3){
+        if(*panel_==MapFilterPanel::Layers&&(i==3||i==4)){
             if(i==3)canvas.Text(entries[i].label,canvas.smallFormat,row,theme.secondaryText);
             else MapOpacitySlider{row}.Draw(canvas,theme,filters_.otherFloorOpacity);
             continue;
@@ -230,9 +238,6 @@ void MapPage::Tick(float elapsed){
     progress_=std::clamp(progress_+(Selected()?dt:-dt)/.36F,0.0F,1.0F);
     panel_progress_=std::clamp(panel_progress_+(panel_open_?dt:-dt)/.18F,0.0F,1.0F);
     floor_progress_=std::min(1.0F,floor_progress_+dt/.22F);clock_=std::fmod(clock_+dt,1.0F);
-}
-D2D1_RECT_F MapPage::ResetBounds() const noexcept {
-    const auto r=layout_.viewport;return {std::max(r.left+8,r.right-130),r.top+10,r.right-10,r.top+42};
 }
 void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     DrawPageHeader(canvas,theme,layout_.search.left,layout_.search.right,Tr(TextKey::NavMap));
@@ -271,7 +276,16 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.Round(r,theme.cornerRadius,theme.surface);
         const auto origin=viewport_.ToScreen({0,0}),end=viewport_.ToScreen({world_.width,world_.height});
         canvas.Fill({origin.x,origin.y,end.x,end.y},theme.background);canvas.brush.SetColor(theme.divider);
-        if(real_&&filters_.geometry)images_[FloorIndex()].Draw(canvas.target,{origin.x,origin.y,end.x,end.y},opacity*reveal,expanded);
+        if(real_&&filters_.geometry){
+            const auto imageRect=D2D1_RECT_F{origin.x,origin.y,end.x,end.y};const float transition=MapLayout::Ease(floor_progress_);
+            if(filters_.satellite)satellite_.Draw(canvas.target,imageRect,opacity*reveal,expanded);
+            const auto drawFloor=[&](std::size_t index,float alpha){
+                if(alpha<=0)return;
+                const auto& image=filters_.satellite?upper_images_[index]:images_[index];
+                if(image.Ready())image.Draw(canvas.target,imageRect,opacity*reveal*alpha,expanded);};
+            if(floor_progress_<1)drawFloor(previous_floor_,filters_.satellite?1-transition:1.0F);
+            drawFloor(FloorIndex(),transition);
+        }
         for(float x=0;filters_.grid&&x<=world_.width;x+=100)
             canvas.target.DrawLine(viewport_.ToScreen({x,0}),viewport_.ToScreen({x,world_.height}),&canvas.brush,.5F);
         for(float y=0;filters_.grid&&y<=world_.height;y+=100)
@@ -289,12 +303,11 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
             else marker_images_.Draw(canvas,theme,p.category,p.icons,marker,p.id==interaction_id_);
         }
         canvas.brush.SetOpacity(opacity*reveal);
-        canvas.Round(ResetBounds(),5,theme.surface);
-        canvas.Text(Tr(TextKey::MapReset),canvas.smallFormat,ResetBounds(),theme.primaryText);
+        MapResetButton{r}.Draw(canvas,theme);
         canvas.Text(floors_[FloorIndex()].label,canvas.body,{r.left+14,r.top+10,r.left+70,r.top+38},theme.accent);
         if(points.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,
             {r.left+16,r.top+50,r.right-16,r.top+80},theme.secondaryText);
-        canvas.Text(Tr(real_?TextKey::MapReference:TextKey::MapPreview),canvas.smallFormat,{r.left+14,r.bottom-30,r.right-14,r.bottom-6},theme.secondaryText);
+        canvas.Text(Tr(real_?TextKey::MapReference:TextKey::MapPreview),canvas.smallFormat,{r.left+14,r.bottom-30,r.right-64,r.bottom-6},theme.secondaryText);
         canvas.target.PopAxisAlignedClip();
         auto anchor=layout_.stack.Plate(0).vertices[1];const float index=FloorPosition();
         anchor.x-=index*layout_.stack.width*layout_.stack.stagger;anchor.y+=index*layout_.stack.width*.20F;
@@ -306,8 +319,11 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
             {layout_.content.left,layout_.content.bottom-35,layout_.content.right,layout_.content.bottom},theme.secondaryText);
     }
     std::vector<std::wstring_view> labels;
+    std::vector<const LocalImage*> previews,overlays;
     for(const auto& floor:floors_)labels.push_back(floor.label);
-    layout_.stack.Draw(canvas,theme,labels,Selected()?std::optional<std::size_t>(FloorIndex()):std::nullopt,hovered_floor_);
+    if(real_)for(std::size_t i=0;i<floors_.size();++i){previews.push_back(filters_.satellite?&satellite_:&images_[i]);
+        overlays.push_back(filters_.satellite&&upper_images_[i].Ready()?&upper_images_[i]:nullptr);}
+    layout_.stack.Draw(canvas,theme,labels,Selected()?std::optional<std::size_t>(FloorIndex()):std::nullopt,hovered_floor_,previews,overlays,FloorPosition());
     if(progress_>0)DrawFilters(canvas,theme);
     if(Selected()&&layout_.content.bottom-layout_.filters.back().bottom>=134){
         const auto left=layout_.filters.back().left,right=layout_.filters.back().right;
@@ -371,7 +387,7 @@ void MapPage::MouseDown(float x,float y){
     }
     pressed_floor_=layout_.stack.Hit(p);if(pressed_floor_)return;
     if(!Selected()||progress_<1)return;
-    if(MapContains(ResetBounds(),p)){reset_pressed_=true;return;}
+    if(MapResetButton{layout_.viewport}.Hit(p)){reset_pressed_=true;return;}
     if(const auto id=MarkerAt(p)){pressed_point_=*id;return;}
     if(MapContains(layout_.viewport,p)){viewport_.StopFocus();drag_=p;}
 }
@@ -393,6 +409,8 @@ void MapPage::MouseUp(float x,float y){
             if(row==0)filters_.grid=!filters_.grid;
             else if(row==1)filters_.geometry=!filters_.geometry;
             else if(row==2)filters_.otherFloors=!filters_.otherFloors;
+            else if(row==5)filters_.satellite=true;
+            else if(row==6)filters_.satellite=false;
         }
         else if(pressed_row_check_)filters_.ToggleTask(entries[row].pointId);
         else if(FocusInteraction(entries[row].pointId))panel_open_=false;
@@ -403,7 +421,7 @@ void MapPage::MouseUp(float x,float y){
         auto id=MarkerAt(p);
         if(id&&*id==pressed_point_)FocusInteraction(*id);
     }
-    if(reset_pressed_&&MapContains(ResetBounds(),p))viewport_.Fit();CancelDrag();
+    if(reset_pressed_&&MapResetButton{layout_.viewport}.Hit(p))viewport_.Fit();CancelDrag();
 }
 bool MapPage::Wheel(int delta,float x,float y){
     if(panel_&&panel_progress_>0&&MapContains(layout_.flyout,{x,y})){

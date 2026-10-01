@@ -180,6 +180,8 @@
   "map.game_time": "游戏时间 · 参考",
   "map.layer.geometry": "地图底图",
   "map.layer.other_floors": "显示非当前层标记",
+  "map.layer.satellite": "卫星图",
+  "map.layer.abstract": "抽象图",
   "map.layer.other_opacity": "非当前层不透明度",
   "map.reference": "静态参考 · Tarkov.dev · 底图 Shebuka / CC BY-NC-SA 4.0",
   "map.category.containers": "容器",

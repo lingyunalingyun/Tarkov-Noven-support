@@ -15,6 +15,7 @@ struct MapFilters final {
     bool grid{true},geometry{true};
     bool otherFloors{true};
     float otherFloorOpacity{.30F};
+    bool satellite{};
     std::set<std::string,std::less<>> hiddenTasks;
     MapIconMask hiddenIcons{};
     // 多种可能物资共享一个点位；只在全部所属类型隐藏时隐藏点位。

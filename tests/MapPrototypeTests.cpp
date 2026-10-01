@@ -52,6 +52,10 @@ int main(int argc,char** argv){
         const auto point=D2D1::Point2F(plate.anchor.x,plate.anchor.y-2);
         Require(stack.Hit(point)==i,"each exposed floor can be selected");
         Require(plate.Contains(point),"selected geometry contains hit point");
+        const auto previewTransform=plate.PreviewTransform();
+        const auto previewCorner=previewTransform.TransformPoint({0,0}),previewEnd=previewTransform.TransformPoint({1,1});
+        Require(Near(previewCorner.x,plate.vertices[3].x)&&Near(previewCorner.y,plate.vertices[3].y)
+            &&Near(previewEnd.x,plate.vertices[1].x)&&Near(previewEnd.y,plate.vertices[1].y),"preview rectangle maps exactly onto floor plate");
     }
     Require(!stack.Hit({0,0}),"outside stack does not select floor");
     const auto count=MapPrototype::Floors.size();
@@ -74,6 +78,7 @@ int main(int argc,char** argv){
         Require(layout.stack.Plate(0).vertices[1].x<layout.viewport.left,"stack stays left of map");
     }
     MapViewport view(MapPrototype::World);view.SetBounds({400,250,1200,750});
+    MapResetButton resetButton{view.Bounds()};Require(resetButton.Hit({1170,708})&&!resetButton.Hit({1152,690}),"reset hit matches circular bottom-right control");
     const D2D1_POINT_2F map{420,310};const auto screen=view.ToScreen(map),roundTrip=view.ToMap(screen);
     Require(Near(map.x,roundTrip.x)&&Near(map.y,roundTrip.y),"map/screen round trip");
     const D2D1_POINT_2F cursor{790,480};const auto anchor=view.ToMap(cursor);view.ZoomAt(cursor,2);
@@ -144,6 +149,10 @@ int main(int argc,char** argv){
     ghost.MouseDown(opacitySlider.Left(),opacityY);ghost.MouseUp(opacitySlider.Left(),opacityY);
     Require(ghost.Filters().otherFloorOpacity==0&&ghost.MarkerOpacity(ghostPoints.front())==0,"opacity zero hides ghost markers");
     clickGhost(ghost.Layout().filters[1]);settleGhost();Require(!ghost.Panel(),"close flyout before testing map hits");
+    clickGhost(ghost.Layout().filters[1]);settleGhost();clickGhost(ghost.FilterList().Row(5));
+    Require(ghost.Filters().satellite,"satellite style selects exclusively");clickGhost(ghost.FilterList().Row(6));
+    Require(!ghost.Filters().satellite,"abstract style restores without toggling geometry");
+    clickGhost(ghost.Layout().filters[1]);settleGhost();
     ghostPosition=ghost.Viewport().ToScreen(ghostPoints.front().coordinate);
     ghost.MouseDown(ghostPosition.x,ghostPosition.y);ghost.MouseUp(ghostPosition.x,ghostPosition.y);
     Require(ghost.FloorId()=="demo-b1","invisible ghost cannot switch floors");
@@ -319,6 +328,15 @@ int main(int argc,char** argv){
         Require(SUCCEEDED(target->EndDraw()),"official marker icons survive independent render-target recreation");
         target->BeginDraw();Require(image.Draw(*target.Get(),{0,0,64,64}),"local image creates target-owned bitmap");
         Require(SUCCEEDED(target->EndDraw()),"target recreation retains valid image rendering");
+        const std::array<const LocalImage*,3> thumbnails{&image,&image,&image};
+        const std::array<std::wstring_view,3> floorLabels{L"2F",L"1F",L"B1"};
+        const auto parentTransform=D2D1::Matrix3x2F::Translation(2,3);target->SetTransform(parentTransform);
+        target->BeginDraw();FloorStack{{12,4},30,3,0}.Draw(iconCanvas,{},floorLabels,1,std::nullopt,thumbnails,{},.5F);
+        MapResetButton{{0,0,64,64}}.Draw(iconCanvas,{});
+        Require(SUCCEEDED(target->EndDraw()),"textured floor previews and vector reset render on recreated targets");
+        D2D1_MATRIX_3X2_F restored;target->GetTransform(&restored);
+        Require(restored._31==parentTransform._31&&restored._32==parentTransform._32&&restored._11==1,"thumbnail restores inherited page transform");
+        target->SetTransform(D2D1::Matrix3x2F::Identity());
         target->BeginDraw();Require(image.Draw(*target.Get(),{-2000,-2000,6192,4880},1,D2D1_RECT_F{0,0,64,64}),
             "zoomed local image renders visible native-resolution tiles");
         Require(SUCCEEDED(target->EndDraw()),"high-resolution tiles survive target recreation");

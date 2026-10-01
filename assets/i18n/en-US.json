@@ -180,6 +180,8 @@
   "map.game_time": "Game time · reference",
   "map.layer.geometry": "Map background",
   "map.layer.other_floors": "Show other-floor markers",
+  "map.layer.satellite": "Satellite",
+  "map.layer.abstract": "Abstract",
   "map.layer.other_opacity": "Other-floor opacity",
   "map.reference": "Static reference · Tarkov.dev · Map by Shebuka / CC BY-NC-SA 4.0",
   "map.category.containers": "Containers",

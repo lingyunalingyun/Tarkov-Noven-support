@@ -3,6 +3,7 @@
 #include "ui/MapPrototypeData.h"
 #include "ui/MapViewport.h"
 #include "ui/MapClock.h"
+#include "ui/MapViewportControls.h"
 #include "ui/SearchBox.h"
 #include "ui/LocalImage.h"
 #include "data/MapCatalog.h"
@@ -65,12 +66,14 @@ private:
     std::vector<Point> points_;
     std::vector<LocalImage> images_;
     MapIconImages marker_images_;
+    LocalImage satellite_;
+    std::vector<LocalImage> upper_images_;
+    std::size_t previous_floor_{};
     data::MapCatalog catalog_;
     D2D1_SIZE_F world_{MapPrototype::World};
     bool real_{},unavailable_{};
     std::size_t FloorIndex() const;
     float FloorPosition() const noexcept;
-    D2D1_RECT_F ResetBounds() const noexcept;
     std::optional<std::string_view> MarkerAt(D2D1_POINT_2F p) const;
     // 本地化返回值由条目拥有，不能保存临时翻译字符串的视图。
     // Entries own translated labels, never views into temporary localization results.
