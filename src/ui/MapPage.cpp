@@ -11,7 +11,9 @@ namespace {
 std::wstring Fold(std::wstring_view text){std::wstring value(text);
     for(auto& c:value)c=static_cast<wchar_t>(std::towlower(c));return value;}
 bool Matches(std::wstring_view value,std::wstring_view query){return Fold(value).find(Fold(query))!=std::wstring::npos;}
-constexpr std::array CategoryKeys{TextKey::MapContainers,TextKey::MapMines,TextKey::MapBoss,TextKey::MapTasks,
+constexpr std::array<std::string_view,MapCategoryCount> CategoryKeys{TextKey::MapContainers,"map.category.loose_loot",
+    "map.category.locks","map.category.switches","map.category.stationary_weapons",TextKey::MapMines,
+    "map.category.artillery",TextKey::MapBoss,TextKey::MapTasks,
     TextKey::MapPmcExtract,TextKey::MapScavExtract,TextKey::MapCoopExtract,TextKey::MapTransit,TextKey::MapHiddenExtract,
     TextKey::MapSnipers,TextKey::MapSpawns,TextKey::MapScavSpawns,TextKey::MapBtr,TextKey::MapEasterEggs};
 constexpr std::array FilterKeys{TextKey::MapFilterPoints,TextKey::MapFilterLayers,TextKey::MapFilterTasks};
@@ -50,7 +52,13 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     for(const auto& f:reference::Floors)floors_.push_back({std::string(f.id),std::wstring(f.label)});
     for(const auto& p:catalog_.Points()){
         MapPointCategory category=MapPointCategory::Container;MapMarkerType type=MapMarkerType::Point;bool shared=false;
-        if(p.kind=="extract"){
+        if(p.kind=="loose")category=MapPointCategory::LooseLoot;
+        else if(p.kind=="lock")category=MapPointCategory::Lock;
+        else if(p.kind=="switch")category=MapPointCategory::Switch;
+        else if(p.kind=="stationary")category=MapPointCategory::StationaryWeapon;
+        else if(p.kind=="task"){category=MapPointCategory::Task;type=MapMarkerType::Task;}
+        else if(p.kind=="artillery")category=MapPointCategory::Artillery;
+        else if(p.kind=="extract"){
             type=MapMarkerType::Extract;
             const bool cooperative=p.nameEn.find("Co-Op")!=std::string::npos;
             category=cooperative?MapPointCategory::CoopExtract:p.subtype=="scav"?MapPointCategory::ScavExtract:MapPointCategory::PmcExtract;
@@ -59,7 +67,10 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
         else if(p.kind=="boss")category=MapPointCategory::Boss;
         else if(p.kind=="btr")category=MapPointCategory::Btr;
         else if(p.kind=="hazard")category=p.subtype=="minefield"?MapPointCategory::Mine:MapPointCategory::Sniper;
-        else if(p.kind=="spawn")category=p.subtype.find("\"scav\"")!=std::string::npos?MapPointCategory::ScavSpawn:MapPointCategory::Spawn;
+        else if(p.kind=="spawn"){
+            if(p.subtype.find("\"boss\"")!=std::string::npos)category=MapPointCategory::Boss;
+            else category=p.subtype.find("\"scav\"")!=std::string::npos?MapPointCategory::ScavSpawn:MapPointCategory::Spawn;
+        }
         const auto xy=reference::Project(p.position);
         points_.push_back({p.id,std::string(reference::FloorFor(p.position)),p.mapId,type,
             {static_cast<float>(xy.x),static_cast<float>(xy.y)},Wide(p.nameZh),Wide(p.nameEn),category,shared});
@@ -213,8 +224,13 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
             canvas.target.DrawLine(viewport_.ToScreen({0,y}),viewport_.ToScreen({world_.width,y}),&canvas.brush,.5F);
         if(!real_&&filters_.geometry)for(const auto block:MapPrototype::Buildings){const auto a=viewport_.ToScreen({block.left,block.top}),b=viewport_.ToScreen({block.right,block.bottom});
             canvas.Round({a.x,a.y,b.x,b.y},3,theme.selected);}
-        for(const auto& p:points)if(p.floorId==floor_id_)
-            DrawMapMarker(canvas,theme,p.type,viewport_.ToScreen(p.coordinate),p.id==interaction_id_);
+        const bool dense=points.size()>300&&viewport_.Scale()<viewport_.MinimumScale()*1.8F;
+        for(const auto& p:points)if(p.floorId==floor_id_){
+            const auto marker=viewport_.ToScreen(p.coordinate);
+            if(marker.x<r.left-16||marker.x>r.right+16||marker.y<r.top-16||marker.y>r.bottom+16)continue;
+            if(dense&&p.id!=interaction_id_)canvas.Circle(marker,2.5F,theme.accent);
+            else DrawMapMarker(canvas,theme,p.type,marker,p.id==interaction_id_);
+        }
         canvas.Round(ResetBounds(),5,theme.surface);
         canvas.Text(Tr(TextKey::MapReset),canvas.smallFormat,ResetBounds(),theme.primaryText);
         canvas.Text(floors_[FloorIndex()].label,canvas.body,{r.left+14,r.top+10,r.left+70,r.top+38},theme.accent);

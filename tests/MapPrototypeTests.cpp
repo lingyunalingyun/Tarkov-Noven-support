@@ -150,8 +150,8 @@ int main(int argc,char** argv){
     Require(filtered.FilterList().scroll>0&&filtered.Viewport().Scale()==scaleBefore,"filter scrolling does not zoom map");
     filtered.Wheel(120,filtered.Layout().flyout.left+20,filtered.Layout().flyout.top+60);
     const auto thumb=filtered.FilterList().Bar(MapCategoryCount)->thumb;
-    filtered.MouseDown((thumb.left+thumb.right)/2,thumb.top+5);filtered.MouseMove((thumb.left+thumb.right)/2,thumb.top+50);
-    filtered.MouseUp((thumb.left+thumb.right)/2,thumb.top+50);
+    filtered.MouseDown((thumb.left+thumb.right)/2,thumb.top+5);filtered.MouseMove((thumb.left+thumb.right)/2,thumb.top+500);
+    filtered.MouseUp((thumb.left+thumb.right)/2,thumb.top+500);
     Require(Near(filtered.FilterList().scroll,filterBar->maximum),"filter scrollbar drag reaches calculated maximum");
     filtered.MouseDown(30,200);filtered.MouseUp(30,200);
     Require(filtered.Panel()==MapFilterPanel::Points,"sidebar navigation press preserves filter flyout");
@@ -178,7 +178,7 @@ int main(int argc,char** argv){
     MapPage actual;std::wstring error;
     Require(actual.Initialize(std::filesystem::path(argv[1]),error)&&actual.RealData(),"real local Interchange binds with all three images");
     actual.Prepare(1400,850,{});
-    Require(actual.MapId()=="5714dbc024597771384a510d"&&actual.Points().size()==1070,"production has real stable map and point identities");
+    Require(actual.MapId()=="5714dbc024597771384a510d"&&actual.Points().size()==1634,"production has all positioned map point identities");
     Require(actual.Layout().stack.count==3&&!actual.Selected(),"real overview has three floors and no expanded viewport");
     const auto realPoints=actual.Points();
     for(const auto floor:{"Ground_Level","First_Floor","Second_Floor"}){
@@ -190,7 +190,7 @@ int main(int argc,char** argv){
     Require(actual.Selected()&&actual.FloorId()=="First_Floor","real overview back retains floor selection contract");
     const auto query=actual.Layout().search;actual.MouseDown(query.left+8,query.top+8);
     for(const auto c:std::wstring(L"1F"))actual.Char(c);
-    Require(actual.Key(VK_RETURN,false)&&actual.FloorId()=="First_Floor"&&actual.Points().size()==442,
+    Require(actual.Key(VK_RETURN,false)&&actual.FloorId()=="First_Floor"&&actual.Points().size()==708,
         "real floor search retains floor markers even without floor names in API titles");
     for(const auto& point:actual.Points())Require(point.floorId=="First_Floor","floor query excludes other-floor markers");
     LocalImage image;

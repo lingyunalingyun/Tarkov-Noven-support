@@ -6,8 +6,9 @@
 #include <string>
 
 namespace noven::ui {
-enum class MapPointCategory { Container, Mine, Boss, Task, PmcExtract, ScavExtract,
-    CoopExtract, Transit, HiddenExtract, Sniper, Spawn, ScavSpawn, Btr, EasterEgg, Count };
+enum class MapPointCategory { Container, LooseLoot, Lock, Switch, StationaryWeapon, Mine, Artillery,
+    Boss, Task, PmcExtract, ScavExtract, CoopExtract, Transit, HiddenExtract, Sniper, Spawn,
+    ScavSpawn, Btr, EasterEgg, Count };
 inline constexpr std::size_t MapCategoryCount=static_cast<std::size_t>(MapPointCategory::Count);
 enum class MapFilterPanel { Points, Layers, Tasks };
 // 分类开关与任务身份独立；任务被隐藏后不能因分类重新打开而出现。
