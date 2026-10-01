@@ -36,12 +36,13 @@ bool MainWindowUi::Initialize(HWND window, std::wstring& error) {
         return false;
     }
     if(!CreateTextFormats(error)||!CreateRenderTarget(error))return false;
-    SetTimer(window_,MapClockTimerId,250,nullptr);return true;
+    return true;
 }
 
 void MainWindowUi::MapClockTick(){
     // 时钟刷新与 60Hz 动画分离，只重绘当前地图页。
     // Clock refresh is separate from 60Hz animation and repaints only the active Map page.
+    if(!IsWindowVisible(window_)||IsIconic(window_))return;
     if(navigation_.Active()==MainPage::Map&&map_.ClockTick(MapUtcMilliseconds()))Invalidate();
 }
 
@@ -87,6 +88,7 @@ bool MainWindowUi::SelectPage(MainPage page) {
     if(page==navigation_.Active()) return false;
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
+    if(page==MainPage::Map)SetTimer(window_,MapClockTimerId,250,nullptr);else KillTimer(window_,MapClockTimerId);
     if(page==MainPage::Tasks)tasks_.Activate();
     Invalidate();return true;
 }
@@ -1063,7 +1065,9 @@ bool MainWindowUi::AnimationActive() const noexcept {
 
 bool MainWindowUi::AnimationTick() {
     const auto now = std::chrono::steady_clock::now();
+    const bool outgoingMap=page_transition_.ShowingOutgoing(MainPage::Map);
     page_transition_.Tick(now);
+    if(outgoingMap&&!page_transition_.ShowingOutgoing(MainPage::Map)&&navigation_.Active()!=MainPage::Map)map_.ReleaseDetailImages();
     if (price_search_transition_.progress < 1) {
         price_search_transition_.progress = std::clamp(
             std::chrono::duration<float>(now - price_search_started_).count() / 0.65F, 0.0F, 1.0F);

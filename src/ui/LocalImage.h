@@ -59,6 +59,10 @@ public:
         return true;
     }
     bool Ready() const noexcept{return !pixels_.empty();}
+    // UI 所有者可释放闲置高清 GPU 块；保留预览、包目录和 target 预览身份，下次按需重读。
+    // UI owners may release idle detail GPU tiles, retaining previews/index/preview targets for on-demand reload.
+    void ReleaseDetailCache() const noexcept{tiles_={};}
+    std::size_t DetailTileCount() const noexcept{return static_cast<std::size_t>(std::count_if(tiles_.begin(),tiles_.end(),[](const Tile& tile){return tile.bitmap!=nullptr;}));}
     bool Draw(ID2D1RenderTarget& target,D2D1_RECT_F rectangle,float opacity=1,
         std::optional<D2D1_RECT_F> clip=std::nullopt) const {
         if(!Ready())return false;

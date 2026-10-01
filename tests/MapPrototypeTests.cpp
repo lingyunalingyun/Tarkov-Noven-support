@@ -379,6 +379,10 @@ int main(int argc,char** argv){
         target->BeginDraw();Require(image.Draw(*target.Get(),{-2000,-2000,6192,4880},1,D2D1_RECT_F{0,0,64,64}),
             "zoomed local image renders visible native-resolution tiles");
         Require(SUCCEEDED(target->EndDraw()),"high-resolution tiles survive target recreation");
+        Require(image.DetailTileCount()>0&&image.DetailTileCount()<=64,"detail cache is populated and bounded");
+        image.ReleaseDetailCache();Require(image.DetailTileCount()==0&&image.Ready(),"detail release preserves loaded preview and metadata");
+        target->BeginDraw();Require(image.Draw(*target.Get(),{-2000,-2000,6192,4880},1,D2D1_RECT_F{0,0,64,64}),"released detail tiles reload from local pack on demand");
+        Require(SUCCEEDED(target->EndDraw()),"detail reload retains native target validity");
         if(targetIndex==0){
             for(int pass=0;pass<2;++pass){
                 const auto start=std::chrono::steady_clock::now();

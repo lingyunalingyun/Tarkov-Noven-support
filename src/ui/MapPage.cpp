@@ -155,6 +155,7 @@ void MapPage::SelectFloor(std::string_view id){
     if(first)floor_from_=floor_to_;
     expanded_=true;
     interaction_id_={};viewport_.StopFocus();CancelDrag();
+    TrimDetailImages();
 }
 bool MapPage::FocusInteraction(std::string_view id){
     const auto found=std::find_if(points_.begin(),points_.end(),[&](const auto& point){return point.id==id;});
@@ -270,12 +271,25 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
     DrawScrollbar(canvas,theme,{list.Bar(entries.size()),1});
     canvas.target.PopAxisAlignedClip();canvas.target.PopAxisAlignedClip();canvas.brush.SetOpacity(opacity);
 }
+void MapPage::ReleaseDetailImages() const noexcept {
+    satellite_.ReleaseDetailCache();for(const auto& image:images_)image.ReleaseDetailCache();
+    for(const auto& image:upper_images_)image.ReleaseDetailCache();
+}
+void MapPage::TrimDetailImages() const noexcept {
+    if(progress_==0||!filters_.geometry){ReleaseDetailImages();return;}
+    const auto needed=[&](std::size_t i){return i==FloorIndex()||(floor_progress_<1&&i==previous_floor_);};
+    if(!filters_.satellite)satellite_.ReleaseDetailCache();
+    for(std::size_t i=0;i<images_.size();++i)if(filters_.satellite||!needed(i))images_[i].ReleaseDetailCache();
+    for(std::size_t i=0;i<upper_images_.size();++i)if(!filters_.satellite||!needed(i))upper_images_[i].ReleaseDetailCache();
+}
 void MapPage::Tick(float elapsed){
+    const bool switching=floor_progress_<1,closing=progress_>0&&!Selected();
     const float dt=std::clamp(elapsed,0.0F,.05F);
     viewport_.Tick(dt);
     progress_=std::clamp(progress_+(Selected()?dt:-dt)/.36F,0.0F,1.0F);
     panel_progress_=std::clamp(panel_progress_+(panel_open_?dt:-dt)/.18F,0.0F,1.0F);
     floor_progress_=std::min(1.0F,floor_progress_+dt/.22F);
+    if((switching&&floor_progress_==1)||(closing&&progress_==0))TrimDetailImages();
 }
 bool MapPage::ClockTick(std::int64_t utc) noexcept {
     const bool caret=(utc%1000+1000)%1000<500;
@@ -449,6 +463,7 @@ void MapPage::MouseUp(float x,float y){
             else if(row==2)filters_.otherFloors=!filters_.otherFloors;
             else if(row==5)filters_.satellite=true;
             else if(row==6)filters_.satellite=false;
+            if(row==1||row==5||row==6)TrimDetailImages();
         }
         else if(pressed_row_check_)filters_.ToggleTask(entries[row].pointId);
         else if(FocusInteraction(entries[row].pointId))panel_open_=false;
