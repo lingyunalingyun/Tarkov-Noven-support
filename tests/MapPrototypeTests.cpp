@@ -84,6 +84,18 @@ int main(int argc,char** argv){
     Require(Near(focused.x,800)&&Near(focused.y,500),"focus centers requested coordinate");
     const auto oldScale=view.Scale();view.SetBounds({400,250,1200,750});
     Require(view.Scale()==oldScale,"unchanged bounds preserve view");
+    view.FocusSmooth({650,400});const auto focusStart=view.ToScreen({650,400});
+    Require(view.Focusing()&&!Near(focusStart.x,800),"smooth focus does not teleport");
+    view.Tick(.16F);const auto focusHalf=view.ToScreen({650,400});
+    Require(std::abs(focusHalf.x-800)<std::abs(focusStart.x-800)&&view.Focusing(),"smooth focus advances toward visual center");
+    view.SetBounds({420,270,1220,770});Require(view.Focusing(),"resize retains focus animation");
+    view.Tick(.16F);const auto focusEnd=view.ToScreen({650,400});
+    Require(!view.Focusing()&&Near(focusEnd.x,820)&&Near(focusEnd.y,520)&&Near(view.Scale(),oldScale),"focus settles at resized center without zoom");
+    view.FocusSmooth({300,250});view.Tick(.08F);const auto retargetStart=view.ToScreen({300,250});
+    view.FocusSmooth({500,300});Require(Near(view.ToScreen({300,250}).x,retargetStart.x),"focus retarget has no discontinuity");
+    view.Pan({10,0});Require(!view.Focusing(),"manual pan cancels focus");
+    view.FocusSmooth({300,250});view.ZoomAt({800,500},1);Require(!view.Focusing(),"manual zoom cancels focus");
+    view.FocusSmooth({300,250});view.Fit();Require(!view.Focusing(),"reset cancels focus");
     const auto& demo=MapPrototype::Points[1];
     const std::array points{MapInteractionPoint{demo.id,demo.floorId,demo.type,demo.coordinate,demo.english,demo.category}};
     MapInteractionStrip strip{{400,140,1000,235}};

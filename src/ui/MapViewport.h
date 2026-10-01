@@ -13,7 +13,7 @@ public:
         if(bounds.left==bounds_.left&&bounds.top==bounds_.top&&bounds.right==bounds_.right&&bounds.bottom==bounds_.bottom)return;
         const auto center=ToMap(Center());bounds_=bounds;
         if(!initialized_){Fit();return;}
-        scale_=std::clamp(scale_,MinimumScale(),MaximumScale());Focus(center);
+        scale_=std::clamp(scale_,MinimumScale(),MaximumScale());Place(center);
     }
     D2D1_RECT_F Bounds() const noexcept{return bounds_;}
     float Scale() const noexcept{return scale_;}
@@ -25,16 +25,33 @@ public:
         scale_=FitScale();initialized_=true;Focus({world_.width*.5F,world_.height*.5F});
     }
     void Focus(D2D1_POINT_2F map) noexcept {
-        const auto center=Center();offset_={center.x-map.x*scale_,center.y-map.y*scale_};ClampPan();
+        StopFocus();Place(map);
+    }
+    // 聚焦仅移动中心，保留缩放；连续选择从当前采样姿态重新开始。
+    // Focus moves only the center, preserving zoom; retarget from the current sampled pose.
+    void FocusSmooth(D2D1_POINT_2F map) noexcept {
+        focus_from_=ToMap(Center());focus_to_=map;focus_progress_=0;
+    }
+    bool Focusing() const noexcept{return focus_progress_<1;}
+    void StopFocus() noexcept{focus_progress_=1;}
+    void Tick(float elapsed) noexcept {
+        if(!Focusing()||!std::isfinite(elapsed))return;
+        focus_progress_=std::clamp(focus_progress_+std::max(0.0F,elapsed)/.32F,0.0F,1.0F);
+        const float remaining=1-focus_progress_,ease=1-remaining*remaining*remaining;
+        Place({focus_from_.x+(focus_to_.x-focus_from_.x)*ease,focus_from_.y+(focus_to_.y-focus_from_.y)*ease});
     }
     void ZoomAt(D2D1_POINT_2F cursor,float steps) noexcept {
         if(!std::isfinite(steps))return;
+        StopFocus();
         const auto anchor=ToMap(cursor);
         scale_=std::clamp(scale_*std::pow(1.18F,std::clamp(steps,-40.0F,40.0F)),MinimumScale(),MaximumScale());
         offset_={cursor.x-anchor.x*scale_,cursor.y-anchor.y*scale_};ClampPan();
     }
-    void Pan(D2D1_POINT_2F delta) noexcept {offset_.x+=delta.x;offset_.y+=delta.y;ClampPan();}
+    void Pan(D2D1_POINT_2F delta) noexcept {StopFocus();offset_.x+=delta.x;offset_.y+=delta.y;ClampPan();}
 private:
+    void Place(D2D1_POINT_2F map) noexcept {
+        const auto center=Center();offset_={center.x-map.x*scale_,center.y-map.y*scale_};ClampPan();
+    }
     float FitScale() const noexcept {
         return std::max(.001F,std::min((bounds_.right-bounds_.left)*.9F/world_.width,
             (bounds_.bottom-bounds_.top)*.9F/world_.height));
@@ -51,6 +68,8 @@ private:
     D2D1_SIZE_F world_;
     D2D1_RECT_F bounds_{};
     D2D1_POINT_2F offset_{};
+    D2D1_POINT_2F focus_from_{},focus_to_{};
+    float focus_progress_{1};
     float scale_{1};
     bool initialized_{};
 };
