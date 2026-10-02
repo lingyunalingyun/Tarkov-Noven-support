@@ -505,11 +505,17 @@ void MapPage::DrawMapSelection(const UiCanvas& canvas,const UiTheme& theme) cons
     for(std::size_t i=0;i<maps.size();++i)if(maps[i].id==map_id_)mapIndex=static_cast<float>(i);
     if(UsesPicker())DrawDropdownHeader(canvas,theme,Picker().header,maps[static_cast<std::size_t>(mapIndex)].label,picker_open_,false);
     else DrawTabBar<std::string_view>(canvas,theme,canvas.smallFormat,maps,layout_.maps,map_id_,std::optional<std::string_view>{},map_id_,1,mapIndex);
+    const auto textAlignment=canvas.smallFormat.GetTextAlignment();
+    const auto paragraphAlignment=canvas.smallFormat.GetParagraphAlignment();
+    canvas.smallFormat.SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+    canvas.smallFormat.SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     if(pve_catalog_.Ready())for(bool pve:{false,true}){
         const auto mode=pve?data::GameMode::Pve:data::GameMode::Pvp;
         canvas.Round(ModeButton(pve),theme.cornerRadius,mode_==mode?theme.selected:theme.surface);
         canvas.Text(data::GameModeName(mode),canvas.smallFormat,ModeButton(pve),mode_==mode?theme.accent:theme.secondaryText);
     }
+    canvas.smallFormat.SetTextAlignment(textAlignment);
+    canvas.smallFormat.SetParagraphAlignment(paragraphAlignment);
 }
 std::optional<std::string_view> MapPage::MarkerAt(D2D1_POINT_2F p) const {
     if(!Selected()||!MapContains(layout_.viewport,p))return std::nullopt;
