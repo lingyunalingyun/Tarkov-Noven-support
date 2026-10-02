@@ -74,8 +74,17 @@ int wmain(int argc,wchar_t** argv) {
     for(int i=0;i<30;++i)cards.Tick(0.016F);
     cards.MouseDown(left+30,796);(void)cards.MouseUp(left+30,796);
     Require(cards.SelectedId()=="local-two"&&cards.Expanded(),"following card hit position includes inline expansion height");
-    for(int i=0;i<30;++i)cards.Tick(0.016F);
-    cards.MouseDown(left+30,362);(void)cards.MouseUp(left+30,362);
+    Require(cards.ListScroll()==0,"selection does not jump the viewport immediately");
+    cards.Tick(0.016F);
+    Require(cards.ListScroll()>0&&cards.ListScroll()<104,"selected card starts smooth top anchoring");
+    for(int i=0;i<60;++i)cards.Tick(0.016F);
+    Require(cards.ListScroll()==104&&!cards.Animating(),"last card reaches first visual position with bounded trailing space");
+    cards.MouseDown(left+30,258);(void)cards.MouseUp(left+30,258);
     Require(!cards.Expanded(),"retargeted header closes the correct card");
+    for(int i=0;i<60;++i){cards.Tick(0.016F);cards.Prepare(1600,900,theme);}
+    cards.Select("local-two");cards.Tick(0.016F);
+    Require(cards.Wheel(-120,left+30,300),"manual wheel overrides automatic card focus");
+    const auto manualScroll=cards.ListScroll();for(int i=0;i<60;++i)cards.Tick(0.016F);
+    Require(cards.ListScroll()==manualScroll,"focus motion never fights manual scrolling");
     std::cout<<"Native raid history resident-page contracts PASS\n";
 }

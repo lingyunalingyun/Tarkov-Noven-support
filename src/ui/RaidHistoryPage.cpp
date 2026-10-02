@@ -55,17 +55,26 @@ bool RaidHistoryPage::Select(std::string id) {
     selected_=std::move(id); detailScroll_=0; RefreshScans();
     const auto& rows=browser_.Rows();
     const auto it=std::find_if(rows.begin(),rows.end(),[&](auto i){return browser_.Sessions()[i].localSessionId==selected_;});
-    if(it==rows.end()) {expansion_={};return false;}
+    if(it==rows.end()) {expansion_={};focusTarget_.reset();return false;}
     detailProgress_=0;
     expansion_.Retarget(true,static_cast<std::size_t>(it-rows.begin()));
+    focusTarget_=expansion_.ScrollTarget(rowHeight);
     return true;
 }
 bool RaidHistoryPage::Animating() const noexcept {
-    return expansion_.expansionProgress<1 || detailProgress_<1 || (menu_ && (menuClosing_?menuProgress_>0:menuProgress_<1));
+    return focusTarget_.has_value() || expansion_.expansionProgress<1 || detailProgress_<1 || (menu_ && (menuClosing_?menuProgress_>0:menuProgress_<1));
 }
 void RaidHistoryPage::Tick(float elapsed) {
     elapsed=std::clamp(elapsed,0.0F,0.05F);
     expansion_.Advance(elapsed,ContentHeight(true));
+    // 只平滑视图偏移，不移动数据行；手动滚动/拖动会取消自动定位。
+    // Smooth the viewport offset, never reorder records; manual scrolling/dragging cancels focus motion.
+    if(focusTarget_) {
+        const float maximum=(std::max)(0.0F,ContentHeight(false)-(listRect_.bottom-listRect_.top));
+        const float target=std::clamp(*focusTarget_,0.0F,maximum),remaining=target-listScroll_;
+        if(std::abs(remaining)<0.75F) {listScroll_=target;focusTarget_.reset();}
+        else listScroll_+=remaining*(1-std::exp(-24*elapsed));
+    }
     detailProgress_=(std::min)(1.0F,detailProgress_+elapsed/0.20F);
     if(menu_) {
         menuProgress_=AdvanceDropdownTransition(menuProgress_,menuClosing_,elapsed);
@@ -116,6 +125,7 @@ void RaidHistoryPage::Prepare(float width,float height,const UiTheme& theme) {
     ApplyFilter();
     if(layoutBuilds_!=browser_.Builds()) {
         layoutBuilds_=browser_.Builds();
+        focusTarget_.reset();
         const auto& rows=browser_.Rows();
         const auto it=std::find_if(rows.begin(),rows.end(),[&](auto i){return browser_.Sessions()[i].localSessionId==selected_;});
         if(it==rows.end())expansion_={};
@@ -124,7 +134,7 @@ void RaidHistoryPage::Prepare(float width,float height,const UiTheme& theme) {
     for(bool detail:{false,true}) { auto& scroll=detail?detailScroll_:listScroll_; const auto rect=detail?detailRect_:listRect_;
         scroll=std::clamp(scroll,0.0F,(std::max)(0.0F,ContentHeight(detail)-(rect.bottom-rect.top))); }
 }
-float RaidHistoryPage::ContentHeight(bool detail) const {return detail?scansTop+scanHeight*static_cast<float>(linked_.entries.size())+60:rowHeight*static_cast<float>(browser_.Rows().size())+expansion_.extent;}
+float RaidHistoryPage::ContentHeight(bool detail) const {return detail?scansTop+scanHeight*static_cast<float>(linked_.entries.size())+60:rowHeight*static_cast<float>(browser_.Rows().size())+expansion_.ScrollExtra(browser_.Rows().size(),rowHeight,listRect_.bottom-listRect_.top,ContentHeight(true));}
 std::optional<ScrollbarGeometry> RaidHistoryPage::Bar(bool detail) const {
     auto rect=detail?detailRect_:listRect_;rect.left=rect.right-14;return MakeScrollbar(rect,ContentHeight(detail),detail?detailScroll_:listScroll_);
 }
@@ -227,7 +237,7 @@ void RaidHistoryPage::DrawDetail(const UiCanvas& canvas,const UiTheme& theme,
 void RaidHistoryPage::MouseDown(float x,float y) {
     pressed_=D2D1::Point2F(x,y);if(search_.HitTest(searchRect_,x,y))search_.Focus();else search_.Blur();if(menu_)return;
     for(bool detail:{false}) {const auto bar=Bar(detail);
-        if(bar&&Hit(bar->track,x,y)) {grab_=std::pair(detail,Hit(bar->thumb,x,y)?y-bar->thumb.top:(bar->thumb.bottom-bar->thumb.top)/2);MouseMove(x,y);pressed_.reset();return;}}
+        if(bar&&Hit(bar->track,x,y)) {focusTarget_.reset();grab_=std::pair(detail,Hit(bar->thumb,x,y)?y-bar->thumb.top:(bar->thumb.bottom-bar->thumb.top)/2);MouseMove(x,y);pressed_.reset();return;}}
 }
 std::optional<data::RecentScanEntry> RaidHistoryPage::MouseUp(float x,float y) {
     grab_.reset();if(!pressed_)return {};const auto down=*pressed_;pressed_.reset();
@@ -242,7 +252,7 @@ std::optional<data::RecentScanEntry> RaidHistoryPage::MouseUp(float x,float y) {
         const auto row=RowAt(position),downRow=RowAt(down.y-listRect_.top+listScroll_);
         if(row&&downRow==row) {
             const auto& id=browser_.Sessions()[browser_.Rows()[*row]].localSessionId;
-            if(id==selected_)expansion_.Retarget(!expansion_.open,*row);
+            if(id==selected_) {expansion_.Retarget(!expansion_.open,*row);focusTarget_=expansion_.open?std::optional(expansion_.ScrollTarget(rowHeight)):std::nullopt;}
             else Select(id);
         } else if(!row&&expansion_.open) {
             const float scanPosition=y-DetailTop()-scansTop;
@@ -266,6 +276,7 @@ bool RaidHistoryPage::Wheel(int delta,float x,float y) {
         menuOffset_=static_cast<std::size_t>(std::clamp(static_cast<int>(menuOffset_)-delta/WHEEL_DELTA,0,static_cast<int>(options.size()-rows)));return true;
     }
     const bool detail=false;const auto rect=detail?detailRect_:listRect_;if(!Hit(rect,x,y))return false;
+    focusTarget_.reset();
     auto& scroll=detail?detailScroll_:listScroll_;scroll=std::clamp(scroll-delta/120.0F*80,0.0F,(std::max)(0.0F,ContentHeight(detail)-(rect.bottom-rect.top)));return true;
 }
 bool RaidHistoryPage::Key(WPARAM key,bool control) {
