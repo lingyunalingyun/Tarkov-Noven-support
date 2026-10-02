@@ -35,6 +35,8 @@ Testing/
 /debug-captures/
 /data/economy-cache/
 /data/recent-scans.json
+/data/raid-history.json*
+/data/eft-log-root.txt
 /data/item-images/
 /data/price-history/
 /data/map-assets/
