@@ -45,6 +45,9 @@ struct ScanCompletion;
 namespace noven::ui {
 class MainWindowUi;
 }
+namespace noven::raid {
+class LocalRaidService;
+}
 
 namespace noven {
 
@@ -113,6 +116,7 @@ private:
     bool recent_animation_uses_waitable_timer_{};
     bool mouse_tracking_{};
     std::jthread map_asset_worker_;
+    std::unique_ptr<raid::LocalRaidService> local_raid_service_;
 };
 
 } // namespace noven

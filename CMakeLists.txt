@@ -47,6 +47,11 @@ endif()
 add_executable(NovenTarkovSupport WIN32
     src/main.cpp
     src/app/App.cpp
+    src/raid/RaidEventParser.cpp
+    src/raid/RaidSessionDetector.cpp
+    src/raid/EftLogReader.cpp
+    src/raid/RaidSessionStore.cpp
+    src/raid/LocalRaidService.cpp
     src/capture/DxgiDesktopDuplicationBackend.cpp
     src/capture/Roi.cpp
     src/common/DebugLog.cpp
@@ -226,6 +231,16 @@ if(BUILD_TESTING)
         target_compile_options(NovenRaidSessionStoreTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME raid_session_store COMMAND NovenRaidSessionStoreTests)
+    add_executable(NovenLocalRaidServiceTests tests/LocalRaidServiceTests.cpp
+        src/raid/LocalRaidService.cpp src/raid/EftLogReader.cpp src/raid/RaidSessionStore.cpp
+        src/raid/RaidSessionDetector.cpp src/raid/RaidEventParser.cpp)
+    target_include_directories(NovenLocalRaidServiceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenLocalRaidServiceTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(NovenLocalRaidServiceTests PRIVATE ole32)
+    if(MSVC)
+        target_compile_options(NovenLocalRaidServiceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME local_raid_service COMMAND NovenLocalRaidServiceTests)
     configure_file(
         "${ITEM_CATALOG}"
         "${CMAKE_CURRENT_BINARY_DIR}/test-data/items_catalog.tsv"

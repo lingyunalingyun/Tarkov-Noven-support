@@ -310,6 +310,54 @@ Item images will be optional and disabled by default.
 - use local cached data for gameplay lookups so network requests do not block
   the lookup path.
 
+## Local raid sessions — backend Phase 1 / 本地对局会话后端
+
+Create `<exe>/data/eft-log-root.txt` with one absolute UTF-8 path to your EFT
+`build/Logs` directory (or one client log directory). No configuration means
+no log reading. Noven does not discover installations by scanning disks,
+registry entries or game processes. Restart Noven after changing this file.
+
+在可执行文件旁的 `data/eft-log-root.txt` 中填写一行 UTF-8 绝对日志目录路径。
+未配置时不读取日志；更改配置后重启软件。不会扫描磁盘、注册表或游戏进程。
+
+The native pipeline is `EftLogReader → RaidEventParser → RaidSessionDetector
+→ RaidSessionStore`. A background worker merges timestamped application and
+backend events, reads appended bytes and waits on Windows directory notifications
+when idle. It ignores output/AI/error logs. Keep Noven's data directory outside
+the watched EFT directory. Reader memory is bounded (16 KiB chunks, 64 KiB line
+limit); oversized/invalid UTF-8 lines are skipped. Sources and history have
+capacity limits and fail explicitly rather than silently deleting older history.
+
+后台线程合并有时间戳的 application/backend 事件，只增量读取；空闲时等待目录通知。
+不读取 output/AI/error 日志，不在渲染帧执行日志工作。Noven 数据目录必须放在被监视目录之外。
+过长或非法 UTF-8 行跳过；达到容量限制时报告失败，不静默删除旧历史。
+
+`GameStarted` activates a raid; `/client/match/local/end` completes it.
+Loading alone creates no completed history. Positive Scav evidence may update
+the role, but **outcome stays Unknown**. PMC, Practice/Offline, reconnects and
+other results are not inferred. Only the verified `RezervBase` / Reserve aliases
+currently resolve to an existing MapCatalog ID; other locations remain unresolved.
+Cross-file late arrivals/reconnect recovery have not been live-EFT validated.
+
+`GameStarted` 才激活对局，结束请求才完成。加载本身不生成完成记录。
+Scav 正面证据只解析角色，结果始终保持 Unknown；不猜测 PMC、练习/离线模式、重连或生还结果。
+当前仅已验证的储备站别名解析为现有地图 ID，其他地图保留未解析。
+跨日志延迟写入和重连恢复尚未完成真实游戏验证。
+
+`<exe>/data/raid-history.json` stores structured sessions, completeness,
+parser/schema versions and file-identity/complete-line cursors atomically.
+It never stores raw log text, copied EFT logs, server addresses or profile/account
+IDs. Log timestamps are local wall-clock milliseconds, not UTC; missing times
+and durations remain null. Corrupt/unsupported stores are left untouched and
+disable writing; do not replace them with empty history. Only one Noven process
+can own the store. These local files are excluded from Git. No Raid History UI
+or Scanner migration is included; consumers use service snapshot queries.
+
+仅保存结构化会话、完整性、版本和完整行游标，不保存原文、日志副本、服务器或账户信息。
+时间为日志本地墙钟毫秒，不冒充 UTC；缺失时间/时长用 null 表示。
+文件损坏或版本不支持时保留原文件并停止写入；只允许单进程写入。
+此阶段不包含对局历史页面或扫描记录迁移。
+
 ## Build
 
 Configure and build from an x64 Native Tools command prompt or Developer

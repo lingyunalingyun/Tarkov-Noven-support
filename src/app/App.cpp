@@ -25,6 +25,7 @@
 #include "scanner/ScanTrigger.h"
 #include "scanner/TooltipHeuristic.h"
 #include "ui/MainWindowUi.h"
+#include "raid/LocalRaidService.h"
 
 #include <dwmapi.h>
 #include <shellscalingapi.h>
@@ -209,6 +210,7 @@ App::App()
       recent_scan_store_(std::make_unique<data::RecentScanStore>()) {}
 
 App::~App() {
+    if (local_raid_service_) local_raid_service_->Stop();
     map_asset_worker_.request_stop();
     if(map_asset_worker_.joinable())map_asset_worker_.join();
     if (recent_animation_timer_ != nullptr) CloseHandle(recent_animation_timer_);
@@ -287,6 +289,13 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->StartItemImages(ExecutableDirectory() / L"data" / L"item-images");
     main_ui_->StartPriceHistory(ExecutableDirectory() / L"data" / L"price-history");
     main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
+    // 本地对局服务独立于 Scanner/UI；仅明确配置路径时启动后台读取。
+    // Local raid service is independent of Scanner/UI; start background reads only for explicit configuration.
+    if (const auto root = raid::ReadEftLogRoot(ExecutableDirectory() / L"data" / L"eft-log-root.txt")) {
+        local_raid_service_ = std::make_unique<raid::LocalRaidService>();
+        if (!local_raid_service_->Start(*root, ExecutableDirectory() / L"data" / L"raid-history.json"))
+            common::DebugLog(L"[local-raid] service could not start");
+    }
 
     std::wstring overlay_error;
     if (!overlay_window_->Create(instance, overlay_error)) {
