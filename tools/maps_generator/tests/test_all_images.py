@@ -159,6 +159,14 @@ class AllImagesTests(unittest.TestCase):
             files = lambda folder: {p.relative_to(folder).as_posix(): images.digest(p.read_bytes()) for p in folder.rglob('*') if p.is_file()}
             self.assertEqual(files(root / 'one'), files(root / 'two'))
             before = files(root / 'one')
+            # 旧中间产物没有原始 PNG 尺寸；从核验的源升级后须与新生成逐字节一致。
+            # Legacy staged metadata omitted encoded PNG size; source-verified migration matches fresh bytes.
+            for path in (root / 'one/maps/actual').glob('*.manifest.json'):
+                old = json.loads(path.read_bytes())
+                for component in old['satellite']['compositionLayers']:
+                    for entry in component['inputs']:
+                        entry.pop('encodedSize', None)
+                path.write_bytes(images.json_bytes(old))
             images.build(root / 'one', sources, api, layout, detail_width=64, preview=32, reuse_existing=True)
             self.assertEqual(files(root / 'one'), before)
             for name, header in images.HEADERS.items():

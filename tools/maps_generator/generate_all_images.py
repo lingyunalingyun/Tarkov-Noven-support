@@ -479,6 +479,12 @@ def reuse_map(output, sources, canonical, config, floor_list, size, preview, der
                         sources.get(template.format(z=attempted, x=x, y=y), optional=True)
             for component in sat_meta['compositionLayers']:
                 for entry in component['inputs']:
+                    if entry.get('url') and 'encodedSize' not in entry:
+                        raw = sources.get(entry['url'])
+                        with Image.open(io.BytesIO(raw)) as image:
+                            if image.width != image.height or image.width > 512:
+                                raise ValueError('unsupported staged source PNG dimensions')
+                            entry['encodedSize'] = list(image.size)
                     if entry.get('inputPath'):
                         relative = entry['inputPath']
                         derived[relative] = {'sha256': digest((output / relative).read_bytes()),
@@ -488,6 +494,7 @@ def reuse_map(output, sources, canonical, config, floor_list, size, preview, der
                 relative = str(Path(sat).with_suffix(suffix)).replace('\\', '/')
                 derived[relative] = {'sha256': digest((output / relative).read_bytes()), 'sourceUrls': urls}
             recipes.extend(composition_rows(sat, sat_meta, sources, size))
+            (output / f'maps/{canonical}/{floor}.manifest.json').write_bytes(json_bytes(meta))
         rank = max((e['height'][0] for e in layer.get('extents', [])),
                    default=config.get('heightRange', config.get('_heightRange', [0]))[0] if index == 0 else 0)
         assets.append((floor, layer, abstract, sat, rank))
