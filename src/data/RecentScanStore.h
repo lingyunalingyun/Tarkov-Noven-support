@@ -20,6 +20,7 @@ enum class RecentMatchMode { Strict, BestEffort };
 // Names and prices are scan-time snapshots; the stable item ID is identity.
 struct RecentScanEntry final {
     std::uint64_t scanId{};
+    std::optional<std::string> localSessionId;
     std::string stableItemId;
     std::string canonicalName;
     std::string canonicalShortName;

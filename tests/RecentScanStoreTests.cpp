@@ -1,4 +1,5 @@
 #include "data/RecentScanStore.h"
+#include "raid/RaidScanAssociation.h"
 
 #include <windows.h>
 
@@ -44,6 +45,9 @@ int main() {
         Require(store.Load(path, error), "missing file loads as empty history");
         Require(store.Snapshot().empty(), "empty store snapshot");
         auto first = Entry(1, noven::data::GameMode::Pvp);
+        noven::raid::RaidSession active; active.localSessionId="local-one";
+        noven::raid::AssociateScan(first, active);
+        Require(first.localSessionId=="local-one", "active session exact identity");
         Require(store.Append(first), "append resolved item");
         first.fleaPrice = 75'000;
         Require(store.Snapshot().front().fleaPrice == 70'000,
@@ -51,6 +55,8 @@ int main() {
         Require(!store.Append(Entry(1, noven::data::GameMode::Pvp)),
                 "duplicate scan ID is rejected");
         auto second = Entry(2, noven::data::GameMode::Pve);
+        noven::raid::AssociateScan(second,std::nullopt);
+        Require(!second.localSessionId,"no active session remains unassociated");
         second.matchMode = noven::data::RecentMatchMode::BestEffort;
         second.ambiguous = true;
         second.fleaPrice.reset();
@@ -70,6 +76,14 @@ int main() {
         noven::data::RecentScanStore store;
         Require(store.Load(path, error), "UTF-8 history loads after restart");
         const auto entries = store.Snapshot();
+        Require(entries[2].localSessionId=="local-one" && !entries[1].localSessionId,"optional session link round trip");
+        const auto linked=noven::raid::ScansForRaid("local-one",entries);
+        Require(linked.entries.size()==1 && linked.flea.value==70000,"exact link preserves historical prices");
+        auto samples=entries;
+        samples[1].localSessionId="local-one";
+        const auto partial=noven::raid::ScansForRaid("local-one",samples);
+        Require(partial.flea.value==70000 && partial.flea.known==1 && partial.flea.unknown==1,"missing prices not zero");
+        Require(noven::raid::ScansForRaid("missing",entries).entries.empty(),"equal timestamps do not infer association");
         Require(entries.size() == 3 && entries[0].scanId == 3,
                 "save/load preserves newest-first ordering");
         Require(entries[0].gameMode == noven::data::GameMode::Seasonal
@@ -103,6 +117,26 @@ int main() {
                 "bounded history persists after restart");
     }
     const auto damaged = directory / "damaged.json";
+    // 从合成记录构造旧版本及乱序/损坏的可选关联，不读取用户文件。
+    // Construct legacy/reordered/malformed optional links from synthetic records, never user files.
+    {
+        std::ifstream input(path,std::ios::binary);
+        const std::string saved((std::istreambuf_iterator<char>(input)),{});
+        const auto begin=saved.find("{\"scanId\"");
+        const auto end=saved.find('}',begin);
+        std::string record=saved.substr(begin,end-begin+1);
+        const auto itemHeight=record.rfind(",\"itemHeight\"");
+        const auto field=record.substr(itemHeight+1,record.size()-itemHeight-2);
+        record="{"+field+","+record.substr(1,itemHeight-1)+"}";
+        for (const auto* optional:{"",",\"localSessionId\":null",",\"localSessionId\":{\"bad\":true}"}) {
+            std::ofstream output(damaged,std::ios::binary|std::ios::trunc);
+            output << "{\"schemaVersion\":1,\"entries\":[" << record.substr(0,record.size()-1) << optional << "}]}";
+            output.close();
+            noven::data::RecentScanStore store;
+            Require(store.Load(damaged,error) && store.Snapshot().size()==1 && !store.Snapshot()[0].localSessionId,
+                "legacy key-independent record and invalid optional association preserve scan");
+        }
+    }
     {
         std::ofstream output(damaged, std::ios::binary);
         output << "{broken";

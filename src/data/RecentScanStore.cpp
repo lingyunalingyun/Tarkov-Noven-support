@@ -116,6 +116,21 @@ public:
         output = value;
         return true;
     }
+    bool SkipValue(int depth = 0) {
+        if (depth > 16) return false;
+        std::string text; double number{}; bool boolean{};
+        if (Literal("null") || Boolean(boolean) || String(text) || Number(number)) return true;
+        const bool object = Take('{');
+        if (!object && !Take('[')) return false;
+        const char close = object ? '}' : ']';
+        if (Take(close)) return true;
+        do {
+            if (object && (!String(text) || !Take(':'))) return false;
+            if (!SkipValue(depth + 1)) return false;
+            if (Take(close)) return true;
+        } while (Take(','));
+        return false;
+    }
 private:
     void Skip() {
         while (position_ < input_.size() && (input_[position_] == ' '
@@ -183,31 +198,47 @@ bool ValidEntry(const RecentScanEntry& entry) {
 }
 bool ReadEntry(Reader& json, RecentScanEntry& entry) {
     std::string mode, match, status;
-    return json.Take('{') && json.Key("scanId") && json.Number(entry.scanId)
-        && json.Take(',') && json.Key("stableItemId") && json.String(entry.stableItemId)
-        && json.Take(',') && json.Key("canonicalName") && json.String(entry.canonicalName)
-        && json.Take(',') && json.Key("canonicalShortName") && json.String(entry.canonicalShortName)
-        && json.Take(',') && json.Key("gameMode") && json.String(mode) && DecodeMode(mode, entry.gameMode)
-        && json.Take(',') && json.Key("matchMode") && json.String(match)
-        && ((match == "strict" && (entry.matchMode = RecentMatchMode::Strict, true))
-            || (match == "best_effort" && (entry.matchMode = RecentMatchMode::BestEffort, true)))
-        && json.Take(',') && json.Key("ambiguous") && json.Boolean(entry.ambiguous)
-        && json.Take(',') && json.Key("scannedAtUnixMs") && json.Number(entry.scannedAtUnixMs)
-        && json.Take(',') && json.Key("fleaPrice") && json.OptionalNumber(entry.fleaPrice)
-        && json.Take(',') && json.Key("bestTraderPrice") && json.OptionalNumber(entry.bestTraderPrice)
-        && json.Take(',') && json.Key("bestTraderName") && json.String(entry.bestTraderName)
-        && json.Take(',') && json.Key("valuePerSlot") && json.OptionalNumber(entry.valuePerSlot)
-        && json.Take(',') && json.Key("fleaStatus") && json.String(status)
-        && DecodeStatus(status, entry.fleaStatus)
-        && json.Take(',') && json.Key("itemWidth") && json.Number(entry.itemWidth)
-        && json.Take(',') && json.Key("itemHeight") && json.Number(entry.itemHeight)
-        && json.Take('}') && ValidEntry(entry);
+    if (!json.Take('{')) return false;
+    std::unordered_set<std::string> keys;
+    // 按键读取兼容旧记录和任意字段顺序；损坏的可选关联只丢弃关联。
+    // Key-based reading accepts old records/any order; malformed optional metadata loses only its link.
+    do {
+        std::string key;
+        if (!json.String(key) || !json.Take(':') || !keys.insert(key).second) return false;
+        bool ok{};
+        if (key == "scanId") ok=json.Number(entry.scanId);
+        else if (key == "stableItemId") ok=json.String(entry.stableItemId);
+        else if (key == "canonicalName") ok=json.String(entry.canonicalName);
+        else if (key == "canonicalShortName") ok=json.String(entry.canonicalShortName);
+        else if (key == "gameMode") ok=json.String(mode) && DecodeMode(mode,entry.gameMode);
+        else if (key == "matchMode") ok=json.String(match) && ((match=="strict" && (entry.matchMode=RecentMatchMode::Strict,true)) || (match=="best_effort" && (entry.matchMode=RecentMatchMode::BestEffort,true)));
+        else if (key == "ambiguous") ok=json.Boolean(entry.ambiguous);
+        else if (key == "scannedAtUnixMs") ok=json.Number(entry.scannedAtUnixMs);
+        else if (key == "fleaPrice") ok=json.OptionalNumber(entry.fleaPrice);
+        else if (key == "bestTraderPrice") ok=json.OptionalNumber(entry.bestTraderPrice);
+        else if (key == "bestTraderName") ok=json.String(entry.bestTraderName);
+        else if (key == "valuePerSlot") ok=json.OptionalNumber(entry.valuePerSlot);
+        else if (key == "fleaStatus") ok=json.String(status) && DecodeStatus(status,entry.fleaStatus);
+        else if (key == "itemWidth") ok=json.Number(entry.itemWidth);
+        else if (key == "itemHeight") ok=json.Number(entry.itemHeight);
+        else if (key == "localSessionId") {
+            auto original=json; std::string id;
+            if (json.String(id)) { if (!id.empty() && id.size()<=128) entry.localSessionId=std::move(id); ok=true; }
+            else { json=original; ok=json.SkipValue(); }
+        } else ok=json.SkipValue();
+        if (!ok) return false;
+        if (json.Take('}')) break;
+        if (!json.Take(',')) return false;
+    } while (true);
+    for (const auto* key : {"scanId","stableItemId","canonicalName","canonicalShortName","gameMode","matchMode","ambiguous","scannedAtUnixMs","fleaPrice","bestTraderPrice","bestTraderName","valuePerSlot","fleaStatus","itemWidth","itemHeight"})
+        if (!keys.contains(key)) return false;
+    return ValidEntry(entry);
 }
 bool ParseHistory(std::string_view input, std::vector<RecentScanEntry>& entries) {
     Reader json(input);
     int version = 0;
     if (!json.Take('{') || !json.Key("schemaVersion") || !json.Number(version)
-        || version != 1 || !json.Take(',') || !json.Key("entries")
+        || (version != 1 && version != 2) || !json.Take(',') || !json.Key("entries")
         || !json.Take('[')) return false;
     std::unordered_set<std::uint64_t> ids;
     if (!json.Take(']')) {
@@ -247,7 +278,7 @@ bool SaveHistory(const std::filesystem::path& path,
     const auto temporary = std::filesystem::path(path.wstring() + L".tmp");
     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
     if (!output) return false;
-    output << std::setprecision(17) << "{\"schemaVersion\":1,\"entries\":[";
+    output << std::setprecision(17) << "{\"schemaVersion\":2,\"entries\":[";
     for (std::size_t i = 0; i < entries.size(); ++i) {
         const auto& e = entries[i];
         if (i != 0) output << ',';
@@ -269,7 +300,9 @@ bool SaveHistory(const std::filesystem::path& path,
         WriteOptional(output, e.valuePerSlot);
         output << ",\"fleaStatus\":" << Escape(StatusCode(e.fleaStatus))
                << ",\"itemWidth\":" << e.itemWidth
-               << ",\"itemHeight\":" << e.itemHeight << '}';
+               << ",\"itemHeight\":" << e.itemHeight;
+        if (e.localSessionId) output << ",\"localSessionId\":" << Escape(*e.localSessionId);
+        output << '}';
     }
     output << "]}";
     output.flush();

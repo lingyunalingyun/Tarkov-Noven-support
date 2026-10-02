@@ -26,6 +26,7 @@
 #include "scanner/TooltipHeuristic.h"
 #include "ui/MainWindowUi.h"
 #include "raid/LocalRaidService.h"
+#include "raid/RaidScanAssociation.h"
 
 #include <dwmapi.h>
 #include <shellscalingapi.h>
@@ -735,6 +736,7 @@ void App::OnScanCompletionMessage(LPARAM completion_pointer) {
         entry.fleaStatus = result.fleaStatus;
         entry.itemWidth = result.width;
         entry.itemHeight = result.height;
+        raid::AssociateScan(entry, local_raid_service_ ? local_raid_service_->ActiveSession() : std::nullopt);
         if (recent_scan_store_->Append(std::move(entry))) {
             main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
             common::DebugLog(L"[recent-scans] appended scan_id="
