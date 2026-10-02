@@ -9,7 +9,7 @@ namespace noven::ui {
 enum class MapPointCategory {
     Container, LooseLoot, Lock, Switch, StationaryWeapon, Mine, Artillery,
     Boss, Task, PmcExtract, ScavExtract, CoopExtract, Transit, HiddenExtract,
-    Sniper, Spawn, ScavSpawn, Btr, EasterEgg, Count
+    Sniper, Spawn, ScavSpawn, Btr, EasterEgg, UnknownExtract, Count
 };
 
 inline constexpr std::size_t MapCategoryCount=static_cast<std::size_t>(MapPointCategory::Count);

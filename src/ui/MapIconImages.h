@@ -10,7 +10,7 @@ public:
     inline static constexpr std::array<std::string_view,MapCategoryCount> Categories{
         "container","loose_loot","lock","switch","stationary","mine","artillery","boss","task",
         "pmc_extract","scav_extract","coop_extract","transit","hidden_extract","sniper","spawn",
-        "scav_spawn","btr","easter_egg"};
+        "scav_spawn","btr","easter_egg","hidden_extract"};
     bool Load(const std::filesystem::path& directory){
         ready_=false;details_.resize(MapDetailIcons.size());categories_.resize(Categories.size());
         for(std::size_t i=0;i<MapDetailIcons.size();++i)

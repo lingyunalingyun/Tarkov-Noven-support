@@ -13,6 +13,8 @@
 #include "data/ItemCatalog.h"
 #include "data/ItemEconomyStore.h"
 #include "data/RecentScanStore.h"
+#include "data/MapAssetUpdater.h"
+#include "data/MapAssetComposer.h"
 #include "ui/localization/LocalizationService.h"
 #include "hotkey/GlobalHotkey.h"
 #include "ocr/TextDetector.h"
@@ -207,6 +209,8 @@ App::App()
       recent_scan_store_(std::make_unique<data::RecentScanStore>()) {}
 
 App::~App() {
+    map_asset_worker_.request_stop();
+    if(map_asset_worker_.joinable())map_asset_worker_.join();
     if (recent_animation_timer_ != nullptr) CloseHandle(recent_animation_timer_);
 }
 
@@ -338,6 +342,7 @@ int App::Run(HINSTANCE instance, int show_command) {
     if(!main_ui_->SetMapDataSources(executable_directory / L"assets",map_error)){
         common::DebugLog(L"[map] reference unavailable: "+map_error);
     }
+    StartMapAssetUpdate();
 
     data_refresh_service_->Start(executable_directory / L"data" / L"economy-cache");
 
@@ -582,6 +587,33 @@ void App::OnModeChanged(data::GameMode mode) {
     common::DebugLog(L"[economy] active mode=" + std::wstring(data::GameModeName(mode)));
 }
 
+void App::StartMapAssetUpdate(){
+    if(map_asset_worker_.joinable())return;
+    const auto assets=ExecutableDirectory()/L"assets";
+    const auto cache=ExecutableDirectory()/L"data"/L"map-assets";
+    data::MapAssetComposer existing(data::MapAssetStore(cache/L"sources",assets),cache/L"generations");
+    if(const auto generation=existing.CurrentGeneration())main_ui_->SetMapAssetGeneration(*generation);
+    const auto window=window_;
+    // 启动仅检查一次；网络/重拼在后台，UI 线程只接收完整代路径，失败保留旧图。
+    // Check once at startup; network/composition run in the worker, UI receives complete generations only and retains old imagery on failure.
+    map_asset_worker_=std::jthread([assets,cache,window](std::stop_token stop){
+        try{
+            data::MapAssetStore sources(cache/L"sources",assets);
+            data::MapAssetUpdater updater(sources);
+            const auto report=updater.CheckOnce(assets/L"data"/L"map_update_assets.tsv",stop);
+            common::DebugLog(L"[map-assets] updated="+std::to_wstring(report.updated)+L" unchanged="
+                +std::to_wstring(report.unchanged)+L" failed="+std::to_wstring(report.failed));
+            if(!report.error.empty())common::DebugLog(L"[map-assets] source check failed; retaining local imagery");
+            data::MapAssetComposer composer(sources,cache/L"generations");
+            const auto built=composer.Rebuild(assets/L"data"/L"map_compositions.tsv",report.updatedPaths,stop);
+            if(!built.error.empty()){common::DebugLog(L"[map-assets] composition failed; retaining previous generation");return;}
+            if(built.cancelled||stop.stop_requested()||built.rebuiltPaths.empty())return;
+            auto generation=std::make_unique<std::filesystem::path>(built.generationRoot);
+            if(PostMessageW(window,kMapAssetsMessage,0,reinterpret_cast<LPARAM>(generation.get())))generation.release();
+        }catch(const std::exception&){common::DebugLog(L"[map-assets] startup check failed; local fallback retained");}
+    });
+}
+
 void App::EnsureRecentAnimationTimer() {
     if (recent_animation_timer_active_ || !main_ui_->AnimationActive()) return;
     if (recent_animation_timer_ != nullptr) {
@@ -727,6 +759,11 @@ LRESULT CALLBACK App::WindowProc(
 
     if (app != nullptr) {
         switch (message) {
+        case kMapAssetsMessage: {
+            const std::unique_ptr<std::filesystem::path> generation(reinterpret_cast<std::filesystem::path*>(l_param));
+            if(generation&&app->main_ui_)app->main_ui_->SetMapAssetGeneration(*generation);
+            return 0;
+        }
         case kScanResultMessage:
             app->OnScanCompletionMessage(l_param);
             return 0;
@@ -870,6 +907,13 @@ LRESULT CALLBACK App::WindowProc(
     }
 
     if (message == WM_DESTROY) {
+        if(app){
+            app->map_asset_worker_.request_stop();
+            if(app->map_asset_worker_.joinable())app->map_asset_worker_.join();
+            MSG pending{};
+            while(PeekMessageW(&pending,window,kMapAssetsMessage,kMapAssetsMessage,PM_REMOVE))
+                delete reinterpret_cast<std::filesystem::path*>(pending.lParam);
+        }
         KillTimer(window,ui::MainWindowUi::MapClockTimerId);
         if (app != nullptr && app->main_ui_ != nullptr) {
             app->main_ui_->StopPriceHistory();

@@ -5,10 +5,12 @@
 #include "ui/MapClock.h"
 #include "ui/MapSearch.h"
 #include "ui/MapSidebar.h"
+#include "ui/MapPicker.h"
 #include "ui/MapViewportControls.h"
 #include "ui/SearchBox.h"
 #include "ui/LocalImage.h"
 #include "data/MapCatalog.h"
+#include "data/GameMode.h"
 #include <vector>
 
 namespace noven::ui {
@@ -20,15 +22,19 @@ public:
     MapPage(const MapPage&)=delete;
     MapPage& operator=(const MapPage&)=delete;
     bool Initialize(const std::filesystem::path& assets,std::wstring& error);
+    void SetAssetGeneration(std::filesystem::path generation);
     bool RealData() const noexcept{return real_;}
-    const data::MapRecord* Information() const noexcept{return catalog_.Map(map_id_);}
-    const data::MapCatalog& Catalog() const noexcept{return catalog_;}
+    const data::MapRecord* Information() const noexcept{return Catalog().Map(map_id_);}
+    const data::MapCatalog& Catalog() const noexcept{return Mode()==data::GameMode::Pve?pve_catalog_:catalog_;}
+    const data::MapCatalog& Catalog(data::GameMode mode) const noexcept{return mode==data::GameMode::Pve?pve_catalog_:catalog_;}
+    data::GameMode Mode() const noexcept{return mode_;}
+    bool SetMode(data::GameMode mode);
     bool OpenInteraction(std::string_view id);
     void ReleaseDetailImages() const noexcept;
     void Prepare(float width,float height,const UiTheme& theme);
     void Draw(const UiCanvas& canvas,const UiTheme& theme) const;
     void Tick(float elapsed);
-    bool Animating() const noexcept{return progress_!=(expanded_?1.0F:0.0F)||panel_progress_!=(panel_open_?1.0F:0.0F)||floor_progress_<1||viewport_.Focusing();}
+    bool Animating() const noexcept{return progress_!=(expanded_?1.0F:0.0F)||panel_progress_!=(panel_open_?1.0F:0.0F)||floor_progress_<1||viewport_.Focusing()||picker_progress_!=(picker_open_?1.0F:0.0F);}
     bool ClockTick(std::int64_t utc) noexcept;
     bool Selected() const noexcept{return expanded_;}
     void Overview(){expanded_=false;panel_open_=false;search_.Blur();viewport_.StopFocus();CancelDrag();}
@@ -67,8 +73,19 @@ private:
         bool sharedExtract{};
         MapIconMask icons{};
         std::wstring searchChinese,searchEnglish;
+        std::vector<D2D1_POINT_2F> outline;
+        bool switchRequired{},paymentRequired{};
     };
     bool Allows(const Point& point) const;
+    void BindPoints();
+    void BindMapImages();
+    void ReloadFloorImages();
+    MapPicker Picker() const{return MapPicker::Sample(layout_,picker_scroll_,maps_.size());}
+    bool UsesPicker() const noexcept{return real_&&maps_.size()>3;}
+    D2D1_RECT_F ModeButton(bool pve) const noexcept{return {layout_.search.right-(pve?70.0F:144.0F),130,layout_.search.right-(pve?0.0F:74.0F),166};}
+    void DrawMapSelection(const UiCanvas& canvas,const UiTheme& theme) const;
+    void DrawMapPicker(const UiCanvas& canvas,const UiTheme& theme) const;
+    std::wstring ReferenceLabel() const;
     void TrimDetailImages() const noexcept;
     std::vector<Floor> floors_;
     std::vector<Map> maps_;
@@ -76,6 +93,7 @@ private:
     // 返回值借用页面名称；只有查询、地图、语言或可见性筛选改变时重建，禁止跨重绑保存引用。
     // Results borrow page-owned labels; rebuild only on query/map/locale/visibility changes, not across rebinds.
     mutable std::vector<MapInteractionPoint> visible_points_;
+    mutable std::vector<const Point*> visible_outlines_;
     mutable std::wstring cached_query_;
     mutable std::string cached_locale_;
     mutable std::string_view cached_map_;
@@ -88,8 +106,16 @@ private:
     std::vector<LocalImage> upper_images_;
     std::size_t previous_floor_{};
     data::MapCatalog catalog_;
+    data::MapCatalog pve_catalog_;
+    data::GameMode mode_{data::GameMode::Pvp};
+    std::filesystem::path assets_;
+    std::filesystem::path asset_generation_;
     D2D1_SIZE_F world_{MapPrototype::World};
-    bool real_{},unavailable_{};
+    bool real_{},unavailable_{},missing_reference_{},generic_{};
+    bool picker_open_{},picker_pressed_{};
+    float picker_progress_{},picker_scroll_{};
+    std::optional<std::size_t> picker_row_;
+    std::optional<bool> mode_pressed_;
     std::size_t FloorIndex() const;
     float FloorPosition() const noexcept;
     std::optional<std::string_view> MarkerAt(D2D1_POINT_2F p) const;

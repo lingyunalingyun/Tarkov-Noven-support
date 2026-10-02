@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <shellapi.h>
 
 namespace noven::ui {
 
@@ -290,31 +291,80 @@ bool MainWindowUi::CreateTextFormats(std::wstring& error) {
 void MainWindowUi::DrawLanguageSettings(const UiCanvas& canvas, float width, float height) {
     const float left = theme_.sidebarWidth + theme_.contentPadding;
     const float right = (std::min)(width - theme_.contentPadding, left + 620);
+    const float listRight = left + (right - left) * 0.42F;
     canvas.Text(Tr(TextKey::Language), canvas.label, D2D1::RectF(left, 90, right, 121), theme_.primaryText);
     canvas.Text(Tr(TextKey::LanguageHint), canvas.smallFormat, D2D1::RectF(left, 122, right, 150), theme_.secondaryText);
     const auto& locales = UiLocalization().AvailableLocales();
     language_scroll_ = std::clamp(language_scroll_, 0.0F,
         (std::max)(0.0F, static_cast<float>(locales.size()) * 42 - (height - 178)));
-    canvas.target.PushAxisAlignedClip(D2D1::RectF(left, 156, right, (std::max)(156.0F, height - 22)),
+    canvas.target.PushAxisAlignedClip(D2D1::RectF(left, 156, listRight, (std::max)(156.0F, height - 22)),
         D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     for (std::size_t i = 0; i < locales.size(); ++i) {
         const float top = 156 + static_cast<float>(i) * 42 - language_scroll_;
         if (top + 42 < 156 || top > height - 22) continue;
         const bool selected = locales[i].locale == UiLocalization().ActiveLocale();
-        canvas.Round(D2D1::RectF(left, top, right, top + 38), theme_.cornerRadius,
+        canvas.Round(D2D1::RectF(left, top, listRight, top + 38), theme_.cornerRadius,
             selected ? theme_.selected : hovered_language_ == i ? theme_.hover : theme_.surface);
-        canvas.Text(locales[i].name, canvas.body, D2D1::RectF(left + 16, top, right - 16, top + 38),
+        canvas.Text(locales[i].name, canvas.body, D2D1::RectF(left + 16, top, listRight - 16, top + 38),
             selected ? theme_.accent : theme_.primaryText);
     }
     canvas.target.PopAxisAlignedClip();
+
+    // 独立布局启用换行，不改变共享文字格式或语言列表的滚动高度。
+    // Wrap independent layouts without changing shared formats or the locale scroll height.
+    const float attributionLeft = listRight + 24;
+    const auto wrapped = [&](std::wstring_view text, IDWriteTextFormat& format,
+                             float top, D2D1_COLOR_F color) {
+        Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
+        if (FAILED(write_factory_->CreateTextLayout(text.data(), static_cast<UINT32>(text.size()),
+                &format, (std::max)(1.0F, right - attributionLeft),
+                (std::max)(1.0F, height - 22 - top), &layout))) return 0.0F;
+        layout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+        layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+        DWRITE_TEXT_METRICS metrics{};
+        layout->GetMetrics(&metrics);
+        canvas.brush.SetColor(color);
+        canvas.target.DrawTextLayout(D2D1::Point2F(attributionLeft, top), layout.Get(),
+            &canvas.brush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+        return metrics.height;
+    };
+    float attributionTop = 156;
+    attributionTop += wrapped(Tr("settings.attribution.title"), canvas.label,
+        attributionTop, theme_.primaryText) + 12;
+    attributionTop += wrapped(Tr("settings.attribution.body"), canvas.body,
+        attributionTop, theme_.secondaryText) + 16;
+    attribution_button_ = {};
+    const auto link = Tr("settings.attribution.link") + L" · NOTICE.md";
+    Microsoft::WRL::ComPtr<IDWriteTextLayout> linkLayout;
+    if (SUCCEEDED(write_factory_->CreateTextLayout(link.data(), static_cast<UINT32>(link.size()),
+            &canvas.body, (std::max)(1.0F, right - attributionLeft - 24), 1000, &linkLayout))) {
+        linkLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+        linkLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+        DWRITE_TEXT_METRICS metrics{};
+        linkLayout->GetMetrics(&metrics);
+        const float buttonHeight = (std::max)(44.0F, metrics.height + 24);
+        if (attributionTop + buttonHeight <= height - 22) {
+            attribution_button_ = D2D1::RectF(attributionLeft, attributionTop, right,
+                attributionTop + buttonHeight);
+            canvas.Round(attribution_button_, theme_.cornerRadius,
+                attribution_pressed_ ? theme_.hover : theme_.selected);
+            canvas.brush.SetColor(theme_.accent);
+            canvas.target.DrawRoundedRectangle(D2D1::RoundedRect(attribution_button_,
+                theme_.cornerRadius, theme_.cornerRadius), &canvas.brush, 1);
+            canvas.target.DrawTextLayout(D2D1::Point2F(attributionLeft + 12, attributionTop + 12),
+                linkLayout.Get(), &canvas.brush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+        }
+    }
 }
 
 std::optional<std::size_t> MainWindowUi::LanguageAt(int x, int y) const {
     if (navigation_.Active() != MainPage::Settings) return std::nullopt;
     RECT client{}; GetClientRect(window_, &client);
     const float left = theme_.sidebarWidth + theme_.contentPadding;
+    const float right = (std::min)(client.right / Scale() - theme_.contentPadding, left + 620);
+    const float listRight = left + (right - left) * 0.42F;
     const float dx = x / Scale(), dy = y / Scale();
-    if (dx < left || dx >= (std::min)(client.right / Scale() - theme_.contentPadding, left + 620)
+    if (dx < left || dx >= listRight
         || dy < 156 || dy >= DipHeight() - 22) return std::nullopt;
     const float offset = dy - 156 + language_scroll_;
     const auto index = static_cast<std::size_t>(offset / 42);
@@ -703,6 +753,7 @@ void MainWindowUi::MouseLeave() {
 }
 
 void MainWindowUi::MouseDown(int x, int y) {
+    attribution_pressed_ = false;
     page_content_press_blocked_=false;
     back_pressed_=OnBackButton(x,y);
     if(back_pressed_) { Invalidate();return; }
@@ -711,6 +762,15 @@ void MainWindowUi::MouseDown(int x, int y) {
     }
     pressed_price_card_.reset();
     pressed_history_range_.reset();
+    if (HitNavigationButton(attribution_button_, x / Scale(), y / Scale(),
+            navigation_.Active() == MainPage::Settings)) {
+        attribution_pressed_ = true;
+        pressed_language_.reset();
+        pressed_.reset();
+        CancelScrollDrag();
+        Invalidate();
+        return;
+    }
     pressed_language_ = LanguageAt(x, y);
     CancelScrollDrag();
     if (navigation_.Active()==MainPage::Hideout) {
@@ -791,12 +851,35 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     if (navigation_.Active()==MainPage::Tasks) {
         if(const auto action=tasks_.MouseUp(x/Scale(),y/Scale())) {
             if(action->destination==TasksPage::Action::Destination::Prices)OpenPriceItem(action->id,tasks_.Mode());
-            else if(map_.OpenInteraction(action->id)){
-                return_page_=MainPage::Tasks;SelectPage(MainPage::Map);CancelScrollDrag();Invalidate();}
+            else {
+                map_.SetMode(action->mode);
+                if(map_.OpenInteraction(action->id)){
+                    return_page_=MainPage::Tasks;SelectPage(MainPage::Map);CancelScrollDrag();Invalidate();}
+            }
             return std::nullopt;
         }
     }
-    if (navigation_.Active()==MainPage::Map) {map_.MouseUp(x/Scale(),y/Scale());Invalidate();}
+    if (navigation_.Active()==MainPage::Map) {
+        const auto mode=map_.Mode();map_.MouseUp(x/Scale(),y/Scale());
+        if(mode!=map_.Mode())tasks_.SetMode(map_.Mode());
+        Invalidate();
+    }
+    if (attribution_pressed_) {
+        attribution_pressed_ = false;
+        if (HitNavigationButton(attribution_button_, x / Scale(), y / Scale(),
+                navigation_.Active() == MainPage::Settings)) {
+            // 只打开安装目录中的本地通知，不使用工作目录或网络地址。
+            // Open only the local installed notice, never a working-directory or network URL.
+            wchar_t executable[32768]{};
+            const DWORD length = GetModuleFileNameW(nullptr, executable, ARRAYSIZE(executable));
+            if (length > 0 && length < ARRAYSIZE(executable)) {
+                const auto notice = std::filesystem::path(executable).parent_path() / L"NOTICE.md";
+                ShellExecuteW(window_, L"open", notice.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+            }
+        }
+        Invalidate();
+        return std::nullopt;
+    }
     const auto language = LanguageAt(x, y);
     if (pressed_language_ && pressed_language_ == language) {
         const auto previous = UiLocalization().ActiveLocale();

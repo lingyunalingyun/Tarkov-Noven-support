@@ -57,8 +57,12 @@ public:
     }
     bool SetMapDataSources(const std::filesystem::path& assets,std::wstring& error){
         const bool loaded=map_.Initialize(assets,error);
-        if(loaded)tasks_.SetMapLinks(map_.Catalog());else tasks_.SetMapLinks(data::MapCatalog{});return loaded;}
+        for(const auto mode:{data::GameMode::Pvp,data::GameMode::Pve})
+            if(loaded)tasks_.SetMapLinks(map_.Catalog(mode),mode);
+            else tasks_.SetMapLinks(data::MapCatalog{},mode);
+        return loaded;}
     const TasksPage& Tasks() const noexcept{return tasks_;}
+    void SetMapAssetGeneration(std::filesystem::path generation){map_.SetAssetGeneration(std::move(generation));Invalidate();}
     [[nodiscard]] bool KeyDown(WPARAM key, bool control);
     [[nodiscard]] bool Char(wchar_t character);
     [[nodiscard]] bool Ready() const noexcept { return window_ != nullptr; }
@@ -106,6 +110,8 @@ private:
     float language_scroll_{};
     std::optional<std::size_t> hovered_language_;
     std::optional<std::size_t> pressed_language_;
+    D2D1_RECT_F attribution_button_{};
+    bool attribution_pressed_{};
     UINT dpi_{96};
     NavigationState navigation_;
     ScannerPageState scanner_;

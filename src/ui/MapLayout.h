@@ -22,7 +22,9 @@ struct MapLayout final {
         const float available=std::max(120.0F,right-left),bottom=std::max(300.0F,height-24);
         const float rail=148;
         const float last=static_cast<float>(floorCount?floorCount-1:0),stackHeight=.32F+last*.2F;
-        const float compact=rail-60;
+        // 多层地图先让筛选下移，空间不足时再压缩楼层，避免命中区域重叠。
+        // Move filters below tall stacks, shrinking plates only when vertical space is exhausted.
+        const float compact=std::min(rail-60,std::max(8.0F,(bottom-144-244-16)/stackHeight));
         const float large=std::min({320.0F,available*.55F,(bottom-190)*.7F/stackHeight});
         const D2D1_POINT_2F overview{left+available*.5F-large*(1-last*.13F)*.5F,190+(bottom-190-large*stackHeight)*.5F};
         const D2D1_POINT_2F selected{left+52,244};const float t=Ease(progress);
@@ -30,7 +32,7 @@ struct MapLayout final {
         const float stripLeft=viewLeft+std::min(100.0F,(right-viewLeft)*.12F);
         const float stripBottom=186+100;
         const float viewTop=stripBottom+16;
-        const float filterTop=std::min(350.0F,bottom-144);
+        const float filterTop=std::min(std::max(350.0F,selected.y+compact*stackHeight+16),bottom-144);
         return {{left,180,right,bottom},{left,84,right,122},
             {stripLeft,186,right,stripBottom},{viewLeft,viewTop,right,bottom},
             {{overview.x+(selected.x-overview.x)*t,overview.y+(selected.y-overview.y)*t},

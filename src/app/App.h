@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <thread>
 
 namespace noven::capture {
 class DxgiDesktopDuplicationBackend;
@@ -64,6 +65,7 @@ private:
     // while the receiver takes ownership of successful posts.
     static constexpr UINT kScanResultMessage = WM_APP + 1;
     static constexpr UINT kScanStepMessage = WM_APP + 2;
+    static constexpr UINT kMapAssetsMessage = WM_APP + 5;
     static constexpr UINT kDebugMouseTimerId = 2;
     static constexpr UINT kDebugMouseCheckMilliseconds = 50;
     static constexpr UINT kRecentAnimationTimerId = 3;
@@ -86,6 +88,7 @@ private:
     void CheckDebugVisualizationCursor();
     void OnModeChanged(data::GameMode mode);
     void EnsureRecentAnimationTimer();
+    void StartMapAssetUpdate();
     bool RegisterWindowClass(HINSTANCE instance) const;
     HWND CreateMainWindow(HINSTANCE instance) const;
 
@@ -109,6 +112,7 @@ private:
     bool recent_animation_timer_active_{};
     bool recent_animation_uses_waitable_timer_{};
     bool mouse_tracking_{};
+    std::jthread map_asset_worker_;
 };
 
 } // namespace noven

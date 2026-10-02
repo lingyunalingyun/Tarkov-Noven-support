@@ -92,7 +92,7 @@ bool MapCatalog::Load(const std::filesystem::path& directory,std::wstring& error
                 if(map.baseFloor.empty()||std::any_of(map.floors.begin(),map.floors.end(),[&](const auto& floor){return floor.id==f[1];}))
                     throw std::runtime_error("invalid floor reference");
                 for(const auto& path:{f[5],f[6]})if(!path.empty()){
-                    const auto image=std::filesystem::u8path(path);
+                    const auto image=std::filesystem::path(std::u8string(path.begin(),path.end()));
                     if(image.has_root_path()||image.extension()!=".png"||path.find_first_of("\\:")!=std::string::npos
                         ||std::any_of(image.begin(),image.end(),[](const auto& part){return part=="..";}))throw std::runtime_error("unsafe map image path");
                 }

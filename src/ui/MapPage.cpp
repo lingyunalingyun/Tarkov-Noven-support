@@ -26,7 +26,7 @@ constexpr std::array<std::string_view,MapCategoryCount> CategoryKeys{TextKey::Ma
     "map.category.locks","map.category.switches","map.category.stationary_weapons",TextKey::MapMines,
     "map.category.artillery",TextKey::MapBoss,TextKey::MapTasks,
     TextKey::MapPmcExtract,TextKey::MapScavExtract,TextKey::MapCoopExtract,TextKey::MapTransit,TextKey::MapHiddenExtract,
-    TextKey::MapSnipers,TextKey::MapSpawns,TextKey::MapScavSpawns,TextKey::MapBtr,TextKey::MapEasterEggs};
+    TextKey::MapSnipers,TextKey::MapSpawns,TextKey::MapScavSpawns,TextKey::MapBtr,TextKey::MapEasterEggs,"map.category.unknown_extract"};
 constexpr std::array FilterKeys{TextKey::MapFilterPoints,TextKey::MapFilterLayers,TextKey::MapFilterTasks};
 static_assert(CategoryKeys.size()==MapCategoryCount);
 std::wstring Wide(std::string_view text){
@@ -49,18 +49,19 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     if(!candidate.Load(assets/L"data",error)){unavailable_=true;return false;}
     namespace reference=data::InterchangeReference;
     const auto* map=candidate.Map(reference::MapId);
-    if(!map||candidate.Maps().size()!=1||map->normalizedName!="interchange"){
+    const bool generic=std::any_of(candidate.Maps().begin(),candidate.Maps().end(),[](const auto& m){return !m.floors.empty();});
+    if(!generic&&(!map||candidate.Maps().size()!=1||map->normalizedName!="interchange")){
         error=L"Unsupported map reference";unavailable_=true;return false;}
     std::vector<LocalImage> images(reference::Floors.size());
     std::vector<LocalImage> upperImages(reference::Floors.size());LocalImage satellite;
-    if(!satellite.Load(assets/L"maps"/L"interchange"/L"Satellite.png")){
+    if(!generic&&!satellite.Load(assets/L"maps"/L"interchange"/L"Satellite.png")){
         error=L"Satellite background unavailable";unavailable_=true;return false;}
-    for(std::size_t i=0;i<2;++i)if(!upperImages[i].Load(assets/L"maps"/L"interchange"/(std::string(reference::Floors[i].id)+".overlay.png"))){
+    for(std::size_t i=0;!generic&&i<2;++i)if(!upperImages[i].Load(assets/L"maps"/L"interchange"/(std::string(reference::Floors[i].id)+".overlay.png"))){
         error=L"Upper floor overlay unavailable";unavailable_=true;return false;}
     MapIconImages markerImages;
     if(!markerImages.Load(assets/L"maps"/L"icons")){
         error=L"Local DEV marker icons unavailable";unavailable_=true;return false;}
-    for(std::size_t i=0;i<images.size();++i)
+    for(std::size_t i=0;!generic&&i<images.size();++i)
         if(!images[i].Load(assets/L"maps"/L"interchange"/(std::string(reference::Floors[i].id)+".png"))){
             error=L"Interchange background unavailable";unavailable_=true;return false;}
     // 绑定新目录清除旧目录的查询/筛选；普通页面导航不重新绑定。
@@ -68,11 +69,24 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     Overview();floor_id_={};map_id_={};interaction_id_={};progress_=0;search_.SetText(L"");filters_={};
     point_cache_valid_=false;visible_points_.clear();
     catalog_=std::move(candidate);maps_.clear();floors_.clear();points_.clear();images_=std::move(images);
+    assets_=assets;generic_=generic;mode_=data::GameMode::Pvp;
+    if(std::filesystem::exists(assets/L"data"/L"pve"/L"map_maps.tsv")){
+        if(!pve_catalog_.Load(assets/L"data"/L"pve",error)){unavailable_=true;return false;}
+    }
     marker_images_=std::move(markerImages);
     satellite_=std::move(satellite);upper_images_=std::move(upperImages);
-    map=catalog_.Map(reference::MapId);maps_.push_back({map->id,Wide(map->nameZh),Wide(map->nameEn)});
+    for(const auto& entry:Catalog().Maps())maps_.push_back({entry.id,Wide(entry.nameZh),Wide(entry.nameEn)});
     map_id_=maps_.front().id;
+    if(Catalog().Map(reference::MapId))map_id_=reference::MapId;
     for(const auto& f:reference::Floors)floors_.push_back({std::string(f.id),std::wstring(f.label)});
+    BindPoints();
+    if(generic_)BindMapImages();
+    else world_={static_cast<float>(reference::Width),static_cast<float>(reference::Height)};
+    viewport_=MapViewport(world_);real_=true;unavailable_=false;filters_.grid=false;error.clear();return true;
+}
+void MapPage::BindPoints(){
+    namespace reference=data::InterchangeReference;
+    points_.clear();point_cache_valid_=false;visible_points_.clear();visible_outlines_.clear();
     auto labels=UiLocalization();
     // 展示名称与上游身份分离；一次解析双语并由点位持有，搜索与信息区共用。
     // Resolve owned bilingual labels once, separate from source identity, for search and information.
@@ -92,7 +106,9 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
         // Spawn zoneName is not guaranteed readable; retain readable locations as category context.
         return point.kind=="spawn"?categoryName+L" · "+name:name;
     };
-    for(const auto& p:catalog_.Points()){
+    for(const auto& p:Catalog().Points()){
+        const auto* map=Catalog().Map(p.mapId);
+        if(generic_&&(!map||map->floors.empty()))continue;
         MapPointCategory category=MapPointCategory::Container;MapMarkerType type=MapMarkerType::Point;bool shared=false;
         if(p.kind=="loose")category=MapPointCategory::LooseLoot;
         else if(p.kind=="lock")category=MapPointCategory::Lock;
@@ -103,7 +119,7 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
         else if(p.kind=="extract"){
             type=MapMarkerType::Extract;
             const bool cooperative=p.nameEn.find("Co-Op")!=std::string::npos;
-            category=cooperative?MapPointCategory::CoopExtract:p.subtype=="scav"?MapPointCategory::ScavExtract:MapPointCategory::PmcExtract;
+            category=p.subtype=="unknown"?MapPointCategory::UnknownExtract:cooperative?MapPointCategory::CoopExtract:p.subtype=="scav"?MapPointCategory::ScavExtract:MapPointCategory::PmcExtract;
             shared=p.subtype=="shared"&&!cooperative;
         }else if(p.kind=="transit"){category=MapPointCategory::Transit;type=MapMarkerType::Extract;}
         else if(p.kind=="boss")category=MapPointCategory::Boss;
@@ -113,15 +129,63 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
             if(p.subtype.find("\"boss\"")!=std::string::npos)category=MapPointCategory::Boss;
             else category=p.subtype.find("\"scav\"")!=std::string::npos?MapPointCategory::ScavSpawn:MapPointCategory::Spawn;
         }
-        const auto xy=reference::Project(p.position);
+        const auto projected=generic_?map->projection.Project(p.position):std::array<double,2>{reference::Project(p.position).x,reference::Project(p.position).y};
         MapIconMask icons=0;for(const auto& icon:p.icons)icons|=MapIconFor(icon);
-        points_.push_back({p.id,std::string(reference::FloorFor(p.position)),p.mapId,type,
-            {static_cast<float>(xy.x),static_cast<float>(xy.y)},displayName(p,category,icons,"zh-CN"),
+        const auto floor=generic_?data::MapFloorFor(p.position,map->extents,map->baseFloor):reference::FloorFor(p.position);
+        points_.push_back({p.id,std::string(floor),p.mapId,type,
+            {static_cast<float>(projected[0]),static_cast<float>(projected[1])},displayName(p,category,icons,"zh-CN"),
             displayName(p,category,icons,"en-US"),category,shared,icons});
+        auto& point=points_.back();
+        for(const auto& vertex:p.outline){
+            const auto xy=generic_?map->projection.Project(vertex):std::array<double,2>{reference::Project(vertex).x,reference::Project(vertex).y};
+            point.outline.push_back({static_cast<float>(xy[0]),static_cast<float>(xy[1])});
+        }
+        for(const auto& condition:p.conditions){
+            const bool present=condition.value!="false"&&condition.value!="null"&&condition.value!="[]"&&condition.value!="\"\"";
+            if(condition.field=="switch"||condition.field=="switches")point.switchRequired|=present;
+            if(condition.field=="transferItem")point.paymentRequired|=present;
+        }
     }
-    world_={static_cast<float>(reference::Width),static_cast<float>(reference::Height)};
     for(auto& p:points_){p.searchChinese=Fold(p.chinese);p.searchEnglish=Fold(p.english);}
-    viewport_=MapViewport(world_);real_=true;unavailable_=false;filters_.grid=false;error.clear();return true;
+}
+void MapPage::BindMapImages(){
+    ReleaseDetailImages();floors_.clear();images_.clear();upper_images_.clear();satellite_=LocalImage{};
+    floor_id_={};previous_floor_=0;floor_from_=floor_to_=0;floor_progress_=1;
+    const auto* map=Information();missing_reference_=!map||map->floors.empty();
+    if(missing_reference_)return;
+    world_={static_cast<float>(map->projection.width),static_cast<float>(map->projection.height)};
+    for(const auto& floor:map->floors){
+        floors_.push_back({floor.id,Wide(UiLocalization().ActiveLocale()=="zh-CN"?floor.nameZh:floor.nameEn)});
+    }
+    ReloadFloorImages();
+    if(std::none_of(upper_images_.begin(),upper_images_.end(),[](const auto& image){return image.Ready();}))filters_.satellite=false;
+    viewport_=MapViewport(world_);viewport_.SetBounds(layout_.viewport);
+}
+void MapPage::ReloadFloorImages(){
+    const auto* map=Information();if(!map)return;
+    images_.clear();upper_images_.clear();
+    const auto load=[&](const std::string& name){
+        LocalImage image;if(name.empty())return image;
+        const auto path=std::filesystem::path(std::u8string(name.begin(),name.end()));
+        // 整代缓存只含已验证的衍生文件；坏缓存独立回退，不重绑页面或导航状态。
+        // Published generations contain verified products; invalid cache falls back without rebinding page/navigation state.
+        if(!asset_generation_.empty()&&image.Load(asset_generation_/path))return image;
+        image=LocalImage{};image.Load(assets_/path);return image;
+    };
+    for(const auto& floor:map->floors){images_.push_back(load(floor.abstractPath));upper_images_.push_back(load(floor.satellitePath));}
+}
+void MapPage::SetAssetGeneration(std::filesystem::path generation){
+    if(asset_generation_==generation)return;
+    asset_generation_=std::move(generation);
+    if(real_&&generic_)ReloadFloorImages();
+}
+bool MapPage::SetMode(data::GameMode mode){
+    if(mode==data::GameMode::Seasonal)mode=data::GameMode::Pvp;
+    if(!real_||mode==mode_||!Catalog(mode).Ready()||(mode!=data::GameMode::Pvp&&mode!=data::GameMode::Pve))return false;
+    const std::string oldMap(map_id_);Overview();interaction_id_={};mode_=mode;
+    maps_.clear();for(const auto& map:Catalog().Maps())maps_.push_back({map.id,Wide(map.nameZh),Wide(map.nameEn)});
+    map_id_=Catalog().Map(oldMap)?Catalog().Map(oldMap)->id:maps_.front().id;
+    BindPoints();BindMapImages();return true;
 }
 bool MapPage::Allows(const Point& p) const {
     return filters_.AllowsIcons(p.icons)&&(filters_.Allows(p.category,p.id)||(p.sharedExtract&&filters_.Allows(MapPointCategory::ScavExtract,p.id)));
@@ -133,7 +197,10 @@ std::vector<TabBarItem<std::string_view>> MapPage::MapItems() const {
     return items;
 }
 void MapPage::Prepare(float width,float height,const UiTheme& theme){
+    if(generic_)if(const auto* map=Information())for(std::size_t i=0;i<floors_.size();++i)
+        floors_[i].label=Wide(UiLocalization().ActiveLocale()=="zh-CN"?map->floors[i].nameZh:map->floors[i].nameEn);
     layout_=MapLayout::Sample(width,height,theme,progress_,floors_.size(),maps_.size());viewport_.SetBounds(layout_.viewport);
+    picker_scroll_=std::clamp(picker_scroll_,0.0F,Picker().Maximum(maps_.size()));
     if(const auto bar=FilterList().Bar(FilterEntries().size()))filter_scroll_=std::clamp(filter_scroll_,0.0F,bar->maximum);
     else filter_scroll_=0;
 }
@@ -145,7 +212,8 @@ float MapPage::FloorPosition() const noexcept{return floor_from_+(floor_to_-floo
 void MapPage::SelectMap(std::string_view id){
     const auto found=std::find_if(maps_.begin(),maps_.end(),[&](const auto& map){return map.id==id;});
     if(found==maps_.end()||map_id_==id)return;
-    map_id_=found->id;Overview();interaction_id_={};viewport_.Fit();
+    map_id_=found->id;Overview();interaction_id_={};
+    if(real_&&generic_)BindMapImages();else viewport_.Fit();
 }
 void MapPage::SelectFloor(std::string_view id){
     const auto found=std::find_if(floors_.begin(),floors_.end(),[&](const auto& floor){return floor.id==id;});
@@ -179,7 +247,7 @@ const std::vector<MapInteractionPoint>& MapPage::Points() const {
         &&cached_filters_.categories==filters_.categories&&cached_filters_.hiddenIcons==filters_.hiddenIcons
         &&cached_filters_.hiddenTasks==filters_.hiddenTasks)return visible_points_;
     cached_query_=search_.Text();cached_map_=map_id_;cached_locale_=locale;cached_filters_=filters_;
-    point_cache_valid_=true;++point_query_builds_;visible_points_.clear();
+    point_cache_valid_=true;++point_query_builds_;visible_points_.clear();visible_outlines_.clear();
     const bool chinese=locale=="zh-CN";const MapSearchQuery query(search_.Text());
     const auto floor=std::find_if(floors_.begin(),floors_.end(),[&](const auto& f){return Fold(f.label)==query.term;});
     const auto map=std::find_if(maps_.begin(),maps_.end(),[&](const auto& m){return m.id==map_id_;});
@@ -202,6 +270,8 @@ const std::vector<MapInteractionPoint>& MapPage::Points() const {
         }
         visible_points_.push_back({p.id,p.floorId,p.type,p.coordinate,chinese?p.chinese:p.english,p.category,
             query.markers&&(icons&matchingIcons)?icons&matchingIcons:icons});
+        if(p.outline.size()>1&&(p.category==MapPointCategory::Mine||p.category==MapPointCategory::Sniper||p.category==MapPointCategory::Artillery))
+            visible_outlines_.push_back(&p);
     }
     return visible_points_;
 }
@@ -289,6 +359,7 @@ void MapPage::Tick(float elapsed){
     progress_=std::clamp(progress_+(Selected()?dt:-dt)/.36F,0.0F,1.0F);
     panel_progress_=std::clamp(panel_progress_+(panel_open_?dt:-dt)/.18F,0.0F,1.0F);
     floor_progress_=std::min(1.0F,floor_progress_+dt/.22F);
+    picker_progress_=std::clamp(picker_progress_+(picker_open_?dt:-dt)/.18F,0.0F,1.0F);
     if((switching&&floor_progress_==1)||(closing&&progress_==0))TrimDetailImages();
 }
 bool MapPage::ClockTick(std::int64_t utc) noexcept {
@@ -301,9 +372,8 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     DrawPageHeader(canvas,theme,layout_.search.left,layout_.search.right,Tr(TextKey::NavMap));
     search_.Draw(canvas,theme,layout_.search,Tr(TextKey::MapSearch),caret_visible_);
     if(unavailable_){canvas.Text(Tr(TextKey::Unavailable),canvas.body,layout_.content,theme.secondaryText);return;}
-    const auto maps=MapItems();float mapIndex=0;
-    for(std::size_t i=0;i<maps.size();++i)if(maps[i].id==map_id_)mapIndex=static_cast<float>(i);
-    DrawTabBar<std::string_view>(canvas,theme,canvas.smallFormat,maps,layout_.maps,map_id_,std::optional<std::string_view>{},map_id_,1,mapIndex);
+    DrawMapSelection(canvas,theme);
+    if(missing_reference_){canvas.Text(Tr("map.no_background"),canvas.body,layout_.content,theme.secondaryText);DrawMapPicker(canvas,theme);return;}
     canvas.target.PushAxisAlignedClip(layout_.content,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(progress_>0){
         const float reveal=MapLayout::Ease(progress_);const auto& points=Points();
@@ -320,7 +390,11 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
                 [&](const auto& p){return p.id==point->id;});
             const auto label=Tr(CategoryKeys[static_cast<std::size_t>(source->category)])
                 +(source->sharedExtract?L" / Scav":L"")+L" · "+floors_[FloorIndex()].label;
-            canvas.Text(label,canvas.smallFormat,{info.left+46,info.top+64,info.right-14,info.bottom-8},theme.accent);
+            canvas.Text(label,canvas.smallFormat,{info.left+46,info.top+60,info.right-14,info.top+80},theme.accent);
+            std::wstring conditions;
+            if(source->switchRequired)conditions=Tr("map.extract.switch");
+            if(source->paymentRequired){if(!conditions.empty())conditions+=L" · ";conditions+=Tr("map.extract.payment");}
+            if(!conditions.empty())canvas.Text(conditions,canvas.smallFormat,{info.left+46,info.top+80,info.right-14,info.bottom-2},theme.secondaryText);
         }else{
             const auto wrapping=canvas.smallFormat.GetWordWrapping();
             canvas.smallFormat.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
@@ -336,12 +410,13 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.Fill({origin.x,origin.y,end.x,end.y},theme.background);canvas.brush.SetColor(theme.divider);
         if(real_&&filters_.geometry){
             const auto imageRect=D2D1_RECT_F{origin.x,origin.y,end.x,end.y};const float transition=MapLayout::Ease(floor_progress_);
-            if(filters_.satellite)satellite_.Draw(canvas.target,imageRect,opacity*reveal,expanded);
+            if(filters_.satellite&&!generic_)satellite_.Draw(canvas.target,imageRect,opacity*reveal,expanded);
             const auto drawFloor=[&](std::size_t index,float alpha){
                 if(alpha<=0)return;
-                const auto& image=filters_.satellite?upper_images_[index]:images_[index];
+                const auto& preferred=filters_.satellite?upper_images_[index]:images_[index];
+                const auto& image=generic_&&!preferred.Ready()?(filters_.satellite?images_[index]:upper_images_[index]):preferred;
                 if(image.Ready())image.Draw(canvas.target,imageRect,opacity*reveal*alpha,expanded);};
-            if(floor_progress_<1)drawFloor(previous_floor_,filters_.satellite?1-transition:1.0F);
+            if(floor_progress_<1)drawFloor(previous_floor_,(generic_||filters_.satellite)?1-transition:1.0F);
             drawFloor(FloorIndex(),transition);
         }
         for(float x=0;filters_.grid&&x<=world_.width;x+=100)
@@ -350,6 +425,16 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
             canvas.target.DrawLine(viewport_.ToScreen({0,y}),viewport_.ToScreen({world_.width,y}),&canvas.brush,.5F);
         if(!real_&&filters_.geometry)for(const auto block:MapPrototype::Buildings){const auto a=viewport_.ToScreen({block.left,block.top}),b=viewport_.ToScreen({block.right,block.bottom});
             canvas.Round({a.x,a.y,b.x,b.y},3,theme.selected);}
+        // 危险区边界与点位共用投影/筛选；仅静态参考，不表示实时伤害范围。
+        // Hazard outlines share marker projection/filtering; static references are not live damage ranges.
+        for(const auto* cached:visible_outlines_){
+            const auto& point=*cached;
+            const float alpha=MapFloorOpacity(filters_,floor_id_,point.floorId);
+            if(alpha<=0)continue;
+            canvas.brush.SetColor(theme.accent);canvas.brush.SetOpacity(opacity*reveal*alpha*.7F);
+            for(std::size_t i=0;i<point.outline.size();++i)canvas.target.DrawLine(viewport_.ToScreen(point.outline[i]),
+                viewport_.ToScreen(point.outline[(i+1)%point.outline.size()]),&canvas.brush,1.3F);
+        }
         const bool dense=points.size()>300&&viewport_.Scale()<viewport_.MinimumScale()*1.8F;
         // 先画半透明其他楼层，再画当前层；绘制与命中共用同一可见性规则。
         // Paint ghost floors before current-floor markers; rendering and hits share visibility.
@@ -363,9 +448,12 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.brush.SetOpacity(opacity*reveal);
         MapResetButton{r}.Draw(canvas,theme);
         canvas.Text(floors_[FloorIndex()].label,canvas.body,{r.left+14,r.top+10,r.left+70,r.top+38},theme.accent);
-        if(points.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,
+        if(real_&&generic_&&filters_.geometry&&!images_[FloorIndex()].Ready()&&!upper_images_[FloorIndex()].Ready())
+            canvas.Text(Tr("map.no_background"),canvas.smallFormat,
+                {r.left+16,r.top+50,r.right-16,r.top+80},theme.secondaryText);
+        else if(points.empty())canvas.Text(Tr(TextKey::MapNoResults),canvas.smallFormat,
             {r.left+16,r.top+50,r.right-16,r.top+80},theme.secondaryText);
-        canvas.Text(Tr(real_?TextKey::MapReference:TextKey::MapPreview),canvas.smallFormat,{r.left+14,r.bottom-30,r.right-64,r.bottom-6},theme.secondaryText);
+        canvas.Text(ReferenceLabel(),canvas.smallFormat,{r.left+14,r.bottom-30,r.right-64,r.bottom-6},theme.secondaryText);
         canvas.target.PopAxisAlignedClip();
         auto anchor=layout_.stack.Plate(0).vertices[1];const float index=FloorPosition();
         anchor.x-=index*layout_.stack.width*layout_.stack.stagger;anchor.y+=index*layout_.stack.width*.20F;
@@ -373,14 +461,16 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.brush.SetOpacity(opacity);
         DrawNavigationButton(canvas,theme,layout_.back,NavigationGlyph::Back,Selected(),false,back_pressed_);
     }else{
-        canvas.Text(Tr(real_?TextKey::MapReference:TextKey::MapPreview),canvas.smallFormat,
+        canvas.Text(ReferenceLabel(),canvas.smallFormat,
             {layout_.content.left,layout_.content.bottom-35,layout_.content.right,layout_.content.bottom},theme.secondaryText);
     }
     std::vector<std::wstring_view> labels;
     std::vector<const LocalImage*> previews,overlays;
     for(const auto& floor:floors_)labels.push_back(floor.label);
-    if(real_)for(std::size_t i=0;i<floors_.size();++i){previews.push_back(filters_.satellite?&satellite_:&images_[i]);
-        overlays.push_back(filters_.satellite&&upper_images_[i].Ready()?&upper_images_[i]:nullptr);}
+    if(real_)for(std::size_t i=0;i<floors_.size();++i){
+        if(generic_){const auto* image=filters_.satellite?&upper_images_[i]:&images_[i];
+            if(!image->Ready())image=filters_.satellite?&images_[i]:&upper_images_[i];previews.push_back(image);overlays.push_back(nullptr);}
+        else {previews.push_back(filters_.satellite?&satellite_:&images_[i]);overlays.push_back(filters_.satellite&&upper_images_[i].Ready()?&upper_images_[i]:nullptr);}}
     layout_.stack.Draw(canvas,theme,labels,Selected()?std::optional<std::size_t>(FloorIndex()):std::nullopt,hovered_floor_,previews,overlays,FloorPosition());
     if(progress_>0)DrawFilters(canvas,theme);
     if(progress_>0)if(const auto bounds=MapInformationCard::Bounds(layout_);bounds&&Information()){
@@ -391,6 +481,35 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.target.SetTransform(original);canvas.brush.SetOpacity(opacity);
     }
     canvas.target.PopAxisAlignedClip();
+    DrawMapPicker(canvas,theme);
+}
+std::wstring MapPage::ReferenceLabel() const {
+    if(!real_)return Tr(TextKey::MapPreview);
+    if(!generic_)return Tr(TextKey::MapReference);
+    auto label=Tr("map.reference.generic");
+    if(const auto* map=Information();map&&!map->author.empty())label+=L" · "+Wide(map->author);
+    return label;
+}
+void MapPage::DrawMapPicker(const UiCanvas& canvas,const UiTheme& theme) const {
+    if(UsesPicker()&&picker_progress_>0){
+        const auto picker=Picker();const auto opacity=canvas.brush.GetOpacity();canvas.brush.SetOpacity(opacity*MapLayout::Ease(picker_progress_));
+        canvas.Round(picker.panel,theme.cornerRadius,theme.surface);canvas.target.PushAxisAlignedClip(picker.panel,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        const auto maps=MapItems();for(std::size_t i=0;i<maps.size();++i){const auto row=picker.Row(i);
+            if(row.bottom<picker.panel.top||row.top>picker.panel.bottom)continue;
+            DrawDropdownOption(canvas,theme,row,maps[i].label,map_id_==maps[i].id,true,false);}
+        canvas.target.PopAxisAlignedClip();canvas.brush.SetOpacity(opacity);
+    }
+}
+void MapPage::DrawMapSelection(const UiCanvas& canvas,const UiTheme& theme) const {
+    const auto maps=MapItems();float mapIndex=0;
+    for(std::size_t i=0;i<maps.size();++i)if(maps[i].id==map_id_)mapIndex=static_cast<float>(i);
+    if(UsesPicker())DrawDropdownHeader(canvas,theme,Picker().header,maps[static_cast<std::size_t>(mapIndex)].label,picker_open_,false);
+    else DrawTabBar<std::string_view>(canvas,theme,canvas.smallFormat,maps,layout_.maps,map_id_,std::optional<std::string_view>{},map_id_,1,mapIndex);
+    if(pve_catalog_.Ready())for(bool pve:{false,true}){
+        const auto mode=pve?data::GameMode::Pve:data::GameMode::Pvp;
+        canvas.Round(ModeButton(pve),theme.cornerRadius,mode_==mode?theme.selected:theme.surface);
+        canvas.Text(data::GameModeName(mode),canvas.smallFormat,ModeButton(pve),mode_==mode?theme.accent:theme.secondaryText);
+    }
 }
 std::optional<std::string_view> MapPage::MarkerAt(D2D1_POINT_2F p) const {
     if(!Selected()||!MapContains(layout_.viewport,p))return std::nullopt;
@@ -415,7 +534,13 @@ bool MapPage::MouseMove(float x,float y){
 void MapPage::MouseDown(float x,float y){
     const D2D1_POINT_2F p{x,y};CancelDrag();
     if(MapContains(layout_.search,p)){search_.Focus();return;}search_.Blur();
-    const auto maps=MapItems();pressed_map_=HitTestTabBar<std::string_view>(maps,layout_.maps,x,y);if(pressed_map_)return;
+    picker_pressed_=false;picker_row_.reset();mode_pressed_.reset();
+    if(pve_catalog_.Ready())for(bool pve:{false,true})if(MapContains(ModeButton(pve),p)){mode_pressed_=pve;return;}
+    if(UsesPicker()){
+        if(MapContains(Picker().header,p)){picker_pressed_=true;return;}
+        if(picker_open_){picker_row_=Picker().Hit(x,y,maps_.size());if(picker_row_)return;picker_open_=false;}
+    }
+    const auto maps=MapItems();pressed_map_=UsesPicker()?std::nullopt:HitTestTabBar<std::string_view>(maps,layout_.maps,x,y);if(pressed_map_)return;
     // 主侧栏点击属于页面导航，不是画布的面板外点击。
     // Shell navigation clicks are not outside clicks within the canvas.
     if(!MapContains(layout_.content,p))return;
@@ -445,6 +570,10 @@ void MapPage::MouseDown(float x,float y){
 }
 void MapPage::MouseUp(float x,float y){
     const D2D1_POINT_2F p{x,y};
+    if(mode_pressed_){const bool pve=*mode_pressed_;mode_pressed_.reset();if(MapContains(ModeButton(pve),p))SetMode(pve?data::GameMode::Pve:data::GameMode::Pvp);return;}
+    if(picker_pressed_){picker_pressed_=false;if(MapContains(Picker().header,p))picker_open_=!picker_open_;return;}
+    if(picker_row_){const auto row=*picker_row_;picker_row_.reset();
+        if(Picker().Hit(x,y,maps_.size())==row){picker_open_=false;SelectMap(maps_[row].id);}return;}
     if(opacity_drag_){filters_.otherFloorOpacity=MapOpacitySlider{FilterList().Row(4)}.Value(x);CancelDrag();return;}
     const auto maps=MapItems();
     if(pressed_map_&&HitTestTabBar<std::string_view>(maps,layout_.maps,x,y)==pressed_map_){SelectMap(*pressed_map_);CancelDrag();return;}
@@ -478,6 +607,8 @@ void MapPage::MouseUp(float x,float y){
     CancelDrag();
 }
 bool MapPage::Wheel(int delta,float x,float y,bool control){
+    if(picker_open_&&MapContains(Picker().panel,{x,y})){
+        picker_scroll_=std::clamp(picker_scroll_-static_cast<float>(delta)/WHEEL_DELTA*64,0.0F,Picker().Maximum(maps_.size()));return true;}
     if(panel_&&panel_progress_>0&&MapContains(layout_.flyout,{x,y})){
         if(const auto bar=FilterList().Bar(FilterEntries().size()))
             filter_scroll_=std::clamp(filter_scroll_-static_cast<float>(delta)/WHEEL_DELTA*60,0.0F,bar->maximum);
@@ -494,6 +625,7 @@ bool MapPage::Wheel(int delta,float x,float y,bool control){
     viewport_.ZoomAt({x,y},static_cast<float>(delta)/WHEEL_DELTA);return true;
 }
 bool MapPage::Key(WPARAM key,bool control){
+    if(key==VK_ESCAPE&&picker_open_){picker_open_=false;return true;}
     if(key==VK_ESCAPE&&!interaction_id_.empty()){
         interaction_id_={};viewport_.StopFocus();CancelDrag();
         (void)search_.HandleKeyDown(key,control);return true;

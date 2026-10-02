@@ -62,6 +62,9 @@ add_executable(NovenTarkovSupport WIN32
     src/ui/TasksPage.cpp
     src/ui/MapPage.cpp
     src/data/MapCatalog.cpp
+    src/data/MapAssetStore.cpp
+    src/data/MapAssetUpdater.cpp
+    src/data/MapAssetComposer.cpp
     src/data/PriceHistory.cpp
     src/data/RecentScanStore.cpp
     src/hotkey/GlobalHotkey.cpp
@@ -124,6 +127,7 @@ endif()
 
 target_link_libraries(NovenTarkovSupport PRIVATE
     user32
+    shell32
     imm32
     d3d11
     d3dcompiler
@@ -135,6 +139,7 @@ target_link_libraries(NovenTarkovSupport PRIVATE
     winhttp
     windowscodecs
     ole32
+    bcrypt
 )
 
 # 每次构建复制整个语言目录；添加语言包不需要修改源列表或重新链接。
@@ -153,7 +158,14 @@ add_dependencies(NovenTarkovSupport NovenHideoutAssets)
 add_custom_target(NovenMapAssets ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/maps"
-        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/maps")
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/maps"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/NOTICE.md"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/NOTICE.md"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:NovenTarkovSupport>/docs"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/docs/MAP_ATTRIBUTION.md"
+        "$<TARGET_FILE_DIR:NovenTarkovSupport>/docs/MAP_ATTRIBUTION.md")
 add_dependencies(NovenTarkovSupport NovenMapAssets)
 
 add_custom_command(TARGET NovenTarkovSupport POST_BUILD
@@ -497,7 +509,7 @@ if(BUILD_TESTING)
     if(MSVC)
         target_compile_options(NovenLocalizationUiTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
-    target_link_libraries(NovenLocalizationUiTests PRIVATE d2d1 dwrite winhttp windowscodecs ole32 windowsapp imm32)
+    target_link_libraries(NovenLocalizationUiTests PRIVATE d2d1 dwrite winhttp windowscodecs ole32 windowsapp imm32 shell32)
     add_test(NAME localization_ui COMMAND NovenLocalizationUiTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenPriceHistoryTests tests/PriceHistoryTests.cpp
         src/data/PriceHistory.cpp src/common/DebugLog.cpp)
@@ -541,4 +553,44 @@ if(BUILD_TESTING)
         target_compile_options(NovenMapCatalogTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME map_catalog COMMAND NovenMapCatalogTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+    add_executable(NovenTaskMapLinksTests tests/TaskMapLinksTests.cpp
+        src/ui/TasksPage.cpp src/data/TaskCatalog.cpp src/data/TaskBrowser.cpp
+        src/data/ItemCatalog.cpp src/data/MapCatalog.cpp
+        src/ui/localization/LocalizationService.cpp src/common/DebugLog.cpp)
+    target_include_directories(NovenTaskMapLinksTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenTaskMapLinksTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenTaskMapLinksTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenTaskMapLinksTests PRIVATE d2d1 dwrite imm32 user32)
+    add_test(NAME task_map_links COMMAND NovenTaskMapLinksTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+    add_executable(NovenMapAllMapsTests tests/MapAllMapsTests.cpp src/ui/MapPage.cpp
+        src/data/MapCatalog.cpp src/ui/localization/LocalizationService.cpp)
+    target_include_directories(NovenMapAllMapsTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenMapAllMapsTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenMapAllMapsTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenMapAllMapsTests PRIVATE d2d1 dwrite imm32 windowscodecs ole32)
+    add_test(NAME map_all_maps COMMAND NovenMapAllMapsTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+    add_executable(NovenMapAssetTests tests/MapAssetTests.cpp src/data/MapAssetStore.cpp src/data/MapAssetUpdater.cpp)
+    add_executable(NovenMapAssetComposerTests tests/MapAssetComposerTests.cpp src/data/MapAssetStore.cpp src/data/MapAssetUpdater.cpp src/data/MapAssetComposer.cpp)
+    foreach(target NovenMapAssetTests NovenMapAssetComposerTests)
+        target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+        target_compile_definitions(${target} PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+        if(MSVC)
+            target_compile_options(${target} PRIVATE /W4 /permissive- /utf-8 /EHsc)
+        endif()
+        target_link_libraries(${target} PRIVATE winhttp windowscodecs ole32 bcrypt)
+    endforeach()
+    add_test(NAME map_assets COMMAND NovenMapAssetTests)
+    add_test(NAME map_asset_composer COMMAND NovenMapAssetComposerTests)
+    add_executable(NovenMapPerformanceTests tests/MapPerformanceTests.cpp src/ui/MapPage.cpp src/data/MapCatalog.cpp
+        src/ui/localization/LocalizationService.cpp)
+    target_include_directories(NovenMapPerformanceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenMapPerformanceTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenMapPerformanceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenMapPerformanceTests PRIVATE d2d1 dwrite imm32 windowscodecs ole32 psapi)
 endif()

@@ -37,6 +37,7 @@ Testing/
 /data/recent-scans.json
 /data/item-images/
 /data/price-history/
+/data/map-assets/
 *.log
 *.tmp
 *.cache

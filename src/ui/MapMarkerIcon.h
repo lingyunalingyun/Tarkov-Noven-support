@@ -65,6 +65,7 @@ inline void DrawMapMarkerIcon(const UiCanvas& canvas,const UiTheme& theme,MapPoi
         line(7,3,-6,3,1.7F);line(-3,0,-6,3,1.7F);line(-3,6,-6,3,1.7F);
         break;
     case MapPointCategory::HiddenExtract:
+    case MapPointCategory::UnknownExtract:
         canvas.target.DrawEllipse(D2D1::Ellipse(p,7*s,4.5F*s),&canvas.brush,1.3F*s);canvas.Circle(p,2*s,theme.accent);line(-7,7,7,-7,2);
         break;
     case MapPointCategory::Sniper:

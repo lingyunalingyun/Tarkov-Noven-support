@@ -17,6 +17,10 @@ int main(int argc,char** argv){
     Require(SUCCEEDED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)),"WIC COM initializes");
     struct ComScope {~ComScope(){CoUninitialize();}} comScope;
     using namespace noven::ui;
+    const auto picker=MapPicker::Sample(MapLayout::Sample(1400,500,{},0,3,17),64,17);
+    const auto pickerRow=picker.Row(2);
+    Require(picker.Hit(pickerRow.left+8,pickerRow.top+8,17)==2,"map picker hit uses scrolled stable row");
+    Require(!picker.Hit(picker.panel.left-1,picker.panel.top+8,17)&&picker.Maximum(17)>0,"map picker clips and scrolls large catalogs");
     const MapSearchQuery markerQuery(L"  # 保险箱  "),ordinaryQuery(L" TASK ");
     Require(markerQuery.markers&&markerQuery.term==L"保险箱"&&!ordinaryQuery.markers&&ordinaryQuery.term==L"task","hash marker mode trims and folds independently from content search");
     MapFilters filters;
@@ -46,6 +50,11 @@ int main(int argc,char** argv){
     Require(!list.Hit({470,560},14),"clipped rows cannot be clicked");
     const auto bar=list.Bar(14);Require(bar&&bar->maximum>0,"long filters get shared scrollbar");
     list.scroll=bar->maximum;Require(list.Hit({470,520},14).has_value(),"scrolled filters remain selectable");
+    for(float height:{600.0F,800.0F,1100.0F}) {
+        const auto many=MapLayout::Sample(1400,height,{},1,16,17);
+        Require(many.stack.Plate(15).anchor.y+8<=many.filters[0].top,
+            "sixteen-floor selector never overlaps filter hit regions");
+    }
     FloorStack stack{{150,100},200,4};
     Require(MapPrototype::Floors.front().label==L"1F"&&MapPrototype::Floors.back().label==L"-3F",
         "demo floor order is deterministic");
