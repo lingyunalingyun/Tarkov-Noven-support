@@ -20,12 +20,19 @@ int wmain(int argc, wchar_t** argv) try {
     Require(PricePageCount(0) == 1 && PricePageCount(30) == 1
         && PricePageCount(31) == 2 && PricePageCount(120) == 4,
         "price pagination handles empty, exact and partial pages");
+    Require(PricePageFromInput(L"2", 61) == 1 && PricePageFromInput(L"0", 61) == 0
+        && PricePageFromInput(L"999999999999999999999", 61) == 2
+        && PricePageFromInput(L"0002", 61) == 1
+        && !PricePageFromInput(L"", 61) && !PricePageFromInput(L"2x", 61)
+        && PricePageFromInput(L"999", 0) == 0,
+        "numeric page jumps clamp bounds safely and reject empty or nonnumeric values");
     for (float width : {240.0F, 900.0F}) {
         const auto rect = D2D1::RectF(400, 200, 400 + width, 236);
         Require(!HitPricePager(rect, 401, 210, 0, 31)
             && HitPricePager(rect, 399 + width, 210, 0, 31) == 1
             && HitPricePager(rect, 401, 210, 1, 31) == -1
             && !HitPricePager(rect, 399 + width, 210, 1, 31)
+            && HitPricePager(rect, 400 + width / 2, 210, 1, 31) == 0
             && !HitPricePager(rect, 401, 237, 1, 31),
             "pager shared geometry disables first/last and clips hits at all widths");
     }
@@ -426,16 +433,31 @@ int wmain(int argc, wchar_t** argv) try {
             "Prices exposes all catalog matches, not only the first 120");
         Require(!click(pagerRight - 20, pagerY) && ui.PricePage() == 1,
             "header next button selects the next 30 items");
+        Require(ui.AnimationActive(), "page selection animates through the existing list transition");
         selectPage(MainPage::Scanner); selectPage(MainPage::Prices);
         Require(ui.PricePage() == 1, "navigation preserves the current Prices page");
         (void)ui.MouseWheel(static_cast<int>((pagerRight - 20) * scale),
             static_cast<int>(500 * scale), -24000);
         for(int i=0;i<100 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
         ui.Paint();
-        Require(!click(theme.sidebarWidth + theme.contentPadding + 20, height - 44)
-            && ui.PricePage() == 0, "footer previous button returns to first page and resets scroll");
-        Require(!click(pagerRight - 20, pagerY) && ui.PricePage() == 1,
-            "pagination can be used repeatedly");
+        Require(!click(theme.sidebarWidth + theme.contentPadding + 20, pagerY)
+            && ui.PricePage() == 0, "sticky header previous button works while scrolled to the bottom");
+        const float pagerCenter = (theme.sidebarWidth + theme.contentPadding + pagerRight) / 2;
+        Require(!click(pagerCenter, pagerY) && ui.Char(L'5') && ui.Char(L'x'),
+            "page field handles digits and consumes invalid text separately from search");
+        Require(ui.KeyDown(VK_RETURN, false) && ui.PricePage() == 4
+            && ui.PriceSearch().Text().empty() && ui.AnimationActive(),
+            "numeric page jump selects its target with animation without changing search");
+        Require(!click(pagerCenter, pagerY) && ui.Char(L'9') && ui.KeyDown(VK_ESCAPE, false)
+            && ui.PricePage() == 4, "Escape cancels page entry without navigating");
+        Require(!click(pagerCenter, pagerY) && ui.Char(L'0') && ui.KeyDown(VK_RETURN, false)
+            && ui.PricePage() == 0, "zero page entry clamps to the first page");
+        Require(!click(pagerCenter, pagerY) && ui.Char(L'9') && ui.Char(L'9') && ui.Char(L'9')
+            && ui.Char(L'9') && ui.KeyDown(VK_RETURN, false)
+            && ui.PricePage() == PricePageCount(ui.PriceTotal()) - 1,
+            "out of range numeric entry clamps to the last page");
+        Require(!click(pagerCenter, pagerY) && ui.Char(L'2') && ui.KeyDown(VK_RETURN, false)
+            && ui.PricePage() == 1, "rapid page jumps retarget the current list transition");
         Require(!click(theme.sidebarWidth+theme.contentPadding+40,100),"Prices search focus");
         for(const wchar_t c:std::wstring(L"电路板")) Require(ui.Char(c),"Prices committed input");
         Require(ui.PricePage() == 0, "changing the search resets pagination");

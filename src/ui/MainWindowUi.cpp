@@ -90,13 +90,15 @@ bool MainWindowUi::SelectPage(MainPage page) {
     if(page==navigation_.Active()) return false;
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
+    if (page != MainPage::Prices) price_page_input_.Blur();
     if(page==MainPage::Map)SetTimer(window_,MapClockTimerId,250,nullptr);else KillTimer(window_,MapClockTimerId);
     if(page==MainPage::Tasks)tasks_.Activate();
     Invalidate();return true;
 }
 void MainWindowUi::RefreshPriceRows(bool animateSearch, bool resetPage) {
     if (!price_browser_) return;
-    if (resetPage) price_page_ = 0;
+    if (resetPage) { price_page_ = 0; price_page_input_.Blur(); }
+    price_search_duration_ = 0.65F;
     price_details_ = {};
     std::vector<PriceReflowRow> previous;
     const float rowHeight = PageHost::PriceRowHeight(DipWidth(), theme_);
@@ -238,6 +240,18 @@ bool MainWindowUi::KeyDown(WPARAM key, bool control) {
         const bool handled=tasks_.Key(key,control); if (handled) Invalidate(); return handled;
     }
     if (navigation_.Active() != MainPage::Prices) return false;
+    if (price_page_input_.Focused()) {
+        if (key == VK_RETURN) {
+            const auto page = PricePageFromInput(price_page_input_.Text(), price_total_);
+            price_page_input_.Blur();
+            if (page) SelectPricePage(*page);
+            Invalidate(); return true;
+        }
+        if (key == VK_ESCAPE) { price_page_input_.Blur(); Invalidate(); return true; }
+        const bool handled = price_page_input_.HandleKeyDown(key, control);
+        if (handled) Invalidate();
+        return handled;
+    }
     if (!price_search_.HandleKeyDown(key, control)) return false;
     if (price_query_ != price_search_.Text()) {
         price_query_ = price_search_.Text();
@@ -258,6 +272,12 @@ bool MainWindowUi::Char(wchar_t character) {
         const bool handled=tasks_.Char(character); if (handled) Invalidate(); return handled;
     }
     if (navigation_.Active() != MainPage::Prices) return false;
+    if (price_page_input_.Focused()) {
+        if (character >= L'0' && character <= L'9') {
+            (void)price_page_input_.HandleChar(character); Invalidate();
+        }
+        return true;
+    }
     if (!price_search_.HandleChar(character)) return false;
     price_query_ = price_search_.Text();
     RefreshPriceRows(true);
@@ -476,7 +496,7 @@ void MainWindowUi::Paint() {
                     price_search_,
                     (std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::steady_clock::now().time_since_epoch()).count() / 500) % 2 == 0,
-                    price_rows_, item_bitmaps_, price_page_, price_total_);
+                    price_rows_, item_bitmaps_, price_page_, price_total_, &price_page_input_);
         if (page == MainPage::Settings) DrawLanguageSettings(canvas, size.width, size.height);
         };
         {
@@ -563,18 +583,25 @@ std::optional<RecentScrollbar> MainWindowUi::PriceScrollbar() const noexcept {
 
 std::optional<int> MainWindowUi::PricePagerAt(int x, int y) const {
     if (navigation_.Active() != MainPage::Prices || price_dropdown_
-        || price_search_transition_.progress < 1 || price_transition_.progress < 1) return {};
+        || price_transition_.progress < 1) return {};
     const float left = theme_.sidebarWidth + theme_.contentPadding;
     const float right = DipWidth() - theme_.contentPadding;
     const float top = PageHost::PriceListTop(DipWidth(), theme_);
     const float dx = x / Scale(), dy = y / Scale();
-    if (auto hit = HitPricePager(D2D1::RectF(left, top - PricePagerHeight, right, top - 8),
-            dx, dy, price_page_, price_total_)) return hit;
-    if (dy < top || dy >= DipHeight() - 22) return {};
-    const float footer = top + static_cast<float>(price_rows_.size())
-        * PageHost::PriceRowHeight(DipWidth(), theme_) + price_details_.extent - price_scroll_;
-    return HitPricePager(D2D1::RectF(left, footer, right, footer + PricePagerHeight - 8),
+    return HitPricePager(D2D1::RectF(left, top - PricePagerHeight, right, top - 8),
         dx, dy, price_page_, price_total_);
+}
+
+void MainWindowUi::SelectPricePage(std::size_t page) {
+    page = (std::min)(page, PricePageCount(price_total_) - 1);
+    price_page_input_.Blur();
+    if (page == price_page_) return;
+    price_page_ = page;
+    // 复用列表重排动画并保留当前可见旧卡片，不增加常驻动画时钟。
+    // Reuse list reflow with visible outgoing cards without adding a permanent animation clock.
+    RefreshPriceRows(true, false);
+    price_search_duration_ = 0.30F;
+    CancelScrollDrag();
 }
 
 std::optional<std::size_t> MainWindowUi::PriceCardAt(int x, int y) const {
@@ -849,6 +876,7 @@ void MainWindowUi::MouseDown(int x, int y) {
         : std::nullopt;
     pressed_price_control_ = PriceControlAt(x, y);
     pressed_price_pager_ = PricePagerAt(x, y);
+    if (pressed_price_pager_ != 0) price_page_input_.Blur();
     pressed_price_card_ = PriceCardAt(x, y);
     pressed_history_range_ = PriceHistoryRangeAt(x, y);
     if (OnPriceSearch(x, y)) {
@@ -940,9 +968,15 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
         : std::nullopt;
     const auto released_price_control = PriceControlAt(x, y);
     if (pressed_price_pager_ && pressed_price_pager_ == PricePagerAt(x, y)) {
-        if (*pressed_price_pager_ < 0) --price_page_; else ++price_page_;
-        price_scroll_ = price_scroll_target_ = 0;
-        RefreshPriceRows(false, false);
+        if (*pressed_price_pager_ == 0) {
+            if (!price_page_input_.Focused()) {
+                price_page_input_.SetText(std::to_wstring(price_page_ + 1));
+                price_page_input_.Focus();
+                (void)price_page_input_.HandleKeyDown('A', true);
+            }
+            price_search_.Blur(); SetFocus(window_);
+        } else SelectPricePage(*pressed_price_pager_ < 0 ? price_page_ - 1 : price_page_ + 1);
+        Invalidate();
     }
     pressed_price_pager_.reset();
     if (pressed_history_range_ && pressed_history_range_ == PriceHistoryRangeAt(x, y)) {
@@ -1185,7 +1219,7 @@ bool MainWindowUi::AnimationTick() {
     if(outgoingMap&&!page_transition_.ShowingOutgoing(MainPage::Map)&&navigation_.Active()!=MainPage::Map)map_.ReleaseDetailImages();
     if (price_search_transition_.progress < 1) {
         price_search_transition_.progress = std::clamp(
-            std::chrono::duration<float>(now - price_search_started_).count() / 0.65F, 0.0F, 1.0F);
+            std::chrono::duration<float>(now - price_search_started_).count() / price_search_duration_, 0.0F, 1.0F);
         if (price_search_transition_.progress >= 1) price_search_transition_.rows.clear();
     }
     const float elapsed = recent_scroll_tick_ == std::chrono::steady_clock::time_point{}

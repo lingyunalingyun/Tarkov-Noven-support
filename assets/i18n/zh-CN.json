@@ -262,5 +262,6 @@
   "map.icon.task_objective": "任务目标",
   "prices.previous_page": "上一页",
   "prices.next_page": "下一页",
-  "prices.page": "{page}/{pages} · {total} 件"
+  "prices.page": "{page}/{pages} · {total} 件",
+  "prices.jump_page": "输入页码，回车跳转"
 }

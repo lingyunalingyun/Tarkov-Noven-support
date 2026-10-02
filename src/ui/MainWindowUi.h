@@ -88,6 +88,7 @@ private:
     void BuildItemBitmap(const ItemImage& image);
     void RefreshPriceRows(bool animateSearch = false, bool resetPage = true);
     [[nodiscard]] std::optional<int> PricePagerAt(int x, int y) const;
+    void SelectPricePage(std::size_t page);
     void OpenPriceItem(const std::string& id,data::GameMode mode);
     void RequestVisiblePriceImages();
     void RequestVisibleHideoutImages();
@@ -131,6 +132,7 @@ private:
     std::size_t price_page_{};
     std::size_t price_total_{};
     std::optional<int> pressed_price_pager_;
+    SearchBox price_page_input_;
     std::wstring price_query_;
     SearchBox price_search_;
     data::GameMode price_mode_{data::GameMode::Pvp};
@@ -155,6 +157,7 @@ private:
     std::optional<std::size_t> pressed_price_card_;
     std::optional<int> pressed_history_range_;
     std::chrono::steady_clock::time_point price_search_started_{};
+    float price_search_duration_{0.65F};
     float price_underline_from_{};
     std::chrono::steady_clock::time_point price_tab_started_{};
     std::chrono::steady_clock::time_point price_scroll_tick_{};

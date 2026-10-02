@@ -195,7 +195,7 @@ float PageHost::PriceListTop(float width, const UiTheme& theme) noexcept {
 
 float PageHost::PriceMaxScroll(float height, std::size_t count,
                                float width, const UiTheme& theme, float extraHeight) noexcept {
-    return (std::max)(0.0F, static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight + PricePagerHeight
+    return (std::max)(0.0F, static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight
         - (std::max)(0.0F, height - PricesTop(width, theme) - 22.0F));
 }
 
@@ -218,7 +218,7 @@ std::optional<RecentScrollbar> PageHost::PriceScrollGeometry(
     float scroll, float extraHeight) noexcept {
     const float left = width - theme.contentPadding + 12.0F;
     return MakeScrollbar(D2D1::RectF(left, PricesTop(width, theme), left + 12.0F, height - 22.0F),
-        static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight + PricePagerHeight, scroll);
+        static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight, scroll);
 }
 
 RecentScrollbarPose PageHost::AnimatePriceScrollbar(
@@ -325,7 +325,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                     bool priceCaretVisible,
                     const std::vector<data::PriceRow>& prices,
                     const ItemBitmapMap& images, std::size_t pricePage,
-                    std::size_t priceTotal) const {
+                    std::size_t priceTotal, const SearchBox* pricePageInput) const {
     const PageInfo* page = FindPage(active);
     if (page == nullptr) return;
     const float x = theme.sidebarWidth + theme.contentPadding;
@@ -397,7 +397,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
     if (active == MainPage::Prices) {
         const float listTop = PricesTop(width, theme);
         DrawPricePager(canvas, theme, D2D1::RectF(x, listTop - PricePagerHeight,
-            right, listTop - 8), pricePage, priceTotal);
+            right, listTop - 8), pricePage, priceTotal, pricePageInput, priceCaretVisible);
         const float rowHeight = PriceRowHeight(width, theme);
         const auto pose = SampleTabTransition(priceTransition.progress);
         const D2D1_RECT_F search = D2D1::RectF(x, 84, right, 122);
@@ -499,10 +499,6 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
             }
             }
         }
-        const float footerTop = listTop + static_cast<float>(prices.size()) * rowHeight
-            + details.extent - priceScroll;
-        if (!prices.empty()) DrawPricePager(canvas, theme, D2D1::RectF(x, footerTop, right,
-            footerTop + PricePagerHeight - 8), pricePage, priceTotal);
         canvas.target.PopAxisAlignedClip();
         const auto scrollbar = AnimatePriceScrollbar(
             PriceScrollGeometry(width, height, theme, priceTransition.outgoingCount,
