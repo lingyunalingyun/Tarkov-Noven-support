@@ -457,6 +457,17 @@ def reuse_map(output, sources, canonical, config, floor_list, size, preview, der
     return assets
 
 
+def image_size(canonical, width, height, detail_width):
+    # 保留已验收立交桥的8K矢量细节；其他地图有界生成，长边不超 native 限额。
+    # Preserve accepted Interchange 8K vector detail; bound other maps to the native long-edge limit.
+    pixels = max(8192, detail_width) if canonical == 'interchange' and detail_width >= 4096 else detail_width
+    result = (pixels, max(1, round(pixels * height / width)))
+    if max(result) > 8192:
+        ratio = 8192 / max(result)
+        result = tuple(max(1, round(value * ratio)) for value in result)
+    return result
+
+
 def build(output, sources, api, layout, detail_width=4096, preview=1024, only=None, workers=12, reuse_existing=False):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
@@ -488,7 +499,7 @@ def build(output, sources, api, layout, detail_width=4096, preview=1024, only=No
             else:
                 x0, x1, z0, z1 = rotated_rectangle(config['bounds'], config['coordinateRotation'])
                 width, height = x1-x0, z1-z0
-            size = (detail_width, max(1, round(detail_width*height/width)))
+            size = image_size(canonical, width, height, detail_width)
             floor_assets = []
             if reuse_existing:
                 floor_assets = reuse_map(output, sources, canonical, config, floor_list, size, preview,

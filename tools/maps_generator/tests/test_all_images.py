@@ -30,6 +30,10 @@ def config():
 
 
 class AllImagesTests(unittest.TestCase):
+    def test_detail_bounds_preserve_accepted_interchange_resolution(self):
+        self.assertEqual(images.image_size('interchange', 1127.6852, 947.02582, 4096), (8192, 6880))
+        self.assertEqual(images.image_size('tall', 100, 200, 8192), (4096, 8192))
+        self.assertEqual(images.image_size('fixture', 100, 100, 64), (64, 64))
     def test_rotation_screen_y_and_four_corner_bbox(self):
         bounds = [[0, 0], [100, 100]]
         self.assertAlmostEqual(images.project(0, 0, bounds, 180, 100, 100)[0], 100)
