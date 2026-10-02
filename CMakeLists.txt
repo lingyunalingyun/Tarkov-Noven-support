@@ -195,6 +195,12 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenRaidEventParserTests tests/RaidEventParserTests.cpp src/raid/RaidEventParser.cpp)
+    target_include_directories(NovenRaidEventParserTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    if(MSVC)
+        target_compile_options(NovenRaidEventParserTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME raid_event_parser COMMAND NovenRaidEventParserTests)
     configure_file(
         "${ITEM_CATALOG}"
         "${CMAKE_CURRENT_BINARY_DIR}/test-data/items_catalog.tsv"
