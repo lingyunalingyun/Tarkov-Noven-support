@@ -1,0 +1,67 @@
+mapId	floorId	nameZh	nameEn	order	abstractPath	satellitePath
+55f2d3fd4bdc2d5f408b4567	Ground_Floor	地面	Ground Level	2	maps/factory/Ground_Floor.png	maps/factory/Ground_Floor.satellite.png
+55f2d3fd4bdc2d5f408b4567	Second_Floor	二层	2nd Floor	1	maps/factory/Second_Floor.png	maps/factory/Second_Floor.satellite.png
+55f2d3fd4bdc2d5f408b4567	Third_Floor	三层	3rd Floor	0	maps/factory/Third_Floor.png	maps/factory/Third_Floor.satellite.png
+55f2d3fd4bdc2d5f408b4567	Basement	隧道	Tunnels	3	maps/factory/Basement.png	maps/factory/Basement.satellite.png
+56f40101d2720b2a4d8b45d6	Ground_Level	地面	Ground Level	3	maps/customs/Ground_Level.png	maps/customs/Ground_Level.satellite.png
+56f40101d2720b2a4d8b45d6	Second_Floor	二层	2nd Floor	0	maps/customs/Second_Floor.png	maps/customs/Second_Floor.satellite.png
+56f40101d2720b2a4d8b45d6	Third_Floor	三层	3rd Floor	2	maps/customs/Third_Floor.png	maps/customs/Third_Floor.satellite.png
+56f40101d2720b2a4d8b45d6	4th_Floor	四层	4th Floor	1	maps/customs/4th_Floor.satellite.png	maps/customs/4th_Floor.satellite.png
+56f40101d2720b2a4d8b45d6	Underground_Level	地下	Underground	4	maps/customs/Underground_Level.png	maps/customs/Underground_Level.satellite.png
+5704e3c2d2720bac5b8b4567	Ground_Level	地面	Ground Level	0	maps/woods/Ground_Level.png	maps/woods/Ground_Level.satellite.png
+5704e4dad2720bb55b8b4567	Ground_Level	地面	Ground Level	0	maps/lighthouse/Ground_Level.png	
+5704e554d2720bac5b8b456e	Ground_Level	地面	Ground Level	2	maps/shoreline/Ground_Level.png	maps/shoreline/Ground_Level.satellite.png
+5704e554d2720bac5b8b456e	Second_Floor	二层	2nd Floor	1	maps/shoreline/Second_Floor.png	maps/shoreline/Second_Floor.satellite.png
+5704e554d2720bac5b8b456e	Third_Floor	三层	3rd Floor	0	maps/shoreline/Third_Floor.png	maps/shoreline/Third_Floor.satellite.png
+5704e554d2720bac5b8b456e	Underground_Level	地下	Underground	3	maps/shoreline/Underground_Level.png	maps/shoreline/Underground_Level.satellite.png
+5704e5fad2720bc05b8b4567	Ground_Level	地面	Ground Level	4	maps/reserve/Ground_Level.png	maps/reserve/Ground_Level.satellite.png
+5704e5fad2720bc05b8b4567	2nd_Floor	二层	2nd Floor	2	maps/reserve/2nd_Floor.satellite.png	maps/reserve/2nd_Floor.satellite.png
+5704e5fad2720bc05b8b4567	3rd_Floor	三层	3rd Floor	1	maps/reserve/3rd_Floor.satellite.png	maps/reserve/3rd_Floor.satellite.png
+5704e5fad2720bc05b8b4567	4th_Floor	四层	4th Floor	0	maps/reserve/4th_Floor.satellite.png	maps/reserve/4th_Floor.satellite.png
+5704e5fad2720bc05b8b4567	5th_Floor	五层	5th Floor	3	maps/reserve/5th_Floor.satellite.png	maps/reserve/5th_Floor.satellite.png
+5704e5fad2720bc05b8b4567	Bunkers	地堡	Bunkers	5	maps/reserve/Bunkers.png	maps/reserve/Bunkers.satellite.png
+5714dbc024597771384a510d	Ground_Level	B1	B1	2	maps/interchange/Ground_Level.png	maps/interchange/Ground_Level.satellite.png
+5714dbc024597771384a510d	First_Floor	1F	1F	1	maps/interchange/First_Floor.png	maps/interchange/First_Floor.satellite.png
+5714dbc024597771384a510d	Second_Floor	2F	2F	0	maps/interchange/Second_Floor.png	maps/interchange/Second_Floor.satellite.png
+5714dc692459777137212e12	Ground_Level	地面	Ground Level	4	maps/streets-of-tarkov/Ground_Level.png	
+5714dc692459777137212e12	Second_Floor	二层	2nd Floor	3	maps/streets-of-tarkov/Second_Floor.png	
+5714dc692459777137212e12	Third_Floor	三层	3rd Floor	2	maps/streets-of-tarkov/Third_Floor.png	
+5714dc692459777137212e12	Fourth_Floor	四层	4th Floor	1	maps/streets-of-tarkov/Fourth_Floor.png	
+5714dc692459777137212e12	Fifth_Floor	五层	5th Floor	0	maps/streets-of-tarkov/Fifth_Floor.png	
+5714dc692459777137212e12	Underground_Level	地下	Underground	5	maps/streets-of-tarkov/Underground_Level.png	
+59fc81d786f774390775787e	Ground_Floor	地面	Ground Level	2	maps/factory/Ground_Floor.png	maps/factory/Ground_Floor.satellite.png
+59fc81d786f774390775787e	Second_Floor	二层	2nd Floor	1	maps/factory/Second_Floor.png	maps/factory/Second_Floor.satellite.png
+59fc81d786f774390775787e	Third_Floor	三层	3rd Floor	0	maps/factory/Third_Floor.png	maps/factory/Third_Floor.satellite.png
+59fc81d786f774390775787e	Basement	隧道	Tunnels	3	maps/factory/Basement.png	maps/factory/Basement.satellite.png
+5b0fc42d86f7744a585f9105	Base	地面	Ground Level	1	maps/the-lab/Base.satellite.png	maps/the-lab/Base.satellite.png
+5b0fc42d86f7744a585f9105	Second_Level	二层	Second Level	0	maps/the-lab/Second_Level.satellite.png	maps/the-lab/Second_Level.satellite.png
+5b0fc42d86f7744a585f9105	Technical	技术层	Technical	2	maps/the-lab/Technical.satellite.png	maps/the-lab/Technical.satellite.png
+653e6760052c01c1c805532f	Ground_Level	地面	Ground Level	2	maps/ground-zero/Ground_Level.png	maps/ground-zero/Ground_Level.satellite.png
+653e6760052c01c1c805532f	Second_Floor	二层	2nd Floor	1	maps/ground-zero/Second_Floor.png	maps/ground-zero/Second_Floor.satellite.png
+653e6760052c01c1c805532f	Third_Floor	三层	3rd Floor	0	maps/ground-zero/Third_Floor.png	maps/ground-zero/Third_Floor.satellite.png
+653e6760052c01c1c805532f	Underground_Level	车库	Garage	3	maps/ground-zero/Underground_Level.png	maps/ground-zero/Underground_Level.satellite.png
+65b8d6f5cdde2479cb2a3125	Ground_Level	地面	Ground Level	2	maps/ground-zero/Ground_Level.png	maps/ground-zero/Ground_Level.satellite.png
+65b8d6f5cdde2479cb2a3125	Second_Floor	二层	2nd Floor	1	maps/ground-zero/Second_Floor.png	maps/ground-zero/Second_Floor.satellite.png
+65b8d6f5cdde2479cb2a3125	Third_Floor	三层	3rd Floor	0	maps/ground-zero/Third_Floor.png	maps/ground-zero/Third_Floor.satellite.png
+65b8d6f5cdde2479cb2a3125	Underground_Level	车库	Garage	3	maps/ground-zero/Underground_Level.png	maps/ground-zero/Underground_Level.satellite.png
+65cc8f81a9aac3e77d0cfd3e	Ground_Level	地面	Ground Level	0	maps/terminal/Ground_Level.png	
+6733700029c367a3d40b02af	Base	地面	Ground Level	0	maps/the-labyrinth/Base.satellite.png	maps/the-labyrinth/Base.satellite.png
+69af492a4819ea4ba10a69c5	Base	医务室	Infirmary	9	maps/icebreaker/Base.satellite.png	maps/icebreaker/Base.satellite.png
+69af492a4819ea4ba10a69c5	Helipad	直升机坪	Helipad	8	maps/icebreaker/Helipad.satellite.png	maps/icebreaker/Helipad.satellite.png
+69af492a4819ea4ba10a69c5	Gym_Canteen	健身房/食堂	Gym/Canteen	7	maps/icebreaker/Gym_Canteen.satellite.png	maps/icebreaker/Gym_Canteen.satellite.png
+69af492a4819ea4ba10a69c5	Accommodation_lower	住宿区（下层）	Accommodation (lower)	6	maps/icebreaker/Accommodation_lower.satellite.png	maps/icebreaker/Accommodation_lower.satellite.png
+69af492a4819ea4ba10a69c5	Accommodation_mid	住宿区（中层）	Accommodation (mid)	5	maps/icebreaker/Accommodation_mid.satellite.png	maps/icebreaker/Accommodation_mid.satellite.png
+69af492a4819ea4ba10a69c5	Accommodation_upper	住宿区（上层）	Accommodation (upper)	4	maps/icebreaker/Accommodation_upper.satellite.png	maps/icebreaker/Accommodation_upper.satellite.png
+69af492a4819ea4ba10a69c5	Officers_Deck	军官甲板	Officers' Deck	3	maps/icebreaker/Officers_Deck.satellite.png	maps/icebreaker/Officers_Deck.satellite.png
+69af492a4819ea4ba10a69c5	Stairs_blocked	楼梯（封闭）	Stairs (blocked)	2	maps/icebreaker/Stairs_blocked.satellite.png	maps/icebreaker/Stairs_blocked.satellite.png
+69af492a4819ea4ba10a69c5	Bridge	驾驶室	Bridge	1	maps/icebreaker/Bridge.satellite.png	maps/icebreaker/Bridge.satellite.png
+69af492a4819ea4ba10a69c5	Bridge_Roof	驾驶室屋顶	Bridge Roof	0	maps/icebreaker/Bridge_Roof.satellite.png	maps/icebreaker/Bridge_Roof.satellite.png
+69af492a4819ea4ba10a69c5	Control_Room	控制室	Control Room	15	maps/icebreaker/Control_Room.satellite.png	maps/icebreaker/Control_Room.satellite.png
+69af492a4819ea4ba10a69c5	Engine_Room	轮机舱	Engine Room	14	maps/icebreaker/Engine_Room.satellite.png	maps/icebreaker/Engine_Room.satellite.png
+69af492a4819ea4ba10a69c5	Engine_Room_upper	轮机舱（上层）	Engine Room (upper)	13	maps/icebreaker/Engine_Room_upper.satellite.png	maps/icebreaker/Engine_Room_upper.satellite.png
+69af492a4819ea4ba10a69c5	Fuel_Pumps_lower	燃油泵（下层）	Fuel Pumps (lower)	12	maps/icebreaker/Fuel_Pumps_lower.satellite.png	maps/icebreaker/Fuel_Pumps_lower.satellite.png
+69af492a4819ea4ba10a69c5	Fuel_Pumps	燃油泵	Fuel Pumps	11	maps/icebreaker/Fuel_Pumps.satellite.png	maps/icebreaker/Fuel_Pumps.satellite.png
+69af492a4819ea4ba10a69c5	Storage_Security	储藏/安保	Storage/Security	10	maps/icebreaker/Storage_Security.satellite.png	maps/icebreaker/Storage_Security.satellite.png
+6a294a5b5eb5f9a1700417b7	Base	地面	Ground Level	1	maps/the-lab/Base.satellite.png	maps/the-lab/Base.satellite.png
+6a294a5b5eb5f9a1700417b7	Second_Level	二层	Second Level	0	maps/the-lab/Second_Level.satellite.png	maps/the-lab/Second_Level.satellite.png
+6a294a5b5eb5f9a1700417b7	Technical	技术层	Technical	2	maps/the-lab/Technical.satellite.png	maps/the-lab/Technical.satellite.png

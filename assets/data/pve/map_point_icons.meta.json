@@ -1,0 +1,10 @@
+{
+  "pointCount": 12333,
+  "pointSourceSha256": "5ee629bb94915bace7a9815e225f6cfdb8f1e03be7bda497591ae4b8bd43c93d",
+  "sourceHashes": {
+    "https://json.tarkov.dev/pve/items": "73166eec15fbd5701b5c36c8d7f229a99e1128d5b6c3fd603e1901a64ce382b7",
+    "https://json.tarkov.dev/pve/maps": "424b414ed484781506a62629014d4f2442baac70f6658e773b4106916e21aed2"
+  },
+  "structureMode": "pve",
+  "unknownPolicy": "unmapped containers remain container; unmapped item types remain other"
+}

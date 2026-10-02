@@ -1,9 +1,10 @@
 {
-  "pointCount": 1323,
-  "pointSourceSha256": "e1cd74595d035ec8af7c2ec87cd0399b789f1291236ec1546ff650ff675afece",
+  "pointCount": 12333,
+  "pointSourceSha256": "6f54db9f729f8d91e2b7a7cf5a53abca1c1b0048e1923a7f3fbc4ebd008cdafd",
   "sourceHashes": {
-    "https://json.tarkov.dev/regular/items": "ad16e5e549f391d6e94dd9ec21409178ae61346d6ca42b3e04e91bd9e6b52568",
-    "https://json.tarkov.dev/regular/maps": "d84306351b12f2792c384428132d48d9ef91cecc8b79ed34b7c5c9374d3e899f"
+    "https://json.tarkov.dev/regular/items": "5db65e71d0db350d16da8f2ea9ed62b5be813f575370fcd99361653e7c1eaa75",
+    "https://json.tarkov.dev/regular/maps": "8b169057c8a26ef631ef5866cdf2cc77c6a7d44d32047f786803c6b0f7b7e73f"
   },
+  "structureMode": "regular",
   "unknownPolicy": "unmapped containers remain container; unmapped item types remain other"
 }

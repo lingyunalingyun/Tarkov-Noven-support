@@ -1,0 +1,17 @@
+mapId	slug	baseFloor	width	height	rotation	minX	maxX	minZ	maxZ	author
+55f2d3fd4bdc2d5f408b4567	factory	Ground_Floor	131.9	142.5	90	-65.5	77	-64.5	67.4	Shebuka
+56f40101d2720b2a4d8b45d6	customs	Ground_Level	1070	544	180	-372	698	-307	237	Shebuka
+5704e3c2d2720bac5b8b4567	woods	Ground_Level	1407	1356	180	-761	646	-914	442	Shebuka
+5704e4dad2720bb55b8b4567	lighthouse	Ground_Level	1060	1723	180	-545	515	-998	725	Shebuka
+5704e554d2720bac5b8b456e	shoreline	Ground_Level	1560	1033	180	-1056	504	-415	618	Shebuka
+5704e5fad2720bc05b8b4567	reserve	Ground_Level	592	537	180	-303	289	-293	244	Shebuka
+5714dbc024597771384a510d	interchange	Ground_Level	1127.6852	947.02582	180	-433	598	-442	426	Shebuka
+5714dc692459777137212e12	streets-of-tarkov	Ground_Level	603	827	180	-280	323	-295	532	Shebuka
+59fc81d786f774390775787e	night-factory	Ground_Floor	131.9	142.5	90	-65.5	77	-64.5	67.4	Shebuka
+5b0fc42d86f7744a585f9105	the-lab	Base	284	207	270	-287	-80	-477	-193	Tarkov.dev
+653e6760052c01c1c805532f	ground-zero	Ground_Level	348	488	180	-99	249	-124	364	Shebuka
+65b8d6f5cdde2479cb2a3125	ground-zero-21	Ground_Level	348	488	180	-99	249	-124	364	Shebuka
+65cc8f81a9aac3e77d0cfd3e	terminal	Ground_Level	896	1055	180	-433	463	-580	475	Shebuka
+6733700029c367a3d40b02af	the-labyrinth	Base	113	105	270	-52	53	-37	76	Tarkov.dev
+69af492a4819ea4ba10a69c5	icebreaker	Base	142.5	131.9	180	-65.5	77	-64.5	67.4	TarkovBOT.eu
+6a294a5b5eb5f9a1700417b7	the-lab-dark	Base	284	207	270	-287	-80	-477	-193	Tarkov.dev

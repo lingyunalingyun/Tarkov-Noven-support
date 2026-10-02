@@ -1,0 +1,22 @@
+{
+  "abstract": {
+    "author": "Shebuka",
+    "authorLink": "https://github.com/the-hideout/tarkov-dev-svg-maps/",
+    "croppedViewBox": [
+      0.0,
+      0.0,
+      605.32395,
+      831.57753
+    ],
+    "kind": "svg",
+    "rights": {
+      "additionalTerms": "See cached upstream README restrictions",
+      "declaredLicense": "CC BY-NC-SA 4.0",
+      "source": "https://raw.githubusercontent.com/the-hideout/tarkov-dev-svg-maps/main/README.md"
+    },
+    "source": "https://assets.tarkov.dev/maps/svg/StreetsOfTarkov.svg"
+  },
+  "floorId": "Ground_Level",
+  "name": "Ground Level",
+  "satellite": null
+}

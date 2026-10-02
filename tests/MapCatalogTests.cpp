@@ -17,15 +17,16 @@ void Write(const std::filesystem::path& path,const std::string& value){
 int main(int argc,char** argv){
     Require(argc==2,"assets directory required");std::wstring error;
     noven::data::MapCatalog catalog;
-    Require(catalog.Load(std::filesystem::path(argv[1])/"data",error)&&error.empty(),"generated Interchange catalog loads");
-    Require(catalog.Maps().size()==1&&catalog.Points().size()==1634,"snapshot counts match");
+    Require(catalog.Load(std::filesystem::path(argv[1])/"data",error)&&error.empty(),"generated full map catalog loads");
+    Require(catalog.Maps().size()==17&&catalog.Points().size()==16755,"all-map snapshot counts match");
     const auto* map=catalog.Map("5714dbc024597771384a510d");
     Require(map&&map->nameZh=="立交桥"&&map->nameEn=="Interchange"&&map->cardinalRotation==180,"localized map identity loads");
     Require(!catalog.Map("missing")&&!catalog.Point("missing"),"unknown identities return null");
     int containers=0,extracts=0,loose=0,locks=0,switches=0,stationary=0,tasks=0;
     for(const auto& point:catalog.Points()){
-        Require(catalog.Point(point.id)==&point&&point.mapId==map->id,"stable identity resolves owned point");
+        Require(catalog.Point(point.id)==&point&&catalog.Map(point.mapId),"stable identity resolves owned point and map");
         Require(std::isfinite(point.position.x)&&std::isfinite(point.position.y)&&std::isfinite(point.position.z),"raw coordinates finite");
+        if(point.mapId!=map->id)continue;
         containers+=point.kind=="container";extracts+=point.kind=="extract";loose+=point.kind=="loose";
         locks+=point.kind=="lock";switches+=point.kind=="switch";stationary+=point.kind=="stationary";
         tasks+=point.kind=="task";

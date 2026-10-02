@@ -1,0 +1,4222 @@
+{
+  "abstract": {
+    "author": "Shebuka",
+    "authorLink": "https://github.com/the-hideout/tarkov-dev-svg-maps/",
+    "croppedViewBox": [
+      0.0,
+      0.0,
+      1472.7926,
+      1420.5995
+    ],
+    "kind": "svg",
+    "rights": {
+      "additionalTerms": "See cached upstream README restrictions",
+      "declaredLicense": "CC BY-NC-SA 4.0",
+      "source": "https://raw.githubusercontent.com/the-hideout/tarkov-dev-svg-maps/main/README.md"
+    },
+    "source": "https://assets.tarkov.dev/maps/svg/Woods.svg"
+  },
+  "floorId": "Ground_Level",
+  "name": "Ground Level",
+  "satellite": {
+    "compositionLayers": [
+      {
+        "atlasSize": [
+          4352,
+          4352
+        ],
+        "crop": [
+          145.87200000000007,
+          228.8479999999995,
+          4175.976,
+          4024.6080000000006
+        ],
+        "inputs": [
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              256
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/0.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              512
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/1.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              768
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/2.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              1024
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/3.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              1280
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/4.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              1536
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/5.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              1792
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/6.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              2048
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/7.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              2304
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/8.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              2560
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/9.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              2816
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/10.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              3072
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/11.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              3328
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/12.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              3584
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/13.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              3840
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/14.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              256,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              512,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              768,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1024,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1280,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1536,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              1792,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2048,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2304,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2560,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              2816,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3072,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3328,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3584,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              3840,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/15.png"
+          },
+          {
+            "encodedSize": [
+              256,
+              256
+            ],
+            "position": [
+              4096,
+              4096
+            ],
+            "size": [
+              256,
+              256
+            ],
+            "url": "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/15.png"
+          }
+        ],
+        "tileOrigin": [
+          -1,
+          -1
+        ],
+        "tileSize": 256
+      }
+    ],
+    "imageryRightsHolder": "not specified in DEV layout",
+    "layoutAuthor": "Shebuka",
+    "layoutAuthorLink": "https://github.com/the-hideout/tarkov-dev-svg-maps/",
+    "missingTiles": [
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/15.png"
+    ],
+    "nativeTileSize": 256,
+    "pixelBounds": [
+      -110.12799999999993,
+      -27.1520000000005,
+      4065.848,
+      3997.456
+    ],
+    "rights": "Tile imagery rights not specified by maps.json; not assumed to share SVG license",
+    "sourceUrls": [
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/-1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/0.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/1.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/2.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/3.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/4.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/5.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/6.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/7.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/8.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/9.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/10.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/11.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/12.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/13.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/14.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/-1/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/0/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/1/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/2/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/3/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/4/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/5/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/6/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/7/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/8/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/9/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/10/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/11/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/12/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/13/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/14/15.png",
+      "https://assets.tarkov.dev/maps/woods/main_0.16/4/15/15.png"
+    ],
+    "zoom": 4
+  }
+}

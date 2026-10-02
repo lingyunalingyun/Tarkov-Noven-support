@@ -1,0 +1,40 @@
+{
+  "conditionBoundary": "source switch/switches/transferItem only; no inferred live eligibility",
+  "conditionCount": 343,
+  "coordinateSpace": "upstream world x/y/z; y is height, not screen y",
+  "floorAssignment": "not supplied by this API; requires verified map-layer extents",
+  "imagesIncluded": false,
+  "licensing": "API provenance is not map-image redistribution permission; no images are bundled.",
+  "map": "all",
+  "mapCount": 17,
+  "missingPositions": {},
+  "omittedFields": [],
+  "outlineVertexCount": 2139,
+  "pointCount": 16874,
+  "pointKinds": {
+    "artillery": 18,
+    "boss": 593,
+    "btr": 14,
+    "container": 6269,
+    "extract": 161,
+    "hazard": 339,
+    "lock": 283,
+    "loose": 5196,
+    "spawn": 3020,
+    "stationary": 41,
+    "switch": 39,
+    "task": 868,
+    "transit": 33
+  },
+  "schemaVersion": 1,
+  "source": "https://json.tarkov.dev/",
+  "sourceHashes": {
+    "https://json.tarkov.dev/pve/maps": "424b414ed484781506a62629014d4f2442baac70f6658e773b4106916e21aed2",
+    "https://json.tarkov.dev/pve/maps_en": "66a8c674c8d411784d7dcfdc2e229f23b6fe7aa7c07262dbe426963b8848d5e0",
+    "https://json.tarkov.dev/pve/maps_zh": "590cb13105449e7a9f6a7fb19bf489daac55ce95248b2ee4da3d984f02d93c05",
+    "https://json.tarkov.dev/pve/tasks": "c608d3f2177f8e56bf42481dc24395078c0d42d9c57a7ae785b4a513c2738def",
+    "https://json.tarkov.dev/pve/tasks_en": "484f2eae2579a947d69593168acbb31775e21a10400ad32aa7241b6716d3eab1",
+    "https://json.tarkov.dev/pve/tasks_zh": "dcace5b88fe43ca0f4e61a9e4365acd0b3acf13eb4c70d71d396e7538796c484"
+  },
+  "structureMode": "pve"
+}

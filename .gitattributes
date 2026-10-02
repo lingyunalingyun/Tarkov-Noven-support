@@ -1,3 +1,12 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 assets/maps/interchange/Interchange.svg text eol=lf
+# 来源摘要必须对应原始字节；生成表固定 LF，不能由 checkout 改写。
+# Provenance hashes require original source bytes; generated tables retain LF on checkout.
+assets/maps/sources/** binary
+assets/maps/**/*.tiles binary
+assets/maps/**/*.manifest.json text eol=lf
+assets/data/map*.tsv text eol=lf
+assets/data/map*.json text eol=lf
+assets/data/pve/map*.tsv text eol=lf
+assets/data/pve/map*.json text eol=lf
