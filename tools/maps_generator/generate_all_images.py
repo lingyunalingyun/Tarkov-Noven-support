@@ -414,6 +414,10 @@ def reuse_map(output, sources, canonical, config, floor_list, size, preview, der
             return None
         abstract = f'maps/{canonical}/{floor}.png' if meta['abstract'] else ''
         sat = f'maps/{canonical}/{floor}.satellite.png' if meta['satellite'] else ''
+        if not staged and not config.get('svgPath') and any(
+                entry.get('tilePath') == config.get('tilePath') for entry in config.get('layers', [])):
+            if not meta['satellite'] or not meta['satellite'].get('sparseFloorBase'):
+                return None
         if meta['abstract'] and meta['abstract'].get('kind') == 'tile-fallback':
             abstract = sat
         for relative in set(filter(None, (abstract, sat))):
@@ -525,7 +529,14 @@ def build(output, sources, api, layout, detail_width=4096, preview=1024, only=No
                 sat_image, sat_meta = None, None
                 if layer.get('tilePath'):
                     try:
-                        sat_image, sat_meta = satellite(sources, config, layer['tilePath'], size, overlay=index>0, workers=workers)
+                        # DEV 把破冰船等独立楼层同时指定为 base；它仍是可稀疏的楼层图，不是完整底图。
+                        # DEV may designate a standalone floor as base; it remains a sparse floor image, not a full basemap.
+                        sparse_base = index == 0 and not raw_svg and any(
+                            entry.get('tilePath') == config.get('tilePath') for entry in config.get('layers', []))
+                        sat_image, sat_meta = satellite(sources, config, layer['tilePath'], size,
+                                                       overlay=index>0 or sparse_base, workers=workers)
+                        if sparse_base:
+                            sat_meta['sparseFloorBase'] = True
                     except SourceUnavailable as error:
                         metadata['satelliteUnavailable'] = str(error)
                         print(f'Unavailable satellite {canonical}/{floor}: {error}', flush=True)

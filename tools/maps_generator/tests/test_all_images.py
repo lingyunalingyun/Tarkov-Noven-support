@@ -204,6 +204,37 @@ class AllImagesTests(unittest.TestCase):
                 sources.pin(images.API_URL, b'point catalog pinned API')
                 self.assertEqual(images.Sources(directory, True).get(images.API_URL), b'point catalog pinned API')
 
+    def test_sparse_explicit_floor_base_retains_real_404_gaps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sources = images.Sources(root / 'cache', offline=True)
+            template = 'https://assets.tarkov.dev/maps/sparse/{z}/{x}/{y}.png'
+            cfg = {'key': 'actual', 'projection': 'interactive', 'bounds': [[0, 0], [48, 48]], 'coordinateRotation': 0,
+                   'transform': [1, 0, 1, 48], 'minZoom': 0, 'maxZoom': 0, 'tileSize': 16,
+                   'tilePath': template, 'layers': [{'name': 'Infirmary', 'tilePath': template}]}
+            tile = images.png(Image.new('RGBA', (16, 16), (20, 30, 40, 255)))
+            for y in range(3):
+                for x in range(3):
+                    url = template.format(z=0, x=x, y=y)
+                    if (x, y) == (1, 1):
+                        record = {'url': url, 'status': 404, 'sha256': None, 'cachePath': None}
+                        (sources.directory / (images.digest(url.encode()) + '.json')).write_bytes(images.json_bytes(record))
+                    else:
+                        sources.get(url, seed=tile)
+            with self.assertRaises(images.SourceUnavailable):
+                images.satellite(sources, cfg, template, (64, 64), workers=1)
+            api = {'data': {'maps': {'1': {'id': '1', 'normalizedName': 'actual'}}}}
+            layout = [{'normalizedName': 'actual', 'maps': [cfg]}]
+            sources.get(images.LAYOUT_URL, seed=images.json_bytes(layout))
+            sources.get(images.API_URL, seed=images.json_bytes(api))
+            with patch('requests.Session', side_effect=AssertionError('network forbidden')):
+                images.build(root / 'output', sources, api, layout, detail_width=64, preview=32)
+            metadata = json.loads((root / 'output/maps/actual/Base.manifest.json').read_bytes())
+            self.assertTrue(metadata['satellite']['sparseFloorBase'])
+            self.assertEqual(len(metadata['satellite']['missingTiles']), 1)
+            with Image.open(root / 'output/maps/actual/Base.satellite.png') as image:
+                self.assertEqual(image.getpixel((16, 16))[3], 0)
+
     def test_interchange_accepted_ids_and_labels(self):
         cfg = {'key': 'interchange', 'svgLayer': 'Ground_Level', 'layers': [
             {'name': '2nd Floor', 'svgLayer': 'First_Floor'}, {'name': '3rd Floor', 'svgLayer': 'Second_Floor'}]}
