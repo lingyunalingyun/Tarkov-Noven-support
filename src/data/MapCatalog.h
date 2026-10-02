@@ -11,10 +11,15 @@ struct MapRecord final {
     double cardinalRotation{};
     int raidDuration{};
 };
+struct MapExtractCondition final {std::string field,value;};
 struct MapPointRecord final {
     std::string id,mapId,kind,subtype,sourceId,nameZh,nameEn;
     MapWorldPosition position;
     std::vector<std::string> icons;
+    std::vector<MapWorldPosition> outline;
+    // 来源条件只作静态说明，不代表玩家当前能否撤离。
+    // Source conditions are static information, never live player extraction eligibility.
+    std::vector<MapExtractCondition> conditions;
 };
 
 // 目录拥有静态数据与身份；世界坐标不等于屏幕坐标或实时游戏状态。

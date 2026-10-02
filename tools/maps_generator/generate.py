@@ -15,6 +15,8 @@ BASE = "https://json.tarkov.dev/"
 HEADERS = {
     "maps": "id\tnormalizedName\tnameZh\tnameEn\trotation\traidDuration\tplayers",
     "points": "id\tmapId\tkind\tsubtype\tsourceId\tnameZh\tnameEn\tx\ty\tz",
+    "outlines": "pointId\tvertex\tx\ty\tz",
+    "conditions": "pointId\tfield\tvalue",
 }
 
 
@@ -72,7 +74,8 @@ def normalize(source, locales, tasks=None, task_locales=None, map_slug="intercha
     if type(duration) is not int or not 0 <= duration <= 1440:
         raise ValueError("invalid raid duration")
     rotation = number(m["coordinateToCardinalRotation"])
-    rows = {"maps": [(map_id, identity(map_slug), *names(m["name"]), rotation, duration, text(m["players"]))], "points": []}
+    rows = {"maps": [(map_id, identity(map_slug), *names(m["name"]), rotation, duration, text(m["players"]))],
+            "points": [], "outlines": [], "conditions": []}
     missing = Counter()
     seen = {}
 
@@ -91,6 +94,18 @@ def normalize(source, locales, tasks=None, task_locales=None, map_slug="intercha
         if point_id in seen and seen[point_id] != row:
             raise ValueError("conflicting point identity")
         seen[point_id] = row
+        return point_id
+
+    def geometry(point_id, record):
+        if point_id:
+            for index, position in enumerate(record.get("outline") or []):
+                rows["outlines"].append((point_id, index, *(number(position[axis]) for axis in ("x", "y", "z"))))
+
+    def conditions(point_id, record):
+        if point_id:
+            for field in ("switch", "switches", "transferItem"):
+                if field in record and record[field] is not None:
+                    rows["conditions"].append((point_id, field, json.dumps(record[field], ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)))
 
     for p in m.get("lootContainers", []):
         add("container", "", identity(p["lootContainer"]), p["lootContainer"], p.get("position"))
@@ -108,14 +123,19 @@ def normalize(source, locales, tasks=None, task_locales=None, map_slug="intercha
     for p in m.get("extracts", []):
         # 变体接口有时不提供阵营，明确保留 unknown，不套用普通版本的阵营。
         # Variant sources may omit faction; retain unknown rather than assume the regular map's faction.
-        add("extract", p.get("faction") or "unknown", identity(p["id"]), p["name"], p.get("position"))
+        point_id = add("extract", p.get("faction") or "unknown", identity(p["id"]), p["name"], p.get("position"))
+        geometry(point_id, p)
+        conditions(point_id, p)
     for p in m.get("transits", []):
-        add("transit", identity(p["map"]), identity(p["id"]), p["description"], p.get("position"))
+        point_id = add("transit", identity(p["map"]), identity(p["id"]), p["description"], p.get("position"))
+        geometry(point_id, p)
+        conditions(point_id, p)
     for p in m.get("spawns", []):
         subtype = json.dumps({"sides": sorted(set(p["sides"])), "categories": sorted(set(p["categories"]))}, separators=(",", ":"), sort_keys=True)
         add("spawn", subtype, p["zoneName"], p["zoneName"], p.get("position"))
     for p in m.get("hazards", []):
-        add("hazard", p["hazardType"], p["name"], p["name"], p.get("position"))
+        point_id = add("hazard", p["hazardType"], p["name"], p["name"], p.get("position"))
+        geometry(point_id, p)
     for boss in m.get("bosses", []):
         for location in boss.get("spawnLocations", []):
             for position in location.get("positions", []):
@@ -150,6 +170,8 @@ def normalize(source, locales, tasks=None, task_locales=None, map_slug="intercha
                         source_id = f"{task_id}_{objective_id}"
                         add("task", "item", source_id, labels[1], position, labels)
     rows["points"] = sorted(seen.values())
+    for key in ("outlines", "conditions"):
+        rows[key] = sorted(set(rows[key]))
     if not rows["points"]:
         raise ValueError("no positioned data")
     return rows, dict(sorted(missing.items()))
@@ -161,7 +183,7 @@ def build(source, locales, tasks=None, task_locales=None, all_maps=False, mode="
     if all_maps:
         # 按上游地图身份合并，变体保持独立；排序与生成顺序无关。
         # Merge by upstream map identity, keeping variants independent and order deterministic.
-        rows = {"maps": [], "points": []}
+        rows = {key: [] for key in HEADERS}
         missing = {}
         slugs = [m["normalizedName"] for m in source["data"]["maps"].values()]
         if len(set(slugs)) != len(slugs):
@@ -187,7 +209,9 @@ def build(source, locales, tasks=None, task_locales=None, all_maps=False, mode="
         "coordinateSpace": "upstream world x/y/z; y is height, not screen y",
         "floorAssignment": "not supplied by this API; requires verified map-layer extents",
         "imagesIncluded": False,
-        "omittedFields": ["outlines", "extractConditions"],
+        "outlineVertexCount": len(rows["outlines"]), "conditionCount": len(rows["conditions"]),
+        "conditionBoundary": "source switch/switches/transferItem only; no inferred live eligibility",
+        "omittedFields": [],
         "licensing": "API provenance is not map-image redistribution permission; no images are bundled.",
     }
     return outputs, meta

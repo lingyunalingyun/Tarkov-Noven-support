@@ -7,6 +7,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace noven::data {
 namespace {
@@ -73,27 +74,48 @@ bool MapCatalog::Load(const std::filesystem::path& directory,std::wstring& error
             next.maps_.push_back({f[0],f[1],f[2],f[3],f[6],Number(f[4]),Duration(f[5])});
         });
         std::unordered_set<std::string> identities;
+        std::unordered_map<std::string,std::size_t> pointIndices;
         constexpr std::array<std::string_view,13> kinds{"container","loose","lock","switch","stationary","extract",
             "transit","spawn","hazard","boss","btr","artillery","task"};
         Read(directory,"map_points.tsv","id\tmapId\tkind\tsubtype\tsourceId\tnameZh\tnameEn\tx\ty\tz",[&](const auto& f){
             Identity(f[0]);Identity(f[1]);
             if(!next.Map(f[1])||!identities.insert(f[0]).second||std::find(kinds.begin(),kinds.end(),f[2])==kinds.end()
                 ||f[4].empty()||(f[5].empty()&&f[6].empty()))throw std::runtime_error("invalid point/reference");
+            pointIndices.emplace(f[0],next.points_.size());
             next.points_.push_back({f[0],f[1],f[2],f[3],f[4],f[5],f[6],{Number(f[7]),Number(f[8]),Number(f[9])}});
         });
+        const auto lookup=[&](const std::string& id)->MapPointRecord&{
+            const auto found=pointIndices.find(id);if(found==pointIndices.end())throw std::runtime_error("invalid detail reference");
+            return next.points_[found->second];
+        };
+        if(std::filesystem::exists(directory/"map_outlines.tsv"))
+            Read(directory,"map_outlines.tsv","pointId\tvertex\tx\ty\tz",[&](const auto& f){
+                auto& point=lookup(f[0]);std::size_t index{};
+                const auto [end,ec]=std::from_chars(f[1].data(),f[1].data()+f[1].size(),index);
+                if(ec!=std::errc{}||end!=f[1].data()+f[1].size()||index!=point.outline.size())throw std::runtime_error("invalid outline order");
+                point.outline.push_back({Number(f[2]),Number(f[3]),Number(f[4])});
+            });
+        if(std::filesystem::exists(directory/"map_conditions.tsv"))
+            Read(directory,"map_conditions.tsv","pointId\tfield\tvalue",[&](const auto& f){
+                auto& point=lookup(f[0]);
+                if((point.kind!="extract"&&point.kind!="transit")||(f[1]!="switch"&&f[1]!="switches"&&f[1]!="transferItem")
+                    ||f[2].empty()||std::any_of(point.conditions.begin(),point.conditions.end(),[&](const auto& c){return c.field==f[1];}))
+                    throw std::runtime_error("invalid condition");
+                point.conditions.push_back({f[1],f[2]});
+            });
         if(std::filesystem::exists(directory/"map_point_icons.tsv")){
             std::unordered_set<std::string> iconPoints;
             Read(directory,"map_point_icons.tsv","id\ticons",[&](const auto& f){
-                auto point=std::find_if(next.points_.begin(),next.points_.end(),[&](const auto& p){return p.id==f[0];});
-                if(point==next.points_.end()||!iconPoints.insert(f[0]).second)throw std::runtime_error("invalid icon reference");
+                auto& point=lookup(f[0]);
+                if(!iconPoints.insert(f[0]).second)throw std::runtime_error("invalid icon reference");
                 std::size_t start=0;
                 while(start<f[1].size()){
                     const auto end=f[1].find(',',start);
                     auto token=f[1].substr(start,end==std::string::npos?end:end-start);Identity(token);
-                    point->icons.push_back(std::move(token));
+                    point.icons.push_back(std::move(token));
                     if(end==std::string::npos)break;start=end+1;
                 }
-                if(point->icons.empty()||f[1].back()==',')throw std::runtime_error("empty icon identity");
+                if(point.icons.empty()||f[1].back()==',')throw std::runtime_error("empty icon identity");
             });
         }
         if(!next.Ready())throw std::runtime_error("empty catalog");

@@ -55,6 +55,21 @@ class GeneratorTests(unittest.TestCase):
         rows, _ = GEN.normalize(source, locales)
         self.assertEqual({p[3] for p in rows["points"] if p[2] == "extract"}, {"unknown", "scav"})
 
+    def test_outlines_and_conditions_preserve_source_identity(self):
+        source, locales = fixture()
+        point = source["data"]["maps"]["map1"]["extracts"][0]
+        point.update(outline=[{"x": 1, "y": 2, "z": 3}, {"x": 4, "y": 5, "z": 6}],
+                     switch=True, switches=["switch1"], transferItem={"item": "rub", "count": 5000})
+        rows, _ = GEN.normalize(source, locales)
+        identity = next(p[0] for p in rows["points"] if p[2] == "extract" and p[3] == "pmc")
+        self.assertEqual(rows["outlines"], [(identity, 0, "1", "2", "3"), (identity, 1, "4", "5", "6")])
+        self.assertEqual(dict((p[1], p[2]) for p in rows["conditions"]),
+                         {"switch": "true", "switches": '["switch1"]', "transferItem": '{"count":5000,"item":"rub"}'})
+        point["position"] = None
+        rows, _ = GEN.normalize(source, locales)
+        self.assertFalse(rows["outlines"])
+        self.assertFalse(rows["conditions"])
+
     def test_real_coordinates_and_localization(self):
         rows, _ = GEN.normalize(*fixture())
         self.assertEqual(rows["maps"][0][2:4], ("立交桥", "Interchange"))
