@@ -1,6 +1,7 @@
 #include "data/MapCatalog.h"
 #include "data/TaskMapLinks.h"
 #include "data/InterchangeReference.h"
+#include "data/MapReference.h"
 #include <windows.h>
 #include <cmath>
 #include <fstream>
@@ -51,6 +52,19 @@ int main(int argc,char** argv){
         &&reference::FloorFor({0,34,0})=="Second_Floor","floor height boundaries are deterministic");
     Require(reference::FloorFor({121,40,0})=="Ground_Level"&&reference::FloorFor({0,40,219})=="Ground_Level","outdoor height is not a mall floor");
     Require(reference::Floors[0].id=="Second_Floor"&&reference::Floors[2].label==L"B1","real floors have stable top-down order");
+    const noven::data::MapProjection generic{reference::Width,reference::Height,180,-433,598,-442,426};
+    for(const auto position:std::array<noven::data::MapWorldPosition,3>{{{598,20,-442},{-433,34,426},{82.5,99,-8}}}){
+        const auto expected=reference::Project(position);const auto actual=generic.Project(position);
+        Require(std::abs(actual[0]-expected.x)<1e-9&&std::abs(actual[1]-expected.y)<1e-9,"generic rotation agrees with verified Interchange projection");
+    }
+    const noven::data::MapProjection quarterTurn{200,100,90,-10,10,-20,20};
+    const auto quarterOrigin=quarterTurn.Project({-10,300,20}),quarterFar=quarterTurn.Project({10,300,-20});
+    Require(std::abs(quarterOrigin[0])<1e-9&&std::abs(quarterOrigin[1]-100)<1e-9
+        &&std::abs(quarterFar[0]-200)<1e-9&&std::abs(quarterFar[1])<1e-9,"quarter-turn factory-style map uses rotated bounds and inverted screen y");
+    const std::vector<noven::data::MapFloorExtent> extents{{"upper",25,34,-222,120,-327,218}};
+    Require(noven::data::MapFloorFor({0,25,0},extents,"base")=="upper"
+        &&noven::data::MapFloorFor({121,25,0},extents,"base")=="base"
+        &&noven::data::MapFloorFor({0,34,0},extents,"base")=="base","generic floor ranges honor spatial and half-open height boundaries");
     const auto dir=std::filesystem::temp_directory_path()/("NovenMapCatalogTests-"+std::to_string(GetCurrentProcessId()));
     Require(std::filesystem::create_directory(dir),"isolated fixture directory created");
     const std::string maps="id\tnormalizedName\tnameZh\tnameEn\trotation\traidDuration\tplayers\nmap1\tinterchange\t立交桥\tInterchange\t180\t40\t11-15\n";
@@ -102,6 +116,15 @@ int main(int argc,char** argv){
     Write(dir/"map_conditions.tsv","pointId\tfield\tvalue\np1\tswitch\ttrue\np1\tswitch\tfalse\n");
     Require(!fixture.Load(dir,error),"duplicate condition fields reject");
     std::filesystem::remove(dir/"map_conditions.tsv");
+    Write(dir/"map_references.tsv","mapId\tslug\tbaseFloor\twidth\theight\trotation\tminX\tmaxX\tminZ\tmaxZ\tauthor\nmap1\tinterchange\tbase\t1000\t700\t180\t-433\t598\t-442\t426\tSource Author\n");
+    const std::string floorHeader="mapId\tfloorId\tnameZh\tnameEn\torder\tabstractPath\tsatellitePath\n";
+    Write(dir/"map_floors.tsv",floorHeader+"map1\tbase\t1F\t1F\t0\tmaps/interchange/base.png\t\n");
+    Write(dir/"map_extents.tsv","mapId\tfloorId\tbottom\ttop\tminX\tmaxX\tminZ\tmaxZ\nmap1\tbase\t-10\t10\t-20\t20\t-30\t30\n");
+    Require(fixture.Load(dir,error)&&fixture.Maps()[0].floors.size()==1&&fixture.Maps()[0].extents.size()==1
+        &&fixture.Maps()[0].projection.width==1000,"optional verified map references and local floor image paths load");
+    Write(dir/"map_floors.tsv",floorHeader+"map1\tbase\t1F\t1F\t0\t../unsafe.png\t\n");
+    Require(!fixture.Load(dir,error)&&fixture.Maps()[0].floors[0].abstractPath=="maps/interchange/base.png","unsafe image path rejects without losing verified reference");
+    std::filesystem::remove(dir/"map_references.tsv");std::filesystem::remove(dir/"map_floors.tsv");std::filesystem::remove(dir/"map_extents.tsv");
     std::filesystem::remove(dir/"map_points.tsv");Require(!fixture.Load(dir,error),"missing table rejects");
     std::filesystem::remove(dir/"map_maps.tsv");Require(std::filesystem::remove(dir),"fixture cleanup removes only owned empty directory");
     std::cout<<"Map catalog snapshot and validation checks passed\n";

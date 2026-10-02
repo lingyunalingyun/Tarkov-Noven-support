@@ -73,6 +73,46 @@ bool MapCatalog::Load(const std::filesystem::path& directory,std::wstring& error
             if(next.Map(f[0])||(f[2].empty()&&f[3].empty()))throw std::runtime_error("invalid map");
             next.maps_.push_back({f[0],f[1],f[2],f[3],f[6],Number(f[4]),Duration(f[5])});
         });
+        const auto mapLookup=[&](const std::string& id)->MapRecord&{
+            const auto found=std::find_if(next.maps_.begin(),next.maps_.end(),[&](const auto& m){return m.id==id;});
+            if(found==next.maps_.end())throw std::runtime_error("invalid map reference");return *found;
+        };
+        if(std::filesystem::exists(directory/"map_references.tsv"))
+            Read(directory,"map_references.tsv","mapId\tslug\tbaseFloor\twidth\theight\trotation\tminX\tmaxX\tminZ\tmaxZ\tauthor",[&](const auto& f){
+                auto& map=mapLookup(f[0]);Identity(f[2]);
+                if(!map.baseFloor.empty()||f[1]!=map.normalizedName)throw std::runtime_error("duplicate/mismatched map reference");
+                map.baseFloor=f[2];map.author=f[10];map.projection={Number(f[3]),Number(f[4]),Number(f[5]),Number(f[6]),Number(f[7]),Number(f[8]),Number(f[9])};
+                const auto& p=map.projection;
+                if(p.width<=0||p.height<=0||p.width>100000||p.height>100000||p.minX>=p.maxX||p.minZ>=p.maxZ)
+                    throw std::runtime_error("invalid projection bounds");
+            });
+        if(std::filesystem::exists(directory/"map_floors.tsv"))
+            Read(directory,"map_floors.tsv","mapId\tfloorId\tnameZh\tnameEn\torder\tabstractPath\tsatellitePath",[&](const auto& f){
+                auto& map=mapLookup(f[0]);Identity(f[1]);
+                if(map.baseFloor.empty()||std::any_of(map.floors.begin(),map.floors.end(),[&](const auto& floor){return floor.id==f[1];}))
+                    throw std::runtime_error("invalid floor reference");
+                for(const auto& path:{f[5],f[6]})if(!path.empty()){
+                    const auto image=std::filesystem::u8path(path);
+                    if(image.has_root_path()||image.extension()!=".png"||path.find_first_of("\\:")!=std::string::npos
+                        ||std::any_of(image.begin(),image.end(),[](const auto& part){return part=="..";}))throw std::runtime_error("unsafe map image path");
+                }
+                const auto order=Duration(f[4]);
+                if((f[2].empty()&&f[3].empty())||std::any_of(map.floors.begin(),map.floors.end(),[&](const auto& floor){return floor.order==order;}))
+                    throw std::runtime_error("invalid floor label/order");
+                map.floors.push_back({f[1],f[2],f[3],f[5],f[6],order});
+            });
+        if(std::filesystem::exists(directory/"map_extents.tsv"))
+            Read(directory,"map_extents.tsv","mapId\tfloorId\tbottom\ttop\tminX\tmaxX\tminZ\tmaxZ",[&](const auto& f){
+                auto& map=mapLookup(f[0]);
+                if(std::none_of(map.floors.begin(),map.floors.end(),[&](const auto& floor){return floor.id==f[1];}))throw std::runtime_error("unknown extent floor");
+                MapFloorExtent extent{f[1],Number(f[2]),Number(f[3]),Number(f[4]),Number(f[5]),Number(f[6]),Number(f[7])};
+                if(extent.bottom>=extent.top||extent.minX>extent.maxX||extent.minZ>extent.maxZ)throw std::runtime_error("invalid floor extent");
+                map.extents.push_back(std::move(extent));
+            });
+        for(auto& map:next.maps_)if(!map.baseFloor.empty()){
+            if(std::none_of(map.floors.begin(),map.floors.end(),[&](const auto& floor){return floor.id==map.baseFloor;}))throw std::runtime_error("missing base floor");
+            std::sort(map.floors.begin(),map.floors.end(),[](const auto& a,const auto& b){return a.order<b.order;});
+        }
         std::unordered_set<std::string> identities;
         std::unordered_map<std::string,std::size_t> pointIndices;
         constexpr std::array<std::string_view,13> kinds{"container","loose","lock","switch","stationary","extract",

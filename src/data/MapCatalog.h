@@ -1,15 +1,19 @@
 #pragma once
+#include "data/MapReference.h"
 #include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace noven::data {
-struct MapWorldPosition final { double x{},y{},z{}; };
 struct MapRecord final {
     std::string id,normalizedName,nameZh,nameEn,players;
     double cardinalRotation{};
     int raidDuration{};
+    MapProjection projection;
+    std::string baseFloor,author;
+    std::vector<MapFloorRecord> floors;
+    std::vector<MapFloorExtent> extents;
 };
 struct MapExtractCondition final {std::string field,value;};
 struct MapPointRecord final {
