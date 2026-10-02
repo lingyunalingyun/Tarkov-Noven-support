@@ -70,6 +70,8 @@ public:
     bool GoBack();
     bool CanGoBack() const noexcept { return return_page_.has_value(); }
     const SearchBox& PriceSearch() const noexcept { return price_search_; }
+    [[nodiscard]] std::size_t PricePage() const noexcept { return price_page_; }
+    [[nodiscard]] std::size_t PriceTotal() const noexcept { return price_total_; }
     const MapPage& Map() const noexcept { return map_; }
 
 private:
@@ -84,7 +86,8 @@ private:
     [[nodiscard]] std::optional<std::size_t> LanguageAt(int x, int y) const;
     bool CreateRenderTarget(std::wstring& error);
     void BuildItemBitmap(const ItemImage& image);
-    void RefreshPriceRows(bool animateSearch = false);
+    void RefreshPriceRows(bool animateSearch = false, bool resetPage = true);
+    [[nodiscard]] std::optional<int> PricePagerAt(int x, int y) const;
     void OpenPriceItem(const std::string& id,data::GameMode mode);
     void RequestVisiblePriceImages();
     void RequestVisibleHideoutImages();
@@ -125,6 +128,9 @@ private:
     std::unordered_set<std::string> task_image_ids_;
     std::unique_ptr<data::PriceBrowserModel> price_browser_;
     std::vector<data::PriceRow> price_rows_;
+    std::size_t price_page_{};
+    std::size_t price_total_{};
+    std::optional<int> pressed_price_pager_;
     std::wstring price_query_;
     SearchBox price_search_;
     data::GameMode price_mode_{data::GameMode::Pvp};

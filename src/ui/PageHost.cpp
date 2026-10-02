@@ -4,6 +4,7 @@
 #include "ui/Dropdown.h"
 #include "ui/ItemTypeLabel.h"
 #include "ui/ValueFormat.h"
+#include "ui/PricePagination.h"
 #include "data/LocalizedName.h"
 
 #include <windows.h>
@@ -27,7 +28,7 @@ bool NarrowPrices(float width, const UiTheme& theme) noexcept {
     return width - theme.sidebarWidth - 2.0F * theme.contentPadding < 690.0F;
 }
 float PricesTop(float width, const UiTheme& theme) noexcept {
-    return NarrowPrices(width, theme) ? 228.0F : kPricesTop;
+    return (NarrowPrices(width, theme) ? 228.0F : kPricesTop) + PricePagerHeight;
 }
 constexpr std::array<TabBarItem<data::GameMode>, 3> kRecentTabs{{
     {data::GameMode::Pvp, L"PvP"},
@@ -194,7 +195,7 @@ float PageHost::PriceListTop(float width, const UiTheme& theme) noexcept {
 
 float PageHost::PriceMaxScroll(float height, std::size_t count,
                                float width, const UiTheme& theme, float extraHeight) noexcept {
-    return (std::max)(0.0F, static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight
+    return (std::max)(0.0F, static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight + PricePagerHeight
         - (std::max)(0.0F, height - PricesTop(width, theme) - 22.0F));
 }
 
@@ -217,7 +218,7 @@ std::optional<RecentScrollbar> PageHost::PriceScrollGeometry(
     float scroll, float extraHeight) noexcept {
     const float left = width - theme.contentPadding + 12.0F;
     return MakeScrollbar(D2D1::RectF(left, PricesTop(width, theme), left + 12.0F, height - 22.0F),
-        static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight, scroll);
+        static_cast<float>(count) * PriceRowHeight(width, theme) + extraHeight + PricePagerHeight, scroll);
 }
 
 RecentScrollbarPose PageHost::AnimatePriceScrollbar(
@@ -323,7 +324,8 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                     const SearchBox& priceSearch,
                     bool priceCaretVisible,
                     const std::vector<data::PriceRow>& prices,
-                    const ItemBitmapMap& images) const {
+                    const ItemBitmapMap& images, std::size_t pricePage,
+                    std::size_t priceTotal) const {
     const PageInfo* page = FindPage(active);
     if (page == nullptr) return;
     const float x = theme.sidebarWidth + theme.contentPadding;
@@ -394,6 +396,8 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
 
     if (active == MainPage::Prices) {
         const float listTop = PricesTop(width, theme);
+        DrawPricePager(canvas, theme, D2D1::RectF(x, listTop - PricePagerHeight,
+            right, listTop - 8), pricePage, priceTotal);
         const float rowHeight = PriceRowHeight(width, theme);
         const auto pose = SampleTabTransition(priceTransition.progress);
         const D2D1_RECT_F search = D2D1::RectF(x, 84, right, 122);
@@ -495,6 +499,10 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
             }
             }
         }
+        const float footerTop = listTop + static_cast<float>(prices.size()) * rowHeight
+            + details.extent - priceScroll;
+        if (!prices.empty()) DrawPricePager(canvas, theme, D2D1::RectF(x, footerTop, right,
+            footerTop + PricePagerHeight - 8), pricePage, priceTotal);
         canvas.target.PopAxisAlignedClip();
         const auto scrollbar = AnimatePriceScrollbar(
             PriceScrollGeometry(width, height, theme, priceTransition.outgoingCount,

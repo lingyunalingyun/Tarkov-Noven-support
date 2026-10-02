@@ -47,7 +47,8 @@ public:
         bool descending = true,
         PriceTraderSide traderSide = PriceTraderSide::Sell,
         std::size_t maximum = 120,
-        std::span<const PriceTagAlias> tagAliases = {}) const;
+        std::span<const PriceTagAlias> tagAliases = {},
+        std::size_t offset = 0, std::size_t* total = nullptr) const;
     [[nodiscard]] std::chrono::system_clock::time_point LastUpdated(GameMode mode) const noexcept {
         return economy_.GetLastUpdated(mode);
     }

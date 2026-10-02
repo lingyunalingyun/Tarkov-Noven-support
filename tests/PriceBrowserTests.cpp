@@ -51,6 +51,42 @@ int main(int argc, char** argv) {
     Require(!chinese.empty(), "Chinese substring search returns an item");
     const auto empty = browser.Query({}, noven::data::GameMode::Pvp);
     Require(!empty.empty(), "empty query has deterministic catalog results");
+    // 连续翻页必须覆盖整个排序结果，不能仍然只暴露前 120 件。
+    // Consecutive pages must cover the full sorted catalog, not the former first 120 items.
+    const auto all = browser.Query({}, noven::data::GameMode::Pvp,
+        noven::data::PriceSortMode::FleaPrice, true, noven::data::PriceTraderSide::Sell,
+        catalog.ItemCount());
+    Require(all.size() == catalog.ItemCount() && all.size() > 120, "all catalog items are reachable");
+    for (std::size_t offset = 0; offset < all.size(); offset += 30) {
+        std::size_t total = 0;
+        const auto page = browser.Query({}, noven::data::GameMode::Pvp,
+            noven::data::PriceSortMode::FleaPrice, true, noven::data::PriceTraderSide::Sell,
+            30, {}, offset, &total);
+        Require(total == all.size() && page.size() == (std::min)(std::size_t{30}, all.size() - offset),
+            "total is untruncated and last page has the remaining items");
+        for (std::size_t i = 0; i < page.size(); ++i)
+            Require(page[i].item->id == all[offset + i].item->id, "pages preserve global ordering without gaps");
+    }
+    std::size_t absentTotal = 1;
+    Require(browser.Query("nonexistent-catalog-name-xyz", noven::data::GameMode::Pvp,
+        noven::data::PriceSortMode::FleaPrice, true, noven::data::PriceTraderSide::Sell,
+        30, {}, 0, &absentTotal).empty() && absentTotal == 0, "empty search reports zero total");
+    Require(browser.Query({}, noven::data::GameMode::Pvp,
+        noven::data::PriceSortMode::FleaPrice, true, noven::data::PriceTraderSide::Sell,
+        30, {}, all.size()).empty(), "out of range offset is safe");
+    for (const auto mode : noven::data::AllGameModes()) {
+        std::size_t total = 0;
+        Require(browser.Query({}, mode, noven::data::PriceSortMode::TraderPrice, false,
+            noven::data::PriceTraderSide::Buy, 30, {}, 120, &total).size() == 30
+            && total == catalog.ItemCount(), "all modes reach past the old cap with alternative sorting");
+        const auto filtered = browser.Query("#子弹", mode, noven::data::PriceSortMode::FleaPrice,
+            true, noven::data::PriceTraderSide::Sell, catalog.ItemCount(), tags);
+        const auto page = browser.Query("#子弹", mode, noven::data::PriceSortMode::FleaPrice,
+            true, noven::data::PriceTraderSide::Sell, 30, tags, 30, &total);
+        Require(total == filtered.size() && page.size() <= 30, "tag totals are computed before slicing");
+        for (std::size_t i = 0; i < page.size(); ++i)
+            Require(page[i].item->id == filtered[30 + i].item->id, "tag pages retain exact matching identity");
+    }
     const auto exact = browser.Query("colt m4a1", noven::data::GameMode::Pvp);
     Require(!exact.empty() && exact.front().economy.has_value(),
         "exact search assembles economy by stable ID");

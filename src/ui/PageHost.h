@@ -117,7 +117,8 @@ public:
               const SearchBox& priceSearch,
               bool priceCaretVisible,
               const std::vector<data::PriceRow>& prices,
-              const ItemBitmapMap& images) const;
+              const ItemBitmapMap& images, std::size_t pricePage = 0,
+              std::size_t priceTotal = 0) const;
     [[nodiscard]] static float RecentMaxScroll(float height, std::size_t count) noexcept;
     [[nodiscard]] static float PriceRowHeight(float width, const UiTheme& theme) noexcept;
     [[nodiscard]] static float PriceMaxScroll(float height, std::size_t count,

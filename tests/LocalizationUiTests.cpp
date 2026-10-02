@@ -1,6 +1,7 @@
 #include "ui/MainWindowUi.h"
 #include "ui/Dropdown.h"
 #include "ui/NavigationButton.h"
+#include "ui/PricePagination.h"
 #include "ui/OverflowText.h"
 #include "ui/SearchBox.h"
 #include "ui/ExpandableCard.h"
@@ -16,6 +17,18 @@ void Require(bool value, const char* message) {
 }
 int wmain(int argc, wchar_t** argv) try {
     using namespace noven::ui;
+    Require(PricePageCount(0) == 1 && PricePageCount(30) == 1
+        && PricePageCount(31) == 2 && PricePageCount(120) == 4,
+        "price pagination handles empty, exact and partial pages");
+    for (float width : {240.0F, 900.0F}) {
+        const auto rect = D2D1::RectF(400, 200, 400 + width, 236);
+        Require(!HitPricePager(rect, 401, 210, 0, 31)
+            && HitPricePager(rect, 399 + width, 210, 0, 31) == 1
+            && HitPricePager(rect, 401, 210, 1, 31) == -1
+            && !HitPricePager(rect, 399 + width, 210, 1, 31)
+            && !HitPricePager(rect, 401, 237, 1, 31),
+            "pager shared geometry disables first/last and clips hits at all widths");
+    }
     const std::vector<TabBarItem<int>> dynamicTabs{{1,L"One"},{2,L"Two"}};
     Require(HitTestTabBar<int>(dynamicTabs,{100,20,60,100,20},250,30)==2
         &&!HitTestTabBar<int>(dynamicTabs,{100,20,60,100,20},300,30),"dynamic tabs preserve shared hit boundaries");
@@ -407,8 +420,25 @@ int wmain(int argc, wchar_t** argv) try {
         ui.Paint();
         selectPage(MainPage::Prices);
         const float width = client.right / scale;
+        const float pagerRight = width - theme.contentPadding;
+        const float pagerY = host.PriceListTop(width, theme) - 26;
+        Require(ui.PricePage() == 0 && ui.PriceTotal() == catalog.ItemCount(),
+            "Prices exposes all catalog matches, not only the first 120");
+        Require(!click(pagerRight - 20, pagerY) && ui.PricePage() == 1,
+            "header next button selects the next 30 items");
+        selectPage(MainPage::Scanner); selectPage(MainPage::Prices);
+        Require(ui.PricePage() == 1, "navigation preserves the current Prices page");
+        (void)ui.MouseWheel(static_cast<int>((pagerRight - 20) * scale),
+            static_cast<int>(500 * scale), -24000);
+        for(int i=0;i<100 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
+        ui.Paint();
+        Require(!click(theme.sidebarWidth + theme.contentPadding + 20, height - 44)
+            && ui.PricePage() == 0, "footer previous button returns to first page and resets scroll");
+        Require(!click(pagerRight - 20, pagerY) && ui.PricePage() == 1,
+            "pagination can be used repeatedly");
         Require(!click(theme.sidebarWidth+theme.contentPadding+40,100),"Prices search focus");
         for(const wchar_t c:std::wstring(L"电路板")) Require(ui.Char(c),"Prices committed input");
+        Require(ui.PricePage() == 0, "changing the search resets pagination");
         Require(ui.KeyDown(VK_LEFT,false) && ui.PriceSearch().Caret()==2,"Prices forwards left key to shared editor");
         ui.Paint();
         Require(ui.PriceSearch().Caret()==2,"Prices paint preserves interior caret");

@@ -259,5 +259,8 @@
   "map.icon.weapon": "武器",
   "map.icon.special": "特殊装备",
   "map.icon.task_item": "任务物品",
-  "map.icon.task_objective": "任务目标"
+  "map.icon.task_objective": "任务目标",
+  "prices.previous_page": "上一页",
+  "prices.next_page": "下一页",
+  "prices.page": "{page}/{pages} · {total} 件"
 }

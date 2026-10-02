@@ -1,6 +1,7 @@
 #include "ui/MainWindowUi.h"
 #include "ui/Dropdown.h"
 #include "ui/NavigationButton.h"
+#include "ui/PricePagination.h"
 #include "ui/ItemTypeLabel.h"
 #include "ui/localization/LocalizationService.h"
 
@@ -93,8 +94,9 @@ bool MainWindowUi::SelectPage(MainPage page) {
     if(page==MainPage::Tasks)tasks_.Activate();
     Invalidate();return true;
 }
-void MainWindowUi::RefreshPriceRows(bool animateSearch) {
+void MainWindowUi::RefreshPriceRows(bool animateSearch, bool resetPage) {
     if (!price_browser_) return;
+    if (resetPage) price_page_ = 0;
     price_details_ = {};
     std::vector<PriceReflowRow> previous;
     const float rowHeight = PageHost::PriceRowHeight(DipWidth(), theme_);
@@ -130,7 +132,14 @@ void MainWindowUi::RefreshPriceRows(bool animateSearch) {
         }
     }
     price_rows_ = price_browser_->Query(WideToUtf8(price_query_), price_mode_,
-        price_sort_, price_sort_descending_, price_trader_side_, 120, tagAliases);
+        price_sort_, price_sort_descending_, price_trader_side_, PricePageSize, tagAliases,
+        price_page_ * PricePageSize, &price_total_);
+    if (price_page_ >= PricePageCount(price_total_)) {
+        price_page_ = PricePageCount(price_total_) - 1;
+        price_rows_ = price_browser_->Query(WideToUtf8(price_query_), price_mode_,
+            price_sort_, price_sort_descending_, price_trader_side_, PricePageSize, tagAliases,
+            price_page_ * PricePageSize);
+    }
     price_search_transition_ = {};
     if (animateSearch) {
         for (std::size_t i = 0; i < price_rows_.size(); ++i) {
@@ -435,7 +444,7 @@ void MainWindowUi::Paint() {
     }
     if (render_target_ != nullptr && brush_ != nullptr) {
         if (price_browser_ && price_browser_->LastUpdated(price_mode_) != price_data_updated_)
-            RefreshPriceRows();
+            RefreshPriceRows(false, false);
         const D2D1_SIZE_F size = render_target_->GetSize();
         hideout_.Prepare(size.width,size.height,theme_);
         tasks_.Prepare(size.width,size.height,theme_);
@@ -467,7 +476,7 @@ void MainWindowUi::Paint() {
                     price_search_,
                     (std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::steady_clock::now().time_since_epoch()).count() / 500) % 2 == 0,
-                    price_rows_, item_bitmaps_);
+                    price_rows_, item_bitmaps_, price_page_, price_total_);
         if (page == MainPage::Settings) DrawLanguageSettings(canvas, size.width, size.height);
         };
         {
@@ -550,6 +559,22 @@ std::optional<RecentScrollbar> MainWindowUi::PriceScrollbar() const noexcept {
     RECT client{}; GetClientRect(window_, &client);
     return PageHost::PriceScrollGeometry(static_cast<float>(client.right) / Scale(),
         DipHeight(), theme_, price_rows_.size(), price_scroll_, PriceDetailsScrollExtra());
+}
+
+std::optional<int> MainWindowUi::PricePagerAt(int x, int y) const {
+    if (navigation_.Active() != MainPage::Prices || price_dropdown_
+        || price_search_transition_.progress < 1 || price_transition_.progress < 1) return {};
+    const float left = theme_.sidebarWidth + theme_.contentPadding;
+    const float right = DipWidth() - theme_.contentPadding;
+    const float top = PageHost::PriceListTop(DipWidth(), theme_);
+    const float dx = x / Scale(), dy = y / Scale();
+    if (auto hit = HitPricePager(D2D1::RectF(left, top - PricePagerHeight, right, top - 8),
+            dx, dy, price_page_, price_total_)) return hit;
+    if (dy < top || dy >= DipHeight() - 22) return {};
+    const float footer = top + static_cast<float>(price_rows_.size())
+        * PageHost::PriceRowHeight(DipWidth(), theme_) + price_details_.extent - price_scroll_;
+    return HitPricePager(D2D1::RectF(left, footer, right, footer + PricePagerHeight - 8),
+        dx, dy, price_page_, price_total_);
 }
 
 std::optional<std::size_t> MainWindowUi::PriceCardAt(int x, int y) const {
@@ -823,6 +848,7 @@ void MainWindowUi::MouseDown(int x, int y) {
                              static_cast<float>(y) / Scale(), theme_)
         : std::nullopt;
     pressed_price_control_ = PriceControlAt(x, y);
+    pressed_price_pager_ = PricePagerAt(x, y);
     pressed_price_card_ = PriceCardAt(x, y);
     pressed_history_range_ = PriceHistoryRangeAt(x, y);
     if (OnPriceSearch(x, y)) {
@@ -913,6 +939,12 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
                              static_cast<float>(y) / Scale(), theme_)
         : std::nullopt;
     const auto released_price_control = PriceControlAt(x, y);
+    if (pressed_price_pager_ && pressed_price_pager_ == PricePagerAt(x, y)) {
+        if (*pressed_price_pager_ < 0) --price_page_; else ++price_page_;
+        price_scroll_ = price_scroll_target_ = 0;
+        RefreshPriceRows(false, false);
+    }
+    pressed_price_pager_.reset();
     if (pressed_history_range_ && pressed_history_range_ == PriceHistoryRangeAt(x, y)) {
         price_details_.previousDays = price_details_.days;
         price_details_.underlineFrom = price_details_.underlineIndex;

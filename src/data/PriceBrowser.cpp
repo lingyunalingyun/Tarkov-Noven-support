@@ -27,7 +27,7 @@ Rank RankAlias(std::string_view query, std::string_view alias) {
 std::vector<PriceRow> PriceBrowserModel::Query(
     std::string_view query, GameMode mode, PriceSortMode sortMode,
     bool descending, PriceTraderSide traderSide, std::size_t maximum,
-    std::span<const PriceTagAlias> tagAliases) const {
+    std::span<const PriceTagAlias> tagAliases, std::size_t offset, std::size_t* total) const {
     std::string nameQuery;
     std::vector<std::string> tags;
     // # 标签从名称查询分离；多标签取交集，含空格标签支持 #"Barter item"。
@@ -118,11 +118,16 @@ std::vector<PriceRow> PriceBrowserModel::Query(
         return std::tie(left.rank.kind, left.rank.position, left.rank.value, left.item->id)
             < std::tie(right.rank.kind, right.rank.position, right.rank.value, right.item->id);
     });
-    if (candidates.size() > maximum) candidates.resize(maximum);
+    // 全部匹配项先排序，再切页；总数不能被旧的结果上限截断。
+    // Sort all matches before slicing; the total must not inherit the old result cap.
+    if (total) *total = candidates.size();
+    const auto begin = (std::min)(offset, candidates.size());
+    const auto count = (std::min)(maximum, candidates.size() - begin);
 
     std::vector<PriceRow> result;
-    result.reserve(candidates.size());
-    for (const Candidate& candidate : candidates) {
+    result.reserve(count);
+    for (std::size_t i = begin; i < begin + count; ++i) {
+        const Candidate& candidate = candidates[i];
         PriceRow row{candidate.item, std::nullopt};
         if (const ItemEconomyInfo* info = economy_.Lookup(mode, candidate.item->id))
             row.economy = *info;

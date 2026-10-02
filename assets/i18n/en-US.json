@@ -259,5 +259,8 @@
   "map.icon.weapon": "Weapons",
   "map.icon.special": "Special equipment",
   "map.icon.task_item": "Task items",
-  "map.icon.task_objective": "Task objectives"
+  "map.icon.task_objective": "Task objectives",
+  "prices.previous_page": "Previous",
+  "prices.next_page": "Next",
+  "prices.page": "{page}/{pages} · {total} items"
 }
