@@ -75,24 +75,43 @@ def build(points, maps, items):
     return '\n'.join(output) + '\n'
 
 
+def load_source(name, mode, cache=None, offline=False):
+    url = 'https://json.tarkov.dev/' + mode + '/' + name
+    path = cache / (mode + '_' + name + '.json') if cache else None
+    if offline:
+        if path is None:
+            raise ValueError('offline requires source cache')
+        raw = path.read_bytes()
+    else:
+        request = urllib.request.Request(url, headers={'User-Agent': 'Noven-map-icons/1.0'})
+        with urllib.request.urlopen(request, timeout=60) as response:
+            raw = response.read()
+    record = json.loads(raw)
+    if record.get('errors') or 'data' not in record:
+        raise ValueError('invalid DEV source')
+    if path and not offline:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+    return record['data'], url, hashlib.sha256(raw).hexdigest()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--assets', type=Path, default=Path('assets/data'))
+    parser.add_argument('--mode', choices=('regular', 'pve'), default='regular')
+    parser.add_argument('--cache', type=Path)
+    parser.add_argument('--offline', action='store_true')
     args = parser.parse_args()
     sources = {}
     records = {}
     for name in ('maps', 'items'):
-        url = 'https://json.tarkov.dev/regular/' + name
-        request = urllib.request.Request(url, headers={'User-Agent': 'Noven-map-icons/1.0'})
-        with urllib.request.urlopen(request, timeout=60) as response:
-            raw = response.read()
-        records[name] = json.loads(raw)['data']
-        sources[url] = hashlib.sha256(raw).hexdigest()
+        records[name], url, sources_hash = load_source(name, args.mode, args.cache, args.offline)
+        sources[url] = sources_hash
     with (args.assets / 'map_points.tsv').open(encoding='utf-8', newline='') as file:
         points = list(csv.DictReader(file, delimiter='\t'))
     text = build(points, records['maps'], records['items'])
     (args.assets / 'map_point_icons.tsv').write_text(text, encoding='utf-8', newline='\n')
-    meta = {'sourceHashes': sources, 'pointCount': len(text.splitlines()) - 1,
+    meta = {'sourceHashes': sources, 'structureMode': args.mode, 'pointCount': len(text.splitlines()) - 1,
             'pointSourceSha256': hashlib.sha256((args.assets / 'map_points.tsv').read_bytes()).hexdigest(),
             'unknownPolicy': 'unmapped containers remain container; unmapped item types remain other'}
     (args.assets / 'map_point_icons.meta.json').write_text(json.dumps(meta, indent=2, sort_keys=True) + '\n', encoding='utf-8', newline='\n')
