@@ -52,7 +52,7 @@ public:
     void MouseLeave(){hovered_floor_.reset();}
     void MouseDown(float x,float y);
     void MouseUp(float x,float y);
-    bool Wheel(int delta,float x,float y);
+    bool Wheel(int delta,float x,float y,bool control=false);
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value){return search_.HandleChar(value);}
     void CancelDrag(){drag_.reset();scroll_drag_.reset();opacity_drag_=false;pressed_floor_.reset();pressed_point_={};pressed_map_.reset();

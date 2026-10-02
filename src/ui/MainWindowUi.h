@@ -36,7 +36,7 @@ public:
     void MouseDown(int x, int y);
     void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); }
     [[nodiscard]] std::optional<data::GameMode> MouseUp(int x, int y);
-    [[nodiscard]] bool MouseWheel(int x, int y, int delta);
+    [[nodiscard]] bool MouseWheel(int x, int y, int delta, bool control=false);
     [[nodiscard]] bool AnimationTick();
     [[nodiscard]] bool AnimationActive() const noexcept;
     void SetScannerState(ScannerPageState state);

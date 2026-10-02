@@ -819,7 +819,7 @@ LRESULT CALLBACK App::WindowProc(
             POINT point{GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param)};
             ScreenToClient(window, &point);
             if (app->main_ui_->MouseWheel(point.x, point.y,
-                    GET_WHEEL_DELTA_WPARAM(w_param))) app->EnsureRecentAnimationTimer();
+                    GET_WHEEL_DELTA_WPARAM(w_param), (GET_KEYSTATE_WPARAM(w_param)&MK_CONTROL)!=0)) app->EnsureRecentAnimationTimer();
             return 0;
         }
         case WM_KEYDOWN:

@@ -34,10 +34,9 @@ public:
         focus_from_=ToMap(Center());focus_to_=map;focus_progress_=0;
         scale_from_=scale_to_=scale_;fit_focus_=false;
     }
-    // 重置从当前采样姿态平滑恢复适合视口的缩放，可保留选中点作为视觉中心。
-    // Reset smoothly restores fit zoom from the sampled pose, optionally centering a selected point.
-    void FitSmooth(D2D1_POINT_2F map) noexcept {FocusSmooth(map);scale_to_=FitScale();fit_focus_=true;}
-    void FitSmooth() noexcept {FitSmooth({world_.width*.5F,world_.height*.5F});}
+    // 重置始终平滑恢复全图中心及适合视口的缩放，与标点选择无关。
+    // Reset always smoothly restores the whole-map center and fit zoom, independent of marker selection.
+    void FitSmooth() noexcept {FocusSmooth({world_.width*.5F,world_.height*.5F});scale_to_=FitScale();fit_focus_=true;}
     bool Focusing() const noexcept{return focus_progress_<1;}
     void StopFocus() noexcept{focus_progress_=1;}
     void Tick(float elapsed) noexcept {

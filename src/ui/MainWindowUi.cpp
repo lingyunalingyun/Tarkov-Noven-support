@@ -1011,8 +1011,8 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
     Invalidate();
 }
 
-bool MainWindowUi::MouseWheel(int x, int y, int delta) {
-    if(navigation_.Active()==MainPage::Map){const bool handled=map_.Wheel(delta,x/Scale(),y/Scale());
+bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
+    if(navigation_.Active()==MainPage::Map){const bool handled=map_.Wheel(delta,x/Scale(),y/Scale(),control);
         if(handled)Invalidate();return handled;}
     if (navigation_.Active()==MainPage::Hideout && x/Scale()>=theme_.sidebarWidth) return hideout_.Wheel(delta,x/Scale(),y/Scale());
     if (navigation_.Active()==MainPage::Tasks && x/Scale()>=theme_.sidebarWidth) return tasks_.Wheel(delta,x/Scale(),y/Scale());

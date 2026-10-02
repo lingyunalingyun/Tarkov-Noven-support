@@ -474,20 +474,30 @@ void MapPage::MouseUp(float x,float y){
         auto id=MarkerAt(p);
         if(id&&*id==pressed_point_)FocusInteraction(*id);
     }
-    if(reset_pressed_&&MapResetButton{layout_.viewport}.Hit(p)){
-        if(const auto point=SelectedPoint())viewport_.FitSmooth(point->coordinate);else viewport_.FitSmooth();}
+    if(reset_pressed_&&MapResetButton{layout_.viewport}.Hit(p))viewport_.FitSmooth();
     CancelDrag();
 }
-bool MapPage::Wheel(int delta,float x,float y){
+bool MapPage::Wheel(int delta,float x,float y,bool control){
     if(panel_&&panel_progress_>0&&MapContains(layout_.flyout,{x,y})){
         if(const auto bar=FilterList().Bar(FilterEntries().size()))
             filter_scroll_=std::clamp(filter_scroll_-static_cast<float>(delta)/WHEEL_DELTA*60,0.0F,bar->maximum);
+        return true;
+    }
+    // Ctrl 滚轮按显示顺序切层，边界停留且不泄漏为缩放；侧展列表保留自身滚动。
+    // Ctrl-wheel steps through displayed floors, clamping without zoom; flyouts retain their own scrolling.
+    if(control&&Selected()&&!floors_.empty()&&MapContains(layout_.content,{x,y})){
+        const auto index=std::clamp(static_cast<int>(FloorIndex())-delta/WHEEL_DELTA,0,static_cast<int>(floors_.size())-1);
+        if(static_cast<std::size_t>(index)!=FloorIndex())SelectFloor(floors_[index].id);
         return true;
     }
     if(!Selected()||progress_<1||!MapContains(layout_.viewport,{x,y}))return false;
     viewport_.ZoomAt({x,y},static_cast<float>(delta)/WHEEL_DELTA);return true;
 }
 bool MapPage::Key(WPARAM key,bool control){
+    if(key==VK_ESCAPE&&!interaction_id_.empty()){
+        interaction_id_={};viewport_.StopFocus();CancelDrag();
+        (void)search_.HandleKeyDown(key,control);return true;
+    }
     if(search_.Focused()&&key==VK_RETURN){
         for(const auto& floor:floors_)if(Fold(floor.label)==Fold(search_.Text())){SelectFloor(floor.id);return true;}
         const MapSearchQuery query(search_.Text());

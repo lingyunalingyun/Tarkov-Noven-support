@@ -487,6 +487,10 @@ int wmain(int argc, wchar_t** argv) try {
         Require(ui.MouseWheel(static_cast<int>((viewBounds.left+50)*scale),
             static_cast<int>((viewBounds.top+80)*scale),120),"map wheel handled inside viewport");
         const float mapScale=ui.Map().Viewport().Scale();
+        Require(ui.MouseWheel(static_cast<int>((viewBounds.left+50)*scale),static_cast<int>((viewBounds.top+80)*scale),-120,true)
+            &&ui.Map().FloorId()!=selectedFloor&&ui.Map().Viewport().Scale()==mapScale,"native Ctrl-wheel routes modifier to floor selection without zoom");
+        Require(ui.MouseWheel(static_cast<int>((viewBounds.left+50)*scale),static_cast<int>((viewBounds.top+80)*scale),120,true)
+            &&ui.Map().FloorId()==selectedFloor,"native Ctrl-wheel reverses floor selection during transition");
         Require(!click(ui.Map().Layout().search.left+20,100),"map search gains focus without mode change");
         Require(ui.Char(L'演')&&ui.Char(L'示'),"Map uses shared committed Unicode input");
         Require(!click(viewBounds.left+30,viewBounds.top+100),"map click blurs search");
