@@ -429,7 +429,7 @@ def reuse_map(output, sources, canonical, config, floor_list, size, preview, der
     assets = []
     for index, (floor, layer, meta, abstract, sat) in enumerate(staged):
         if abstract and abstract != sat:
-            urls = [LAYOUT_URL, config['svgPath'], SVG_RIGHTS_URL]
+            urls = sorted({LAYOUT_URL, config['svgPath'], SVG_RIGHTS_URL})
             for suffix in ('.png', '.tiles'):
                 relative = str(Path(abstract).with_suffix(suffix)).replace('\\', '/')
                 derived[relative] = {'sha256': digest((output / relative).read_bytes()), 'sourceUrls': urls}

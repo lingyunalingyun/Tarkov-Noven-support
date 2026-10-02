@@ -119,12 +119,13 @@ class AllImagesTests(unittest.TestCase):
                    'transform': [1, 0, 1, 16], 'minZoom': 0, 'maxZoom': 0, 'tileSize': 16}
             sources = images.Sources(directory, offline=True)
             template = 'https://assets.tarkov.dev/maps/real/{z}/{x}/{y}.png'
-            tile = Image.new('RGBA', (16, 16), (20, 30, 40, 255))
+            tile = Image.new('RGBA', (32, 32), (20, 30, 40, 255))
             sources.get(template.format(z=0, x=0, y=0), seed=images.png(tile))
             with patch('requests.Session', side_effect=AssertionError('network forbidden')):
                 result, metadata = images.satellite(sources, cfg, template, (16, 16), workers=1)
             self.assertEqual(result.getpixel((8, 8)), (20, 30, 40, 255))
             self.assertEqual(metadata['missingTiles'], [])
+            self.assertEqual(metadata['compositionLayers'][0]['inputs'][0]['encodedSize'], [32, 32])
             packed = images.tile_pack(images.png(result))
             self.assertEqual(packed[:8], b'NVTILES1')
             self.assertEqual(struct.unpack_from('<4I', packed, 8), (16, 16, 512, 1))
@@ -153,6 +154,9 @@ class AllImagesTests(unittest.TestCase):
                 images.build(root / 'two', sources, api, layout, detail_width=64, preview=32)
             files = lambda folder: {p.relative_to(folder).as_posix(): images.digest(p.read_bytes()) for p in folder.rglob('*') if p.is_file()}
             self.assertEqual(files(root / 'one'), files(root / 'two'))
+            before = files(root / 'one')
+            images.build(root / 'one', sources, api, layout, detail_width=64, preview=32, reuse_existing=True)
+            self.assertEqual(files(root / 'one'), before)
             for name, header in images.HEADERS.items():
                 self.assertEqual((root / 'one/data' / name).read_text(encoding='utf-8').splitlines()[0], header)
             with (root / 'one/data/map_floors.tsv').open(encoding='utf-8') as file:
