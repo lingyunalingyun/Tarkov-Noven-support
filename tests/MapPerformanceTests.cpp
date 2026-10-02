@@ -194,6 +194,20 @@ int wmain(int argc, wchar_t** argv) try {
         Measure("query_cached", Frames, [&](int) { (void)page.Points(); });
         Check(page.PointQueryBuilds() == queryBuilds, "Repeated queries rebuilt the point cache");
         std::cout << "query points=" << page.Points().size() << " builds=" << queryBuilds << '\n';
+        // 隔离 CPU 布局开销，涵盖任务侧展及关闭后的静止状态；不混入像素绘制。
+        // Isolate CPU layout work with task flyouts and their closed idle state, without pixel rendering.
+        const auto taskPanel=page.Layout().filters[2];
+        const float panelX=taskPanel.left+8,panelY=taskPanel.top+8;
+        page.MouseDown(panelX,panelY);page.MouseUp(panelX,panelY);Settle(page,theme);
+        Check(page.Panel()==MapFilterPanel::Tasks,"Task flyout workload opens");
+        const auto openBuilds=page.FilterEntryBuilds();
+        Measure("prepare_task_flyout",2000,[&](int){page.Prepare(Width,Height,theme);});
+        Check(page.FilterEntryBuilds()==openBuilds,"Static task flyout rebuilt its entries");
+        page.MouseDown(panelX,panelY);page.MouseUp(panelX,panelY);Settle(page,theme);
+        Check(!page.Panel(),"Task flyout workload closes");
+        const auto closedBuilds=page.FilterEntryBuilds();
+        Measure("prepare_closed_flyout",2000,[&](int){page.Prepare(Width,Height,theme);});
+        Check(page.FilterEntryBuilds()==closedBuilds,"Closed flyout rebuilt its entries");
         Measure("draw_first_target_cold", 1, [&](int) { surface.Draw(page, theme); });
         Measure("draw_cached_fit", Frames, [&](int) { surface.Draw(page, theme); });
         Check(page.PointQueryBuilds() == queryBuilds, "Static draws rebuilt the point query");

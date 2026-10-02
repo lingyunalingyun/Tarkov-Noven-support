@@ -54,6 +54,7 @@ public:
     bool FocusInteraction(std::string_view id);
     const std::vector<MapInteractionPoint>& Points() const;
     std::size_t PointQueryBuilds() const noexcept{return point_query_builds_;}
+    std::size_t FilterEntryBuilds() const noexcept{return filter_entry_builds_;}
     std::optional<MapInteractionPoint> SelectedPoint() const;
     bool MouseMove(float x,float y);
     void MouseLeave(){hovered_floor_.reset();}
@@ -65,7 +66,7 @@ public:
     void CancelDrag(){drag_.reset();scroll_drag_.reset();opacity_drag_=false;pressed_floor_.reset();pressed_point_={};pressed_map_.reset();
         pressed_filter_.reset();pressed_row_.reset();reset_pressed_=false;back_pressed_=false;}
 private:
-    std::vector<TabBarItem<std::string_view>> MapItems() const;
+    const std::vector<TabBarItem<std::string_view>>& MapItems() const;
     struct Floor {std::string id;std::wstring label;};
     struct Map {std::string id;std::wstring chinese,english;};
     struct Point {
@@ -91,6 +92,11 @@ private:
     void TrimDetailImages() const noexcept;
     std::vector<Floor> floors_;
     std::vector<Map> maps_;
+    // 名称视图只借用页面数据；重绑目录必须失效，语言切换按需重建。
+    // Label views borrow page data; catalog rebinds invalidate them and locale changes rebuild lazily.
+    mutable std::vector<TabBarItem<std::string_view>> map_items_;
+    mutable std::string map_items_locale_;
+    std::string floor_locale_;
     std::vector<Point> points_;
     // 返回值借用页面名称；只有查询、地图、语言或可见性筛选改变时重建，禁止跨重绑保存引用。
     // Results borrow page-owned labels; rebuild only on query/map/locale/visibility changes, not across rebinds.
@@ -126,7 +132,16 @@ private:
     // Entries own translated labels, never views into temporary localization results.
     struct FilterEntry {std::wstring label;bool enabled;std::string_view pointId;
         std::optional<MapPointCategory> category;std::optional<MapDetailIcon> detail;};
-    std::vector<FilterEntry> FilterEntries() const;
+    const std::vector<FilterEntry>& FilterEntries() const;
+    // 单一有界快照，不按每个查询累计缓存；绘制和命中共享同一条目身份。
+    // One bounded snapshot, not a cache per query; drawing and hits share the same entry identities.
+    mutable std::vector<FilterEntry> filter_entries_;
+    mutable bool filter_entries_valid_{};
+    mutable std::size_t filter_entry_builds_{};
+    mutable std::optional<MapFilterPanel> filter_entries_panel_;
+    mutable std::string filter_entries_map_,filter_entries_locale_;
+    mutable std::wstring filter_entries_query_;
+    mutable MapFilters filter_entries_filters_;
     void TogglePanel(MapFilterPanel panel);
     void DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const;
     MapLayout layout_{};

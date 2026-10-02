@@ -18,6 +18,7 @@ struct MapFilters final {
     bool satellite{};
     std::set<std::string,std::less<>> hiddenTasks;
     MapIconMask hiddenIcons{};
+    bool operator==(const MapFilters&) const = default;
     // 多种可能物资共享一个点位；只在全部所属类型隐藏时隐藏点位。
     // Possible loot types share one point; hide it only when all its types are hidden.
     bool AllowsIcons(MapIconMask icons) const {return !icons||(icons&~hiddenIcons)!=0;}

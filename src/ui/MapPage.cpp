@@ -87,6 +87,7 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
 void MapPage::BindPoints(){
     namespace reference=data::InterchangeReference;
     points_.clear();point_cache_valid_=false;visible_points_.clear();visible_outlines_.clear();
+    filter_entries_valid_=false;filter_entries_.clear();map_items_.clear();map_items_locale_.clear();
     auto labels=UiLocalization();
     // 展示名称与上游身份分离；一次解析双语并由点位持有，搜索与信息区共用。
     // Resolve owned bilingual labels once, separate from source identity, for search and information.
@@ -151,6 +152,7 @@ void MapPage::BindPoints(){
 void MapPage::BindMapImages(){
     ReleaseDetailImages();floors_.clear();images_.clear();upper_images_.clear();satellite_=LocalImage{};
     floor_id_={};previous_floor_=0;floor_from_=floor_to_=0;floor_progress_=1;
+    floor_locale_=UiLocalization().ActiveLocale();filter_entries_valid_=false;
     const auto* map=Information();missing_reference_=!map||map->floors.empty();
     if(missing_reference_)return;
     world_={static_cast<float>(map->projection.width),static_cast<float>(map->projection.height)};
@@ -191,19 +193,28 @@ bool MapPage::SetMode(data::GameMode mode){
 bool MapPage::Allows(const Point& p) const {
     return filters_.AllowsIcons(p.icons)&&(filters_.Allows(p.category,p.id)||(p.sharedExtract&&filters_.Allows(MapPointCategory::ScavExtract,p.id)));
 }
-std::vector<TabBarItem<std::string_view>> MapPage::MapItems() const {
-    std::vector<TabBarItem<std::string_view>> items;
-    const bool chinese=UiLocalization().ActiveLocale()=="zh-CN";
-    for(const auto& map:maps_)items.push_back({map.id,chinese?map.chinese:map.english});
-    return items;
+const std::vector<TabBarItem<std::string_view>>& MapPage::MapItems() const {
+    const auto& locale=UiLocalization().ActiveLocale();
+    if(map_items_locale_!=locale){
+        map_items_.clear();const bool chinese=locale=="zh-CN";
+        for(const auto& map:maps_)map_items_.push_back({map.id,chinese?map.chinese:map.english});
+        map_items_locale_=locale;
+    }
+    return map_items_;
 }
 void MapPage::Prepare(float width,float height,const UiTheme& theme){
-    if(generic_)if(const auto* map=Information())for(std::size_t i=0;i<floors_.size();++i)
-        floors_[i].label=Wide(UiLocalization().ActiveLocale()=="zh-CN"?map->floors[i].nameZh:map->floors[i].nameEn);
+    const auto& locale=UiLocalization().ActiveLocale();
+    if(generic_&&floor_locale_!=locale){
+        if(const auto* map=Information())for(std::size_t i=0;i<floors_.size();++i)
+            floors_[i].label=Wide(locale=="zh-CN"?map->floors[i].nameZh:map->floors[i].nameEn);
+        floor_locale_=locale;
+    }
     layout_=MapLayout::Sample(width,height,theme,progress_,floors_.size(),maps_.size());viewport_.SetBounds(layout_.viewport);
     picker_scroll_=std::clamp(picker_scroll_,0.0F,Picker().Maximum(maps_.size()));
-    if(const auto bar=FilterList().Bar(FilterEntries().size()))filter_scroll_=std::clamp(filter_scroll_,0.0F,bar->maximum);
-    else filter_scroll_=0;
+    if(panel_open_||panel_progress_>0){
+        if(const auto bar=FilterList().Bar(FilterEntries().size()))filter_scroll_=std::clamp(filter_scroll_,0.0F,bar->maximum);
+        else filter_scroll_=0;
+    }
 }
 std::size_t MapPage::FloorIndex() const {
     for(std::size_t i=0;i<floors_.size();++i)if(floors_[i].id==floor_id_)return i;
@@ -282,8 +293,15 @@ std::optional<MapInteractionPoint> MapPage::SelectedPoint() const {
     for(const auto& point:Points())if(point.id==interaction_id_&&point.floorId==floor_id_)return point;
     return std::nullopt;
 }
-std::vector<MapPage::FilterEntry> MapPage::FilterEntries() const {
-    std::vector<FilterEntry> entries;if(!panel_)return entries;
+const std::vector<MapPage::FilterEntry>& MapPage::FilterEntries() const {
+    const auto& locale=UiLocalization().ActiveLocale();
+    if(filter_entries_valid_&&filter_entries_panel_==panel_&&filter_entries_map_==map_id_
+        &&filter_entries_locale_==locale&&filter_entries_query_==search_.Text()&&filter_entries_filters_==filters_)
+        return filter_entries_;
+    filter_entries_panel_=panel_;filter_entries_map_=map_id_;filter_entries_locale_=locale;
+    filter_entries_query_=search_.Text();filter_entries_filters_=filters_;
+    filter_entries_valid_=true;++filter_entry_builds_;filter_entries_.clear();
+    auto& entries=filter_entries_;if(!panel_)return entries;
     if(*panel_==MapFilterPanel::Points){
         for(std::size_t i=0;i<CategoryKeys.size();++i){
             const auto category=static_cast<MapPointCategory>(i);
@@ -321,7 +339,7 @@ void MapPage::DrawFilters(const UiCanvas& canvas,const UiTheme& theme) const {
         DrawDropdownHeader(canvas,theme,layout_.filters[i],Tr(FilterKeys[i]),panel_open_&&panel_==static_cast<MapFilterPanel>(i),false);
     canvas.target.SetTransform(original);canvas.brush.SetOpacity(originalOpacity);
     if(!panel_||panel_progress_==0)return;
-    const auto list=FilterList();const auto r=list.bounds;const auto entries=FilterEntries();
+    const auto list=FilterList();const auto r=list.bounds;const auto& entries=FilterEntries();
     const float opacity=canvas.brush.GetOpacity();canvas.brush.SetOpacity(opacity*panel_progress_*motion.opacity);
     canvas.target.PushAxisAlignedClip({r.left,r.top,r.left+(r.right-r.left)*MapLayout::Ease(panel_progress_),r.bottom},D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     canvas.Round(r,8,theme.surface);canvas.brush.SetColor(theme.divider);
@@ -496,14 +514,14 @@ void MapPage::DrawMapPicker(const UiCanvas& canvas,const UiTheme& theme) const {
     if(UsesPicker()&&picker_progress_>0){
         const auto picker=Picker();const auto opacity=canvas.brush.GetOpacity();canvas.brush.SetOpacity(opacity*MapLayout::Ease(picker_progress_));
         canvas.Round(picker.panel,theme.cornerRadius,theme.surface);canvas.target.PushAxisAlignedClip(picker.panel,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-        const auto maps=MapItems();for(std::size_t i=0;i<maps.size();++i){const auto row=picker.Row(i);
+        const auto& maps=MapItems();for(std::size_t i=0;i<maps.size();++i){const auto row=picker.Row(i);
             if(row.bottom<picker.panel.top||row.top>picker.panel.bottom)continue;
             DrawDropdownOption(canvas,theme,row,maps[i].label,map_id_==maps[i].id,true,false);}
         canvas.target.PopAxisAlignedClip();canvas.brush.SetOpacity(opacity);
     }
 }
 void MapPage::DrawMapSelection(const UiCanvas& canvas,const UiTheme& theme) const {
-    const auto maps=MapItems();float mapIndex=0;
+    const auto& maps=MapItems();float mapIndex=0;
     for(std::size_t i=0;i<maps.size();++i)if(maps[i].id==map_id_)mapIndex=static_cast<float>(i);
     if(UsesPicker())DrawDropdownHeader(canvas,theme,Picker().header,maps[static_cast<std::size_t>(mapIndex)].label,picker_open_,false);
     else DrawTabBar<std::string_view>(canvas,theme,canvas.smallFormat,maps,layout_.maps,map_id_,std::optional<std::string_view>{},map_id_,1,mapIndex);
@@ -541,7 +559,7 @@ void MapPage::MouseDown(float x,float y){
         if(MapContains(Picker().header,p)){picker_pressed_=true;return;}
         if(picker_open_){picker_row_=Picker().Hit(x,y,maps_.size());if(picker_row_)return;picker_open_=false;}
     }
-    const auto maps=MapItems();pressed_map_=UsesPicker()?std::nullopt:HitTestTabBar<std::string_view>(maps,layout_.maps,x,y);if(pressed_map_)return;
+    const auto& maps=MapItems();pressed_map_=UsesPicker()?std::nullopt:HitTestTabBar<std::string_view>(maps,layout_.maps,x,y);if(pressed_map_)return;
     // 主侧栏点击属于页面导航，不是画布的面板外点击。
     // Shell navigation clicks are not outside clicks within the canvas.
     if(!MapContains(layout_.content,p))return;
@@ -576,13 +594,13 @@ void MapPage::MouseUp(float x,float y){
     if(picker_row_){const auto row=*picker_row_;picker_row_.reset();
         if(Picker().Hit(x,y,maps_.size())==row){picker_open_=false;SelectMap(maps_[row].id);}return;}
     if(opacity_drag_){filters_.otherFloorOpacity=MapOpacitySlider{FilterList().Row(4)}.Value(x);CancelDrag();return;}
-    const auto maps=MapItems();
+    const auto& maps=MapItems();
     if(pressed_map_&&HitTestTabBar<std::string_view>(maps,layout_.maps,x,y)==pressed_map_){SelectMap(*pressed_map_);CancelDrag();return;}
     if(back_pressed_&&MapContains(layout_.back,p)){Overview();return;}
     if(pressed_filter_&&MapContains(layout_.filters[static_cast<std::size_t>(*pressed_filter_)],p)){
         TogglePanel(*pressed_filter_);CancelDrag();return;}
     if(pressed_row_&&panel_open_&&FilterList().Hit(p,FilterEntries().size())==pressed_row_){
-        const auto row=*pressed_row_;const auto entries=FilterEntries();
+        const auto row=*pressed_row_;const auto& entries=FilterEntries();
         if(*panel_==MapFilterPanel::Points){
             if(entries[row].detail)filters_.hiddenIcons^=MapIconBit(*entries[row].detail);
             else {const auto category=static_cast<std::size_t>(*entries[row].category);filters_.categories[category]=!filters_.categories[category];}
