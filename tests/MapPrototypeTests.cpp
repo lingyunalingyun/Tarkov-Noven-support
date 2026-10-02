@@ -17,6 +17,20 @@ int main(int argc,char** argv){
     Require(SUCCEEDED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)),"WIC COM initializes");
     struct ComScope {~ComScope(){CoUninitialize();}} comScope;
     using namespace noven::ui;
+    SegmentedSwitch switcher;
+    Require(!switcher.Animating()&&Near(switcher.Position(),0),"switch starts settled on first option");
+    switcher.Select(true);switcher.Tick(-1);
+    Require(switcher.Animating()&&Near(switcher.Position(),0),"negative elapsed cannot advance switch");
+    switcher.Tick(.05F);const float pose=switcher.Position();
+    Require(pose>0&&pose<1,"switch samples intermediate bounded position");
+    switcher.Select(false);
+    Require(Near(switcher.Position(),pose),"rapid switch retarget retains current visual pose");
+    for(int i=0;i<20;++i)switcher.Tick(.05F);
+    Require(!switcher.Animating()&&Near(switcher.Position(),0),"switch settles without idle animation");
+    const auto firstButton=SegmentedSwitch::Button({10,20,154,56},false);
+    const auto secondButton=SegmentedSwitch::Button({10,20,154,56},true);
+    Require(Near(firstButton.right-firstButton.left,secondButton.right-secondButton.left)
+        &&Near(secondButton.left-firstButton.right,4),"switch drawing and hits share equal slots and gap");
     const auto picker=MapPicker::Sample(MapLayout::Sample(1400,500,{},0,3,17),64,17);
     const auto pickerRow=picker.Row(2);
     Require(picker.Hit(pickerRow.left+8,pickerRow.top+8,17)==2,"map picker hit uses scrolled stable row");
@@ -395,6 +409,13 @@ int main(int argc,char** argv){
         Require(SUCCEEDED(target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White),&iconBrush)),"icon brush creates");
         const UiCanvas iconCanvas{*target.Get(),*iconBrush.Get(),*iconFormat.Get(),*iconFormat.Get(),*iconFormat.Get(),*iconFormat.Get(),*iconFormat.Get()};
         target->BeginDraw();
+        iconFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+        iconFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_FAR);
+        iconCanvas.CenteredText(L"PvP",*iconFormat.Get(),{0,0,64,32},D2D1::ColorF(D2D1::ColorF::White));
+        switcher.Draw(iconCanvas,{}, {0,32,64,64},{L"PvP",L"PvE"});
+        Require(iconFormat->GetTextAlignment()==DWRITE_TEXT_ALIGNMENT_TRAILING
+            &&iconFormat->GetParagraphAlignment()==DWRITE_PARAGRAPH_ALIGNMENT_FAR,
+            "centered controls restore both borrowed text alignments on native drawing");
         for(std::size_t i=0;i<MapDetailIcons.size();++i)officialIcons.Draw(iconCanvas,{},MapDetailIcons[i].category,MapIconMask{1}<<i,{32,32},true);
         for(std::size_t i=0;i<MapCategoryCount;++i)officialIcons.Draw(iconCanvas,{},static_cast<MapPointCategory>(i),0,{32,32});
         Require(SUCCEEDED(target->EndDraw()),"official marker icons survive independent render-target recreation");

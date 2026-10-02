@@ -6,6 +6,7 @@
 #include "ui/MapSearch.h"
 #include "ui/MapSidebar.h"
 #include "ui/MapPicker.h"
+#include "ui/SegmentedSwitch.h"
 #include "ui/MapViewportControls.h"
 #include "ui/SearchBox.h"
 #include "ui/LocalImage.h"
@@ -34,7 +35,7 @@ public:
     void Prepare(float width,float height,const UiTheme& theme);
     void Draw(const UiCanvas& canvas,const UiTheme& theme) const;
     void Tick(float elapsed);
-    bool Animating() const noexcept{return progress_!=(expanded_?1.0F:0.0F)||panel_progress_!=(panel_open_?1.0F:0.0F)||floor_progress_<1||viewport_.Focusing()||picker_progress_!=(picker_open_?1.0F:0.0F);}
+    bool Animating() const noexcept{return mode_switch_.Animating()||progress_!=(expanded_?1.0F:0.0F)||panel_progress_!=(panel_open_?1.0F:0.0F)||floor_progress_<1||viewport_.Focusing()||picker_progress_!=(picker_open_?1.0F:0.0F);}
     bool ClockTick(std::int64_t utc) noexcept;
     bool Selected() const noexcept{return expanded_;}
     void Overview(){expanded_=false;panel_open_=false;search_.Blur();viewport_.StopFocus();CancelDrag();}
@@ -82,7 +83,8 @@ private:
     void ReloadFloorImages();
     MapPicker Picker() const{return MapPicker::Sample(layout_,picker_scroll_,maps_.size());}
     bool UsesPicker() const noexcept{return real_&&maps_.size()>3;}
-    D2D1_RECT_F ModeButton(bool pve) const noexcept{return {layout_.search.right-(pve?70.0F:144.0F),130,layout_.search.right-(pve?0.0F:74.0F),166};}
+    D2D1_RECT_F ModeBounds() const noexcept{return {layout_.search.right-144,130,layout_.search.right,166};}
+    D2D1_RECT_F ModeButton(bool pve) const noexcept{return SegmentedSwitch::Button(ModeBounds(),pve);}
     void DrawMapSelection(const UiCanvas& canvas,const UiTheme& theme) const;
     void DrawMapPicker(const UiCanvas& canvas,const UiTheme& theme) const;
     std::wstring ReferenceLabel() const;
@@ -108,6 +110,7 @@ private:
     data::MapCatalog catalog_;
     data::MapCatalog pve_catalog_;
     data::GameMode mode_{data::GameMode::Pvp};
+    SegmentedSwitch mode_switch_;
     std::filesystem::path assets_;
     std::filesystem::path asset_generation_;
     D2D1_SIZE_F world_{MapPrototype::World};

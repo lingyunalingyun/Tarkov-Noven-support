@@ -69,7 +69,7 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     Overview();floor_id_={};map_id_={};interaction_id_={};progress_=0;search_.SetText(L"");filters_={};
     point_cache_valid_=false;visible_points_.clear();
     catalog_=std::move(candidate);maps_.clear();floors_.clear();points_.clear();images_=std::move(images);
-    assets_=assets;generic_=generic;mode_=data::GameMode::Pvp;
+    assets_=assets;generic_=generic;mode_=data::GameMode::Pvp;mode_switch_.Reset(false);
     if(std::filesystem::exists(assets/L"data"/L"pve"/L"map_maps.tsv")){
         if(!pve_catalog_.Load(assets/L"data"/L"pve",error)){unavailable_=true;return false;}
     }
@@ -183,6 +183,7 @@ bool MapPage::SetMode(data::GameMode mode){
     if(mode==data::GameMode::Seasonal)mode=data::GameMode::Pvp;
     if(!real_||mode==mode_||!Catalog(mode).Ready()||(mode!=data::GameMode::Pvp&&mode!=data::GameMode::Pve))return false;
     const std::string oldMap(map_id_);Overview();interaction_id_={};mode_=mode;
+    mode_switch_.Select(mode==data::GameMode::Pve);
     maps_.clear();for(const auto& map:Catalog().Maps())maps_.push_back({map.id,Wide(map.nameZh),Wide(map.nameEn)});
     map_id_=Catalog().Map(oldMap)?Catalog().Map(oldMap)->id:maps_.front().id;
     BindPoints();BindMapImages();return true;
@@ -356,6 +357,7 @@ void MapPage::Tick(float elapsed){
     const bool switching=floor_progress_<1,closing=progress_>0&&!Selected();
     const float dt=std::clamp(elapsed,0.0F,.05F);
     viewport_.Tick(dt);
+    mode_switch_.Tick(dt);
     progress_=std::clamp(progress_+(Selected()?dt:-dt)/.36F,0.0F,1.0F);
     panel_progress_=std::clamp(panel_progress_+(panel_open_?dt:-dt)/.18F,0.0F,1.0F);
     floor_progress_=std::min(1.0F,floor_progress_+dt/.22F);
@@ -505,17 +507,10 @@ void MapPage::DrawMapSelection(const UiCanvas& canvas,const UiTheme& theme) cons
     for(std::size_t i=0;i<maps.size();++i)if(maps[i].id==map_id_)mapIndex=static_cast<float>(i);
     if(UsesPicker())DrawDropdownHeader(canvas,theme,Picker().header,maps[static_cast<std::size_t>(mapIndex)].label,picker_open_,false);
     else DrawTabBar<std::string_view>(canvas,theme,canvas.smallFormat,maps,layout_.maps,map_id_,std::optional<std::string_view>{},map_id_,1,mapIndex);
-    const auto textAlignment=canvas.smallFormat.GetTextAlignment();
-    const auto paragraphAlignment=canvas.smallFormat.GetParagraphAlignment();
-    canvas.smallFormat.SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-    canvas.smallFormat.SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    if(pve_catalog_.Ready())for(bool pve:{false,true}){
-        const auto mode=pve?data::GameMode::Pve:data::GameMode::Pvp;
-        canvas.Round(ModeButton(pve),theme.cornerRadius,mode_==mode?theme.selected:theme.surface);
-        canvas.Text(data::GameModeName(mode),canvas.smallFormat,ModeButton(pve),mode_==mode?theme.accent:theme.secondaryText);
+    if(pve_catalog_.Ready()){
+        const auto pvp=Tr("map.mode.pvp"),pve=Tr("map.mode.pve");
+        mode_switch_.Draw(canvas,theme,ModeBounds(),{pvp,pve});
     }
-    canvas.smallFormat.SetTextAlignment(textAlignment);
-    canvas.smallFormat.SetParagraphAlignment(paragraphAlignment);
 }
 std::optional<std::string_view> MapPage::MarkerAt(D2D1_POINT_2F p) const {
     if(!Selected()||!MapContains(layout_.viewport,p))return std::nullopt;

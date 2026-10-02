@@ -182,6 +182,8 @@ int main(int argc,char** argv){
     const auto pveButton=D2D1_RECT_F{page.Layout().search.right-70,130,page.Layout().search.right,166};
     Click(page,pveButton);page.Prepare(1100,700,{});
     Require(page.Mode()==data::GameMode::Pve&&page.MapId()=="map0"&&page.InteractionId().empty(),"PvE button rebinds mode, retains shared map and clears old focus");
+    Require(page.Animating(),"mode selection activates the shared page animation clock");
+    Settle(page);Require(!page.Animating(),"mode animation finishes without permanent redraw");
     for(const auto& map:page.Catalog().Maps())VerifyPageMap(page,map);
     picker=ui::MapPicker::Sample(page.Layout(),0,17);Click(page,picker.header);
     Require(page.Wheel(-WHEEL_DELTA*100,picker.panel.left+10,picker.panel.top+10),"PvE picker scrolls its rebound map list");

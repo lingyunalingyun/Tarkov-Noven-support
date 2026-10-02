@@ -66,6 +66,19 @@ struct UiCanvas final {
         target.DrawText(value.data(), static_cast<UINT32>(value.size()),
                          &format, rect, &brush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
     }
+
+    // 临时居中后恢复共享格式；控件不得把对齐状态泄漏到后续绘制。
+    // Center temporarily and restore the borrowed format; controls must not leak alignment state.
+    void CenteredText(std::wstring_view value, IDWriteTextFormat& format,
+                      D2D1_RECT_F rect, D2D1_COLOR_F color) const {
+        const auto horizontal=format.GetTextAlignment();
+        const auto vertical=format.GetParagraphAlignment();
+        format.SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+        format.SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        Text(value,format,rect,color);
+        format.SetTextAlignment(horizontal);
+        format.SetParagraphAlignment(vertical);
+    }
 };
 
 } // namespace noven::ui
