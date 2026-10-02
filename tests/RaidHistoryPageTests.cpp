@@ -18,6 +18,15 @@ int wmain(int argc,wchar_t** argv) {
     Require(page.Animating(),"selection starts detail reveal");
     for(int i=0;i<20;++i)page.Tick(0.016F);
     Require(!page.Animating(),"detail animation settles without idle work");
+    Require(page.Expanded(),"selected card expands inline");
+    const float cardLeft=theme.sidebarWidth+theme.contentPadding;
+    page.MouseDown(cardLeft+30,258);(void)page.MouseUp(cardLeft+30,258);
+    Require(!page.Expanded()&&page.Animating(),"same card click starts collapse without losing selection");
+    for(int i=0;i<30;++i)page.Tick(0.016F);
+    Require(!page.Animating()&&page.VisibleImages().empty(),"collapsed card stops animation and image requests");
+    page.MouseDown(cardLeft+30,258);(void)page.MouseUp(cardLeft+30,258);
+    Require(page.Expanded(),"same header reopens the card");
+    for(int i=0;i<30;++i)page.Tick(0.016F);
     const auto builds=page.Browser().Builds();for(int i=0;i<1000;++i)page.Prepare(1600,900,theme);
     Require(page.Browser().Builds()==builds,"idle layout does not rebuild list");
     const float left=theme.sidebarWidth+theme.contentPadding;
@@ -60,5 +69,13 @@ int wmain(int argc,wchar_t** argv) {
     for(int i=0;i<30;++i)page.Tick(0.016F);
     Require(!page.Animating(),"reversed opening settles");
     page.Select("missing-two");page.Blur();Require(!page.Animating(),"leaving page settles all presentation motion");
+    RaidHistoryPage cards;auto second=raid;second.localSessionId="local-two";
+    cards.SetSessions({raid,second},{},false);cards.Prepare(1600,900,theme);cards.Select("local-one");
+    for(int i=0;i<30;++i)cards.Tick(0.016F);
+    cards.MouseDown(left+30,796);(void)cards.MouseUp(left+30,796);
+    Require(cards.SelectedId()=="local-two"&&cards.Expanded(),"following card hit position includes inline expansion height");
+    for(int i=0;i<30;++i)cards.Tick(0.016F);
+    cards.MouseDown(left+30,362);(void)cards.MouseUp(left+30,362);
+    Require(!cards.Expanded(),"retargeted header closes the correct card");
     std::cout<<"Native raid history resident-page contracts PASS\n";
 }

@@ -5,6 +5,7 @@
 #include "data/ItemCatalog.h"
 #include "ui/SearchBox.h"
 #include "ui/Scrollbar.h"
+#include "ui/ExpandableCard.h"
 #include <unordered_map>
 
 namespace noven::ui {
@@ -27,7 +28,7 @@ public:
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value);
     void CancelDrag() { grab_.reset(); pressed_.reset(); }
-    void Blur() { search_.Blur(); menu_.reset(); hover_.reset(); menuProgress_=0; detailProgress_=1; CancelDrag(); }
+    void Blur() { search_.Blur(); menu_.reset(); hover_.reset(); menuProgress_=0; detailProgress_=1; expansion_.Advance(1,ContentHeight(true)); CancelDrag(); }
     bool Animating() const noexcept;
     void Tick(float elapsed);
     std::vector<std::string> VisibleImages() const;
@@ -37,7 +38,13 @@ public:
     bool Select(std::string id);
     float ListScroll() const noexcept { return listScroll_; }
     float DetailScroll() const noexcept { return detailScroll_; }
+    bool Expanded() const noexcept { return expansion_.open; }
 private:
+    void DrawDetail(const UiCanvas& canvas,const UiTheme& theme,
+        const std::unordered_map<std::string,Microsoft::WRL::ComPtr<ID2D1Bitmap>>& images) const;
+    float RowTop(std::size_t index) const;
+    std::optional<std::size_t> RowAt(float position) const;
+    float DetailTop() const;
     void CloseMenu() { menuClosing_=true; if(menuProgress_<=0)menu_.reset(); }
     void ApplyFilter();
     void RefreshScans();
@@ -55,7 +62,9 @@ private:
     const data::ItemCatalog* items_{};
     std::string locale_,selected_;
     SearchBox search_;
-    bool unavailable_{},compact_{},compactDetail_{};
+    bool unavailable_{},compact_{};
+    ExpandableCardState expansion_;
+    std::size_t layoutBuilds_{};
     D2D1_RECT_F searchRect_{},listRect_{},detailRect_{};
     std::array<D2D1_RECT_F,4> controls_{};
     std::optional<int> menu_;

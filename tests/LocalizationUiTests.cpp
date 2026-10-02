@@ -652,6 +652,7 @@ int wmain(int argc, wchar_t** argv) try {
         const float raidWidth=client.right/scale-theme.contentPadding-raidLeft;
         const float raidTop=raidWidth<720?278.0F:238.0F;
         Require(!click(raidLeft+30,raidTop+20)&&ui.RaidHistory().SelectedId()==recorded.localSessionId,"native raid list selects completed identity");
+        for(int frame=0;frame<60&&ui.AnimationActive();++frame) {Sleep(16);(void)ui.AnimationTick();}
         ui.Paint();
         const float detailX=raidWidth<720?raidLeft+30:raidLeft+raidWidth*.4F+40;
         (void)ui.MouseWheel(static_cast<int>(detailX*scale),static_cast<int>((raidTop+80)*scale),-480);
