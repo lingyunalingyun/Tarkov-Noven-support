@@ -17,6 +17,42 @@ void Require(bool value, const char* message) {
 }
 int wmain(int argc, wchar_t** argv) try {
     using namespace noven::ui;
+    const auto pagerTrack = D2D1::RectF(100, 200, 112, 700);
+    const auto fullPageBar = MakeScrollbar(pagerTrack, 3600, 3100);
+    const auto shortPageBar = MakeScrollbar(pagerTrack, 1320, 0);
+    PriceTabTransition settledMode;
+    PriceSearchTransition pageReflow;
+    pageReflow.progress = 0;
+    pageReflow.outgoingScrollbar = {fullPageBar, 0.4F};
+    const auto startBar = SamplePriceScrollbar(settledMode, pageReflow, {}, shortPageBar);
+    Require(startBar.bar && startBar.bar->thumb.top == fullPageBar->thumb.top
+        && startBar.bar->thumb.bottom == fullPageBar->thumb.bottom && startBar.opacity == 0.4F,
+        "page scrollbar starts at its old position, size and opacity even with settled mode tabs");
+    pageReflow.progress = 0.5F;
+    const auto halfwayBar = SamplePriceScrollbar(settledMode, pageReflow, {}, shortPageBar);
+    Require(halfwayBar.bar && halfwayBar.bar->thumb.top < fullPageBar->thumb.top
+        && halfwayBar.bar->thumb.bottom - halfwayBar.bar->thumb.top
+            > fullPageBar->thumb.bottom - fullPageBar->thumb.top,
+        "last-page scrollbar animates both thumb position and length with list progress");
+    PriceSearchTransition retargeted;
+    retargeted.progress = 0;
+    retargeted.outgoingScrollbar = halfwayBar;
+    const auto retargetBar = SamplePriceScrollbar(settledMode, retargeted, {}, fullPageBar);
+    Require(retargetBar.bar->thumb.top == halfwayBar.bar->thumb.top
+        && retargetBar.bar->thumb.bottom == halfwayBar.bar->thumb.bottom
+        && retargetBar.opacity == halfwayBar.opacity,
+        "rapid paging retains the sampled visual thumb rather than snapping to a previous target");
+    pageReflow.progress = 1;
+    const auto settledBar = SamplePriceScrollbar(settledMode, pageReflow, {}, shortPageBar);
+    Require(settledBar.bar->thumb.top == shortPageBar->thumb.top
+        && settledBar.bar->thumb.bottom == shortPageBar->thumb.bottom && settledBar.opacity == 1,
+        "scrollbar settles at the actual page geometry");
+    pageReflow.progress = 0;
+    Require(SamplePriceScrollbar(settledMode, pageReflow, {}, {}).opacity == 0.4F,
+        "a scrollbar becoming unnecessary fades from the captured opacity");
+    pageReflow.progress = 1;
+    Require(!SamplePriceScrollbar(settledMode, pageReflow, {}, {}).bar,
+        "a fitting page removes its scrollbar after the transition");
     Require(PricePageCount(0) == 1 && PricePageCount(30) == 1
         && PricePageCount(31) == 2 && PricePageCount(120) == 4,
         "price pagination handles empty, exact and partial pages");
@@ -442,6 +478,9 @@ int wmain(int argc, wchar_t** argv) try {
         ui.Paint();
         Require(!click(theme.sidebarWidth + theme.contentPadding + 20, pagerY)
             && ui.PricePage() == 0, "sticky header previous button works while scrolled to the bottom");
+        const auto& capturedBar = ui.PriceListTransition().outgoingScrollbar;
+        Require(capturedBar.bar && capturedBar.bar->thumb.top > capturedBar.bar->track.top,
+            "native paging captures the scrolled outgoing thumb before resetting list scroll");
         const float pagerCenter = (theme.sidebarWidth + theme.contentPadding + pagerRight) / 2;
         Require(!click(pagerCenter, pagerY) && ui.Char(L'5') && ui.Char(L'x'),
             "page field handles digits and consumes invalid text separately from search");

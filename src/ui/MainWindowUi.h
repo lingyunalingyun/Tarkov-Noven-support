@@ -70,6 +70,7 @@ public:
     bool GoBack();
     bool CanGoBack() const noexcept { return return_page_.has_value(); }
     const SearchBox& PriceSearch() const noexcept { return price_search_; }
+    const PriceSearchTransition& PriceListTransition() const noexcept { return price_search_transition_; }
     [[nodiscard]] std::size_t PricePage() const noexcept { return price_page_; }
     [[nodiscard]] std::size_t PriceTotal() const noexcept { return price_total_; }
     const MapPage& Map() const noexcept { return map_; }

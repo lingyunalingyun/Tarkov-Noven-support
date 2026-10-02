@@ -49,7 +49,27 @@ struct PriceReflowRow {
 struct PriceSearchTransition {
     std::vector<PriceReflowRow> rows;
     float progress{1};
+    ScrollbarPose outgoingScrollbar;
 };
+
+// 翻页/搜索捕获当前可见滑块，连续重定向不能从目标几何重新开始。
+// Page/search changes capture the visible thumb; retargeting must not restart at target geometry.
+[[nodiscard]] inline ScrollbarPose SamplePriceScrollbar(
+    const PriceTabTransition& mode, const PriceSearchTransition& list,
+    const std::optional<ScrollbarGeometry>& outgoingMode,
+    const std::optional<ScrollbarGeometry>& incoming) noexcept {
+    if (list.progress >= 1) return SampleScrollbarTransition(outgoingMode, incoming, mode.progress);
+    auto pose = SampleScrollbarTransition(list.outgoingScrollbar.bar, incoming, list.progress);
+    if (list.outgoingScrollbar.bar) {
+        if (!incoming) pose.opacity *= list.outgoingScrollbar.opacity;
+        else {
+            const float t = std::clamp(list.progress, 0.0F, 1.0F);
+            const float smooth = t * t * (3 - 2 * t);
+            pose.opacity = list.outgoingScrollbar.opacity + (1 - list.outgoingScrollbar.opacity) * smooth;
+        }
+    }
+    return pose;
+}
 
 // 轨道和滑块均为客户区 DIP；绘制与拖动使用同一映射。
 // Track and thumb use client-area DIPs; drawing and dragging share one mapping.

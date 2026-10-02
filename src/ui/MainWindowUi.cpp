@@ -97,6 +97,14 @@ bool MainWindowUi::SelectPage(MainPage page) {
 }
 void MainWindowUi::RefreshPriceRows(bool animateSearch, bool resetPage) {
     if (!price_browser_) return;
+    ScrollbarPose outgoingScrollbar;
+    if (animateSearch) {
+        outgoingScrollbar = SamplePriceScrollbar(price_transition_, price_search_transition_,
+            PageHost::PriceScrollGeometry(DipWidth(), DipHeight(), theme_,
+                price_transition_.outgoingCount, price_transition_.outgoingScroll),
+            PageHost::PriceScrollGeometry(DipWidth(), DipHeight(), theme_,
+                price_rows_.size(), price_scroll_, PriceDetailsScrollExtra()));
+    }
     if (resetPage) { price_page_ = 0; price_page_input_.Blur(); }
     price_search_duration_ = 0.65F;
     price_details_ = {};
@@ -144,6 +152,7 @@ void MainWindowUi::RefreshPriceRows(bool animateSearch, bool resetPage) {
     }
     price_search_transition_ = {};
     if (animateSearch) {
+        price_search_transition_.outgoingScrollbar = outgoingScrollbar;
         for (std::size_t i = 0; i < price_rows_.size(); ++i) {
             const auto found = std::find_if(previous.begin(), previous.end(), [&](const auto& old) {
                 return old.row.item->id == price_rows_[i].item->id;
@@ -574,7 +583,8 @@ std::optional<RecentScrollbar> MainWindowUi::Scrollbar() const noexcept {
 }
 
 std::optional<RecentScrollbar> MainWindowUi::PriceScrollbar() const noexcept {
-    if (navigation_.Active() != MainPage::Prices || price_transition_.progress < 1.0F)
+    if (navigation_.Active() != MainPage::Prices || price_transition_.progress < 1.0F
+        || price_search_transition_.progress < 1.0F)
         return std::nullopt;
     RECT client{}; GetClientRect(window_, &client);
     return PageHost::PriceScrollGeometry(static_cast<float>(client.right) / Scale(),

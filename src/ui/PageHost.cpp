@@ -500,13 +500,12 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
             }
         }
         canvas.target.PopAxisAlignedClip();
-        const auto scrollbar = AnimatePriceScrollbar(
+        const auto scrollbar = SamplePriceScrollbar(priceTransition, searchTransition,
             PriceScrollGeometry(width, height, theme, priceTransition.outgoingCount,
                 priceTransition.outgoingScroll),
             PriceScrollGeometry(width, height, theme, prices.size(), priceScroll,
                 DetailsScrollExtra(details, prices.size(), PriceRowHeight(width, theme),
-                    (std::max)(0.0F, height - PriceListTop(width, theme) - 22))),
-            priceTransition.progress);
+                    (std::max)(0.0F, height - PriceListTop(width, theme) - 22))));
         DrawScrollbar(canvas, theme, scrollbar);
         if (openPriceDropdown && priceDropdownProgress > 0.0F) {
             const auto dropdownPose = SampleDropdownTransition(priceDropdownProgress);
