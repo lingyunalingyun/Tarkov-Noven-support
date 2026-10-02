@@ -52,6 +52,7 @@ add_executable(NovenTarkovSupport WIN32
     src/raid/EftLogReader.cpp
     src/raid/RaidSessionStore.cpp
     src/raid/LocalRaidService.cpp
+    src/raid/RaidHistoryBrowser.cpp
     src/capture/DxgiDesktopDuplicationBackend.cpp
     src/capture/Roi.cpp
     src/common/DebugLog.cpp
@@ -215,6 +216,13 @@ if(BUILD_TESTING)
         target_compile_options(NovenRaidSessionDetectorTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME raid_session_detector COMMAND NovenRaidSessionDetectorTests)
+    add_executable(NovenRaidHistoryBrowserTests tests/RaidHistoryBrowserTests.cpp src/raid/RaidHistoryBrowser.cpp)
+    target_include_directories(NovenRaidHistoryBrowserTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenRaidHistoryBrowserTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenRaidHistoryBrowserTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME raid_history_browser COMMAND NovenRaidHistoryBrowserTests)
     add_executable(NovenEftLogReaderTests tests/EftLogReaderTests.cpp src/raid/EftLogReader.cpp src/raid/RaidEventParser.cpp)
     target_include_directories(NovenEftLogReaderTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_definitions(NovenEftLogReaderTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
