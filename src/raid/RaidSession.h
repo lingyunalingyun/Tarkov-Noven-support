@@ -20,5 +20,7 @@ struct RaidSession final {
     std::optional<std::int64_t> startedAt, endedAt, duration;
     bool startObserved{}, endObserved{}, sourceInterrupted{};
     int parserVersion{kParserVersion};
+    std::string startSource;
+    std::uint64_t startOffset{};
 };
 }

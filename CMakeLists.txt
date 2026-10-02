@@ -201,6 +201,15 @@ if(BUILD_TESTING)
         target_compile_options(NovenRaidEventParserTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME raid_event_parser COMMAND NovenRaidEventParserTests)
+    add_executable(NovenRaidSessionDetectorTests tests/RaidSessionDetectorTests.cpp
+        src/raid/RaidSessionDetector.cpp src/raid/RaidEventParser.cpp)
+    target_include_directories(NovenRaidSessionDetectorTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenRaidSessionDetectorTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(NovenRaidSessionDetectorTests PRIVATE ole32)
+    if(MSVC)
+        target_compile_options(NovenRaidSessionDetectorTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME raid_session_detector COMMAND NovenRaidSessionDetectorTests)
     configure_file(
         "${ITEM_CATALOG}"
         "${CMAKE_CURRENT_BINARY_DIR}/test-data/items_catalog.tsv"
