@@ -79,6 +79,10 @@ int main(int argc,char** argv) {
     Require(service.CompletedSessions().size()==4&&!service.ActiveSession(),"saved history loads without inventing active raid");
     service.Stop();
     const auto config=root/"eft-log-root.txt";const auto path=logs.u8string();
+    const auto forbidden=logs/"private-output"/"raid-history.json";
+    Require(service.Start(logs,forbidden),"start invalid storage boundary check");
+    Wait(service,[&]{return !service.Status().error.empty();});service.Stop();
+    Require(!std::filesystem::exists(forbidden.parent_path()),"reject storage under EFT logs before creating any files");
     Write(config,std::string(path.begin(),path.end())+"\n");Require(ReadEftLogRoot(config)==logs,"explicit path config");
     Write(config,"relative/Logs");Require(!ReadEftLogRoot(config),"no implicit disk scanning");
     std::ifstream in(history);const std::string persisted((std::istreambuf_iterator<char>(in)),{});in.close();

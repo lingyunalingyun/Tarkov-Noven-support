@@ -144,6 +144,7 @@ void LocalRaidService::Stop() {
 void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::filesystem::path history) {
     HANDLE change=INVALID_HANDLE_VALUE;
     try {
+        if(!root.empty()&&Within(history,root))throw std::runtime_error("raid storage must be outside watched EFT logs");
         pipeline_=std::make_unique<Pipeline>();std::string error;
         if(!pipeline_->store.Load(history,pipeline_->checkpoint,error))throw std::runtime_error(error);
         pipeline_->detector.Restore(pipeline_->checkpoint.detector);
@@ -158,7 +159,6 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
         }
         if(!std::filesystem::is_directory(root)||GetFileAttributesW(root.c_str())&FILE_ATTRIBUTE_REPARSE_POINT)
             throw std::runtime_error("configured EFT log root unavailable");
-        if(Within(history,root))throw std::runtime_error("raid storage must be outside watched EFT logs");
         change=FindFirstChangeNotificationW(root.c_str(),TRUE,FILE_NOTIFY_CHANGE_FILE_NAME|FILE_NOTIFY_CHANGE_DIR_NAME
             |FILE_NOTIFY_CHANGE_SIZE|FILE_NOTIFY_CHANGE_LAST_WRITE);
         if(change==INVALID_HANDLE_VALUE)throw std::runtime_error("EFT directory watch unavailable");
