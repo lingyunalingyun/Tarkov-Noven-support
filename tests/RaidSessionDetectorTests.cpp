@@ -43,5 +43,9 @@ int main() {
     const auto first = absent.CompletedSessions()[0].localSessionId;
     Feed(absent, "GameStarted", 400); Feed(absent, "/client/match/local/end");
     Require(absent.CompletedSessions().size() == 1 && absent.FindSession(first), "missing raid ID replay uses start provenance");
+    RaidSessionDetector delayed;
+    Feed(delayed,"2026-01-01 13:00:00.000|GameStarted",500);
+    Feed(delayed,"2026-01-01 12:00:00.000|FinishScavSession");
+    Require(delayed.ActiveSession()->raidType==RaidType::Unknown,"old settlement cannot type a newer raid");
     std::cout << "Raid lifecycle synthetic contracts PASS\n";
 }

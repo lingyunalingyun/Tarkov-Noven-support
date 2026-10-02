@@ -102,6 +102,8 @@ bool RaidSessionDetector::Consume(const RaidEvent& event) {
             if (found != data_.completed.end()) session = &*found;
         }
         if (!session || session->raidType != RaidType::Unknown) return false;
+        if (event.time && ((session->endedAt && *event.time < *session->endedAt)
+            || (session->startedAt && *event.time < *session->startedAt))) return false;
         session->raidType = RaidType::Scav; return true;
     }
     }
