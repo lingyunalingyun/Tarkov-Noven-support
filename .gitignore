@@ -43,3 +43,8 @@ Testing/
 *.cache
 __pycache__/
 *.pyc
+
+# 开发文档仅本地保留；公开分发仍须保留素材版权说明。
+# Keep development documents local; retain asset attribution for distribution.
+/docs/*
+!/docs/MAP_ATTRIBUTION.md
