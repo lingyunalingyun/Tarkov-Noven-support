@@ -28,6 +28,33 @@ def fixture():
 
 
 class GeneratorTests(unittest.TestCase):
+    def test_all_maps_variants_and_determinism(self):
+        source, locales = fixture()
+        second = copy.deepcopy(source["data"]["maps"]["map1"])
+        second.update(id="map2", normalizedName="night-factory")
+        source["data"]["maps"]["map2"] = second
+        outputs, meta = GEN.build(source, locales, all_maps=True, mode="pve")
+        self.assertEqual(meta["mapCount"], 2)
+        self.assertEqual(meta["pointCount"], 26)
+        self.assertEqual(meta["structureMode"], "pve")
+        self.assertIn("night-factory", outputs["map_maps.tsv"])
+        source["data"]["maps"] = dict(reversed(list(source["data"]["maps"].items())))
+        self.assertEqual(GEN.build(source, locales, all_maps=True, mode="pve"), (outputs, meta))
+
+    def test_all_maps_missing_positions_are_per_map(self):
+        source, locales = fixture()
+        source["data"]["maps"]["map1"]["lootContainers"][0]["position"] = None
+        _, meta = GEN.build(source, locales, all_maps=True)
+        self.assertEqual(meta["missingPositions"], {"interchange": {"container": 1}})
+        with self.assertRaises(ValueError):
+            GEN.build(source, locales, mode="seasonal")
+
+    def test_variant_extract_missing_faction_is_explicit(self):
+        source, locales = fixture()
+        del source["data"]["maps"]["map1"]["extracts"][0]["faction"]
+        rows, _ = GEN.normalize(source, locales)
+        self.assertEqual({p[3] for p in rows["points"] if p[2] == "extract"}, {"unknown", "scav"})
+
     def test_real_coordinates_and_localization(self):
         rows, _ = GEN.normalize(*fixture())
         self.assertEqual(rows["maps"][0][2:4], ("立交桥", "Interchange"))
