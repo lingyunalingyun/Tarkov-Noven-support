@@ -132,7 +132,7 @@ LocalRaidService::LocalRaidService() : stopEvent_(CreateEventW(nullptr,TRUE,FALS
 LocalRaidService::~LocalRaidService() {Stop();if(stopEvent_)CloseHandle(stopEvent_);}
 bool LocalRaidService::Start(const std::filesystem::path& root,const std::filesystem::path& history) {
     Stop();
-    if(!stopEvent_||!root.is_absolute()||!history.is_absolute())return false;
+    if(!stopEvent_||(!root.empty()&&!root.is_absolute())||!history.is_absolute())return false;
     ResetEvent(stopEvent_);
     {std::lock_guard lock(mutex_);published_={};status_={};status_.running=true;}
     worker_=std::jthread([this,root,history](std::stop_token stop){Run(stop,root,history);});return true;
@@ -144,15 +144,24 @@ void LocalRaidService::Stop() {
 void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::filesystem::path history) {
     HANDLE change=INVALID_HANDLE_VALUE;
     try {
+        pipeline_=std::make_unique<Pipeline>();std::string error;
+        if(!pipeline_->store.Load(history,pipeline_->checkpoint,error))throw std::runtime_error(error);
+        pipeline_->detector.Restore(pipeline_->checkpoint.detector);
+        {std::lock_guard lock(mutex_);published_=pipeline_->detector.Snapshot();published_.active.reset();}
+        if(changed_)changed_();
+        // 无日志配置仍可浏览已保存记录，但不得恢复成正在游戏的会话。
+        // Saved history remains browsable without log configuration, never as an active game session.
+        if(root.empty()) {
+            {std::lock_guard lock(mutex_);published_.active.reset();}
+            if(changed_)changed_();
+            std::lock_guard lock(mutex_);status_.running=false;return;
+        }
         if(!std::filesystem::is_directory(root)||GetFileAttributesW(root.c_str())&FILE_ATTRIBUTE_REPARSE_POINT)
             throw std::runtime_error("configured EFT log root unavailable");
         if(Within(history,root))throw std::runtime_error("raid storage must be outside watched EFT logs");
         change=FindFirstChangeNotificationW(root.c_str(),TRUE,FILE_NOTIFY_CHANGE_FILE_NAME|FILE_NOTIFY_CHANGE_DIR_NAME
             |FILE_NOTIFY_CHANGE_SIZE|FILE_NOTIFY_CHANGE_LAST_WRITE);
         if(change==INVALID_HANDLE_VALUE)throw std::runtime_error("EFT directory watch unavailable");
-        pipeline_=std::make_unique<Pipeline>();std::string error;
-        if(!pipeline_->store.Load(history,pipeline_->checkpoint,error))throw std::runtime_error(error);
-        pipeline_->detector.Restore(pipeline_->checkpoint.detector);
         if(!pipeline_->checkpoint.sourceGroup.empty()&&!Within(pipeline_->checkpoint.sourceGroup,root)) {
             pipeline_->detector.SourceBoundary();pipeline_->checkpoint.sourceGroup.clear();pipeline_->checkpoint.cursors.clear();
         }
@@ -164,7 +173,11 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
                 if(!FindNextChangeNotification(change))throw std::runtime_error("EFT watch rearm failed");
                 continue;
             }
-            {std::lock_guard lock(mutex_);published_=pipeline_->detector.Snapshot();status_=pipeline_->stats;status_.running=true;}
+            bool notify{};
+            {std::lock_guard lock(mutex_);const auto snapshot=pipeline_->detector.Snapshot();
+                notify=published_.active!=snapshot.active||published_.completed!=snapshot.completed;
+                published_=snapshot;status_=pipeline_->stats;status_.running=true;}
+            if(notify&&changed_)changed_();
             HANDLE waits[]{stopEvent_,change};const DWORD result=WaitForMultipleObjects(2,waits,FALSE,INFINITE);
             if(result==WAIT_OBJECT_0)break;
             if(result!=WAIT_OBJECT_0+1)throw std::runtime_error("EFT watch wait failed");
@@ -173,7 +186,10 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
             // Coalesce short append bursts; idle waits indefinitely, with no periodic polling.
             if(WaitForSingleObject(stopEvent_,500)==WAIT_OBJECT_0)break;
         }
-    } catch(const std::exception& e) {std::lock_guard lock(mutex_);status_.error=e.what();}
+    } catch(const std::exception& e) {
+        {std::lock_guard lock(mutex_);status_.error=e.what();published_.active.reset();}
+        if(changed_)changed_();
+    }
     if(change!=INVALID_HANDLE_VALUE)FindCloseChangeNotification(change);
     std::lock_guard lock(mutex_);status_.running=false;
 }

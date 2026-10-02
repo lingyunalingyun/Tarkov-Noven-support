@@ -3,6 +3,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <functional>
 
 namespace noven::raid {
 struct RaidServiceStatus final {
@@ -22,6 +23,9 @@ public:
     std::optional<RaidSession> FindSession(std::string_view localId) const;
     std::vector<RaidSession> CompletedSessions() const;
     RaidServiceStatus Status() const;
+    // 启动前设置通知；只通知语义变化，不因无关日志追加驱动 UI 刷新。
+    // Set before Start; notify semantic changes only, never UI refreshes for unrelated appends.
+    void SetChangedCallback(std::function<void()> callback) { changed_=std::move(callback); }
 private:
     struct Pipeline;
     std::unique_ptr<Pipeline> pipeline_;
@@ -30,6 +34,7 @@ private:
     mutable std::mutex mutex_;
     DetectorSnapshot published_;
     RaidServiceStatus status_;
+    std::function<void()> changed_;
     void Run(std::stop_token stop, std::filesystem::path root, std::filesystem::path history);
 };
 // 无配置即不读取；只接受明确 UTF-8 路径，不探测磁盘/注册表/进程。

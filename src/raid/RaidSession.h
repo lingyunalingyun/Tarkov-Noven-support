@@ -22,5 +22,6 @@ struct RaidSession final {
     int parserVersion{kParserVersion};
     std::string startSource;
     std::uint64_t startOffset{};
+    bool operator==(const RaidSession&) const = default;
 };
 }
