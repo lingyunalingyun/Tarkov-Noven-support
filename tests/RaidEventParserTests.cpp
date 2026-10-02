@@ -20,6 +20,10 @@ int main() {
     Require(ParseRaidEvents("scene preset path: maps/rezerv_base_preset.bundle")[0].mapId == id[0].mapId, "preset");
     Require(ParseRaidEvents("GameStarted:91.23(0) real:125.71(0)")[0].kind == EventKind::RaidStarted, "start");
     Require(ParseRaidEvents("/client/match/local/end")[0].kind == EventKind::RaidEnded, "end");
+    Require(ParseRaidEvents("Request https://example.invalid/client/match/local/end. Status: OK")[0].kind
+        == EventKind::RaidEnded, "backend full URL path, host discarded");
+    Require(ParseRaidEvents("https://example.invalid/client/game/profile/savage/regenerate, status: OK")[0].kind
+        == EventKind::ScavEvidenceDetected, "backend scav URL");
     for (const auto* text : {"SellAsSavage", "FinishScavSession", "/client/game/profile/savage/regenerate"})
         Require(ParseRaidEvents(text)[0].kind == EventKind::ScavEvidenceDetected, "positive scav evidence only");
     for (const auto* text : {"NotGameStarted", "/client/match/local/endless", "Quest failed", "ExitStatus Survived", "[Transit] RaidId:??"})

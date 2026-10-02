@@ -19,7 +19,15 @@ bool Token(std::string_view line, std::string_view token) {
     if (pos == line.npos) return false;
     const auto word = [](char c) { return (c >= 'a' && c <= 'z')
         || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '/'; };
-    return (pos == 0 || !word(line[pos - 1]))
+    bool leftBoundary = pos == 0 || !word(line[pos - 1]);
+    if (!leftBoundary && token.starts_with('/')) {
+        // backend 请求可带完整 URL；仅确认其路径边界，不提取或保存主机。
+        // Backend requests may include a full URL; validate the path boundary, never extract/store the host.
+        const auto scheme = line.rfind("://", pos);
+        leftBoundary = scheme != line.npos && line.find('/', scheme + 3) == pos
+            && line.substr(scheme + 3, pos - scheme - 3).find_first_of(" \t\r\n|\"") == line.npos;
+    }
+    return leftBoundary
         && (pos + token.size() == line.size() || !word(line[pos + token.size()]));
 }
 }
