@@ -235,6 +235,31 @@ class AllImagesTests(unittest.TestCase):
             with Image.open(root / 'output/maps/actual/Base.satellite.png') as image:
                 self.assertEqual(image.getpixel((16, 16))[3], 0)
 
+    def test_missing_high_zoom_uses_complete_lower_source_level(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sources = images.Sources(directory, offline=True)
+            template = 'https://assets.tarkov.dev/maps/actual/{z}/{x}/{y}.png'
+            cfg = {'bounds': [[0, 0], [48, 48]], 'coordinateRotation': 0,
+                   'transform': [1, 0, 1, 48], 'minZoom': 0, 'maxZoom': 1, 'tileSize': 16}
+            tile = images.png(Image.new('RGBA', (16, 16), (20, 30, 40, 255)))
+            for zoom, count in ((0, 3), (1, 6)):
+                for y in range(count):
+                    for x in range(count):
+                        url = template.format(z=zoom, x=x, y=y)
+                        if zoom == 1 and (x, y) == (2, 2):
+                            record = {'url': url, 'status': 404, 'sha256': None, 'cachePath': None}
+                            (sources.directory / (images.digest(url.encode()) + '.json')).write_bytes(images.json_bytes(record))
+                        else:
+                            sources.get(url, seed=tile)
+            with patch('requests.Session', side_effect=AssertionError('network forbidden')):
+                image, metadata = images.available_satellite(sources, cfg, template, (96, 96), workers=1)
+            self.assertEqual(image.size, (96, 96))
+            self.assertEqual(metadata['zoom'], 0)
+            self.assertEqual(metadata['pixelBounds'], (0, 0, 48, 48))
+            self.assertEqual(metadata['missingTiles'], [])
+            self.assertEqual(metadata['unavailableHigherLevels'][0]['zoom'], 1)
+            self.assertTrue(all('/0/' in row['url'] for row in metadata['compositionLayers'][0]['inputs']))
+
     def test_interchange_accepted_ids_and_labels(self):
         cfg = {'key': 'interchange', 'svgLayer': 'Ground_Level', 'layers': [
             {'name': '2nd Floor', 'svgLayer': 'First_Floor'}, {'name': '3rd Floor', 'svgLayer': 'Second_Floor'}]}

@@ -382,6 +382,23 @@ def satellite(sources, config, template, size, overlay=False, workers=12):
                                            'tileSize': tile_size, 'tileOrigin': [x0, y0]}]}
 
 
+def available_satellite(sources, config, template, size, overlay=False, workers=12):
+    # 高层级源瓦片不完整时使用真实的较低完整层级，不把缺块当作透明底图。
+    # Fall back to a real complete lower source level, never transparent holes in a basemap.
+    requested, _ = tile_geometry(config, size[0])
+    unavailable = []
+    for zoom in range(requested, config['minZoom'] - 1, -1):
+        try:
+            image, metadata = satellite(sources, {**config, 'minZoom': zoom, 'maxZoom': zoom},
+                                        template, size, overlay, workers)
+            if unavailable:
+                metadata['unavailableHigherLevels'] = unavailable
+            return image, metadata
+        except SourceUnavailable as error:
+            unavailable.append({'zoom': zoom, 'reason': str(error)})
+    raise SourceUnavailable(str(unavailable))
+
+
 def write_tsv(path, header, rows):
     def cell(value):
         value = format(value, '.15g') if isinstance(value, float) else str(value)
@@ -414,6 +431,8 @@ def reuse_map(output, sources, canonical, config, floor_list, size, preview, der
             return None
         abstract = f'maps/{canonical}/{floor}.png' if meta['abstract'] else ''
         sat = f'maps/{canonical}/{floor}.satellite.png' if meta['satellite'] else ''
+        if not staged and config.get('tilePath') and meta.get('satelliteUnavailable'):
+            return None
         if not staged and not config.get('svgPath') and any(
                 entry.get('tilePath') == config.get('tilePath') for entry in config.get('layers', [])):
             if not meta['satellite'] or not meta['satellite'].get('sparseFloorBase'):
@@ -439,7 +458,11 @@ def reuse_map(output, sources, canonical, config, floor_list, size, preview, der
                 derived[relative] = {'sha256': digest((output / relative).read_bytes()), 'sourceUrls': urls}
         if sat:
             sat_meta = meta['satellite']
-            if not all(math.isclose(a, b, abs_tol=1e-8) for a, b in zip(sat_meta['pixelBounds'], tile_geometry(config, size[0])[1])):
+            zoom = sat_meta['zoom']
+            if not config['minZoom'] <= zoom <= config['maxZoom']:
+                raise ValueError('staged source zoom differs: ' + canonical)
+            expected = tile_geometry({**config, 'minZoom': zoom, 'maxZoom': zoom}, size[0])[1]
+            if not all(math.isclose(a, b, abs_tol=1e-8) for a, b in zip(sat_meta['pixelBounds'], expected)):
                 raise ValueError('staged projection differs: ' + canonical)
             for url in sat_meta['sourceUrls']:
                 sources.get(url, optional=True)
@@ -533,7 +556,7 @@ def build(output, sources, api, layout, detail_width=4096, preview=1024, only=No
                         # DEV may designate a standalone floor as base; it remains a sparse floor image, not a full basemap.
                         sparse_base = index == 0 and not raw_svg and any(
                             entry.get('tilePath') == config.get('tilePath') for entry in config.get('layers', []))
-                        sat_image, sat_meta = satellite(sources, config, layer['tilePath'], size,
+                        sat_image, sat_meta = available_satellite(sources, config, layer['tilePath'], size,
                                                        overlay=index>0 or sparse_base, workers=workers)
                         if sparse_base:
                             sat_meta['sparseFloorBase'] = True
