@@ -27,7 +27,9 @@ public:
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value);
     void CancelDrag() { grab_.reset(); pressed_.reset(); }
-    void Blur() { search_.Blur(); menu_.reset(); CancelDrag(); }
+    void Blur() { search_.Blur(); menu_.reset(); hover_.reset(); menuProgress_=0; detailProgress_=1; CancelDrag(); }
+    bool Animating() const noexcept;
+    void Tick(float elapsed);
     std::vector<std::string> VisibleImages() const;
     std::optional<D2D1_RECT_F> ScanBounds(std::uint64_t scanId) const;
     const raid::RaidHistoryBrowser& Browser() const noexcept { return browser_; }
@@ -36,6 +38,7 @@ public:
     float ListScroll() const noexcept { return listScroll_; }
     float DetailScroll() const noexcept { return detailScroll_; }
 private:
+    void CloseMenu() { menuClosing_=true; if(menuProgress_<=0)menu_.reset(); }
     void ApplyFilter();
     void RefreshScans();
     std::vector<std::wstring> Options(int control) const;
@@ -57,6 +60,11 @@ private:
     std::array<D2D1_RECT_F,4> controls_{};
     std::optional<int> menu_;
     std::size_t menuOffset_{};
+    // 仅改变绘制姿态，不保留旧快照；隐藏页立即静止。
+    // Animate presentation only, retaining no old snapshots; hidden pages settle immediately.
+    bool menuClosing_{};
+    float menuProgress_{},detailProgress_{1};
+    std::optional<D2D1_POINT_2F> hover_;
     std::optional<D2D1_POINT_2F> pressed_;
     std::optional<std::pair<bool,float>> grab_;
     float listScroll_{},detailScroll_{};

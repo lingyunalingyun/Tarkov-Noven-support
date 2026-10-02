@@ -52,7 +52,19 @@ std::wstring RaidHistoryPage::ScanName(const data::RecentScanEntry& scan) const 
     return Wide(scan.canonicalName);
 }
 bool RaidHistoryPage::Select(std::string id) {
+    if(selected_!=id)detailProgress_=0;
     selected_=std::move(id); detailScroll_=0; compactDetail_=true; RefreshScans(); return browser_.Find(selected_)!=nullptr;
+}
+bool RaidHistoryPage::Animating() const noexcept {
+    return detailProgress_<1 || (menu_ && (menuClosing_?menuProgress_>0:menuProgress_<1));
+}
+void RaidHistoryPage::Tick(float elapsed) {
+    elapsed=std::clamp(elapsed,0.0F,0.05F);
+    detailProgress_=(std::min)(1.0F,detailProgress_+elapsed/0.20F);
+    if(menu_) {
+        menuProgress_=AdvanceDropdownTransition(menuProgress_,menuClosing_,elapsed);
+        if(menuClosing_&&menuProgress_<=0)menu_.reset();
+    }
 }
 void RaidHistoryPage::RefreshScans() {linked_=raid::ScansForRaid(selected_,scans_);}
 void RaidHistoryPage::ApplyFilter() {
@@ -109,13 +121,13 @@ void RaidHistoryPage::Choose(int control,std::size_t option) {
     if(control==1)f.type=option?std::optional(option==3?raid::RaidType::Unknown:static_cast<raid::RaidType>(option)):std::nullopt;
     if(control==2)f.mapId=option?std::optional(browser_.Maps()[option-1]):std::nullopt;
     if(control==3)f.date=static_cast<raid::HistoryDate>(option);
-    browser_.SetFilter(std::move(f));listScroll_=0;menu_.reset();
+    browser_.SetFilter(std::move(f));listScroll_=0;CloseMenu();
 }
 void RaidHistoryPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::unordered_map<std::string,Microsoft::WRL::ComPtr<ID2D1Bitmap>>& images) const {
     const auto left=searchRect_.left,right=searchRect_.right;
     DrawPageHeader(canvas,theme,left,right,Tr(TextKey::NavRaidHistory));search_.Draw(canvas,theme,searchRect_,Tr(TextKey::RaidSearch),true);
     const std::array labels{TextKey::RaidMode,TextKey::RaidType,TextKey::RaidMap,TextKey::RaidDate};
-    for(int i=0;i<4;++i) {const auto options=Options(i);DrawDropdownHeader(canvas,theme,controls_[i],Tr(labels[i])+L" · "+options[OptionIndex(i)],menu_==i,false);}
+    for(int i=0;i<4;++i) {const auto options=Options(i);DrawDropdownHeader(canvas,theme,controls_[i],Tr(labels[i])+L" · "+options[OptionIndex(i)],menu_==i&&!menuClosing_,hover_&&Hit(controls_[i],hover_->x,hover_->y));}
     const auto& summary=browser_.Summary(); const auto count=std::to_wstring(summary.count),pmc=std::to_wstring(summary.pmc),scav=std::to_wstring(summary.scav),unknown=std::to_wstring(summary.unknown),avg=RaidDurationText(summary.averageDuration);
     canvas.Text(UiLocalization().Format(TextKey::RaidSummary,{{L"count",count},{L"pmc",pmc},{L"scav",scav},{L"unknown",unknown},{L"duration",avg}}),canvas.smallFormat,D2D1::RectF(left,listRect_.top-66,right,listRect_.top-40),theme.secondaryText);
     std::wstring current;
@@ -131,7 +143,8 @@ void RaidHistoryPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std
         for(std::size_t i=first;i<browser_.Rows().size();++i) {
             const float y=listRect_.top+static_cast<float>(i)*rowHeight-listScroll_;if(y>=listRect_.bottom)break;
             const auto& s=browser_.Sessions()[browser_.Rows()[i]];const auto name=browser_.MapName(s);const float x=listRect_.left+12,r=listRect_.right-22;
-            canvas.Round(D2D1::RectF(listRect_.left,y,listRect_.right-16,y+rowHeight-8),theme.cornerRadius,s.localSessionId==selected_?theme.selected:theme.surface);
+            canvas.Round(D2D1::RectF(listRect_.left,y,listRect_.right-16,y+rowHeight-8),theme.cornerRadius,s.localSessionId==selected_?theme.selected:hover_&&Hit(D2D1::RectF(listRect_.left,y,listRect_.right-16,y+rowHeight-8),hover_->x,hover_->y)?theme.hover:theme.surface);
+            if(s.localSessionId==selected_)canvas.Round(D2D1::RectF(listRect_.left,y+12,listRect_.left+3,y+rowHeight-20),1.5F,theme.accent);
             canvas.Text(name.empty()?Tr(TextKey::Unknown):Wide(name),canvas.label,D2D1::RectF(x,y+5,r,y+30),theme.primaryText);
             canvas.Text(Mode(s.gameMode)+L" · "+Type(s.raidType)+(s.outcome==raid::RaidOutcome::Unknown?L"":L" · "+Outcome(s.outcome)),canvas.smallFormat,D2D1::RectF(x,y+30,r,y+52),theme.accent);
             canvas.Text(RaidTimeText(s.startedAt)+L" · "+RaidDurationText(s.duration),canvas.smallFormat,D2D1::RectF(x,y+54,r,y+88),theme.secondaryText);
@@ -140,6 +153,7 @@ void RaidHistoryPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std
     }
     if(!compact_||compactDetail_) {
         canvas.target.PushAxisAlignedClip(detailRect_,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        const ScopedContentTransition transition(canvas,D2D1::Point2F(detailRect_.left,detailRect_.top),detailProgress_*detailProgress_*(3-2*detailProgress_),1);
         const auto* selected=browser_.Find(selected_);
         if(!selected)DrawEmptyState(canvas,theme,D2D1::RectF(detailRect_.left,detailRect_.top,detailRect_.right,detailRect_.top+160),detailRect_.right-18,Tr(selected_.empty()?TextKey::RaidSelect:TextKey::RaidMissing),L"");
         else {
@@ -163,9 +177,12 @@ void RaidHistoryPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std
         canvas.target.PopAxisAlignedClip();if(selected)DrawScrollbar(canvas,theme,{Bar(true),1});
     }
     if(menu_) {
-        const auto options=Options(*menu_);const auto rows=MenuRows(*menu_);DropdownLayout layout{controls_[*menu_]};DrawDropdownPanel(canvas,theme,layout,rows);
+        const auto options=Options(*menu_);const auto rows=MenuRows(*menu_);DropdownLayout layout{controls_[*menu_]};
+        const auto pose=SampleDropdownTransition(menuProgress_);
+        const ScopedContentTransition transition(canvas,D2D1::Point2F((layout.header.left+layout.header.right)/2,layout.header.bottom),pose.opacity,pose.scale);
+        DrawDropdownPanel(canvas,theme,layout,rows);
         const auto offset=(std::min)(menuOffset_,options.size()-rows);
-        for(std::size_t i=0;i<rows;++i)DrawDropdownOption(canvas,theme,layout.Option(i),options[i+offset],OptionIndex(*menu_)==i+offset,true,false);
+        for(std::size_t i=0;i<rows;++i)DrawDropdownOption(canvas,theme,layout.Option(i),options[i+offset],OptionIndex(*menu_)==i+offset,true,hover_&&Hit(layout.Option(i),hover_->x,hover_->y));
         auto track=layout.Panel(rows);track.left=track.right-14;track.top+=8;track.bottom-=8;
         DrawScrollbar(canvas,theme,{MakeScrollbar(track,static_cast<float>(options.size())*32,static_cast<float>(offset)*32),1});
     }
@@ -177,11 +194,12 @@ void RaidHistoryPage::MouseDown(float x,float y) {
 }
 std::optional<data::RecentScanEntry> RaidHistoryPage::MouseUp(float x,float y) {
     grab_.reset();if(!pressed_)return {};const auto down=*pressed_;pressed_.reset();
+    if(menu_&&menuClosing_)menu_.reset();
     if(menu_) {const int control=*menu_;const auto options=Options(control);DropdownLayout layout{controls_[control]};
         const auto rows=MenuRows(control),offset=(std::min)(menuOffset_,options.size()-rows);
         for(std::size_t i=0;i<rows;++i)if(Hit(layout.Option(i),x,y)&&Hit(layout.Option(i),down.x,down.y)) {Choose(control,i+offset);return {};}
-        menu_.reset();return {};}
-    for(int i=0;i<4;++i)if(Hit(controls_[i],x,y)&&Hit(controls_[i],down.x,down.y)) {menu_=i;menuOffset_=0;return {};}
+        CloseMenu();return {};}
+    for(int i=0;i<4;++i)if(Hit(controls_[i],x,y)&&Hit(controls_[i],down.x,down.y)) {menu_=i;menuOffset_=0;menuProgress_=0;menuClosing_=false;return {};}
     if(compact_&&compactDetail_&&y>=listRect_.top-38&&y<listRect_.top-10) {compactDetail_=false;return {};}
     if((!compact_||!compactDetail_)&&Hit(listRect_,x,y)&&Hit(listRect_,down.x,down.y)) {
         const auto i=static_cast<std::size_t>((y-listRect_.top+listScroll_)/rowHeight);if(i<browser_.Rows().size())Select(browser_.Sessions()[browser_.Rows()[i]].localSessionId);
@@ -189,7 +207,7 @@ std::optional<data::RecentScanEntry> RaidHistoryPage::MouseUp(float x,float y) {
         const float position=y-detailRect_.top+detailScroll_-scansTop;if(position>=0) {const auto i=static_cast<std::size_t>(position/scanHeight);if(i<linked_.entries.size())return linked_.entries[i];}}
     return {};
 }
-bool RaidHistoryPage::MouseMove(float,float y) {if(!grab_)return false;const auto bar=Bar(grab_->first);if(!bar)return false;(grab_->first?detailScroll_:listScroll_)=bar->OffsetFromThumbTop(y-grab_->second);return true;}
+bool RaidHistoryPage::MouseMove(float x,float y) {const bool changed=!hover_||hover_->x!=x||hover_->y!=y;hover_=D2D1::Point2F(x,y);if(!grab_)return changed;const auto bar=Bar(grab_->first);if(!bar)return false;(grab_->first?detailScroll_:listScroll_)=bar->OffsetFromThumbTop(y-grab_->second);return true;}
 bool RaidHistoryPage::Wheel(int delta,float x,float y) {
     if(menu_) {
         const auto rows=MenuRows(*menu_);const auto options=Options(*menu_);const DropdownLayout layout{controls_[*menu_]};
@@ -200,7 +218,7 @@ bool RaidHistoryPage::Wheel(int delta,float x,float y) {
     auto& scroll=detail?detailScroll_:listScroll_;scroll=std::clamp(scroll-delta/120.0F*80,0.0F,(std::max)(0.0F,ContentHeight(detail)-(rect.bottom-rect.top)));return true;
 }
 bool RaidHistoryPage::Key(WPARAM key,bool control) {
-    if(key==VK_ESCAPE&&menu_) {menu_.reset();return true;}
+    if(key==VK_ESCAPE&&menu_) {CloseMenu();return true;}
     const bool handled=search_.HandleKeyDown(key,control);if(handled){ApplyFilter();listScroll_=0;}return handled;
 }
 bool RaidHistoryPage::Char(wchar_t value) {const bool handled=search_.HandleChar(value);if(handled){ApplyFilter();listScroll_=0;}return handled;}

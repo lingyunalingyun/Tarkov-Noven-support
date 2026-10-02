@@ -1227,7 +1227,7 @@ bool MainWindowUi::AnimationActive() const noexcept {
     const bool mapVisible=navigation_.Active()==MainPage::Map||page_transition_.ShowingOutgoing(MainPage::Map);
     const bool tasksVisible=navigation_.Active()==MainPage::Tasks
         || page_transition_.ShowingOutgoing(MainPage::Tasks);
-    return page_transition_.Active() || hideout_.Animating() || (tasksVisible&&tasks_.Animating()) || (mapVisible&&map_.Animating()) || recent_transition_.progress < 1.0F
+    return (navigation_.Active()==MainPage::RaidHistory&&raid_history_.Animating()) || page_transition_.Active() || hideout_.Animating() || (tasksVisible&&tasks_.Animating()) || (mapVisible&&map_.Animating()) || recent_transition_.progress < 1.0F
         || price_transition_.progress < 1.0F
         || price_search_transition_.progress < 1.0F
         || price_details_.tabProgress < 1 || price_details_.chartProgress < 1
@@ -1254,6 +1254,7 @@ bool MainWindowUi::AnimationTick() {
         : std::chrono::duration<float>(now - recent_scroll_tick_).count();
     recent_scroll_tick_ = now;
     hideout_.Tick(elapsed);
+    if(navigation_.Active()==MainPage::RaidHistory)raid_history_.Tick(elapsed);
     if(navigation_.Active()==MainPage::Map||page_transition_.ShowingOutgoing(MainPage::Map))map_.Tick(elapsed);
     if (navigation_.Active()==MainPage::Tasks || page_transition_.ShowingOutgoing(MainPage::Tasks))
         tasks_.Tick(elapsed);

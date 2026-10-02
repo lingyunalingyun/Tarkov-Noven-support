@@ -15,6 +15,9 @@ int wmain(int argc,wchar_t** argv) {
     raid.gameMode=noven::raid::GameMode::PvE;
     page.SetSessions({raid},{},false);page.Prepare(1600,900,theme);
     Require(page.Browser().Rows().size()==1&&page.Select("local-one"),"completed raid browsable/selectable");
+    Require(page.Animating(),"selection starts detail reveal");
+    for(int i=0;i<20;++i)page.Tick(0.016F);
+    Require(!page.Animating(),"detail animation settles without idle work");
     const auto builds=page.Browser().Builds();for(int i=0;i<1000;++i)page.Prepare(1600,900,theme);
     Require(page.Browser().Builds()==builds,"idle layout does not rebuild list");
     const float left=theme.sidebarWidth+theme.contentPadding;
@@ -49,5 +52,13 @@ int wmain(int argc,wchar_t** argv) {
     Require(page.Browser().Filter().mapId.has_value()&&page.Browser().Rows().size()==1,"scrolled map option selects exact identity");
     page.MouseDown(left+20,180);(void)page.MouseUp(left+20,180);
     Require(page.Key(VK_ESCAPE,false),"Escape closes a filter popup without changing the search");
+    for(int i=0;i<30;++i)page.Tick(0.016F);
+    Require(!page.Animating(),"closed menu does not keep the frame timer running");
+    page.MouseDown(left+20,180);(void)page.MouseUp(left+20,180);
+    Require(page.Animating(),"filter menu opening starts bounded motion");
+    page.Tick(0.05F);Require(page.Key(VK_ESCAPE,false),"opening menu can reverse into closing");
+    for(int i=0;i<30;++i)page.Tick(0.016F);
+    Require(!page.Animating(),"reversed opening settles");
+    page.Select("missing-two");page.Blur();Require(!page.Animating(),"leaving page settles all presentation motion");
     std::cout<<"Native raid history resident-page contracts PASS\n";
 }
