@@ -17,8 +17,12 @@ namespace noven::ui {
 // The page owns selection and scroll state only; the read-only catalog owns task identity and content.
 class TasksPage final {
 public:
-    struct Action {enum class Destination {Prices,Map};Destination destination;std::string id;};
-    void SetMapLinks(const data::MapCatalog& catalog){mapLinks_.Bind(catalog);}
+    struct Action {enum class Destination {Prices,Map};Destination destination;std::string id;data::GameMode mode{data::GameMode::Pvp};};
+    void SetMode(data::GameMode mode);
+    void SetMapLinks(const data::MapCatalog& catalog,data::GameMode mode=data::GameMode::Pvp);
+    struct MapTargetRow {std::string id;std::wstring title,source;D2D1_RECT_F bounds;};
+    struct MapTargetList {D2D1_RECT_F bounds,close;std::vector<MapTargetRow> rows;};
+    [[nodiscard]] std::optional<MapTargetList> MapTargetsLayout() const;
     void Initialize(const std::filesystem::path& directory,const data::ItemCatalog& items);
     void Prepare(float width, float height, const UiTheme& theme);
     void Draw(const UiCanvas& canvas, const UiTheme& theme,
@@ -75,6 +79,9 @@ private:
     [[nodiscard]] std::optional<std::string> ChainAt(float x, float y) const;
     [[nodiscard]] std::optional<std::string> RewardItemAt(float x, float y) const;
     [[nodiscard]] std::optional<std::string> ObjectiveMapPointAt(float x,float y) const;
+    [[nodiscard]] const data::TaskMapLinks& MapLinks() const {return mode_==data::GameMode::Pve?pveMapLinks_:mapLinks_;}
+    [[nodiscard]] std::optional<std::string> MapTargetAt(float x,float y) const;
+    void CloseMapTargets();
     [[nodiscard]] std::optional<ScrollbarGeometry> Bar() const;
     [[nodiscard]] std::optional<ScrollbarGeometry> TaskBar() const;
     [[nodiscard]] ScrollbarPose TaskBarPose() const;
@@ -86,6 +93,10 @@ private:
     SearchBox search_;
     data::TaskCatalog catalog_;
     data::TaskMapLinks mapLinks_;
+    data::TaskMapLinks pveMapLinks_;
+    std::optional<std::string> mapObjective_,pressedTarget_,hoveredTarget_;
+    std::size_t mapTargetOffset_{};
+    bool mapClosePressed_{},mapDismissPressed_{};
     std::unique_ptr<data::TaskBrowser> browser_;
     std::vector<data::TaskView> rows_;
     HorizontalCardStrip traderStrip_;

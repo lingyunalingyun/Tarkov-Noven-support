@@ -84,6 +84,69 @@ void TasksPage::Initialize(const std::filesystem::path& directory,const data::It
     browser_=std::make_unique<data::TaskBrowser>(catalog_,items);Refresh();
 }
 
+void TasksPage::SetMapLinks(const data::MapCatalog& catalog,data::GameMode mode) {
+    CloseMapTargets();
+    (mode==data::GameMode::Pve?pveMapLinks_:mapLinks_).Bind(catalog);
+}
+
+void TasksPage::SetMode(data::GameMode mode) {
+    CloseMapTargets();
+    CancelDrag();
+    pressedTrader_.reset();pressedTask_.reset();pressedChain_.reset();pressedRewardItem_.reset();pressedArrow_.reset();
+    hoveredMapPoint_.reset();
+    if(mode_==mode)return;
+    const auto previousTask=taskId_;
+    mode_=mode;
+    if(browser_)if(const auto* task=browser_->Task(mode_,taskId_))traderId_=task->traderId;
+    Refresh();
+    if(taskId_!=previousTask)scroll_=scrollTarget_=0.0F;
+    scroll_=std::clamp(scroll_,0.0F,MaxScroll());
+    scrollTarget_=std::clamp(scrollTarget_,0.0F,MaxScroll());
+    taskScroll_=std::clamp(taskScroll_,0.0F,TaskMaximum());
+    taskTarget_=std::clamp(taskTarget_,0.0F,TaskMaximum());
+    detailProgress_=0.0F;textScrollTime_=0.0F;
+}
+
+void TasksPage::CloseMapTargets() {
+    mapObjective_.reset();pressedTarget_.reset();hoveredTarget_.reset();
+    mapTargetOffset_=0;mapClosePressed_=mapDismissPressed_=false;
+}
+
+std::optional<TasksPage::MapTargetList> TasksPage::MapTargetsLayout() const {
+    if(!mapObjective_)return {};
+    const auto targets=MapLinks().Targets(taskId_,*mapObjective_);
+    const auto viewport=DetailBounds();
+    // 列表几何只使用详情视口；显示与命中共享完整可见行，不借用正文滚动。
+    // Drawing and hit testing share fully visible rows within the detail viewport, independent of body scroll.
+    const float width=viewport.right-viewport.left-16,height=viewport.bottom-viewport.top-16;
+    if(targets.size()<2||width<64||height<100)return {};
+    const auto capacity=static_cast<std::size_t>((height-36)/64);
+    const auto count=(std::min)(targets.size(),capacity);
+    const auto offset=(std::min)(mapTargetOffset_,targets.size()-count);
+    const float right=viewport.right-8,left=right-(std::min)(width,360.0F);
+    const float top=viewport.top+8;
+    MapTargetList result{{left,top,right,top+36+64*static_cast<float>(count)},
+        {right-32,top+2,right-2,top+32},{}};
+    for(std::size_t i=0;i<count;++i){
+        const auto index=offset+i;const auto* target=MapLinks().Metadata(targets[index]);
+        std::wstring source;
+        if(target){
+            std::wostringstream out;out<<Text(target->mapZh,target->mapEn)<<L" · X "<<target->position.x
+                <<L", Y "<<target->position.y<<L", Z "<<target->position.z;source=out.str();
+        }
+        const float y=top+36+64*static_cast<float>(i);
+        result.rows.push_back({targets[index],Tr(TextKey::TasksLocation)+L" "+std::to_wstring(index+1),
+            std::move(source),{left+4,y,right-4,y+60}});
+    }
+    return result;
+}
+
+std::optional<std::string> TasksPage::MapTargetAt(float x,float y) const {
+    if(const auto layout=MapTargetsLayout())for(const auto& row:layout->rows)
+        if(x>=row.bounds.left&&x<row.bounds.right&&y>=row.bounds.top&&y<row.bounds.bottom)return row.id;
+    return {};
+}
+
 std::wstring TasksPage::Text(const std::string& zh,const std::string& en) const {
     const auto& value=data::LocalizedName(zh,en,locale_);
     if(value.empty())return {};const int n=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,value.data(),static_cast<int>(value.size()),nullptr,0);
@@ -185,6 +248,7 @@ void TasksPage::Prepare(float width, float height, const UiTheme& theme) {
 }
 
 void TasksPage::Refresh(bool queryChanged) {
+    CloseMapTargets();
     if(!browser_)return;
     BeginScrollbarTransition();
     rows_=browser_->Query(Utf8(search_.Text()),mode_,locale_);traders_.clear();
@@ -238,6 +302,7 @@ void TasksPage::SelectTask(std::size_t visibleIndex, bool snap) {
     if (visibleIndex >= tasks_.size()) return;
     const auto* task = tasks_[visibleIndex];
     if (task->id == taskId_) return;
+    CloseMapTargets();
     BeginScrollbarTransition();
     taskId_ = task->id;
     taskHistory_.clear();
@@ -441,15 +506,25 @@ std::optional<D2D1_RECT_F> TasksPage::ObjectiveBounds(std::string_view id) const
 }
 std::optional<std::string> TasksPage::ObjectiveMapPointAt(float x,float y) const {
     const auto* task=Task();const auto viewport=DetailBounds();
-    if(!task||mode_==data::GameMode::Pve||x<viewport.left||x>=viewport.right||y<viewport.top||y>=viewport.bottom)return {};
-    for(const auto& objective:task->objectives){const auto targets=mapLinks_.Targets(task->id,objective.id);
+    if(!task||x<viewport.left||x>=viewport.right||y<viewport.top||y>=viewport.bottom)return {};
+    for(const auto& objective:task->objectives){const auto targets=MapLinks().Targets(task->id,objective.id);
         if(targets.empty())continue;const auto row=ObjectiveBounds(objective.id);
-        if(row&&x>=row->left&&x<row->right&&y>=row->top&&y<row->bottom)return targets.front();}
+        if(row&&x>=row->left&&x<row->right&&y>=row->top&&y<row->bottom)return objective.id;}
     return {};
 }
 void TasksPage::MouseDown(float x, float y) {
     pressedMapPoint_.reset();
     pressedTrader_.reset(); pressedTask_.reset(); pressedChain_.reset(); pressedRewardItem_.reset(); pressedArrow_.reset(); scrollGrab_.reset(); taskScrollGrab_.reset();
+    if(mapObjective_){
+        pressedTarget_=MapTargetAt(x,y);
+        if(const auto layout=MapTargetsLayout()){
+            const auto close=layout->close;
+            mapClosePressed_=x>=close.left&&x<close.right&&y>=close.top&&y<close.bottom;
+            const auto bounds=layout->bounds;
+            mapDismissPressed_=x<bounds.left||x>=bounds.right||y<bounds.top||y>=bounds.bottom;
+        } else mapDismissPressed_=true;
+        return;
+    }
     if (search_.HitTest(SearchBounds(), x, y)) search_.Focus(); else search_.Blur();
     taskBackPressed_=HitNavigationButton(TaskBackBounds(),x,y,!taskHistory_.empty()
         &&y>=DetailBounds().top&&y<DetailBounds().bottom);
@@ -478,6 +553,18 @@ void TasksPage::MouseDown(float x, float y) {
 }
 
 std::optional<TasksPage::Action> TasksPage::MouseUp(float x, float y) {
+    if(mapObjective_){
+        const auto target=pressedTarget_&&pressedTarget_==MapTargetAt(x,y)?pressedTarget_:std::optional<std::string>{};
+        bool close=mapDismissPressed_;
+        if(const auto layout=MapTargetsLayout()){
+            const auto rect=layout->close;
+            close|=mapClosePressed_&&x>=rect.left&&x<rect.right&&y>=rect.top&&y<rect.bottom;
+        }
+        pressedTarget_.reset();mapClosePressed_=mapDismissPressed_=false;
+        if(target||close)CloseMapTargets();
+        if(target)return Action{Action::Destination::Map,*target,mode_};
+        return {};
+    }
     if(taskBackPressed_){
         taskBackPressed_=false;
         if(HitNavigationButton(TaskBackBounds(),x,y,!taskHistory_.empty()
@@ -496,11 +583,17 @@ std::optional<TasksPage::Action> TasksPage::MouseUp(float x, float y) {
     const auto point=pressedMapPoint_&&pressedMapPoint_==ObjectiveMapPointAt(x,y)?pressedMapPoint_:std::optional<std::string>{};
     pressedMapPoint_.reset();
     pressedTrader_.reset(); pressedTask_.reset(); pressedChain_.reset(); pressedRewardItem_.reset(); pressedArrow_.reset();
-    if(point)return Action{Action::Destination::Map,*point};
+    if(point){
+        const auto targets=MapLinks().Targets(taskId_,*point);
+        if(targets.size()==1)return Action{Action::Destination::Map,targets.front(),mode_};
+        if(targets.size()>1){mapObjective_=*point;mapTargetOffset_=0;}
+        return {};
+    }
     if(reward)return Action{Action::Destination::Prices,*reward};return {};
 }
 
 void TasksPage::MouseMove(float x, float y) {
+    if(mapObjective_){hoveredTarget_=MapTargetAt(x,y);return;}
     hoveredMapPoint_=ObjectiveMapPointAt(x,y);
     taskBackHovered_=HitNavigationButton(TaskBackBounds(),x,y,!taskHistory_.empty()
         &&y>=DetailBounds().top&&y<DetailBounds().bottom);
@@ -516,6 +609,7 @@ void TasksPage::MouseMove(float x, float y) {
 }
 
 void TasksPage::CancelDrag() {
+    pressedTarget_.reset();mapClosePressed_=mapDismissPressed_=false;
     pressedMapPoint_.reset();
     traderStrip_.Release();
     scrollGrab_.reset();
@@ -524,6 +618,16 @@ void TasksPage::CancelDrag() {
 }
 
 bool TasksPage::Wheel(int delta, float x, float y) {
+    if(mapObjective_){
+        if(const auto layout=MapTargetsLayout()){
+            const auto count=MapLinks().Targets(taskId_,*mapObjective_).size();
+            const auto maximum=count-layout->rows.size();
+            const int steps=delta==0?0:delta>0?-1:1;
+            mapTargetOffset_=static_cast<std::size_t>(std::clamp(static_cast<int>((std::min)(mapTargetOffset_,maximum))+steps,0,static_cast<int>(maximum)));
+            pressedTarget_.reset();hoveredTarget_.reset();
+        }
+        return true;
+    }
     const float steps = -static_cast<float>(delta) / WHEEL_DELTA;
     if (y >= kTraderTop && y < kTraderBottom && x >= left_ && x < right_)
         traderStrip_.Move(steps * 136.0F);
@@ -536,6 +640,7 @@ bool TasksPage::Wheel(int delta, float x, float y) {
 }
 
 bool TasksPage::Key(WPARAM key, bool control) {
+    if(mapObjective_){if(key==VK_ESCAPE)CloseMapTargets();return true;}
     const auto before = search_.Text();
     if (!search_.HandleKeyDown(key, control)) return false;
     if (before != search_.Text()) Refresh(true);
@@ -543,6 +648,7 @@ bool TasksPage::Key(WPARAM key, bool control) {
 }
 
 bool TasksPage::Char(wchar_t character) {
+    if(mapObjective_)return true;
     if (!search_.HandleChar(character)) return false;
     Refresh(true);
     return true;
@@ -796,11 +902,11 @@ void TasksPage::Draw(const UiCanvas& canvas, const UiTheme& theme,
         float objectiveY = objectivesTop + 46.0F;
         for (const auto& objective : task->objectives) {
             const bool hasItem=!objective.itemIds.empty();
-            const auto targets=mapLinks_.Targets(task->id,objective.id);
-            const bool linked=mode_!=data::GameMode::Pve&&!targets.empty();
+            const auto targets=MapLinks().Targets(task->id,objective.id);
+            const bool linked=!targets.empty();
             const float rowHeight = hasItem ? 70.0F : 54.0F;
             canvas.Round(D2D1::RectF(rightColumn, objectiveY, rightColumn + rightWidth,
-                objectiveY + rowHeight), 7.0F, linked&&hoveredMapPoint_==targets.front()?theme.hover:theme.background);
+                objectiveY + rowHeight), 7.0F, linked&&hoveredMapPoint_==objective.id?theme.hover:theme.background);
             if(linked){const D2D1_POINT_2F center{rightColumn+rightWidth-18,objectiveY+20};
                 canvas.brush.SetColor(theme.accent);canvas.target.DrawEllipse(D2D1::Ellipse(center,5,5),&canvas.brush,1.5F);
                 canvas.target.DrawLine({center.x,center.y+5},{center.x,center.y+10},&canvas.brush,1.5F);
@@ -868,6 +974,24 @@ void TasksPage::Draw(const UiCanvas& canvas, const UiTheme& theme,
     }
     canvas.target.PopAxisAlignedClip();
     DrawScrollbar(canvas, theme, SampleScrollbarTransition(detailBarFrom_,Bar(),taskBarProgress_));
+    if(const auto layout=MapTargetsLayout()){
+        canvas.target.PushAxisAlignedClip(DetailBounds(),D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        canvas.Round(layout->bounds,theme.cornerRadius,theme.surface);
+        const auto targets=MapLinks().Targets(taskId_,*mapObjective_);
+        const auto first=(std::min)(mapTargetOffset_,targets.size()-layout->rows.size())+1;
+        const auto heading=Tr(TextKey::TasksObjectives)+L"  "+std::to_wstring(first)+L"–"
+            +std::to_wstring(first+layout->rows.size()-1)+L" / "+std::to_wstring(targets.size());
+        canvas.Text(heading,canvas.smallFormat,
+            {layout->bounds.left+10,layout->bounds.top+8,layout->close.left-4,layout->bounds.top+32},theme.primaryText);
+        canvas.Text(L"×",canvas.body,layout->close,theme.accent);
+        for(const auto& row:layout->rows){
+            const auto rect=row.bounds;
+            canvas.Round(rect,5,hoveredTarget_==row.id?theme.hover:theme.background);
+            canvas.Text(row.title,canvas.body,{rect.left+8,rect.top+5,rect.right-8,rect.top+30},theme.accent);
+            canvas.Text(row.source,canvas.smallFormat,{rect.left+8,rect.top+32,rect.right-8,rect.bottom-4},theme.secondaryText);
+        }
+        canvas.target.PopAxisAlignedClip();
+    }
 }
 
 } // namespace noven::ui
