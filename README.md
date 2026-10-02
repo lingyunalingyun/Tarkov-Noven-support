@@ -350,13 +350,27 @@ It never stores raw log text, copied EFT logs, server addresses or profile/accou
 IDs. Log timestamps are local wall-clock milliseconds, not UTC; missing times
 and durations remain null. Corrupt/unsupported stores are left untouched and
 disable writing; do not replace them with empty history. Only one Noven process
-can own the store. These local files are excluded from Git. No Raid History UI
-or Scanner migration is included; consumers use service snapshot queries.
+can own the store. These local files are excluded from Git. Raid History browses
+completed session snapshots locally, with mode/role/map/local-date filters and
+map/identity search. Unsupported role/outcome fields remain Unknown.
 
 仅保存结构化会话、完整性、版本和完整行游标，不保存原文、日志副本、服务器或账户信息。
 时间为日志本地墙钟毫秒，不冒充 UTC；缺失时间/时长用 null 表示。
 文件损坏或版本不支持时保留原文件并停止写入；只允许单进程写入。
-此阶段不包含对局历史页面或扫描记录迁移。
+对局历史页在本地浏览已完成会话，支持模式/角色/地图/本地日期筛选及地图/身份搜索。
+不支持的角色或结果仍保持未知，不计算生还率或对局收益。
+
+New finalized scans optionally store the active Noven session ID. Existing scans
+remain unassociated; no timestamp matching or historical backfilling is performed.
+Raid details show exact-linked scan-time price snapshots retained in Recent Scans
+(at most 200 records across all scans). Known scanned subtotals exclude missing
+prices and are not total loot or raid profit. Saved raids remain browsable without
+an EFT log path; reading new logs still requires explicit configuration.
+
+新扫描仅在最终确认时附带可选的活动会话 ID，旧扫描不按时间补猜归属。
+详情只显示最近扫描中保留的精确关联快照（所有扫描合计最多 200 条），价格为扫描时值。
+已知扫描小计排除未知价格，不代表全部战利品或对局收益。
+未配置日志路径也能浏览保存的对局；新增日志读取仍需显式配置。
 
 ## Build
 

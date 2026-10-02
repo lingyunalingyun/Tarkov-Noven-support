@@ -637,6 +637,30 @@ int wmain(int argc, wchar_t** argv) try {
         Require(ui.Map().SelectedPoint()&&ui.Map().SelectedPoint()->category==MapPointCategory::Task,"task navigation reveals selected map target");
         Require(ui.GoBack()&&ui.ActivePage()==MainPage::Tasks&&ui.Tasks().SelectedTask()==taskId
             &&ui.Tasks().QueryText()==sourceQuery&&ui.Tasks().Scroll()==sourceScroll,"contextual back restores task, query and exact detail scroll");
+        noven::raid::RaidSession recorded;
+        recorded.localSessionId="synthetic-ui-raid";recorded.eftRaidId="synthetic-eft";
+        recorded.mapId="reserve";recorded.startObserved=recorded.endObserved=true;
+        recorded.gameMode=noven::raid::GameMode::PvE;
+        recorded.startedAt=1767225600000;recorded.endedAt=*recorded.startedAt+60000;recorded.duration=60000;
+        noven::data::RecentScanEntry linkedScan;
+        linkedScan.scanId=1;linkedScan.localSessionId=recorded.localSessionId;
+        linkedScan.stableItemId="66b5f22b78bbc0200425f904";linkedScan.canonicalName="Synthetic snapshot";
+        linkedScan.gameMode=noven::data::GameMode::Pve;linkedScan.fleaPrice=70000;
+        ui.SetRaidSessions({recorded},std::nullopt,false);ui.SetRecentScans({linkedScan});
+        selectPage(MainPage::RaidHistory);
+        const float raidLeft=theme.sidebarWidth+theme.contentPadding;
+        const float raidWidth=client.right/scale-theme.contentPadding-raidLeft;
+        const float raidTop=raidWidth<720?278.0F:238.0F;
+        Require(!click(raidLeft+30,raidTop+20)&&ui.RaidHistory().SelectedId()==recorded.localSessionId,"native raid list selects completed identity");
+        ui.Paint();
+        const float detailX=raidWidth<720?raidLeft+30:raidLeft+raidWidth*.4F+40;
+        (void)ui.MouseWheel(static_cast<int>(detailX*scale),static_cast<int>((raidTop+80)*scale),-480);
+        ui.Paint();
+        const auto selected=ui.RaidHistory().SelectedId();const auto listScroll=ui.RaidHistory().ListScroll();
+        const auto scanBounds=ui.RaidHistory().ScanBounds(linkedScan.scanId);Require(scanBounds.has_value(),"linked scan has shared visible hit geometry");
+        Require(!click(scanBounds->left+30,scanBounds->top+8)&&ui.ActivePage()==MainPage::Prices&&ui.CanGoBack(),"linked snapshot opens Prices by stable identity and source mode");
+        Require(ui.GoBack()&&ui.ActivePage()==MainPage::RaidHistory&&ui.RaidHistory().SelectedId()==selected
+            &&ui.RaidHistory().ListScroll()==listScroll,"contextual and side-back command preserve resident raid selection and list scroll");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

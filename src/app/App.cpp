@@ -292,11 +292,11 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
     // 本地对局服务独立于 Scanner/UI；仅明确配置路径时启动后台读取。
     // Local raid service is independent of Scanner/UI; start background reads only for explicit configuration.
-    if (const auto root = raid::ReadEftLogRoot(ExecutableDirectory() / L"data" / L"eft-log-root.txt")) {
-        local_raid_service_ = std::make_unique<raid::LocalRaidService>();
-        if (!local_raid_service_->Start(*root, ExecutableDirectory() / L"data" / L"raid-history.json"))
-            common::DebugLog(L"[local-raid] service could not start");
-    }
+    const auto raidRoot=raid::ReadEftLogRoot(ExecutableDirectory()/L"data"/L"eft-log-root.txt");
+    local_raid_service_=std::make_unique<raid::LocalRaidService>();
+    local_raid_service_->SetChangedCallback([window=window_]{PostMessageW(window,kRaidHistoryMessage,0,0);});
+    if(!local_raid_service_->Start(raidRoot.value_or(std::filesystem::path{}),ExecutableDirectory()/L"data"/L"raid-history.json"))
+        common::DebugLog(L"[local-raid] service could not start");
 
     std::wstring overlay_error;
     if (!overlay_window_->Create(instance, overlay_error)) {
@@ -770,6 +770,11 @@ LRESULT CALLBACK App::WindowProc(
 
     if (app != nullptr) {
         switch (message) {
+        case kRaidHistoryMessage:
+            if(app->local_raid_service_&&app->main_ui_)app->main_ui_->SetRaidSessions(
+                app->local_raid_service_->CompletedSessions(),app->local_raid_service_->ActiveSession(),
+                !app->local_raid_service_->Status().error.empty());
+            return 0;
         case kMapAssetsMessage: {
             const std::unique_ptr<std::filesystem::path> generation(reinterpret_cast<std::filesystem::path*>(l_param));
             if(generation&&app->main_ui_)app->main_ui_->SetMapAssetGeneration(*generation);

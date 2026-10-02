@@ -8,6 +8,7 @@
 #include "ui/HideoutPage.h"
 #include "ui/TasksPage.h"
 #include "ui/MapPage.h"
+#include "ui/RaidHistoryPage.h"
 #include "ui/PageTransition.h"
 
 #include <d2d1.h>
@@ -34,7 +35,11 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
-    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); }
+    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); raid_history_.CancelDrag(); }
+    void SetRaidSessions(std::vector<raid::RaidSession> sessions,std::optional<raid::RaidSession> active,bool unavailable) {
+        raid_history_.SetSessions(std::move(sessions),std::move(active),unavailable);Invalidate();
+    }
+    const RaidHistoryPage& RaidHistory() const noexcept {return raid_history_;}
     [[nodiscard]] std::optional<data::GameMode> MouseUp(int x, int y);
     [[nodiscard]] bool MouseWheel(int x, int y, int delta, bool control=false);
     [[nodiscard]] bool AnimationTick();
@@ -60,6 +65,7 @@ public:
         for(const auto mode:{data::GameMode::Pvp,data::GameMode::Pve})
             if(loaded)tasks_.SetMapLinks(map_.Catalog(mode),mode);
             else tasks_.SetMapLinks(data::MapCatalog{},mode);
+        raid_history_.SetMaps(map_.Catalog(data::GameMode::Pvp));
         return loaded;}
     const TasksPage& Tasks() const noexcept{return tasks_;}
     void SetMapAssetGeneration(std::filesystem::path generation){map_.SetAssetGeneration(std::move(generation));Invalidate();}
@@ -126,6 +132,7 @@ private:
     HideoutPage hideout_;
     TasksPage tasks_;
     MapPage map_;
+    RaidHistoryPage raid_history_;
     std::unordered_set<std::string> hideout_image_ids_;
     std::unordered_set<std::string> task_image_ids_;
     std::unique_ptr<data::PriceBrowserModel> price_browser_;

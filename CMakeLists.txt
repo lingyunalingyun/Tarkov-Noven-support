@@ -67,6 +67,7 @@ add_executable(NovenTarkovSupport WIN32
     src/ui/HideoutPage.cpp
     src/ui/TasksPage.cpp
     src/ui/MapPage.cpp
+    src/ui/RaidHistoryPage.cpp
     src/data/MapCatalog.cpp
     src/data/MapAssetStore.cpp
     src/data/MapAssetUpdater.cpp
@@ -223,6 +224,15 @@ if(BUILD_TESTING)
         target_compile_options(NovenRaidHistoryBrowserTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME raid_history_browser COMMAND NovenRaidHistoryBrowserTests)
+    add_executable(NovenRaidHistoryPageTests tests/RaidHistoryPageTests.cpp
+        src/ui/RaidHistoryPage.cpp src/raid/RaidHistoryBrowser.cpp src/ui/localization/LocalizationService.cpp)
+    target_include_directories(NovenRaidHistoryPageTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenRaidHistoryPageTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(NovenRaidHistoryPageTests PRIVATE d2d1 dwrite imm32)
+    if(MSVC)
+        target_compile_options(NovenRaidHistoryPageTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME raid_history_page COMMAND NovenRaidHistoryPageTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenEftLogReaderTests tests/EftLogReaderTests.cpp src/raid/EftLogReader.cpp src/raid/RaidEventParser.cpp)
     target_include_directories(NovenEftLogReaderTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_definitions(NovenEftLogReaderTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
@@ -550,6 +560,7 @@ if(BUILD_TESTING)
     add_executable(NovenLocalizationUiTests
         tests/LocalizationUiTests.cpp
         src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
+        src/ui/RaidHistoryPage.cpp src/raid/RaidHistoryBrowser.cpp
         src/ui/HideoutPage.cpp src/ui/TasksPage.cpp src/ui/MapPage.cpp src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
         src/data/TaskCatalog.cpp src/data/TaskBrowser.cpp
         src/data/MapCatalog.cpp

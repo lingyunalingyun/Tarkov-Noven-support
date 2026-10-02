@@ -5,6 +5,45 @@
 // 新语言只添加 JSON；只有新增文字概念才需要修改这里。
 // New languages add JSON only; edit this file only for new text concepts.
 namespace noven::ui::TextKey {
+inline constexpr std::string_view RaidSearch = "raid.search";
+inline constexpr std::string_view RaidAll = "raid.all";
+inline constexpr std::string_view RaidMode = "raid.mode";
+inline constexpr std::string_view RaidType = "raid.type";
+inline constexpr std::string_view RaidMap = "raid.map";
+inline constexpr std::string_view RaidDate = "raid.date";
+inline constexpr std::string_view RaidPvp = "raid.pvp";
+inline constexpr std::string_view RaidPve = "raid.pve";
+inline constexpr std::string_view RaidPractice = "raid.practice";
+inline constexpr std::string_view RaidOffline = "raid.offline";
+inline constexpr std::string_view RaidPmc = "raid.pmc";
+inline constexpr std::string_view RaidScav = "raid.scav";
+inline constexpr std::string_view RaidAllTime = "raid.all_time";
+inline constexpr std::string_view RaidToday = "raid.today";
+inline constexpr std::string_view RaidSeven = "raid.seven";
+inline constexpr std::string_view RaidThirty = "raid.thirty";
+inline constexpr std::string_view RaidSummary = "raid.summary";
+inline constexpr std::string_view RaidCurrent = "raid.current";
+inline constexpr std::string_view RaidStarted = "raid.started";
+inline constexpr std::string_view RaidEnded = "raid.ended";
+inline constexpr std::string_view RaidDuration = "raid.duration";
+inline constexpr std::string_view RaidOutcome = "raid.outcome";
+inline constexpr std::string_view RaidEmpty = "raid.empty";
+inline constexpr std::string_view RaidEmptyHint = "raid.empty_hint";
+inline constexpr std::string_view RaidNoResults = "raid.no_results";
+inline constexpr std::string_view RaidSelect = "raid.select";
+inline constexpr std::string_view RaidUnavailable = "raid.unavailable";
+inline constexpr std::string_view RaidUnavailableHint = "raid.unavailable_hint";
+inline constexpr std::string_view RaidMissing = "raid.missing";
+inline constexpr std::string_view RaidScans = "raid.scans";
+inline constexpr std::string_view RaidNoScans = "raid.no_scans";
+inline constexpr std::string_view RaidRetained = "raid.retained";
+inline constexpr std::string_view RaidSubtotal = "raid.subtotal";
+inline constexpr std::string_view RaidList = "raid.list";
+inline constexpr std::string_view RaidSurvived = "raid.survived";
+inline constexpr std::string_view RaidRunThrough = "raid.run_through";
+inline constexpr std::string_view RaidKia = "raid.kia";
+inline constexpr std::string_view RaidMia = "raid.mia";
+inline constexpr std::string_view RaidLeft = "raid.left";
 inline constexpr std::string_view NavScan = "nav.scan";
 inline constexpr std::string_view NavPrices = "nav.prices";
 inline constexpr std::string_view NavHideout = "nav.hideout";
@@ -194,5 +233,5 @@ inline constexpr std::string_view PricesPreviousPage = "prices.previous_page";
 inline constexpr std::string_view PricesNextPage = "prices.next_page";
 inline constexpr std::string_view PricesPage = "prices.page";
 inline constexpr std::string_view PricesJumpPage = "prices.jump_page";
-inline constexpr std::array All{PricesJumpPage, PricesPreviousPage, PricesNextPage, PricesPage, MapReference, MapInformationHint, MapFilterPoints, MapFilterLayers, MapFilterTasks, MapLayerGrid, MapLayerGeometry, MapContainers, MapMines, MapBoss, MapTasks, MapPmcExtract, MapScavExtract, MapCoopExtract, MapTransit, MapHiddenExtract, MapSnipers, MapSpawns, MapScavSpawns, MapBtr, MapEasterEggs, MapSearch, MapInteractions, MapReset, MapPreview, MapNoResults, TasksNoResults, TasksNoResultsHint, TasksSearch, TasksInformation, TasksChain, TasksObjectives, TasksRewards, TasksDirectRewards, TasksCraftUnlocks, TasksOfferUnlocks, TasksRequires, TasksUnlocks, TasksLevel, TasksLocation, TasksAnyLocation, TasksMarkerKappa, TasksMarkerLightkeeper, TasksMarkerUnrelated, HideoutViewedLevel, HideoutCrafts, HideoutCraftHint, HideoutCraftEmpty, HideoutCraftTime, HideoutCraftRestricted, HideoutTool, HideoutFunctional, HideoutSearch, HideoutMaterials, HideoutCount, HideoutTime, HideoutEstimated, HideoutKnown, HideoutUnknown, HideoutStations, HideoutSkills, HideoutTraders, HideoutNoResults, HideoutNoResultsHint, HideoutUnavailable, HideoutUnavailableHint, HideoutLevel, HideoutTraderLevel, HideoutUnit, HideoutSubtotal, HideoutBanned, HideoutLocked, HideoutExpand, HideoutCollapse, HideoutSeasonal, DurationDay, DurationHour, DurationMinute, DurationSecond, PricesChangeAmount, TypeContainer, TypeAmmoBox, TypeGrenade, TypeAmmo, TypeArmorPlate, TypeHelmet, TypeArmor, TypeRig, TypeBackpack, TypeHeadphones, TypeGlasses, TypeGun, TypeSuppressor, TypeGrip, TypeMods, TypeKeys, TypeInjectors, TypeMeds, TypeProvisions, TypeBarter, TypeSpecial, TypePoster, TypeWearable, NavScan, NavPrices, NavHideout, NavTasks, NavMap, NavRaidHistory, NavSquad, NavEvents, NavRecentScans, NavSettings, UserName, LocalUse, Primary, More, DescScan, DescPrices, DescHideout, DescTasks, DescMap, DescRaidHistory, DescSquad, DescEvents, EmptyTitle, EmptyDescription, ImageUnavailable, ScanReady, ScanHint, ScannerStatus, GameMode, EconomyHint, Ready, Unavailable, Catalog, CatalogReady, Strict, Possible, Ambiguous, OcrOnly, Unknown, FleaSale, TraderSale, ValuePerSlot, FleaState, FleaAvailable, FleaBlocked, Mode, Size, Language, LanguageHint, PricesSearchPlaceholder, PricesEmptyTitle, PricesEmptyDescription, PricesNoResultsTitle, PricesNoResultsDescription, PricesFlea, PricesTrader, PricesValuePerSlot, PricesFleaBanned, PricesFleaUnavailable, PricesSortFlea, PricesSortFleaChange, PricesSortTrader, PricesOrderAscending, PricesOrderDescending, PricesFleaSell, PricesTraderSell, PricesTraderBuy, PricesTraderBuyUnavailable, HistoryTitle, HistoryDays, HistoryExtrema, HistoryLoading, HistoryFailed, HistoryEmpty, HistoryCache, HistoryMemory, HistorySource, HistoryCached, HistoryHoverCount, HistoryHoverLow, HistoryHoverAverage, HistoryHoverHigh};
+inline constexpr std::array All{RaidSearch, RaidAll, RaidMode, RaidType, RaidMap, RaidDate, RaidPvp, RaidPve, RaidPractice, RaidOffline, RaidPmc, RaidScav, RaidAllTime, RaidToday, RaidSeven, RaidThirty, RaidSummary, RaidCurrent, RaidStarted, RaidEnded, RaidDuration, RaidOutcome, RaidEmpty, RaidEmptyHint, RaidNoResults, RaidSelect, RaidUnavailable, RaidUnavailableHint, RaidMissing, RaidScans, RaidNoScans, RaidRetained, RaidSubtotal, RaidList, RaidSurvived, RaidRunThrough, RaidKia, RaidMia, RaidLeft, PricesJumpPage, PricesPreviousPage, PricesNextPage, PricesPage, MapReference, MapInformationHint, MapFilterPoints, MapFilterLayers, MapFilterTasks, MapLayerGrid, MapLayerGeometry, MapContainers, MapMines, MapBoss, MapTasks, MapPmcExtract, MapScavExtract, MapCoopExtract, MapTransit, MapHiddenExtract, MapSnipers, MapSpawns, MapScavSpawns, MapBtr, MapEasterEggs, MapSearch, MapInteractions, MapReset, MapPreview, MapNoResults, TasksNoResults, TasksNoResultsHint, TasksSearch, TasksInformation, TasksChain, TasksObjectives, TasksRewards, TasksDirectRewards, TasksCraftUnlocks, TasksOfferUnlocks, TasksRequires, TasksUnlocks, TasksLevel, TasksLocation, TasksAnyLocation, TasksMarkerKappa, TasksMarkerLightkeeper, TasksMarkerUnrelated, HideoutViewedLevel, HideoutCrafts, HideoutCraftHint, HideoutCraftEmpty, HideoutCraftTime, HideoutCraftRestricted, HideoutTool, HideoutFunctional, HideoutSearch, HideoutMaterials, HideoutCount, HideoutTime, HideoutEstimated, HideoutKnown, HideoutUnknown, HideoutStations, HideoutSkills, HideoutTraders, HideoutNoResults, HideoutNoResultsHint, HideoutUnavailable, HideoutUnavailableHint, HideoutLevel, HideoutTraderLevel, HideoutUnit, HideoutSubtotal, HideoutBanned, HideoutLocked, HideoutExpand, HideoutCollapse, HideoutSeasonal, DurationDay, DurationHour, DurationMinute, DurationSecond, PricesChangeAmount, TypeContainer, TypeAmmoBox, TypeGrenade, TypeAmmo, TypeArmorPlate, TypeHelmet, TypeArmor, TypeRig, TypeBackpack, TypeHeadphones, TypeGlasses, TypeGun, TypeSuppressor, TypeGrip, TypeMods, TypeKeys, TypeInjectors, TypeMeds, TypeProvisions, TypeBarter, TypeSpecial, TypePoster, TypeWearable, NavScan, NavPrices, NavHideout, NavTasks, NavMap, NavRaidHistory, NavSquad, NavEvents, NavRecentScans, NavSettings, UserName, LocalUse, Primary, More, DescScan, DescPrices, DescHideout, DescTasks, DescMap, DescRaidHistory, DescSquad, DescEvents, EmptyTitle, EmptyDescription, ImageUnavailable, ScanReady, ScanHint, ScannerStatus, GameMode, EconomyHint, Ready, Unavailable, Catalog, CatalogReady, Strict, Possible, Ambiguous, OcrOnly, Unknown, FleaSale, TraderSale, ValuePerSlot, FleaState, FleaAvailable, FleaBlocked, Mode, Size, Language, LanguageHint, PricesSearchPlaceholder, PricesEmptyTitle, PricesEmptyDescription, PricesNoResultsTitle, PricesNoResultsDescription, PricesFlea, PricesTrader, PricesValuePerSlot, PricesFleaBanned, PricesFleaUnavailable, PricesSortFlea, PricesSortFleaChange, PricesSortTrader, PricesOrderAscending, PricesOrderDescending, PricesFleaSell, PricesTraderSell, PricesTraderBuy, PricesTraderBuyUnavailable, HistoryTitle, HistoryDays, HistoryExtrema, HistoryLoading, HistoryFailed, HistoryEmpty, HistoryCache, HistoryMemory, HistorySource, HistoryCached, HistoryHoverCount, HistoryHoverLow, HistoryHoverAverage, HistoryHoverHigh};
 }

@@ -91,6 +91,7 @@ bool MainWindowUi::SelectPage(MainPage page) {
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
     if (page != MainPage::Prices) price_page_input_.Blur();
+    if(page!=MainPage::RaidHistory)raid_history_.Blur();
     if(page==MainPage::Map)SetTimer(window_,MapClockTimerId,250,nullptr);else KillTimer(window_,MapClockTimerId);
     if(page==MainPage::Tasks)tasks_.Activate();
     Invalidate();return true;
@@ -239,6 +240,7 @@ void MainWindowUi::RequestVisiblePriceImages() {
 }
 
 bool MainWindowUi::KeyDown(WPARAM key, bool control) {
+    if(navigation_.Active()==MainPage::RaidHistory) {const bool handled=raid_history_.Key(key,control);if(handled)Invalidate();return handled;}
     if (navigation_.Active()==MainPage::Map) {
         const bool handled=map_.Key(key,control); if(handled) Invalidate(); return handled;
     }
@@ -271,6 +273,7 @@ bool MainWindowUi::KeyDown(WPARAM key, bool control) {
 }
 
 bool MainWindowUi::Char(wchar_t character) {
+    if(navigation_.Active()==MainPage::RaidHistory) {const bool handled=raid_history_.Char(character);if(handled)Invalidate();return handled;}
     if (navigation_.Active()==MainPage::Map) {
         const bool handled=map_.Char(character); if(handled) Invalidate(); return handled;
     }
@@ -478,6 +481,8 @@ void MainWindowUi::Paint() {
         hideout_.Prepare(size.width,size.height,theme_);
         tasks_.Prepare(size.width,size.height,theme_);
         map_.Prepare(size.width,size.height,theme_);
+        if(navigation_.Active()==MainPage::RaidHistory||page_transition_.ShowingOutgoing(MainPage::RaidHistory))raid_history_.Prepare(size.width,size.height,theme_);
+        if(navigation_.Active()==MainPage::RaidHistory)for(const auto& id:raid_history_.VisibleImages())image_cache_.Request(id);
         RequestVisibleHideoutImages();
         RequestVisibleTaskImages();
         UiCanvas canvas{*render_target_.Get(), *brush_.Get(), *title_format_.Get(),
@@ -495,6 +500,7 @@ void MainWindowUi::Paint() {
         if (page==MainPage::Hideout) hideout_.Draw(canvas,theme_,item_bitmaps_);
         else if (page==MainPage::Tasks) tasks_.Draw(canvas,theme_,item_bitmaps_);
         else if (page==MainPage::Map) map_.Draw(canvas,theme_);
+        else if (page==MainPage::RaidHistory)raid_history_.Draw(canvas,theme_,item_bitmaps_);
         else pages_.Draw(canvas, theme_, size.width, size.height,
                     page, scanner_, mode_menu_open_,
                     mode_hovered_, hovered_mode_, recent_, recent_filter_,
@@ -738,6 +744,7 @@ void MainWindowUi::Invalidate() const {
 
 void MainWindowUi::MouseMove(int x, int y) {
     if(navigation_.Active()==MainPage::Map&&map_.MouseMove(x/Scale(),y/Scale()))Invalidate();
+    if(navigation_.Active()==MainPage::RaidHistory&&raid_history_.MouseMove(x/Scale(),y/Scale()))Invalidate();
     const bool back=OnBackButton(x,y);
     if(back!=back_hovered_) { back_hovered_=back;Invalidate(); }
     if (navigation_.Active()==MainPage::Hideout) { hideout_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
@@ -838,6 +845,9 @@ void MainWindowUi::MouseDown(int x, int y) {
     if (navigation_.Active()==MainPage::Hideout) {
         hideout_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
     }
+    if(navigation_.Active()==MainPage::RaidHistory&&x/Scale()>=theme_.sidebarWidth) {
+        raid_history_.MouseDown(x/Scale(),y/Scale());SetFocus(window_);Invalidate();
+    }
     if (navigation_.Active()==MainPage::Tasks) {
         tasks_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
     }
@@ -922,6 +932,10 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
             }
             return std::nullopt;
         }
+    }
+    if(navigation_.Active()==MainPage::RaidHistory) {
+        if(const auto scan=raid_history_.MouseUp(x/Scale(),y/Scale())) {OpenPriceItem(scan->stableItemId,scan->gameMode);return std::nullopt;}
+        Invalidate();
     }
     if (navigation_.Active()==MainPage::Map) {
         const auto mode=map_.Mode();map_.MouseUp(x/Scale(),y/Scale());
@@ -1143,6 +1157,7 @@ void MainWindowUi::SetScannerState(ScannerPageState state) {
 }
 
 void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
+    raid_history_.SetScans(entries);
     CancelScrollDrag();
     const bool new_selected_entry = !entries.empty()
         && (recent_.empty() || entries.front().scanId != recent_.front().scanId)
@@ -1171,6 +1186,7 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
 }
 
 bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
+    if(navigation_.Active()==MainPage::RaidHistory) {const bool handled=raid_history_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==MainPage::Map){const bool handled=map_.Wheel(delta,x/Scale(),y/Scale(),control);
         if(handled)Invalidate();return handled;}
     if (navigation_.Active()==MainPage::Hideout && x/Scale()>=theme_.sidebarWidth) return hideout_.Wheel(delta,x/Scale(),y/Scale());

@@ -69,6 +69,7 @@ private:
     static constexpr UINT kScanResultMessage = WM_APP + 1;
     static constexpr UINT kScanStepMessage = WM_APP + 2;
     static constexpr UINT kMapAssetsMessage = WM_APP + 5;
+    static constexpr UINT kRaidHistoryMessage = WM_APP + 6;
     static constexpr UINT kDebugMouseTimerId = 2;
     static constexpr UINT kDebugMouseCheckMilliseconds = 50;
     static constexpr UINT kRecentAnimationTimerId = 3;
