@@ -259,6 +259,22 @@ class AllImagesTests(unittest.TestCase):
             self.assertEqual(metadata['missingTiles'], [])
             self.assertEqual(metadata['unavailableHigherLevels'][0]['zoom'], 1)
             self.assertTrue(all('/0/' in row['url'] for row in metadata['compositionLayers'][0]['inputs']))
+            cfg.update(key='actual', projection='interactive', tilePath=template, layers=[])
+            api = {'data': {'maps': {'1': {'id': '1', 'normalizedName': 'actual'}}}}
+            layout = [{'normalizedName': 'actual', 'maps': [cfg]}]
+            sources.get(images.LAYOUT_URL, seed=images.json_bytes(layout))
+            sources.get(images.API_URL, seed=images.json_bytes(api))
+            output = Path(directory) / 'output'
+            first = images.build(output, sources, api, layout, detail_width=96, preview=32)
+            resumed_sources = images.Sources(directory, offline=True)
+            resumed_sources.get(images.LAYOUT_URL)
+            resumed_sources.get(images.API_URL)
+            resumed = images.build(output, resumed_sources, api, layout,
+                                   detail_width=96, preview=32, reuse_existing=True)
+            self.assertEqual(first, resumed)
+            updates = list(csv.DictReader((output / 'data/map_update_assets.tsv').read_text().splitlines(), delimiter='\t'))
+            self.assertEqual(len(updates), 9)
+            self.assertTrue(all('/0/' in row['url'] for row in updates))
 
     def test_interchange_accepted_ids_and_labels(self):
         cfg = {'key': 'interchange', 'svgLayer': 'Ground_Level', 'layers': [

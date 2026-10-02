@@ -253,7 +253,7 @@ def source_path(record):
     return 'maps/sources/' + record['cachePath'] + suffix
 
 
-def materialize_sources(output, sources):
+def materialize_sources(output, sources, composable_paths=None):
     plan = []
     for url, record in sorted(sources.used.items()):
         if record['status'] != 200:
@@ -270,7 +270,8 @@ def materialize_sources(output, sources):
             raise ValueError('staged source hash mismatch: ' + relative)
         # 图标仍按独立 manifest 固定版本；启动更新只处理有重拼配方的地图瓦片。
         # Icons remain pinned by their own manifest; startup updates cover composable map tiles only.
-        if relative.endswith('.png') and url.startswith('https://assets.tarkov.dev/maps/'):
+        if relative.endswith('.png') and url.startswith('https://assets.tarkov.dev/maps/') and (
+                composable_paths is None or relative in composable_paths):
             plan.append((relative, url, ''))
     return plan
 
@@ -466,6 +467,16 @@ def reuse_map(output, sources, canonical, config, floor_list, size, preview, der
                 raise ValueError('staged projection differs: ' + canonical)
             for url in sat_meta['sourceUrls']:
                 sources.get(url, optional=True)
+            # 保留失败高层级的来源账本，使重用与首次生成有同一哈希契约。
+            # Retain attempted higher-level provenance so resumed and fresh manifests agree.
+            for unavailable in sat_meta.get('unavailableHigherLevels', []):
+                attempted = unavailable['zoom']
+                _, bounds = tile_geometry({**config, 'minZoom': attempted, 'maxZoom': attempted}, size[0])
+                tile_size = config.get('tileSize', 256)
+                for y in range(math.floor(bounds[1] / tile_size), math.ceil(bounds[3] / tile_size)):
+                    for x in range(math.floor(bounds[0] / tile_size), math.ceil(bounds[2] / tile_size)):
+                        template = layer.get('tilePath') or config['tilePath']
+                        sources.get(template.format(z=attempted, x=x, y=y), optional=True)
             for component in sat_meta['compositionLayers']:
                 for entry in component['inputs']:
                     if entry.get('inputPath'):
@@ -617,11 +628,11 @@ def build(output, sources, api, layout, detail_width=4096, preview=1024, only=No
                       missingFloors=missing_floors, satelliteFloors=[f for f, _, _, sat, _ in assets if sat])
         for name in ('map_references.tsv', 'map_floors.tsv', 'map_extents.tsv', 'map_compositions.tsv'):
             write_tsv(output / 'data' / name, HEADERS[name], rows[name])
-        rows['map_update_assets.tsv'] = materialize_sources(output, sources)
+        rows['map_update_assets.tsv'] = materialize_sources(output, sources, {row[1] for row in rows['map_compositions.tsv']})
         write_tsv(output / 'data/map_update_assets.tsv', HEADERS['map_update_assets.tsv'], rows['map_update_assets.tsv'])
     # 只有真实来源 URL 入更新表；本地转换产物由 source→derived manifest 跟踪。
     # Only actual source URLs enter the updater; local conversions are tracked by provenance.
-    rows['map_update_assets.tsv'] = materialize_sources(output, sources)
+    rows['map_update_assets.tsv'] = materialize_sources(output, sources, {row[1] for row in rows['map_compositions.tsv']})
     for name, values in rows.items():
         write_tsv(output / 'data' / name, HEADERS[name], values)
     import importlib.metadata
