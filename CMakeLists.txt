@@ -225,7 +225,7 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME raid_history_browser COMMAND NovenRaidHistoryBrowserTests)
     add_executable(NovenRaidHistoryPageTests tests/RaidHistoryPageTests.cpp
-        src/ui/RaidHistoryPage.cpp src/raid/RaidHistoryBrowser.cpp src/ui/localization/LocalizationService.cpp)
+        src/ui/RaidHistoryPage.cpp src/raid/RaidHistoryBrowser.cpp src/data/ItemCatalog.cpp src/ui/localization/LocalizationService.cpp)
     target_include_directories(NovenRaidHistoryPageTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_definitions(NovenRaidHistoryPageTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
     target_link_libraries(NovenRaidHistoryPageTests PRIVATE d2d1 dwrite imm32)

@@ -51,6 +51,7 @@ void MainWindowUi::MapClockTick(){
 void MainWindowUi::SetPriceDataSources(const data::ItemCatalog& catalog,
                                        const data::ItemEconomyStore& economy) {
     price_browser_ = std::make_unique<data::PriceBrowserModel>(catalog, economy);
+    raid_history_.SetItemCatalog(catalog);
     RefreshPriceRows();
 }
 

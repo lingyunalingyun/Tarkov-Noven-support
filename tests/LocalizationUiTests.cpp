@@ -656,11 +656,11 @@ int wmain(int argc, wchar_t** argv) try {
         const float detailX=raidWidth<720?raidLeft+30:raidLeft+raidWidth*.4F+40;
         (void)ui.MouseWheel(static_cast<int>(detailX*scale),static_cast<int>((raidTop+80)*scale),-480);
         ui.Paint();
-        const auto selected=ui.RaidHistory().SelectedId();const auto listScroll=ui.RaidHistory().ListScroll();
+        const auto selected=ui.RaidHistory().SelectedId();const auto listScroll=ui.RaidHistory().ListScroll();const auto detailScroll=ui.RaidHistory().DetailScroll();
         const auto scanBounds=ui.RaidHistory().ScanBounds(linkedScan.scanId);Require(scanBounds.has_value(),"linked scan has shared visible hit geometry");
         Require(!click(scanBounds->left+30,scanBounds->top+8)&&ui.ActivePage()==MainPage::Prices&&ui.CanGoBack(),"linked snapshot opens Prices by stable identity and source mode");
         Require(ui.GoBack()&&ui.ActivePage()==MainPage::RaidHistory&&ui.RaidHistory().SelectedId()==selected
-            &&ui.RaidHistory().ListScroll()==listScroll,"contextual and side-back command preserve resident raid selection and list scroll");
+            &&ui.RaidHistory().ListScroll()==listScroll&&ui.RaidHistory().DetailScroll()==detailScroll,"contextual and side-back command preserve resident raid selection and both scroll positions");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

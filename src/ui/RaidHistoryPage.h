@@ -2,6 +2,7 @@
 #include "raid/RaidHistoryBrowser.h"
 #include "raid/RaidScanAssociation.h"
 #include "data/MapCatalog.h"
+#include "data/ItemCatalog.h"
 #include "ui/SearchBox.h"
 #include "ui/Scrollbar.h"
 #include <unordered_map>
@@ -14,6 +15,8 @@ public:
     void SetSessions(std::vector<raid::RaidSession> sessions, std::optional<raid::RaidSession> active, bool unavailable);
     void SetScans(std::vector<data::RecentScanEntry> scans);
     void SetMaps(const data::MapCatalog& maps);
+    void SetItemCatalog(const data::ItemCatalog& catalog) noexcept {items_=&catalog;}
+    std::wstring ScanName(const data::RecentScanEntry& scan) const;
     void Prepare(float width, float height, const UiTheme& theme);
     void Draw(const UiCanvas& canvas, const UiTheme& theme,
         const std::unordered_map<std::string,Microsoft::WRL::ComPtr<ID2D1Bitmap>>& images) const;
@@ -31,11 +34,13 @@ public:
     const std::string& SelectedId() const noexcept { return selected_; }
     bool Select(std::string id);
     float ListScroll() const noexcept { return listScroll_; }
+    float DetailScroll() const noexcept { return detailScroll_; }
 private:
     void ApplyFilter();
     void RefreshScans();
     std::vector<std::wstring> Options(int control) const;
     std::size_t OptionIndex(int control) const;
+    std::size_t MenuRows(int control) const;
     void Choose(int control,std::size_t option);
     std::optional<ScrollbarGeometry> Bar(bool detail) const;
     float ContentHeight(bool detail) const;
@@ -44,12 +49,14 @@ private:
     raid::RaidScans linked_;
     std::optional<raid::RaidSession> active_;
     std::vector<data::MapRecord> maps_;
+    const data::ItemCatalog* items_{};
     std::string locale_,selected_;
     SearchBox search_;
     bool unavailable_{},compact_{},compactDetail_{};
     D2D1_RECT_F searchRect_{},listRect_{},detailRect_{};
     std::array<D2D1_RECT_F,4> controls_{};
     std::optional<int> menu_;
+    std::size_t menuOffset_{};
     std::optional<D2D1_POINT_2F> pressed_;
     std::optional<std::pair<bool,float>> grab_;
     float listScroll_{},detailScroll_{};
