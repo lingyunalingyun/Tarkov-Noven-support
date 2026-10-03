@@ -350,8 +350,21 @@ static std::optional<TooltipBoxCandidate> DetectTooltipBoxAtThreshold(
         for (long grid_x = 0; grid_x < grid_width; ++grid_x) {
             const long x = grid_x * kSampleStep;
             const long y = grid_y * kSampleStep;
+            bool dark = PixelLuminance(frame, x, y) <= dark_threshold;
+            if (dark && dark_threshold <= 48.0F) {
+                // 细库存分隔线不能把名称框连到整列格子；保留有局部面积的暗背景。
+                // Thin slot dividers must not connect the title to a whole column; require local dark area.
+                int dark_samples = 0;
+                for (long dy : {-2L, 0L, 2L}) {
+                    for (long dx : {-2L, 0L, 2L}) {
+                        dark_samples += PixelLuminance(frame, x + dx, y + dy)
+                            <= dark_threshold;
+                    }
+                }
+                dark = dark_samples >= 5;
+            }
             dark_mask[static_cast<std::size_t>(grid_y * grid_width + grid_x)] =
-                PixelLuminance(frame, x, y) <= dark_threshold ? 1 : 0;
+                dark ? 1 : 0;
         }
     }
 
@@ -504,10 +517,14 @@ std::optional<TooltipBoxCandidate> DetectTooltipBox(
     // Isolate the black name box from dark-gray inventory cells before component detection.
     // 无文字证据时保留原阈值兼容路径，不把普通黑色物品当作名称框优先结果。
     // Preserve the original threshold without text evidence rather than prioritizing black items.
-    auto name_box = DetectTooltipBoxAtThreshold(frame, anchor, placement, 48.0F);
-    if (name_box.has_value() && name_box->textConfidence > 0.0F
-        && name_box->panelConfidence >= 0.55F) {
-        return name_box;
+    // 某些库存格低于 48，先隔离近黑色面板，再兼容较亮的提示背景。
+    // Some inventory cells are darker than 48; isolate near-black panels before lighter tooltips.
+    for (const float threshold : {24.0F, 48.0F}) {
+        auto name_box = DetectTooltipBoxAtThreshold(frame, anchor, placement, threshold);
+        if (name_box.has_value() && name_box->textConfidence > 0.0F
+            && name_box->panelConfidence >= 0.55F) {
+            return name_box;
+        }
     }
     return DetectTooltipBoxAtThreshold(frame, anchor, placement, 105.0F);
 }

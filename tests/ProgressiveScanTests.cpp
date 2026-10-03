@@ -445,12 +445,13 @@ int main() {
     noven::capture::CapturedFrame tooltip_frame;
     // 合成黑色标题框紧贴暗灰格子；不使用用户游戏截图作为测试资产。
     // Synthetic black title touching dark-gray cells; no user game screenshots are test assets.
-    const auto inventory_frame = [](long width, long height, long left) {
+    const auto inventory_frame = [](long width, long height, long left,
+                                   std::uint8_t background = 80) {
         noven::capture::CapturedFrame frame;
         frame.width = static_cast<std::uint32_t>(width);
         frame.height = static_cast<std::uint32_t>(height);
         frame.stride = frame.width * 4;
-        frame.bgra.assign(static_cast<std::size_t>(frame.stride) * frame.height, 80);
+        frame.bgra.assign(static_cast<std::size_t>(frame.stride) * frame.height, background);
         for (long y = 30; y < std::min(height, 82L); ++y) {
             for (long x = left; x < left + 124; ++x) {
                 const auto offset = static_cast<std::size_t>(y) * frame.stride
@@ -485,6 +486,21 @@ int main() {
                 {64, 100, 524, 260}, {0, 0, 1000, 1000}, 1).action
                 == noven::scanner::TooltipPrimaryAction::PreciseCrop,
         "recovered black title uses precise OCR crop despite surrounding inventory cells");
+    auto divided_inventory = inventory_frame(460, 240, 160, 40);
+    for (long y = 0; y < 240; ++y) {
+        for (long x : {220L, 221L}) {
+            const auto offset = static_cast<std::size_t>(y) * divided_inventory.stride
+                + static_cast<std::size_t>(x) * 4;
+            divided_inventory.bgra[offset] = divided_inventory.bgra[offset + 1]
+                = divided_inventory.bgra[offset + 2] = 8;
+        }
+    }
+    const auto dark_inventory_tooltip = noven::scanner::DetectTooltipBox(
+        divided_inventory, {148.0F, 173.0F});
+    Require(dark_inventory_tooltip.has_value() && dark_inventory_tooltip->FullBox()
+            && dark_inventory_tooltip->rect.x1 >= 156.0F
+            && dark_inventory_tooltip->rect.x2 <= 288.0F,
+        "dark slot dividers cannot connect the hover title to a whole inventory column");
     tooltip_frame.width = 300;
     tooltip_frame.height = 200;
     tooltip_frame.stride = tooltip_frame.width * 4;
