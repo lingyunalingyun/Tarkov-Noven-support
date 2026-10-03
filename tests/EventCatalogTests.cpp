@@ -30,7 +30,7 @@ int main() {
         EventEvidence diff;diff.sourceKind=SourceKind::TarkovChanges;diff.type=EvidenceType::ConfigurationChange;
         diff.evidenceId="diff:1";diff.sourceRecordId="1";diff.sourceUrl="https://changes.tarkov-changes.com/view/1";
         EventCatalog empty;Check(!empty.AttachEvidence(id,diff,error));Check(empty.Events().empty());
-        Check(c.AttachEvidence(id,diff,error));Check(c.Events().size()==1);
+        Check(!c.AttachEvidence(id,diff,error));Check(c.Events().size()==1);
         std::cout<<"Event catalog contracts PASS\n";return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }

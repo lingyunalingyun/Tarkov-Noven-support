@@ -50,6 +50,7 @@ std::string EventCache::Encode(const EventCatalog& catalog, const EventSourceSta
             o<<"{\"id\":"<<json::Quote(v.evidenceId)<<",\"sourceRecordId\":"<<json::Quote(v.sourceRecordId)
                 <<",\"sourceUrl\":"<<json::Quote(v.sourceUrl)<<",\"kind\":"<<static_cast<int>(v.sourceKind)
                 <<",\"type\":"<<static_cast<int>(v.type)<<",\"publishedAt\":"<<Number(v.publishedAt)
+                <<",\"linkedChanges\":"<<Array(v.linkedChangeRecordIds)
                 <<",\"taskIds\":"<<Array(v.taskIds)<<",\"itemIds\":"<<Array(v.itemIds)<<",\"mapIds\":"<<Array(v.mapIds)
                 <<",\"bossIds\":"<<Array(v.bossIds)<<",\"changedKey\":"<<json::Quote(v.changedKey)
                 <<",\"oldValue\":"<<json::Quote(v.oldValue)<<",\"newValue\":"<<json::Quote(v.newValue)<<'}';
@@ -79,6 +80,7 @@ bool EventCache::Decode(std::string_view text, EventCatalog& catalog, EventSourc
                 EventEvidence ev;ev.evidenceId=item.At("id").String();ev.sourceRecordId=item.At("sourceRecordId").String();
                 ev.sourceUrl=item.At("sourceUrl").String();ev.sourceKind=Enum<SourceKind>(item.At("kind"),2);
                 ev.type=Enum<EvidenceType>(item.At("type"),3);ev.publishedAt=Time(item.At("publishedAt"));
+                ev.linkedChangeRecordIds=Strings(item.At("linkedChanges"));
                 ev.taskIds=Strings(item.At("taskIds"));ev.itemIds=Strings(item.At("itemIds"));ev.mapIds=Strings(item.At("mapIds"));ev.bossIds=Strings(item.At("bossIds"));
                 ev.changedKey=item.At("changedKey").String();ev.oldValue=item.At("oldValue").String();ev.newValue=item.At("newValue").String();e.sourceEvidence.push_back(std::move(ev));
             }events.push_back(std::move(e));

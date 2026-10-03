@@ -74,6 +74,16 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                     if(mixed!=text.npos)text.resize(mixed);
                     OfficialAnnouncement a;a.sourceRecordId=id;a.sourceUrl="https://t.me/escapefromtarkovEN/"+std::string(id);
                     a.publishedAt=time;a.summary=text;
+                    constexpr std::string_view changeLink="href=\"https://changes.tarkov-changes.com/view/";
+                    std::size_t linkPos{};
+                    while((linkPos=body.find(changeLink,linkPos))!=body.npos) {
+                        const auto start=linkPos+changeLink.size(),finish=body.find('"',start);
+                        if(finish==body.npos || !Id(body.substr(start,finish-start)))throw std::runtime_error("invalid official change link");
+                        const std::string changeId(body.substr(start,finish-start));
+                        if(std::ranges::find(a.linkedChangeRecordIds,changeId)==a.linkedChangeRecordIds.end())a.linkedChangeRecordIds.push_back(changeId);
+                        if(a.linkedChangeRecordIds.size()>4)throw std::runtime_error("official change links exceed capacity");
+                        linkPos=finish+1;
+                    }
                     // 未提供标题时保留原文首段摘录，而非猜测活动名称。
                     // Without an official title, retain an original leading excerpt, never invent an event name.
                     a.title=text.substr(0,std::min<std::size_t>(text.find_first_of("\n:"),2048));

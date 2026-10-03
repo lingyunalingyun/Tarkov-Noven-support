@@ -17,6 +17,7 @@ struct EventEvidence {
     EvidenceType type{EvidenceType::Announcement};
     std::optional<Timestamp> publishedAt;
     std::vector<std::string> taskIds, itemIds, mapIds, bossIds;
+    std::vector<std::string> linkedChangeRecordIds;
     std::string changedKey, oldValue, newValue;
     bool operator==(const EventEvidence&) const = default;
 };
@@ -41,6 +42,7 @@ struct OfficialAnnouncement {
     EventStatus status{EventStatus::Unknown};
     std::optional<Timestamp> publishedAt, startsAt, endsAt;
     std::vector<EventMode> modes;
+    std::vector<std::string> linkedChangeRecordIds;
 };
 [[nodiscard]] std::optional<Timestamp> ParseTimestamp(std::string_view iso8601);
 [[nodiscard]] EventStatus StatusAt(const EventRecord&, Timestamp now) noexcept;

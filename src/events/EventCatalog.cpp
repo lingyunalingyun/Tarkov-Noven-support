@@ -57,6 +57,7 @@ bool ValidEvidence(const EventEvidence& e) noexcept {
         && static_cast<int>(e.sourceKind)>=0 && static_cast<int>(e.sourceKind)<=2
         && static_cast<int>(e.type)>=0 && static_cast<int>(e.type)<=3 && Time(e.publishedAt)
         && Ids(e.itemIds) && Ids(e.taskIds) && Ids(e.mapIds) && Ids(e.bossIds)
+        && e.linkedChangeRecordIds.size()<=4 && Ids(e.linkedChangeRecordIds)
         && e.changedKey.size()<=1024 && e.oldValue.size()<=1024 && e.newValue.size()<=1024
         && (e.sourceKind!=SourceKind::OfficialTelegram || (MessageId(e.sourceRecordId)
             && e.sourceUrl==Url(e.sourceRecordId)));
@@ -73,9 +74,12 @@ bool ValidRecord(const EventRecord& e) noexcept {
     std::set<EventMode> modes;
     for(auto mode:e.modes) if(static_cast<int>(mode)<0 || static_cast<int>(mode)>2 || !modes.insert(mode).second) return false;
     for(const auto& [language,title]:e.localizedTitles) if(language.empty() || language.size()>32 || title.size()>2048) return false;
-    bool origin=false; std::set<std::string> evidenceIds;
+    bool origin=false; std::set<std::string> evidenceIds, linkedChanges;
+    for(const auto& evidence:e.sourceEvidence)if(evidence.sourceKind==SourceKind::OfficialTelegram)
+        for(const auto& id:evidence.linkedChangeRecordIds)linkedChanges.insert(id);
     for(const auto& evidence:e.sourceEvidence) {
         if(!ValidEvidence(evidence) || !evidenceIds.insert(evidence.evidenceId).second) return false;
+        if(evidence.sourceKind==SourceKind::TarkovChanges && !linkedChanges.contains(evidence.sourceRecordId))return false;
         origin |= evidence.sourceKind==SourceKind::OfficialTelegram && evidence.type==EvidenceType::Announcement
             && Identity(evidence.sourceRecordId)==e.eventId;
     }
@@ -113,6 +117,7 @@ bool EventCatalog::Apply(std::span<const OfficialAnnouncement> announcements, st
         }
         EventEvidence evidence; evidence.evidenceId=Identity(a.sourceRecordId); evidence.sourceRecordId=a.sourceRecordId;
         evidence.sourceUrl=a.sourceUrl; evidence.publishedAt=a.publishedAt;
+        evidence.linkedChangeRecordIds=a.linkedChangeRecordIds;
         evidence.type=a.updatesRecordId?EvidenceType::Update:EvidenceType::Announcement;
         auto old=std::ranges::find(it->sourceEvidence,evidence.evidenceId,&EventEvidence::evidenceId);
         // 旧公告回放不能撤销较新的更新；同消息编辑仍可补充事实。
