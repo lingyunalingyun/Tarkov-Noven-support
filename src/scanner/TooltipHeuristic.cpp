@@ -323,10 +323,11 @@ bool IsBetterTooltipProbe(
     return static_cast<int>(placement) < static_cast<int>(current_placement);
 }
 
-std::optional<TooltipBoxCandidate> DetectTooltipBox(
+static std::optional<TooltipBoxCandidate> DetectTooltipBoxAtThreshold(
     const capture::CapturedFrame& frame,
     AnchorPoint anchor,
-    TooltipPlacement placement
+    TooltipPlacement placement,
+    float dark_threshold
 ) {
     // 以暗背景和实际边缘为面板证据；捕获 ROI 的边缘不得充当面板边框。
     // Use dark background and observed edges as panel evidence; the capture
@@ -350,7 +351,7 @@ std::optional<TooltipBoxCandidate> DetectTooltipBox(
             const long x = grid_x * kSampleStep;
             const long y = grid_y * kSampleStep;
             dark_mask[static_cast<std::size_t>(grid_y * grid_width + grid_x)] =
-                PixelLuminance(frame, x, y) <= 105.0F ? 1 : 0;
+                PixelLuminance(frame, x, y) <= dark_threshold ? 1 : 0;
         }
     }
 
@@ -452,8 +453,10 @@ std::optional<TooltipBoxCandidate> DetectTooltipBox(
             const float panel_confidence = background * 0.50F
                 + edge_score * 0.20F + border_score * 0.20F
                 + text_confidence * 0.10F;
+            // 网格取整可能降低平均对比度，已观察到的边框仍是独立证据。
+            // Grid rounding can reduce average contrast; observed borders remain independent evidence.
             if (darkness < 0.35F || background < 0.35F
-                || (contrast < 0.10F && !clipped_left
+                || (contrast < 0.10F && border_score < 2.0F && !clipped_left
                 && !clipped_right && !clipped_top && !clipped_bottom)) {
                 continue;
             }
@@ -490,6 +493,23 @@ std::optional<TooltipBoxCandidate> DetectTooltipBox(
         }
     }
     return best;
+}
+
+std::optional<TooltipBoxCandidate> DetectTooltipBox(
+    const capture::CapturedFrame& frame,
+    AnchorPoint anchor,
+    TooltipPlacement placement
+) {
+    // 黑色名称框必须先与暗灰库存格隔离，否则连通区域会吞掉真实面板。
+    // Isolate the black name box from dark-gray inventory cells before component detection.
+    // 无文字证据时保留原阈值兼容路径，不把普通黑色物品当作名称框优先结果。
+    // Preserve the original threshold without text evidence rather than prioritizing black items.
+    auto name_box = DetectTooltipBoxAtThreshold(frame, anchor, placement, 48.0F);
+    if (name_box.has_value() && name_box->textConfidence > 0.0F
+        && name_box->panelConfidence >= 0.55F) {
+        return name_box;
+    }
+    return DetectTooltipBoxAtThreshold(frame, anchor, placement, 105.0F);
 }
 
 TooltipPrimaryDecision DecideTooltipPrimaryPath(

@@ -443,6 +443,48 @@ int main() {
     );
 
     noven::capture::CapturedFrame tooltip_frame;
+    // 合成黑色标题框紧贴暗灰格子；不使用用户游戏截图作为测试资产。
+    // Synthetic black title touching dark-gray cells; no user game screenshots are test assets.
+    const auto inventory_frame = [](long width, long height, long left) {
+        noven::capture::CapturedFrame frame;
+        frame.width = static_cast<std::uint32_t>(width);
+        frame.height = static_cast<std::uint32_t>(height);
+        frame.stride = frame.width * 4;
+        frame.bgra.assign(static_cast<std::size_t>(frame.stride) * frame.height, 80);
+        for (long y = 30; y < std::min(height, 82L); ++y) {
+            for (long x = left; x < left + 124; ++x) {
+                const auto offset = static_cast<std::size_t>(y) * frame.stride
+                    + static_cast<std::size_t>(x) * 4;
+                const bool title = y >= 46 && y < 62 && x >= left + 20
+                    && x < left + 100 && (x % 8 < 4);
+                frame.bgra[offset] = frame.bgra[offset + 1]
+                    = frame.bgra[offset + 2] = title ? 220 : 8;
+                frame.bgra[offset + 3] = 255;
+            }
+        }
+        return frame;
+    };
+    const auto inventory_tooltip = noven::scanner::DetectTooltipBox(
+        inventory_frame(300, 80, 0), {-12.0F, 93.0F});
+    Require(inventory_tooltip.has_value()
+            && inventory_tooltip->rect.x2 <= 128.0F
+            && inventory_tooltip->rect.y1 >= 28.0F
+            && inventory_tooltip->clippedLeft && inventory_tooltip->clippedBottom,
+        "black hover title is isolated from adjacent inventory background");
+    const auto inventory_recovery = noven::scanner::DecideTooltipPrimaryPath(
+        inventory_tooltip, {100, 100, 400, 180}, {0, 0, 1000, 1000}, 0);
+    Require(inventory_recovery.action == noven::scanner::TooltipPrimaryAction::RecoverPanel
+            && inventory_recovery.nextRoi.left < 100
+            && inventory_recovery.nextRoi.bottom > 180
+            && inventory_recovery.nextRoi.right == 400,
+        "title recovery expands missing left/bottom edges, not unrelated cells to the right");
+    const auto recovered_tooltip = noven::scanner::DetectTooltipBox(
+        inventory_frame(460, 160, 36), {24.0F, 93.0F});
+    Require(recovered_tooltip.has_value() && recovered_tooltip->FullBox()
+            && noven::scanner::DecideTooltipPrimaryPath(recovered_tooltip,
+                {64, 100, 524, 260}, {0, 0, 1000, 1000}, 1).action
+                == noven::scanner::TooltipPrimaryAction::PreciseCrop,
+        "recovered black title uses precise OCR crop despite surrounding inventory cells");
     tooltip_frame.width = 300;
     tooltip_frame.height = 200;
     tooltip_frame.stride = tooltip_frame.width * 4;
