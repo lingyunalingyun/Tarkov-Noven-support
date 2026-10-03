@@ -13,6 +13,27 @@ std::optional<Timestamp> ExplicitTime(std::string_view text,std::string_view lab
     for(const std::size_t length:{25U,20U})if(start+length<=text.size())if(auto t=ParseTimestamp(text.substr(start,length)))return t;
     return {};
 }
+std::vector<EventMode> DeclaredModes(std::string_view lead) {
+    std::string_view declaration;
+    for(auto prefix:{"An in-game event has started in ","The in-game event has started in ",
+        "An in-game event will start in ","The in-game event will start in "})
+        if(lead.starts_with(prefix))declaration=lead.substr(std::string_view(prefix).size());
+    for(auto prefix:{"An in-game event will start at ","The in-game event will start at "})if(lead.starts_with(prefix)) {
+        const auto rest=lead.substr(std::string_view(prefix).size());
+        for(std::size_t length:{25U,20U})if(rest.size()>length && ParseTimestamp(rest.substr(0,length))
+            && rest.substr(length).starts_with(" in "))declaration=rest.substr(length+4);
+    }
+    std::vector<EventMode> modes;
+    if(declaration.starts_with("the seasonal "))modes.push_back(EventMode::Seasonal);
+    if(declaration.starts_with("PvE mode")) {
+        modes.push_back(EventMode::PvE);
+        if(declaration.starts_with("PvE mode and in PvP mode"))modes.push_back(EventMode::PvP);
+    }else if(declaration.starts_with("PvP mode")) {
+        modes.push_back(EventMode::PvP);
+        if(declaration.starts_with("PvP mode and in PvE mode"))modes.push_back(EventMode::PvE);
+    }
+    return modes;
+}
 std::optional<std::string> OriginalLink(std::string_view body) {
     constexpr std::string_view prefix="https://t.me/escapefromtarkovEN/";
     std::optional<std::string> result;std::size_t cursor{};
@@ -67,6 +88,8 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                 const bool ended=text.starts_with("The in-game event has ended");
                 const bool updated=text.starts_with("The in-game event will remain active until");
                 if(started || upcoming || ended || updated) {
+                    const auto lead=std::string_view(text).substr(0,text.find_first_of(".\n"));
+                    if(lead.find("#TarkovArena")!=lead.npos){cursor=next;continue;}
                     const auto link=OriginalLink(body);
                     // 独立结束声明不生成新活动；没有明确原公告链接时保持未关联。
                     // Standalone end notices do not create new events; absent explicit origin links remain unassociated.
@@ -96,9 +119,9 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                     a.startsAt=ExplicitTime(text,"will start at ");a.endsAt=ExplicitTime(text,"will remain active until ");
                     // 年份/时区不完整的自然语言日期不以发布时间推测补齐。
                     // Natural-language dates lacking complete year/zone are not guessed from publication time.
-                    if(text.starts_with("An in-game event has started in the seasonal "))a.modes.push_back(EventMode::Seasonal);
-                    else if(text.find("in PvE mode")!=text.npos)a.modes.push_back(EventMode::PvE);
-                    else if(text.find("in PvP mode")!=text.npos)a.modes.push_back(EventMode::PvP);
+                    // 仅首句的肯定范围声明；后文否定/例外规则不能反向成为适用范围。
+                    // Only affirmative scope in the leading sentence; later negations/exceptions cannot establish scope.
+                    a.modes=DeclaredModes(lead);
                     result.announcements.push_back(std::move(a));
                 }
             }cursor=next;

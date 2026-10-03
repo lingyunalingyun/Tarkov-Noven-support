@@ -34,6 +34,13 @@ int main(int argc,char** argv){try{
     r.body=Page("The in-game event has ended. <a href=\"https://t.me/escapefromtarkovEN/100\">Original announcement</a>","102");
     parsed=OfficialEventSource::Parse(r);Check(parsed.success && c.Apply(parsed.announcements,error));Check(c.Events()[0].sourceStatus==EventStatus::Ended);
     r.body=Page("We have started the installation of an update. #EscapefromTarkov");Check(OfficialEventSource::Parse(r).announcements.empty());
+    r.body=Page("An in-game event has started. It is not available in PvE mode.");
+    Check(OfficialEventSource::Parse(r).announcements[0].modes.empty());
+    r.body=Page("An in-game event has started, but not in PvP mode.");
+    Check(OfficialEventSource::Parse(r).announcements[0].modes.empty());
+    r.body=Page("An in-game event has started in #TarkovArena.");Check(OfficialEventSource::Parse(r).announcements.empty());
+    r.body=Page("An in-game event has started in PvE mode and in PvP mode.");
+    Check(OfficialEventSource::Parse(r).announcements[0].modes.size()==2);
     r.body=Page("The in-game event has ended.");Check(OfficialEventSource::Parse(r).announcements.empty());
     r.body="<html>login</html>";Check(!OfficialEventSource::Parse(r).success);
     r.body=Page("An in-game event has started.")+"challenge-platform";Check(!OfficialEventSource::Parse(r).success);
