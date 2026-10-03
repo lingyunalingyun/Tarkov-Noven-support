@@ -456,6 +456,19 @@ int main(int argc, char** argv) {
     std::filesystem::remove(fixture_path);
 
     noven::data::ItemCatalog unavailable_catalog;
+    for (const std::string noise : {"-", "' - '", "232/400", "246"}) {
+        auto noisy_scan = noven::scanner::BuildInventoryRecognition(
+            200, noven::scanner::InventoryRecognitionPath::AdaptiveFallback,
+            std::nullopt, {Text(noise)});
+        noven::scanner::ResolveInventoryCatalog(noisy_scan, catalog, 0.64F);
+        noven::scanner::BestEffortResolve(noisy_scan, catalog);
+        Require(!noisy_scan.selectedCandidate.has_value()
+                && noisy_scan.selectedItemId.empty()
+                && noisy_scan.bestEffortTop.empty()
+                && noisy_scan.matchMode == noven::scanner::InventoryMatchMode::OcrOnly
+                && noisy_scan.rejectionReason == "no_item_name",
+            "punctuation and inventory counters never become arbitrary catalog items");
+    }
     auto ocr_only = Resolve(unavailable_catalog, "识别到的文本");
     noven::scanner::BestEffortResolve(ocr_only, unavailable_catalog);
     const auto ocr_only_display = noven::scanner::BuildInventoryDisplayResult(

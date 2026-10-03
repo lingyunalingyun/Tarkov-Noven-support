@@ -394,6 +394,17 @@ void BestEffortResolve(
     if (result.selectedCandidate.has_value() || result.normalizedText.empty()) return;
     result.bestEffortTop.clear();
     result.bestEffortAmbiguous = false;
+    // 标点或纯数值不是物品名称，不能靠目录全量回退制造稳定物品 ID。
+    // Punctuation or numeric-only OCR must not manufacture an item ID through catalog fallback.
+    const bool has_name = std::any_of(result.normalizedText.begin(),
+        result.normalizedText.end(), [](unsigned char character) {
+            return std::isalpha(character) != 0 || character >= 0x80;
+        });
+    if (!has_name) {
+        result.matchMode = InventoryMatchMode::OcrOnly;
+        result.rejectionReason = "no_item_name";
+        return;
+    }
     if (catalog.AliasCount() == 0) {
         result.matchMode = InventoryMatchMode::OcrOnly;
         result.rejectionReason = "catalog_unavailable";
