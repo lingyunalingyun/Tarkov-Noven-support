@@ -77,6 +77,7 @@ add_executable(NovenTarkovSupport WIN32
     src/ui/TasksPage.cpp
     src/ui/MapPage.cpp
     src/ui/RaidHistoryPage.cpp
+    src/ui/EventsPage.cpp
     src/data/MapCatalog.cpp
     src/data/MapAssetStore.cpp
     src/data/MapAssetUpdater.cpp
@@ -211,6 +212,15 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenEventsPageTests tests/EventsPageTests.cpp src/ui/EventsPage.cpp src/events/EventBrowser.cpp
+        src/events/EventCatalog.cpp src/data/ItemCatalog.cpp src/ui/localization/LocalizationService.cpp)
+    target_include_directories(NovenEventsPageTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenEventsPageTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(NovenEventsPageTests PRIVATE d2d1 dwrite imm32)
+    if(MSVC)
+        target_compile_options(NovenEventsPageTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME events_page COMMAND NovenEventsPageTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenEventBrowserTests tests/EventBrowserTests.cpp src/events/EventBrowser.cpp src/events/EventCatalog.cpp)
     target_include_directories(NovenEventBrowserTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     if(MSVC)
