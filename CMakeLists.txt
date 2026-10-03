@@ -202,6 +202,12 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenEventCatalogTests tests/EventCatalogTests.cpp src/events/EventCatalog.cpp)
+    target_include_directories(NovenEventCatalogTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    if(MSVC)
+        target_compile_options(NovenEventCatalogTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME event_catalog COMMAND NovenEventCatalogTests)
     add_executable(NovenRaidEventParserTests tests/RaidEventParserTests.cpp src/raid/RaidEventParser.cpp)
     target_include_directories(NovenRaidEventParserTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     if(MSVC)
