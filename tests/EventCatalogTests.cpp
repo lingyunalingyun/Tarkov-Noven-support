@@ -31,6 +31,13 @@ int main() {
         diff.evidenceId="diff:1";diff.sourceRecordId="1";diff.sourceUrl="https://changes.tarkov-changes.com/view/1";
         EventCatalog empty;Check(!empty.AttachEvidence(id,diff,error));Check(empty.Events().empty());
         Check(!c.AttachEvidence(id,diff,error));Check(c.Events().size()==1);
+        EventCatalog window;std::vector<OfficialAnnouncement> many;
+        for(int i=1;i<=256;++i){auto record=a;record.sourceRecordId=std::to_string(i);
+            record.sourceUrl="https://t.me/escapefromtarkovEN/"+record.sourceRecordId;record.publishedAt=i;many.push_back(record);}
+        Check(window.Apply(many,error));Check(window.Events().size()==kMaximumEvents);
+        auto latest=a;latest.sourceRecordId="300";latest.sourceUrl="https://t.me/escapefromtarkovEN/300";latest.publishedAt=300;
+        Check(window.Apply({&latest,1},error));Check(window.Events().size()==kMaximumEvents && !window.FindEvent("official-telegram:1"));
+        for(int i=0;i<1000;++i)Check(window.FindEvent("official-telegram:300")!=nullptr);
         std::cout<<"Event catalog contracts PASS\n";return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }

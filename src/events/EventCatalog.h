@@ -16,6 +16,6 @@ private:
     std::vector<EventRecord> events_;
     std::vector<OfficialAnnouncement> unresolved_;
 };
-bool ValidRecord(const EventRecord&) noexcept;
-bool ValidEvidence(const EventEvidence&) noexcept;
+bool ValidRecord(const EventRecord&);
+bool ValidEvidence(const EventEvidence&);
 }

@@ -23,6 +23,7 @@ struct EventEvidence {
 };
 struct EventRecord {
     std::string eventId, title, summary;
+    bool titleIsExcerpt{};
     std::map<std::string, std::string> localizedTitles;
     // sourceStatus 是公告事实；StatusAt 的时钟派生不修改来源事实。
     // sourceStatus is an announcement fact; clock-derived StatusAt never mutates it.
@@ -36,6 +37,7 @@ struct EventRecord {
 };
 struct OfficialAnnouncement {
     std::string sourceRecordId, sourceUrl, title, summary;
+    bool titleIsExcerpt{};
     // 更新只能使用公告中明确指向原消息的身份；未知关联保留为 unresolved。
     // Updates require an explicit original-message identity; unknown links remain unresolved.
     std::optional<std::string> updatesRecordId;

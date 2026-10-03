@@ -38,6 +38,7 @@ std::string EventCache::Encode(const EventCatalog& catalog, const EventSourceSta
     bool comma=false;for(const auto& e:catalog.Events()) {
         if(comma)o<<',';comma=true;
         o<<"{\"eventId\":"<<json::Quote(e.eventId)<<",\"title\":"<<json::Quote(e.title)<<",\"summary\":"<<json::Quote(e.summary)
+            <<",\"titleIsExcerpt\":"<<(e.titleIsExcerpt?"true":"false")
             <<",\"sourceStatus\":"<<static_cast<int>(e.sourceStatus)<<",\"announcedAt\":"<<Number(e.announcedAt)
             <<",\"startsAt\":"<<Number(e.startsAt)<<",\"endsAt\":"<<Number(e.endsAt)<<",\"lastUpdatedAt\":"<<Number(e.lastUpdatedAt)
             <<",\"partial\":"<<(e.partial?"true":"false")<<",\"localizedTitles\":{";
@@ -67,6 +68,7 @@ bool EventCache::Decode(std::string_view text, EventCatalog& catalog, EventSourc
         const auto& records=root.At("events").Array();if(records.size()>kMaximumEvents)throw std::runtime_error("event capacity exceeded");
         std::vector<EventRecord> events;for(const auto& v:records) {
             EventRecord e;e.eventId=v.At("eventId").String();e.title=v.At("title").String();e.summary=v.At("summary").String();
+            const auto excerpt=v.object.find("titleIsExcerpt");e.titleIsExcerpt=excerpt==v.object.end()?true:excerpt->second.Bool();
             e.sourceStatus=Enum<EventStatus>(v.At("sourceStatus"),3);e.announcedAt=Time(v.At("announcedAt"));
             e.startsAt=Time(v.At("startsAt"));e.endsAt=Time(v.At("endsAt"));e.lastUpdatedAt=Time(v.At("lastUpdatedAt"));
             e.partial=v.At("partial").Bool();const auto& titles=v.At("localizedTitles");

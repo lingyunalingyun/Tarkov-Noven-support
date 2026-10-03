@@ -19,6 +19,14 @@ bool Ids(const std::vector<std::string>& ids) {
     for (const auto& id : ids) if (id.empty() || id.size() > 256 || !unique.insert(id).second) return false;
     return true;
 }
+void RebuildEntities(EventRecord& e) {
+    e.itemIds.clear();e.taskIds.clear();e.mapIds.clear();e.bossIds.clear();
+    auto append=[](auto& to,const auto& from){for(const auto& id:from)if(std::ranges::find(to,id)==to.end())to.push_back(id);};
+    for(const auto& evidence:e.sourceEvidence) {
+        append(e.itemIds,evidence.itemIds);append(e.taskIds,evidence.taskIds);
+        append(e.mapIds,evidence.mapIds);append(e.bossIds,evidence.bossIds);
+    }
+}
 }
 std::optional<Timestamp> ParseTimestamp(std::string_view text) {
     // 仅接受明确的 ISO 8601 时区，拒绝本地时间、无效日历和溢出。
@@ -51,7 +59,16 @@ EventStatus StatusAt(const EventRecord& e, Timestamp now) noexcept {
     if (e.startsAt) return *e.startsAt>now ? EventStatus::Upcoming : EventStatus::Active;
     return e.sourceStatus;
 }
-bool ValidEvidence(const EventEvidence& e) noexcept {
+bool ValidEvidence(const EventEvidence& e) {
+    if(e.sourceKind==SourceKind::OfficialTelegram) {
+        if(e.type!=EvidenceType::Announcement && e.type!=EvidenceType::Update)return false;
+        for(const auto& id:e.linkedChangeRecordIds)if(!MessageId(id))return false;
+    }else {
+        if(!e.linkedChangeRecordIds.empty())return false;
+        if(e.sourceKind==SourceKind::TarkovDev && (e.type!=EvidenceType::EntityReference || e.sourceUrl!="https://tarkov.dev/api/"))return false;
+        if(e.sourceKind==SourceKind::TarkovChanges && (e.type!=EvidenceType::ConfigurationChange || !MessageId(e.sourceRecordId)
+            || e.sourceUrl!="https://changes.tarkov-changes.com/view/"+e.sourceRecordId))return false;
+    }
     return !e.evidenceId.empty() && e.evidenceId.size()<=256 && !e.sourceRecordId.empty()
         && e.sourceRecordId.size()<=256 && e.sourceUrl.size()<=2048 && e.sourceUrl.starts_with("https://")
         && static_cast<int>(e.sourceKind)>=0 && static_cast<int>(e.sourceKind)<=2
@@ -62,7 +79,7 @@ bool ValidEvidence(const EventEvidence& e) noexcept {
         && (e.sourceKind!=SourceKind::OfficialTelegram || (MessageId(e.sourceRecordId)
             && e.sourceUrl==Url(e.sourceRecordId)));
 }
-bool ValidRecord(const EventRecord& e) noexcept {
+bool ValidRecord(const EventRecord& e) {
     if (!e.eventId.starts_with("official-telegram:") || !MessageId(std::string_view(e.eventId).substr(18))
         || e.title.empty() || e.title.size()>2048 || e.summary.size()>16384
         || static_cast<int>(e.sourceStatus)<0 || static_cast<int>(e.sourceStatus)>3
@@ -83,7 +100,8 @@ bool ValidRecord(const EventRecord& e) noexcept {
         origin |= evidence.sourceKind==SourceKind::OfficialTelegram && evidence.type==EvidenceType::Announcement
             && Identity(evidence.sourceRecordId)==e.eventId;
     }
-    return origin;
+    auto rebuilt=e;RebuildEntities(rebuilt);
+    return origin && e.itemIds==rebuilt.itemIds && e.taskIds==rebuilt.taskIds && e.mapIds==rebuilt.mapIds && e.bossIds==rebuilt.bossIds;
 }
 const EventRecord* EventCatalog::FindEvent(std::string_view id) const noexcept {
     const auto it=std::ranges::find(events_,id,&EventRecord::eventId);
@@ -107,7 +125,12 @@ bool EventCatalog::Apply(std::span<const OfficialAnnouncement> announcements, st
     auto next=events_; std::vector<OfficialAnnouncement> unresolved;
     for(const auto& a:announcements) {
         if(!MessageId(a.sourceRecordId) || a.sourceUrl!=Url(a.sourceRecordId)
-            || (a.updatesRecordId && !MessageId(*a.updatesRecordId))) {error="invalid official identity";return false;}
+            || (a.updatesRecordId && (!MessageId(*a.updatesRecordId) || *a.updatesRecordId==a.sourceRecordId))
+            || !Time(a.publishedAt) || !Time(a.startsAt) || !Time(a.endsAt)
+            || (a.startsAt && a.endsAt && *a.endsAt<*a.startsAt)
+            || a.title.empty() || a.title.size()>2048 || a.summary.size()>16384
+            || static_cast<int>(a.status)<0 || static_cast<int>(a.status)>3 || a.modes.size()>3
+            || a.linkedChangeRecordIds.size()>4) {error="invalid official facts/identity";return false;}
         const auto id=Identity(a.updatesRecordId.value_or(a.sourceRecordId));
         auto it=std::ranges::find(next,id,&EventRecord::eventId);
         if(it==next.end()) {
@@ -124,7 +147,7 @@ bool EventCatalog::Apply(std::span<const OfficialAnnouncement> announcements, st
         // Replayed older announcements cannot undo newer updates; edits can supplement facts.
         const bool newer=!it->lastUpdatedAt || (a.publishedAt && *a.publishedAt>=*it->lastUpdatedAt);
         if(newer) {
-            if(!a.updatesRecordId) {it->title=a.title;it->summary=a.summary;}
+            if(!a.updatesRecordId) {it->title=a.title;it->summary=a.summary;it->titleIsExcerpt=a.titleIsExcerpt;}
             if(a.status!=EventStatus::Unknown) it->sourceStatus=a.status;
             if(a.startsAt) it->startsAt=a.startsAt;
             if(a.endsAt) it->endsAt=a.endsAt;
@@ -154,9 +177,7 @@ bool EventCatalog::AttachEvidence(std::string_view id, EventEvidence evidence, s
         if(next.sourceEvidence.size()>=kMaximumEvidence) {error="event evidence capacity exceeded";return false;}
         next.sourceEvidence.push_back(evidence);
     } else *old=evidence;
-    auto append=[](auto& to,const auto& from){for(const auto& value:from) if(std::ranges::find(to,value)==to.end()) to.push_back(value);};
-    append(next.taskIds,evidence.taskIds);append(next.itemIds,evidence.itemIds);
-    append(next.mapIds,evidence.mapIds);append(next.bossIds,evidence.bossIds);
+    RebuildEntities(next);
     if(!ValidRecord(next)) {error="invalid enriched record";return false;}
     *it=std::move(next);return true;
 }

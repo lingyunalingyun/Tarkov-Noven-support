@@ -52,7 +52,8 @@ bool TarkovDevEventEnricher::EnrichReferences(EventCatalog& catalog,std::string_
             ref.kind==EntityKind::Map?evidence.mapIds:evidence.bossIds;
         if(std::ranges::find(ids,*resolved)==ids.end())ids.push_back(*resolved);
     }
-    if(evidence.itemIds.empty() && evidence.taskIds.empty() && evidence.mapIds.empty() && evidence.bossIds.empty()){error.clear();return true;}
+    if(evidence.itemIds.empty() && evidence.taskIds.empty() && evidence.mapIds.empty() && evidence.bossIds.empty()
+        && std::ranges::none_of(catalog.FindEvent(id)->sourceEvidence,[&](const auto& e){return e.evidenceId==evidence.evidenceId;})){error.clear();return true;}
     return catalog.AttachEvidence(id,std::move(evidence),error);
 }
 bool TarkovDevEventEnricher::EnrichText(EventCatalog& catalog,std::string_view id,std::string& error) const {

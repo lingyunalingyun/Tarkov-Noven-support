@@ -42,7 +42,7 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
             || page.find("tg://resolve?domain=escapefromtarkovEN")==page.npos)
             throw std::runtime_error("official channel identity missing");
         constexpr std::string_view marker="data-post=\"escapefromtarkovEN/";
-        std::size_t cursor=page.find(marker),count{};std::set<std::string> seen;
+        std::size_t cursor=page.find(marker),count{},textCount{};std::set<std::string> seen;
         if(cursor==page.npos)throw std::runtime_error("official message structure missing");
         while(cursor!=page.npos) {
             if(++count>100)throw std::runtime_error("official page exceeds message window");
@@ -54,7 +54,10 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
             const auto time=ParseTimestamp(html::Attribute(block.substr(tp),"datetime"));if(!time)throw std::runtime_error("invalid official publication time");
             if(Larger(id,result.state.newestMessageId))result.state.newestMessageId=id;
             const auto textMarker=block.find("class=\"tgme_widget_message_text js-message_text\"");
+            if(textMarker==block.npos && block.find("tgme_widget_message_text")!=block.npos)
+                throw std::runtime_error("official text structure changed");
             if(textMarker!=block.npos && seen.insert(std::string(id)).second) {
+                ++textCount;
                 const auto begin=block.find('>',textMarker),end=block.find("</div>",begin);
                 if(begin==block.npos || end==block.npos)throw std::runtime_error("official text structure missing");
                 const auto body=block.substr(begin+1,end-begin-1);auto text=html::Text(body);
@@ -74,6 +77,7 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                     if(mixed!=text.npos)text.resize(mixed);
                     OfficialAnnouncement a;a.sourceRecordId=id;a.sourceUrl="https://t.me/escapefromtarkovEN/"+std::string(id);
                     a.publishedAt=time;a.summary=text;
+                    a.titleIsExcerpt=true;
                     constexpr std::string_view changeLink="href=\"https://changes.tarkov-changes.com/view/";
                     std::size_t linkPos{};
                     while((linkPos=body.find(changeLink,linkPos))!=body.npos) {
@@ -99,6 +103,7 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                 }
             }cursor=next;
         }
+        if(!textCount)throw std::runtime_error("official text contract missing");
         result.state.etag=response.etag;result.state.lastModified=response.lastModified;
         result.success=true;return result;
     }catch(const std::exception& e){result.success=false;result.announcements.clear();result.state=previous;result.error=e.what();return result;}

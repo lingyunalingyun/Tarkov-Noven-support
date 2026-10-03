@@ -21,6 +21,11 @@ int main(int argc,char** argv){try{
     Check(parsed.announcements[0].status==EventStatus::Active && !parsed.announcements[0].endsAt && !parsed.announcements[0].startsAt);
     Check(parsed.announcements[0].summary.find("weekend")==std::string::npos);
     Check(parsed.announcements[0].modes==std::vector<EventMode>{EventMode::Seasonal});
+    Check(parsed.announcements[0].titleIsExcerpt);
+    r.body+=r.body;Check(OfficialEventSource::Parse(r).announcements.size()==1);
+    r.body=Page("An in-game event has started.");
+    const auto shape=r.body.find("js-message_text");r.body.replace(shape,15,"changed-text-v2");
+    Check(!OfficialEventSource::Parse(r).success);
     r.body=Page("An in-game event will start at 2026-10-04T10:00:00+03:00 in PvE mode. It will remain active until 2026-10-05T10:00:00+03:00.");
     parsed=OfficialEventSource::Parse(r);Check(parsed.success && parsed.announcements[0].startsAt && parsed.announcements[0].endsAt);
     EventCatalog c;std::string error;Check(c.Apply(parsed.announcements,error));Check(c.Apply(parsed.announcements,error));Check(c.Events().size()==1);
