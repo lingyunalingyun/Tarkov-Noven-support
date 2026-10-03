@@ -656,6 +656,9 @@ int wmain(int argc, wchar_t** argv) try {
         ui.Paint();
         const float detailX=raidWidth<720?raidLeft+30:raidLeft+raidWidth*.4F+40;
         (void)ui.MouseWheel(static_cast<int>(detailX*scale),static_cast<int>((raidTop+80)*scale),-480);
+        Require(ui.AnimationActive(),"raid wheel input schedules native smooth scrolling");
+        for(int frame=0;frame<60&&ui.AnimationActive();++frame) {Sleep(16);(void)ui.AnimationTick();}
+        Require(!ui.RaidHistory().Animating(),"raid wheel motion settles before contextual navigation");
         ui.Paint();
         const auto selected=ui.RaidHistory().SelectedId();const auto listScroll=ui.RaidHistory().ListScroll();const auto detailScroll=ui.RaidHistory().DetailScroll();
         const auto scanBounds=ui.RaidHistory().ScanBounds(linkedScan.scanId);Require(scanBounds.has_value(),"linked scan has shared visible hit geometry");

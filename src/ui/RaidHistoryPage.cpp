@@ -52,6 +52,7 @@ std::wstring RaidHistoryPage::ScanName(const data::RecentScanEntry& scan) const 
     return Wide(scan.canonicalName);
 }
 bool RaidHistoryPage::Select(std::string id) {
+    wheelScrolling_=false;
     selected_=std::move(id); detailScroll_=0; RefreshScans();
     const auto& rows=browser_.Rows();
     const auto it=std::find_if(rows.begin(),rows.end(),[&](auto i){return browser_.Sessions()[i].localSessionId==selected_;});
@@ -252,7 +253,7 @@ std::optional<data::RecentScanEntry> RaidHistoryPage::MouseUp(float x,float y) {
         const auto row=RowAt(position),downRow=RowAt(down.y-listRect_.top+listScroll_);
         if(row&&downRow==row) {
             const auto& id=browser_.Sessions()[browser_.Rows()[*row]].localSessionId;
-            if(id==selected_) {expansion_.Retarget(!expansion_.open,*row);focusTarget_=expansion_.open?std::optional(expansion_.ScrollTarget(rowHeight)):std::nullopt;}
+            if(id==selected_) {wheelScrolling_=false;expansion_.Retarget(!expansion_.open,*row);focusTarget_=expansion_.open?std::optional(expansion_.ScrollTarget(rowHeight)):std::nullopt;}
             else Select(id);
         } else if(!row&&expansion_.open) {
             const float scanPosition=y-DetailTop()-scansTop;
@@ -276,8 +277,12 @@ bool RaidHistoryPage::Wheel(int delta,float x,float y) {
         menuOffset_=static_cast<std::size_t>(std::clamp(static_cast<int>(menuOffset_)-delta/WHEEL_DELTA,0,static_cast<int>(options.size()-rows)));return true;
     }
     const bool detail=false;const auto rect=detail?detailRect_:listRect_;if(!Hit(rect,x,y))return false;
-    focusTarget_.reset();
-    auto& scroll=detail?detailScroll_:listScroll_;scroll=std::clamp(scroll-delta/120.0F*80,0.0F,(std::max)(0.0F,ContentHeight(detail)-(rect.bottom-rect.top)));return true;
+    if(grab_)return true;
+    // 连续滚轮累积目标；首次手动滚动从当前视图接管，不能沿用卡片置顶目标。
+    // Accumulate wheel targets; the first manual input takes over from the current viewport, not the card anchor.
+    const float origin=wheelScrolling_?focusTarget_.value_or(listScroll_):listScroll_;
+    focusTarget_=std::clamp(origin-delta/120.0F*80,0.0F,(std::max)(0.0F,ContentHeight(false)-(rect.bottom-rect.top)));
+    wheelScrolling_=true;return true;
 }
 bool RaidHistoryPage::Key(WPARAM key,bool control) {
     if(key==VK_ESCAPE&&menu_) {CloseMenu();return true;}

@@ -85,6 +85,26 @@ int wmain(int argc,wchar_t** argv) {
     cards.Select("local-two");cards.Tick(0.016F);
     Require(cards.Wheel(-120,left+30,300),"manual wheel overrides automatic card focus");
     const auto manualScroll=cards.ListScroll();for(int i=0;i<60;++i)cards.Tick(0.016F);
-    Require(cards.ListScroll()==manualScroll,"focus motion never fights manual scrolling");
+    Require(cards.ListScroll()>manualScroll&&!cards.Animating(),"manual wheel settles smoothly instead of resuming card anchoring");
+    RaidHistoryPage scrolling;std::vector<noven::raid::RaidSession> many;
+    for(int i=0;i<30;++i){auto next=raid;next.localSessionId="scroll-"+std::to_string(i);many.push_back(next);}
+    scrolling.SetSessions(std::move(many),{},false);scrolling.Prepare(1600,900,theme);
+    Require(scrolling.Wheel(-120,left+30,300)&&scrolling.ListScroll()==0&&scrolling.Animating(),"wheel schedules smooth motion without jumping");
+    scrolling.Tick(0.016F);Require(scrolling.ListScroll()>0&&scrolling.ListScroll()<80,"wheel advances partially on first frame");
+    scrolling.Wheel(-240,left+30,300);scrolling.Wheel(120,left+30,300);
+    for(int i=0;i<60;++i)scrolling.Tick(0.016F);
+    Require(scrolling.ListScroll()==160&&!scrolling.Animating(),"rapid and reversed wheel inputs accumulate exactly and settle idle");
+    scrolling.Wheel(-120,left+30,300);
+    scrolling.MouseDown(1600-theme.contentPadding-7,300);scrolling.MouseMove(1600-theme.contentPadding-7,340);
+    const auto dragged=scrolling.ListScroll();scrolling.CancelDrag();
+    for(int i=0;i<60;++i)scrolling.Tick(0.016F);
+    Require(scrolling.ListScroll()==dragged&&!scrolling.Animating(),"scrollbar drag cancels wheel animation and responds directly");
+    scrolling.Wheel(-120,left+30,300);scrolling.Tick(0.016F);
+    const auto beforeLeaving=scrolling.ListScroll();scrolling.Blur();scrolling.Tick(0.016F);
+    Require(scrolling.ListScroll()==beforeLeaving&&!scrolling.Animating(),"leaving during wheel motion preserves current viewport without a hidden jump");
+    scrolling.Wheel(-120000,left+30,300);for(int i=0;i<60;++i)scrolling.Tick(0.016F);scrolling.Blur();
+    Require(scrolling.ListScroll()==2480&&!scrolling.Animating(),"hidden page settles at bounded bottom without animation work");
+    scrolling.Wheel(120000,left+30,300);for(int i=0;i<60;++i)scrolling.Tick(0.016F);
+    Require(scrolling.ListScroll()==0&&!scrolling.Animating(),"large upward wheel clamps and settles at top");
     std::cout<<"Native raid history resident-page contracts PASS\n";
 }

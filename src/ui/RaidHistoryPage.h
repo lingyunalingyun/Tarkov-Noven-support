@@ -28,7 +28,7 @@ public:
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value);
     void CancelDrag() { grab_.reset(); pressed_.reset(); }
-    void Blur() { search_.Blur(); menu_.reset(); hover_.reset(); menuProgress_=0; detailProgress_=1; expansion_.Advance(1,ContentHeight(true)); if(focusTarget_)listScroll_=*focusTarget_;focusTarget_.reset(); CancelDrag(); }
+    void Blur() { search_.Blur(); menu_.reset(); hover_.reset(); menuProgress_=0; detailProgress_=1; expansion_.Advance(1,ContentHeight(true)); if(focusTarget_&&!wheelScrolling_)listScroll_=*focusTarget_;focusTarget_.reset(); CancelDrag(); }
     bool Animating() const noexcept;
     void Tick(float elapsed);
     std::vector<std::string> VisibleImages() const;
@@ -65,6 +65,7 @@ private:
     bool unavailable_{},compact_{};
     ExpandableCardState expansion_;
     std::optional<float> focusTarget_;
+    bool wheelScrolling_{};
     std::size_t layoutBuilds_{};
     D2D1_RECT_F searchRect_{},listRect_{},detailRect_{};
     std::array<D2D1_RECT_F,4> controls_{};
