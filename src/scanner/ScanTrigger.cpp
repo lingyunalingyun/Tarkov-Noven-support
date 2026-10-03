@@ -505,6 +505,50 @@ void ScanTrigger::WorkerLoop() {
             const auto panel_start = std::chrono::steady_clock::now();
             tooltip_box_candidate = DetectTooltipBox(
                 job.capture_result.frame, job.anchor, job.tooltip_placement);
+            // 边缘预估不能取代实际名称框；仅在左侧缺少可信面板时补一次右侧捕获。
+            // Edge prediction is not panel evidence; capture the right side once if the left lacks a credible box.
+            const auto alternative = RightTooltipAlternative(job.screen_anchor,
+                job.monitor_bounds.Empty() ? job.virtual_screen : job.monitor_bounds,
+                job.tooltip_placement);
+            if (alternative && (!tooltip_box_candidate
+                || tooltip_box_candidate->geometryConfidence < 0.45F
+                || tooltip_box_candidate->textConfidence == 0.0F)) {
+                pixels_captured_this_step = static_cast<std::size_t>(
+                    job.capture_result.frame.width) * job.capture_result.frame.height;
+                const auto alternate_start = std::chrono::steady_clock::now();
+                auto alternate_capture = capture_backend_.Capture(alternative->roi);
+                for (int attempt = 0; attempt < 3 && job.capture_guard_pending
+                    && alternate_capture.Succeeded()
+                    && !capture::FrameSafeAfterOverlayHide(true, alternate_capture.source);
+                    ++attempt) {
+                    DwmFlush();
+                    alternate_capture = capture_backend_.Capture(alternative->roi);
+                }
+                job.capture_ms += ElapsedMilliseconds(alternate_start);
+                if (alternate_capture.Succeeded()
+                    && capture::FrameSafeAfterOverlayHide(job.capture_guard_pending,
+                        alternate_capture.source)) {
+                    pixels_captured_this_step += static_cast<std::size_t>(
+                        alternate_capture.frame.width) * alternate_capture.frame.height;
+                    const AnchorPoint alternate_anchor{
+                        static_cast<float>(job.screen_anchor.x - alternative->roi.left),
+                        static_cast<float>(job.screen_anchor.y - alternative->roi.top)};
+                    auto alternate_panel = DetectTooltipBox(alternate_capture.frame,
+                        alternate_anchor, alternative->placement);
+                    if (alternate_panel && alternate_panel->geometryConfidence >= 0.45F
+                        && alternate_panel->panelConfidence >= 0.55F
+                        && alternate_panel->textConfidence > 0.0F) {
+                        job.roi = alternative->roi;
+                        job.anchor = alternate_anchor;
+                        job.tooltip_placement = alternative->placement;
+                        job.capture_result = std::move(alternate_capture);
+                        tooltip_box_candidate = std::move(alternate_panel);
+                    }
+                }
+                common::DebugLog(L"[tooltip-probe] right_alternative=true selected="
+                    + std::wstring(job.tooltip_placement == alternative->placement
+                        ? L"true" : L"false"));
+            }
             tooltip_probe_preselected = true;
             common::DebugLog(
                 L"[tooltip-probe] placement="

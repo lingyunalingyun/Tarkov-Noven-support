@@ -5,6 +5,7 @@
 
 #include "capture/CaptureTypes.h"
 #include "ocr/OcrTypes.h"
+#include <optional>
 
 namespace noven::scanner {
 
@@ -47,6 +48,13 @@ struct TooltipPlacementPrediction final {
     capture::Point cursor,
     const ocr::TextBox& panel,
     TooltipPlacement placement
+) noexcept;
+
+// 右边缘宽度只是预测；左侧面板缺失时仍允许在可见右侧验证短标题。
+// Expected width is not observed placement; verify short right-side titles when the left probe fails.
+[[nodiscard]] std::optional<TooltipPlacementPrediction> RightTooltipAlternative(
+    capture::Point cursor, capture::Rect monitor,
+    TooltipPlacement primary
 ) noexcept;
 
 [[nodiscard]] const wchar_t* TooltipPlacementName(TooltipPlacement placement) noexcept;

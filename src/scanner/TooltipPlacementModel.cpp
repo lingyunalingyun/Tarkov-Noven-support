@@ -31,6 +31,19 @@ TooltipPlacementPrediction PredictTooltipPlacement(
     };
 }
 
+std::optional<TooltipPlacementPrediction> RightTooltipAlternative(
+    capture::Point cursor, capture::Rect monitor, TooltipPlacement primary
+) noexcept {
+    if (primary != TooltipPlacement::RightEdgeShiftedLeft) return std::nullopt;
+    TooltipPlacementProfile profile;
+    profile.expectedPanelWidth = 0;
+    auto prediction = PredictTooltipPlacement(cursor, monitor, profile);
+    if (prediction.placement != TooltipPlacement::DefaultRightUpper
+        || prediction.roi.right - prediction.roi.left < 40
+        || prediction.roi.Empty()) return std::nullopt;
+    return prediction;
+}
+
 float TooltipGeometryConfidence(
     capture::Point cursor,
     const ocr::TextBox& panel,

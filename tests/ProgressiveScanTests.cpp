@@ -60,6 +60,24 @@ int main() {
     Require(secondary_monitor.placement
             == noven::scanner::TooltipPlacement::RightEdgeShiftedLeft,
         "placement uses cursor monitor bounds with negative coordinates");
+    const auto short_edge_title = noven::scanner::RightTooltipAlternative(
+        {2212, 574}, {0, 0, 2560, 1440},
+        noven::scanner::TooltipPlacement::RightEdgeShiftedLeft);
+    Require(short_edge_title && short_edge_title->roi.left == 2224
+            && short_edge_title->roi.right == 2524
+            && short_edge_title->placement == noven::scanner::TooltipPlacement::DefaultRightUpper,
+        "a short right-side title remains observable despite the estimated 420-pixel width");
+    Require(!noven::scanner::RightTooltipAlternative({500, 500}, {0, 0, 2560, 1440},
+                noven::scanner::TooltipPlacement::DefaultRightUpper)
+            && !noven::scanner::RightTooltipAlternative({2550, 500}, {0, 0, 2560, 1440},
+                noven::scanner::TooltipPlacement::RightEdgeShiftedLeft),
+        "normal placement and insufficient right-edge space do not add a capture probe");
+    const auto negative_edge_title = noven::scanner::RightTooltipAlternative(
+        {-348, 574}, {-2560, 0, 0, 1440},
+        noven::scanner::TooltipPlacement::RightEdgeShiftedLeft);
+    Require(negative_edge_title && negative_edge_title->roi.left == -336
+            && negative_edge_title->roi.right == -36,
+        "alternate probing preserves negative monitor coordinates");
     const auto credible_geometry = noven::scanner::TooltipGeometryConfidence(
         {500, 500}, {525, 412, 750, 480, 1.0F},
         noven::scanner::TooltipPlacement::DefaultRightUpper);
