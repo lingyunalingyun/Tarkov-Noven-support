@@ -202,6 +202,14 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenEventEnricherTests tests/EventEnricherTests.cpp src/events/TarkovDevEventEnricher.cpp src/events/EventCatalog.cpp
+        src/data/ItemCatalog.cpp src/data/TaskCatalog.cpp src/data/MapCatalog.cpp)
+    target_include_directories(NovenEventEnricherTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenEventEnricherTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenEventEnricherTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME event_enricher COMMAND NovenEventEnricherTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
     add_executable(NovenEventSourceTests tests/EventSourceTests.cpp src/events/OfficialEventSource.cpp src/events/EventHttp.cpp src/events/EventCatalog.cpp)
     target_include_directories(NovenEventSourceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_definitions(NovenEventSourceTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
