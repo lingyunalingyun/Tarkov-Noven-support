@@ -456,7 +456,7 @@ int main(int argc, char** argv) {
     std::filesystem::remove(fixture_path);
 
     noven::data::ItemCatalog unavailable_catalog;
-    for (const std::string noise : {"-", "' - '", "232/400", "246"}) {
+    for (const std::string noise : {"-", "' - '", "232/400", "246", "A", "x"}) {
         auto noisy_scan = noven::scanner::BuildInventoryRecognition(
             200, noven::scanner::InventoryRecognitionPath::AdaptiveFallback,
             std::nullopt, {Text(noise)});
