@@ -45,6 +45,8 @@ private:
     float RowTop(std::size_t index) const;
     std::optional<std::size_t> RowAt(float position) const;
     float DetailTop() const;
+    D2D1_RECT_F ScanCardRect(std::size_t index) const;
+    std::optional<D2D1_RECT_F> VisibleScanRect(std::size_t index) const;
     void CloseMenu() { menuClosing_=true; if(menuProgress_<=0)menu_.reset(); }
     void ApplyFilter();
     void RefreshScans();

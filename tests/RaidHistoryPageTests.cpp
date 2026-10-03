@@ -1,5 +1,6 @@
 #include "ui/RaidHistoryPage.h"
 #include "ui/RaidHistoryFormat.h"
+#include "ui/RaidHistoryCard.h"
 #include <cstdlib>
 #include <iostream>
 using namespace noven::ui;
@@ -7,6 +8,24 @@ void Require(bool ok,const char* text) {if(!ok){std::cerr<<text<<'\n';std::exit(
 int wmain(int argc,wchar_t** argv) {
     Require(argc==2,"locale directory");std::wstring error;
     Require(UiLocalization().DiscoverLocales(argv[1],error),"locale loading");
+    const auto checkLocalizedFormats=[] {
+        using namespace noven::raid;
+        for(const auto [mode,key]:{std::pair{GameMode::PvP,TextKey::RaidPvp},{GameMode::PvE,TextKey::RaidPve},
+            {GameMode::Practice,TextKey::RaidPractice},{GameMode::Offline,TextKey::RaidOffline},{GameMode::Unknown,TextKey::Unknown}})
+            Require(RaidModeText(mode)==Tr(key),"all mode labels use active locale resources");
+        for(const auto [type,key]:{std::pair{RaidType::PMC,TextKey::RaidPmc},{RaidType::Scav,TextKey::RaidScav},{RaidType::Unknown,TextKey::Unknown}})
+            Require(RaidTypeText(type)==Tr(key),"all role labels use active locale resources");
+        for(const auto [outcome,key]:{std::pair{RaidOutcome::Survived,TextKey::RaidSurvived},{RaidOutcome::RunThrough,TextKey::RaidRunThrough},
+            {RaidOutcome::KIA,TextKey::RaidKia},{RaidOutcome::MIA,TextKey::RaidMia},{RaidOutcome::Left,TextKey::RaidLeft},{RaidOutcome::Unknown,TextKey::Unknown}})
+            Require(RaidOutcomeText(outcome)==Tr(key),"outcome labels never replace Unknown with an inferred result");
+        Require(RaidPriceText(std::nullopt)==Tr(TextKey::Unknown)&&RaidPriceText(0)==L"₽0","missing snapshot price differs from verified zero");
+    };
+    checkLocalizedFormats();
+    for(float width:{500.0F,1100.0F}) {
+        const RaidHistoryCardLayout card{D2D1::RectF(300,238,300+width,878),342};
+        Require(card.bounds.bottom==438&&card.bounds.right==300+width-16,"shared card bounds retain accepted row spacing and scrollbar inset");
+        Require(card.TextBounds(5,30).left==312&&card.TextBounds(5,30).right==300+width-22,"text aligns to card padding at both widths");
+    }
     const UiTheme theme;RaidHistoryPage page;
     noven::data::ItemCatalog catalog;Require(catalog.Load(std::filesystem::path(argv[1]).parent_path()/"data"/"items_catalog.tsv",error),"item catalog");
     page.SetItemCatalog(catalog);
@@ -23,6 +42,8 @@ int wmain(int argc,wchar_t** argv) {
     page.MouseDown(cardLeft+30,258);(void)page.MouseUp(cardLeft+30,258);
     Require(!page.Expanded()&&page.Animating(),"same card click starts collapse without losing selection");
     for(int i=0;i<30;++i)page.Tick(0.016F);
+    page.MouseDown(cardLeft+30,338);(void)page.MouseUp(cardLeft+30,338);
+    Require(!page.Expanded(),"spacing below a card is not an invisible clickable header");
     Require(!page.Animating()&&page.VisibleImages().empty(),"collapsed card stops animation and image requests");
     page.MouseDown(cardLeft+30,258);(void)page.MouseUp(cardLeft+30,258);
     Require(page.Expanded(),"same header reopens the card");
@@ -39,6 +60,8 @@ int wmain(int argc,wchar_t** argv) {
     noven::data::RecentScanEntry scan;scan.stableItemId="item";scan.localSessionId="local-one";
     page.SetScans({scan});page.Prepare(1600,900,theme);
     Require(page.VisibleImages().size()==1,"visible linked scan requests image");
+    const auto visibleScan=page.ScanBounds(scan.scanId);
+    Require(visibleScan&&visibleScan->top<visibleScan->bottom&&visibleScan->right==1600-theme.contentPadding-16,"scan drawing and visible hit bounds share scrollbar inset");
     scan.localSessionId="different";page.SetScans({scan});
     Require(page.VisibleImages().empty(),"unrelated identity never enters detail");
     page.Prepare(theme.sidebarWidth+500,700,theme);Require(page.SelectedId()=="local-one","responsive layout retains selection");
@@ -48,6 +71,7 @@ int wmain(int argc,wchar_t** argv) {
     Require(RaidDurationText(61000)==L"1 分钟 1 秒"&&RaidDurationText(std::nullopt)==L"未知","localized duration substitutes count placeholders and preserves missing values");
     Require(RaidTimeText(1767225600000)==L"2026-01-01 00:00:00","wall-clock timestamp has no timezone shift");
     Require(UiLocalization().SetLocale("en-US")&&Tr(TextKey::Unknown)==L"Unknown","unknown localized English");
+    checkLocalizedFormats();
     Require(RaidDurationText(61000)==L"1 min 1 s","English duration substitutes both counts");
     scan.stableItemId="66b5f22b78bbc0200425f904";
     Require(page.ScanName(scan)==L"Camelbak Tri-Zip assault backpack (MultiCam)","catalog translation rather than historical Chinese name");
