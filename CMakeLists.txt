@@ -48,6 +48,7 @@ add_executable(NovenTarkovSupport WIN32
     src/main.cpp
     src/app/App.cpp
     src/events/EventCatalog.cpp
+    src/events/EventBrowser.cpp
     src/events/EventCache.cpp
     src/events/EventHttp.cpp
     src/events/OfficialEventSource.cpp
@@ -210,6 +211,12 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenEventBrowserTests tests/EventBrowserTests.cpp src/events/EventBrowser.cpp src/events/EventCatalog.cpp)
+    target_include_directories(NovenEventBrowserTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    if(MSVC)
+        target_compile_options(NovenEventBrowserTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME event_browser COMMAND NovenEventBrowserTests)
     add_executable(NovenEventServiceTests tests/EventServiceTests.cpp src/events/EventService.cpp src/events/EventCache.cpp
         src/events/EventCatalog.cpp src/events/EventHttp.cpp src/events/OfficialEventSource.cpp src/events/EventEnrichment.cpp
         src/events/TarkovDevEventEnricher.cpp src/events/TarkovChangesEnricher.cpp src/data/ItemCatalog.cpp src/data/TaskCatalog.cpp src/data/MapCatalog.cpp)
