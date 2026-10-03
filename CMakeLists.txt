@@ -202,6 +202,13 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenEventCacheTests tests/EventCacheTests.cpp src/events/EventCache.cpp src/events/EventCatalog.cpp)
+    target_include_directories(NovenEventCacheTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenEventCacheTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        target_compile_options(NovenEventCacheTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME event_cache COMMAND NovenEventCacheTests)
     add_executable(NovenEventCatalogTests tests/EventCatalogTests.cpp src/events/EventCatalog.cpp)
     target_include_directories(NovenEventCatalogTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     if(MSVC)

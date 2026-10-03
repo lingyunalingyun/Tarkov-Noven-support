@@ -36,6 +36,7 @@ Testing/
 /data/economy-cache/
 /data/recent-scans.json
 /data/raid-history.json*
+/data/events/
 /data/eft-log-root.txt
 /data/item-images/
 /data/price-history/
