@@ -372,6 +372,40 @@ an EFT log path; reading new logs still requires explicit configuration.
 已知扫描小计排除未知价格，不代表全部战利品或对局收益。
 未配置日志路径也能浏览保存的对局；新增日志读取仍需显式配置。
 
+## Events source/cache foundation / 活动来源与缓存基础
+
+启动时立即读取 `<exe>/data/events/event-catalog.json`，再由原生 WinHTTP 后台检查一次官方
+英语 Telegram 公开页；不需要账号、令牌或游戏进程访问，没有永久轮询，也尚未提供活动页面。
+Startup loads this local cache immediately, then checks the official English Telegram public page once
+using native WinHTTP. No account, token, game-process access or permanent polling is required; the Events
+page is not implemented yet.
+
+活动身份采用官方消息 ID；公告发布时间不等于活动开始时间。只有明确的游戏内活动措辞进入
+目录，维护、营销和普通新闻不作为活动。没有正式标题时保存原文首段摘录，不生成猜测名称。
+目前只支持有限英语措辞以及完整 ISO 8601 时间；缺少年份/明确时区的自然语言日期保持未知。
+相似标题、相近发布时间和配置变化均不能用来猜测活动存在或合并活动。
+Identity uses official message IDs. Publication does not imply start time. Only supported explicit in-game
+event wording creates records; news, maintenance and marketing do not. Without an official title, an original
+leading excerpt is retained, not an invented name. The current adapter supports limited English wording and
+complete ISO 8601 timestamps; incomplete natural-language dates remain unknown. Similar titles, nearby
+timestamps and configuration changes never establish event existence or correlation.
+
+DEV 补充层只复用本地已生成的物品/任务/地图及 mob 身份，完整名称精确匹配，歧义保持未解析。
+Tarkov-Changes 仅在官方公告明确链接公开 `/view/<id>` 记录时补充键/旧值/新值；不从差异生成活动。
+每次最多获取 4 个相关变更页，每页最多保留 16 项受支持变化；不自动回溯频道历史。
+DEV enrichment reuses generated item/task/map/mob identities with exact full-name matching; ambiguity stays
+unresolved. Tarkov-Changes adds supported key/old/new evidence only for explicitly linked public view records;
+diffs cannot create events. At most four related change pages are fetched per refresh, with at most sixteen
+supported changes per record. Channel history is not automatically backfilled.
+
+目录最多保留最新 256 个活动，每个最多 32 项证据；单次响应最多 2 MiB，缓存最多 8 MiB。
+原子缓存同时保存目录和来源游标，不保存原始 HTML、完整网页或私有数据。刷新失败不会清空旧
+目录；损坏/不支持的缓存保留原文件并停止覆盖写入。HTML 来源结构可能改变，解析失败安全停止。
+The catalog retains at most 256 latest events and 32 evidence entries per event, with 2 MiB response and
+8 MiB cache limits. Atomic storage commits catalog and source state together, never raw HTML, full pages or
+private data. Failed refreshes preserve valid data; corrupt/unsupported caches are left untouched and cannot
+be overwritten. Public HTML structures may change; unsupported responses fail closed.
+
 ## Build
 
 Configure and build from an x64 Native Tools command prompt or Developer

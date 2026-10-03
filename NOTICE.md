@@ -1,5 +1,18 @@
 # Third-party notices / 第三方来源与版权
 
+## Public event sources / 公开活动来源
+
+官方活动事实来自 [Escape from Tarkov Official 英语公开频道](https://t.me/s/escapefromtarkovEN)。
+完整名称/身份补充复用 [Tarkov.dev](https://tarkov.dev/api/) 生成目录；
+配置变化证据来源为 [Tarkov Silent Changes](https://changes.tarkov-changes.com/latest)，且仅附加官方明确链接的记录。
+运行时只保存必要的规范化内容、来源链接与身份，不镜像完整频道或网页。来源内容、游戏名称及商标
+权利归各自权利人，署名不等于获得额外再分发授权。Noven 为独立工具，与 Battlestate Games 无官方隶属或背书关系。
+Official event facts originate from the public English EFT channel. Entity enrichment reuses Tarkov.dev
+catalogs; configuration evidence uses explicitly linked Tarkov Silent Changes records only. Runtime storage
+contains necessary normalized content, links and identities, not mirrored channels/pages. Source content,
+game names and trademarks retain their respective owners' rights; attribution grants no additional redistribution
+permission. Noven is an independent tool, not officially affiliated with or endorsed by Battlestate Games.
+
 本文件记录 Noven 打包地图资源的署名及权利边界，不授予额外权利，不替代第三方原有许可，也不改变应用源码的许可。免费提供或公开源码本身不等于满足素材许可。
 These notices preserve third-party rights and licenses; they do not grant additional permissions or change the application source license. Free distribution or public source alone does not establish asset-license compliance.
 

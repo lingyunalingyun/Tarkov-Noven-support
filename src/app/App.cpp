@@ -27,6 +27,9 @@
 #include "ui/MainWindowUi.h"
 #include "raid/LocalRaidService.h"
 #include "raid/RaidScanAssociation.h"
+#include "events/OfficialEventSource.h"
+#include "events/EventService.h"
+#include "events/EventEnrichment.h"
 
 #include <dwmapi.h>
 #include <shellscalingapi.h>
@@ -211,6 +214,7 @@ App::App()
       recent_scan_store_(std::make_unique<data::RecentScanStore>()) {}
 
 App::~App() {
+    if (event_service_) event_service_->Stop();
     if (local_raid_service_) local_raid_service_->Stop();
     map_asset_worker_.request_stop();
     if(map_asset_worker_.joinable())map_asset_worker_.join();
@@ -287,6 +291,18 @@ int App::Run(HINSTANCE instance, int show_command) {
         common::DebugLog(L"[recent-scans] load warning: " + history_error);
     }
     recent_scan_id_base_ = recent_scan_store_->MaxScanId();
+    // 先加载本地活动缓存，再后台检查一次；暂不接入 Events 页面或扫描流程。
+    // Load local event cache first, then check once in background; no Events page or Scanner integration yet.
+    event_http_=std::make_unique<events::WinHttpEventClient>();
+    official_event_source_=std::make_unique<events::OfficialEventSource>(*event_http_);
+    event_service_=std::make_unique<events::EventService>(*official_event_source_,
+        events::MakeEventEnrichment(ExecutableDirectory()/L"assets",*event_http_));
+    event_service_->SetChangedCallback([this]{
+        const auto state=event_service_->RefreshState();
+        common::DebugLog(state.phase==events::RefreshPhase::Ready?L"[events] refresh ready":L"[events] refresh failed; cache preserved");
+    });
+    if(!event_service_->Start(ExecutableDirectory()/L"data"/L"events"/L"event-catalog.json"))
+        common::DebugLog(L"[events] cache unavailable; original file preserved");
     main_ui_->StartItemImages(ExecutableDirectory() / L"data" / L"item-images");
     main_ui_->StartPriceHistory(ExecutableDirectory() / L"data" / L"price-history");
     main_ui_->SetRecentScans(recent_scan_store_->Snapshot());

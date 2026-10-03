@@ -47,6 +47,14 @@ endif()
 add_executable(NovenTarkovSupport WIN32
     src/main.cpp
     src/app/App.cpp
+    src/events/EventCatalog.cpp
+    src/events/EventCache.cpp
+    src/events/EventHttp.cpp
+    src/events/OfficialEventSource.cpp
+    src/events/TarkovDevEventEnricher.cpp
+    src/events/TarkovChangesEnricher.cpp
+    src/events/EventEnrichment.cpp
+    src/events/EventService.cpp
     src/raid/RaidEventParser.cpp
     src/raid/RaidSessionDetector.cpp
     src/raid/EftLogReader.cpp
@@ -202,6 +210,16 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenEventServiceTests tests/EventServiceTests.cpp src/events/EventService.cpp src/events/EventCache.cpp
+        src/events/EventCatalog.cpp src/events/EventHttp.cpp src/events/OfficialEventSource.cpp src/events/EventEnrichment.cpp
+        src/events/TarkovDevEventEnricher.cpp src/events/TarkovChangesEnricher.cpp src/data/ItemCatalog.cpp src/data/TaskCatalog.cpp src/data/MapCatalog.cpp)
+    target_include_directories(NovenEventServiceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenEventServiceTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(NovenEventServiceTests PRIVATE winhttp)
+    if(MSVC)
+        target_compile_options(NovenEventServiceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME event_service COMMAND NovenEventServiceTests)
     add_executable(NovenEventChangesTests tests/EventChangesTests.cpp src/events/TarkovChangesEnricher.cpp src/events/EventHttp.cpp src/events/EventCatalog.cpp)
     target_include_directories(NovenEventChangesTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_definitions(NovenEventChangesTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
