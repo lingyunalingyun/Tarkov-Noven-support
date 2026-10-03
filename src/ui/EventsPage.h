@@ -30,7 +30,7 @@ public:
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value);
     void CancelDrag(){grab_.reset();pressed_.reset();}
-    void Blur(){search_.Blur();CancelDrag();listScroll_=listTarget_;detailScroll_=detailTarget_;detailOpacity_=1;filterPosition_=filterTarget_;}
+    void Blur(){search_.Blur();CancelDrag();listTarget_=listScroll_;detailTarget_=detailScroll_;detailOpacity_=1;filterPosition_=filterTarget_;}
     bool Animating() const noexcept;
     void Tick(float seconds);
     bool ClockTick(events::Timestamp now);

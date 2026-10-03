@@ -38,6 +38,8 @@ public:
     bool Tick(float seconds);
     bool Animating() const;
     bool GoBackTask();
+    bool OpenTask(std::string_view id,data::GameMode mode);
+    const data::TaskCatalog& Catalog() const noexcept {return catalog_;}
     void Activate() { textScrollTime_=0.0F; }
 
     [[nodiscard]] const std::wstring& QueryText() const { return search_.Text(); }

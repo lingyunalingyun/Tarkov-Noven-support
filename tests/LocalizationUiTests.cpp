@@ -665,6 +665,44 @@ int wmain(int argc, wchar_t** argv) try {
         Require(!click(scanBounds->left+30,scanBounds->top+8)&&ui.ActivePage()==MainPage::Prices&&ui.CanGoBack(),"linked snapshot opens Prices by stable identity and source mode");
         Require(ui.GoBack()&&ui.ActivePage()==MainPage::RaidHistory&&ui.RaidHistory().SelectedId()==selected
             &&ui.RaidHistory().ListScroll()==listScroll&&ui.RaidHistory().DetailScroll()==detailScroll,"contextual and side-back command preserve resident raid selection and both scroll positions");
+        noven::events::EventRecord eventFixture;
+        eventFixture.eventId="synthetic-ui-event-0";eventFixture.title="Fixture official event";
+        for(int i=0;i<80;++i)eventFixture.summary+="Stored official announcement text. ";
+        eventFixture.sourceStatus=noven::events::EventStatus::Active;
+        const auto eventMapId=ui.Map().Catalog(noven::data::GameMode::Pvp).Maps().front().id;
+        eventFixture.mapIds={eventMapId,"unresolved-map"};eventFixture.taskIds={taskId};eventFixture.itemIds={linkedScan.stableItemId};
+        std::vector<noven::events::EventRecord> eventFixtures;
+        for(int i=0;i<8;++i){auto copy=eventFixture;copy.eventId="synthetic-ui-event-"+std::to_string(i);eventFixtures.push_back(std::move(copy));}
+        ui.SetEvents(eventFixtures,{noven::events::RefreshPhase::Ready,{},{}},100);
+        selectPage(MainPage::Events);
+        Require(!click(raidLeft+20,100),"Events search focus");for(wchar_t c:std::wstring(L"fixture"))Require(ui.Char(c),"Events shared Unicode input");
+        ui.Paint();Require(!click(raidLeft+raidWidth*.3F,150),"Events status tab does not emit game mode");
+        for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}
+        (void)ui.MouseWheel(static_cast<int>((raidLeft+30)*scale),static_cast<int>(400*scale),-240);
+        for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
+        Require(!click(raidLeft+30,260)&&!ui.Events().SelectedId().empty(),"Events list selects a stable event without reordering");
+        for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
+        const float eventDetailX=ui.Events().Narrow()?raidLeft+30:width-theme.contentPadding-60;
+        (void)ui.MouseWheel(static_cast<int>(eventDetailX*scale),static_cast<int>(400*scale),-240);
+        for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
+        const auto eventSelected=ui.Events().SelectedId();const auto eventListScroll=ui.Events().ListScroll(),eventDetailScroll=ui.Events().DetailScroll();
+        const auto eventRows=ui.Events().Browser().Rows();
+        Require(!ui.OpenEventAssociation({EventAction::Kind::Map,"unresolved-map"})&&ui.ActivePage()==MainPage::Events,"unresolved map cannot produce a guessed jump");
+        for(const auto action:{EventAction{EventAction::Kind::Map,eventMapId},EventAction{EventAction::Kind::Task,taskId},EventAction{EventAction::Kind::Item,linkedScan.stableItemId}}) {
+            Require(ui.OpenEventAssociation(action)&&ui.CanGoBack(),"Events association opens through shared contextual navigation");
+            if(action.kind==EventAction::Kind::Map)Require(ui.ActivePage()==MainPage::Map&&ui.Map().MapId()==eventMapId,"Events uses exact map identity");
+            if(action.kind==EventAction::Kind::Task)Require(ui.ActivePage()==MainPage::Tasks&&ui.Tasks().SelectedTask()==taskId
+                &&ui.Tasks().SelectedTrader()==ui.Tasks().Catalog().Task("regular",taskId)->traderId,"Events uses exact task and trader identity");
+            if(action.kind==EventAction::Kind::Item)Require(ui.ActivePage()==MainPage::Prices&&ui.PriceSearch().Text()==std::wstring(action.id.begin(),action.id.end()),"Events uses exact item ID");
+            Require(ui.GoBack()&&ui.ActivePage()==MainPage::Events,"contextual and side-back return to Events");
+            Require(ui.Events().SelectedId()==eventSelected&&ui.Events().Search().Text()==L"fixture"
+                &&ui.Events().Browser().Filter()==noven::events::EventStatus::Active,"Events selection/query/filter remain resident");
+            Require(ui.Events().ListScroll()==eventListScroll&&ui.Events().DetailScroll()==eventDetailScroll,"Events preserves exact visible list/detail offsets");
+            Require(ui.Events().Browser().Rows()==eventRows,"Events selection and navigation do not reorder rows");
+            for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
+        }
+        ui.SetEvents(eventFixtures,{noven::events::RefreshPhase::Failed,"synthetic offline",{}},100);ui.Paint();
+        Require(ui.Events().Browser().Rows()==eventRows&&ui.Events().RefreshText()==Tr(TextKey::EventCached),"failed refresh never clears valid visible event data");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

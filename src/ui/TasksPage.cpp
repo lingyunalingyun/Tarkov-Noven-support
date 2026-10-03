@@ -329,6 +329,13 @@ void TasksPage::NavigateTask(std::string_view id,bool remember) {
     textScrollTime_=0.0F;
 }
 
+bool TasksPage::OpenTask(std::string_view id,data::GameMode mode) {
+    if(!browser_||!browser_->Task(mode,id))return false;
+    // 外部入口只接受稳定身份；清理旧任务链返回，不影响来源页的常驻状态。
+    // External entry accepts stable identity only; clear old task-chain back state, preserving the source page.
+    SetMode(mode);taskHistory_.clear();search_.SetText({});NavigateTask(id,false);Refresh();
+    return taskId_==id;
+}
 bool TasksPage::GoBackTask() {
     while(!taskHistory_.empty()){
         const auto id=std::move(taskHistory_.back());

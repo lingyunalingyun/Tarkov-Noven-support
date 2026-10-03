@@ -632,6 +632,7 @@ if(BUILD_TESTING)
     add_executable(NovenLocalizationUiTests
         tests/LocalizationUiTests.cpp
         src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
+        src/ui/EventsPage.cpp src/events/EventBrowser.cpp src/events/EventCatalog.cpp
         src/ui/RaidHistoryPage.cpp src/raid/RaidHistoryBrowser.cpp
         src/ui/HideoutPage.cpp src/ui/TasksPage.cpp src/ui/MapPage.cpp src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
         src/data/TaskCatalog.cpp src/data/TaskBrowser.cpp

@@ -9,6 +9,7 @@
 #include "ui/TasksPage.h"
 #include "ui/MapPage.h"
 #include "ui/RaidHistoryPage.h"
+#include "ui/EventsPage.h"
 #include "ui/PageTransition.h"
 
 #include <d2d1.h>
@@ -35,7 +36,15 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
-    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); raid_history_.CancelDrag(); }
+    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); raid_history_.CancelDrag(); events_.CancelDrag(); }
+    void SetEvents(std::vector<events::EventRecord> records,events::EventRefreshState state,std::optional<events::Timestamp> refreshed) {
+        events_.SetSnapshot(std::move(records),std::move(state),refreshed);Invalidate();
+    }
+    void SetEventRefreshHandler(std::function<bool()> handler){event_refresh_=std::move(handler);}
+    const EventsPage& Events() const noexcept {return events_;}
+    bool OpenEventAssociation(const EventAction& action);
+    static constexpr UINT_PTR EventClockTimerId=5;
+    void EventClockTick();
     void SetRaidSessions(std::vector<raid::RaidSession> sessions,std::optional<raid::RaidSession> active,bool unavailable) {
         raid_history_.SetSessions(std::move(sessions),std::move(active),unavailable);Invalidate();
     }
@@ -58,7 +67,7 @@ public:
     void SetHideoutDataSources(const std::filesystem::path& directory, const data::ItemCatalog& catalog,
         const data::ItemEconomyStore& economy) { hideout_.Initialize(directory,catalog,economy); }
     void SetTaskDataSources(const std::filesystem::path& directory,const data::ItemCatalog& catalog) {
-        tasks_.Initialize(directory,catalog);
+        tasks_.Initialize(directory,catalog);BindEventCatalogs();
     }
     bool SetMapDataSources(const std::filesystem::path& assets,std::wstring& error){
         const bool loaded=map_.Initialize(assets,error);
@@ -66,6 +75,7 @@ public:
             if(loaded)tasks_.SetMapLinks(map_.Catalog(mode),mode);
             else tasks_.SetMapLinks(data::MapCatalog{},mode);
         raid_history_.SetMaps(map_.Catalog(data::GameMode::Pvp));
+        BindEventCatalogs();
         return loaded;}
     const TasksPage& Tasks() const noexcept{return tasks_;}
     void SetMapAssetGeneration(std::filesystem::path generation){map_.SetAssetGeneration(std::move(generation));Invalidate();}
@@ -74,7 +84,7 @@ public:
     [[nodiscard]] bool Ready() const noexcept { return window_ != nullptr; }
     [[nodiscard]] MainPage ActivePage() const noexcept { return navigation_.Active(); }
     bool GoBack();
-    bool CanGoBack() const noexcept { return return_page_.has_value(); }
+    bool CanGoBack() const noexcept { return !return_pages_.empty(); }
     const SearchBox& PriceSearch() const noexcept { return price_search_; }
     const PriceSearchTransition& PriceListTransition() const noexcept { return price_search_transition_; }
     [[nodiscard]] std::size_t PricePage() const noexcept { return price_page_; }
@@ -86,7 +96,8 @@ private:
     PageTransition<MainPage> page_transition_;
     bool page_content_press_blocked_{};
     bool OnBackButton(int x,int y) const noexcept;
-    std::optional<MainPage> return_page_;
+    std::vector<MainPage> return_pages_;
+    void BindEventCatalogs(){events_.SetCatalogs(event_items_,&tasks_.Catalog(),&map_.Catalog(data::GameMode::Pvp));}
     bool back_hovered_{},back_pressed_{};
     bool CreateTextFormats(std::wstring& error);
     void DrawLanguageSettings(const UiCanvas& canvas, float width, float height);
@@ -133,6 +144,9 @@ private:
     TasksPage tasks_;
     MapPage map_;
     RaidHistoryPage raid_history_;
+    EventsPage events_;
+    const data::ItemCatalog* event_items_{};
+    std::function<bool()> event_refresh_;
     std::unordered_set<std::string> hideout_image_ids_;
     std::unordered_set<std::string> task_image_ids_;
     std::unique_ptr<data::PriceBrowserModel> price_browser_;
