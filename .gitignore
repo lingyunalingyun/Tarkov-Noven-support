@@ -38,6 +38,7 @@ Testing/
 /data/raid-history.json*
 /data/events/
 /data/eft-log-root.txt
+/data/settings.json*
 /data/item-images/
 /data/price-history/
 /data/map-assets/

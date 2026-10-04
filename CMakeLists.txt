@@ -214,6 +214,11 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenAppSettingsTests tests/AppSettingsTests.cpp)
+    target_include_directories(NovenAppSettingsTests PRIVATE src)
+    target_compile_definitions(NovenAppSettingsTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_options(NovenAppSettingsTests PRIVATE /utf-8)
+    add_test(NAME app_settings COMMAND NovenAppSettingsTests)
     add_executable(NovenEventsPageTests tests/EventsPageTests.cpp src/ui/EventsPage.cpp src/events/EventBrowser.cpp
         src/events/EventCatalog.cpp src/data/ItemCatalog.cpp src/ui/localization/LocalizationService.cpp)
     target_include_directories(NovenEventsPageTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
