@@ -24,6 +24,8 @@ int wmain(int argc,wchar_t** argv) {
     for(float width:{500.0F,1100.0F}) {
         const RaidHistoryCardLayout card{D2D1::RectF(300,238,300+width,878),342};
         Require(card.bounds.bottom==450&&card.bounds.right==300+width-16,"shared card bounds use price-card height and scrollbar inset");
+        const auto expanded=card.SurfaceBounds(320);
+        Require(expanded.top==card.bounds.top&&expanded.bottom==770&&expanded.left==card.bounds.left&&expanded.right==card.bounds.right,"expanded card shares one continuous header-detail surface");
         Require(card.TextBounds(10,39).left==320&&card.TextBounds(10,39).right==300+width-34,"text aligns to shared card padding at both widths");
     }
     const UiTheme theme;RaidHistoryPage page;
@@ -103,7 +105,7 @@ int wmain(int argc,wchar_t** argv) {
     RaidHistoryPage cards;auto second=raid;second.localSessionId="local-two";
     cards.SetSessions({raid,second},{},false);cards.Prepare(1600,900,theme);cards.Select("local-one");
     for(int i=0;i<30;++i)cards.Tick(0.016F);
-    cards.MouseDown(left+30,796);(void)cards.MouseUp(left+30,796);
+    cards.MouseDown(left+30,696);(void)cards.MouseUp(left+30,696);
     Require(cards.SelectedId()=="local-two"&&cards.Expanded(),"following card hit position includes inline expansion height");
     Require(cards.ListScroll()==0,"selection does not jump the viewport immediately");
     cards.Tick(0.016F);

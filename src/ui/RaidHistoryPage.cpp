@@ -17,7 +17,7 @@ std::string Utf8(std::wstring_view text) {
     std::string out(n,'\0'); if(n) WideCharToMultiByte(CP_UTF8,0,text.data(),static_cast<int>(text.size()),out.data(),n,nullptr,nullptr); return out;
 }
 bool Hit(D2D1_RECT_F rect,float x,float y) {return HitTestDropdownRect(rect,x,y);}
-constexpr float rowHeight=RaidHistoryCardLayout::RowHeight, scansTop=374, scanHeight=154;
+constexpr float rowHeight=RaidHistoryCardLayout::RowHeight, scansTop=260, scanHeight=154;
 }
 void RaidHistoryPage::SetSessions(std::vector<raid::RaidSession> sessions,std::optional<raid::RaidSession> active,bool unavailable) {
     browser_.SetSessions(std::move(sessions)); active_=std::move(active); unavailable_=unavailable; RefreshScans();
@@ -161,7 +161,7 @@ void RaidHistoryPage::Choose(int control,std::size_t option) {
 }
 void RaidHistoryPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::unordered_map<std::string,Microsoft::WRL::ComPtr<ID2D1Bitmap>>& images) const {
     const auto left=searchRect_.left,right=searchRect_.right;
-    DrawPageHeader(canvas,theme,left,right,Tr(TextKey::NavRaidHistory));search_.Draw(canvas,theme,searchRect_,Tr(TextKey::RaidSearch),true);
+    DrawPageHeader(canvas,theme,left,listRect_.right,Tr(TextKey::NavRaidHistory));search_.Draw(canvas,theme,searchRect_,Tr(TextKey::RaidSearch),true);
     const std::array labels{TextKey::RaidMode,TextKey::RaidType,TextKey::RaidMap,TextKey::RaidDate};
     for(int i=0;i<4;++i) {const auto options=Options(i);DrawDropdownHeader(canvas,theme,controls_[i],Tr(labels[i])+L" · "+options[OptionIndex(i)],menu_==i&&!menuClosing_,hover_&&Hit(controls_[i],hover_->x,hover_->y));}
     const auto& summary=browser_.Summary(); const auto count=std::to_wstring(summary.count),pmc=std::to_wstring(summary.pmc),scav=std::to_wstring(summary.scav),unknown=std::to_wstring(summary.unknown),avg=RaidDurationText(summary.averageDuration);
@@ -185,7 +185,7 @@ void RaidHistoryPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std
             DrawRaidHistoryCard(canvas,theme,card,name.empty()?Tr(TextKey::Unknown):Wide(name),
                 RaidModeText(s.gameMode)+L" · "+RaidTypeText(s.raidType)+(s.outcome==raid::RaidOutcome::Unknown?L"":L" · "+RaidOutcomeText(s.outcome)),
                 RaidTimeText(s.startedAt)+L" · "+RaidDurationText(s.duration),s.localSessionId==selected_&&expansion_.open,
-                hover_&&Hit(card.bounds,hover_->x,hover_->y));
+                hover_&&Hit(card.bounds,hover_->x,hover_->y),i==expansion_.rowIndex?expansion_.extent:0);
             if(i==expansion_.rowIndex&&expansion_.extent>0)DrawDetail(canvas,theme,images);
         }
         canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(false),1});
@@ -208,16 +208,13 @@ void RaidHistoryPage::DrawDetail(const UiCanvas& canvas,const UiTheme& theme,
     const auto* selected=browser_.Find(selected_);
     if(!selected)DrawEmptyState(canvas,theme,D2D1::RectF(detailRect_.left,detailRect_.top,detailRect_.right,detailRect_.top+160),detailRect_.right-18,Tr(selected_.empty()?TextKey::RaidSelect:TextKey::RaidMissing),L"");
     else {
-        const float x=detailRect_.left+14,r=detailRect_.right-22,y=DetailTop();const auto name=browser_.MapName(*selected);
-        canvas.Round(D2D1::RectF(detailRect_.left,y,detailRect_.right-16,y+360),theme.cornerRadius,theme.surface);
-        canvas.Text(name.empty()?Tr(TextKey::Unknown):Wide(name),canvas.label,D2D1::RectF(x,y+8,r,y+34),theme.primaryText);
-        canvas.Text(RaidModeText(selected->gameMode)+L" · "+RaidTypeText(selected->raidType),canvas.body,D2D1::RectF(x,y+38,r,y+64),theme.accent);
+        const float x=detailRect_.left+20,r=detailRect_.right-34,y=DetailTop();
         const std::array fields{Tr(TextKey::RaidStarted)+L" · "+RaidTimeText(selected->startedAt),Tr(TextKey::RaidEnded)+L" · "+RaidTimeText(selected->endedAt),Tr(TextKey::RaidDuration)+L" · "+RaidDurationText(selected->duration),Tr(TextKey::RaidOutcome)+L" · "+RaidOutcomeText(selected->outcome),Tr(TextKey::RaidScans)+L" · "+std::to_wstring(linked_.entries.size())};
-        for(std::size_t i=0;i<fields.size();++i)canvas.Text(fields[i],canvas.smallFormat,D2D1::RectF(x,y+70+static_cast<float>(i)*24,r,y+94+static_cast<float>(i)*24),theme.primaryText);
+        for(std::size_t i=0;i<fields.size();++i)canvas.Text(fields[i],canvas.smallFormat,D2D1::RectF(x,y+static_cast<float>(i)*24,r,y+24+static_cast<float>(i)*24),theme.primaryText);
         const auto flea=RaidPriceText(linked_.flea.value),trader=RaidPriceText(linked_.trader.value),fk=std::to_wstring(linked_.flea.known),fu=std::to_wstring(linked_.flea.unknown),tk=std::to_wstring(linked_.trader.known),tu=std::to_wstring(linked_.trader.unknown);
-        canvas.Text(UiLocalization().Format(TextKey::RaidSubtotal,{{L"flea",flea},{L"trader",trader},{L"fk",fk},{L"fu",fu},{L"tk",tk},{L"tu",tu}}),canvas.smallFormat,D2D1::RectF(x,y+194,r,y+268),theme.accent);
-        canvas.Text(Tr(TextKey::RaidRetained),canvas.smallFormat,D2D1::RectF(x,y+272,r,y+330),theme.secondaryText);
-        canvas.Text(Wide(selected->eftRaidId),canvas.smallFormat,D2D1::RectF(x,y+332,r,y+358),theme.secondaryText);
+        canvas.Text(UiLocalization().Format(TextKey::RaidSubtotal,{{L"flea",flea},{L"trader",trader},{L"fk",fk},{L"tk",tk},{L"tu",tu}}),canvas.smallFormat,D2D1::RectF(x,y+130,r,y+180),theme.accent);
+        canvas.Text(Tr(TextKey::RaidRetained),canvas.smallFormat,D2D1::RectF(x,y+186,r,y+228),theme.secondaryText);
+        canvas.Text(Wide(selected->eftRaidId),canvas.smallFormat,D2D1::RectF(x,y+232,r,y+254),theme.secondaryText);
         if(linked_.entries.empty())canvas.Text(Tr(TextKey::RaidNoScans),canvas.body,D2D1::RectF(x,y+scansTop,r,y+scansTop+34),theme.secondaryText);
         for(std::size_t i=0;i<linked_.entries.size();++i) {
             const auto bounds=ScanCardRect(i);if(bounds.bottom<=detailRect_.top)continue;if(bounds.top>=detailRect_.bottom)break;
