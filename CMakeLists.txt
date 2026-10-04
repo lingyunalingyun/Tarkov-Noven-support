@@ -52,6 +52,7 @@ add_executable(NovenTarkovSupport WIN32
     src/events/EventCache.cpp
     src/events/EventHttp.cpp
     src/events/OfficialEventSource.cpp
+    src/events/WikiEventSource.cpp
     src/events/TarkovDevEventEnricher.cpp
     src/events/TarkovChangesEnricher.cpp
     src/events/EventEnrichment.cpp
@@ -253,6 +254,14 @@ if(BUILD_TESTING)
         target_compile_options(NovenEventEnricherTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME event_enricher COMMAND NovenEventEnricherTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+    add_executable(NovenWikiEventSourceTests tests/WikiEventSourceTests.cpp src/events/WikiEventSource.cpp src/events/EventHttp.cpp src/events/EventCatalog.cpp)
+    target_include_directories(NovenWikiEventSourceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_definitions(NovenWikiEventSourceTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(NovenWikiEventSourceTests PRIVATE winhttp)
+    if(MSVC)
+        target_compile_options(NovenWikiEventSourceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME wiki_event_source COMMAND NovenWikiEventSourceTests)
     add_executable(NovenEventSourceTests tests/EventSourceTests.cpp src/events/OfficialEventSource.cpp src/events/EventHttp.cpp src/events/EventCatalog.cpp)
     target_include_directories(NovenEventSourceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_definitions(NovenEventSourceTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
