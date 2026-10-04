@@ -145,6 +145,7 @@ void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDW
     add(EventStatusText(browser_.Status(*event))+L" · "+Tr(TextKey::EventScope)+L": "+EventScopeText(*event),false,official);
     add(Tr(TextKey::EventAnnounced)+L": "+EventTimeText(event->announcedAt)+L"\n"+
         Tr(TextKey::EventStarts)+L": "+EventTimeText(event->startsAt)+L"\n"+Tr(TextKey::EventEnds)+L": "+EventTimeText(event->endsAt),false,official);
+    if(event->startsAtFromPublication)add(Tr(TextKey::EventPublicationStart),false,false,{},{},true);
     content(event->summary,false,official);
     for(const auto& source:event->sourceEvidence)if(source.sourceKind==events::SourceKind::OfficialTelegram&&events::SafeEventSourceUrl(source.sourceUrl))
         add(Tr(TextKey::EventOpenSource)+L" · "+EventTimeText(source.publishedAt),false,true,EventAction{EventAction::Kind::Source,source.sourceUrl});

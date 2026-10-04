@@ -14,6 +14,11 @@ int main() {
         Check(c.Apply({&a,1},error));Check(c.Apply({&a,1},error));Check(c.Events().size()==1);
         const auto id=c.Events()[0].eventId;Check(!c.Events()[0].startsAt && !c.Events()[0].endsAt);
         Check(c.ActiveEvents(*a.publishedAt).size()==1);
+        EventCatalog basis;auto convention=a;convention.startsAt=convention.publishedAt;convention.startsAtFromPublication=true;
+        Check(basis.Apply({&convention,1},error)&&basis.Events()[0].startsAtFromPublication);
+        auto precise=convention;precise.startsAt=*a.publishedAt-60;precise.startsAtFromPublication=false;
+        Check(basis.Apply({&precise,1},error)&&!basis.Events()[0].startsAtFromPublication);
+        Check(basis.Apply({&convention,1},error)&&basis.Events()[0].startsAt==precise.startsAt&&!basis.Events()[0].startsAtFromPublication);
         auto update=a;update.sourceRecordId="11";update.sourceUrl="https://t.me/escapefromtarkovEN/11";
         update.updatesRecordId="10";update.publishedAt=*a.publishedAt+1;update.endsAt=*a.publishedAt+100;
         Check(c.Apply({&update,1},error));Check(c.Events().size()==1 && c.Events()[0].sourceEvidence.size()==2);

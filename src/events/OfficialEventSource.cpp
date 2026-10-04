@@ -117,6 +117,10 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                     a.status=ended?EventStatus::Ended:started?EventStatus::Active:EventStatus::Unknown;
                     if(ended || updated)a.updatesRecordId=link;
                     a.startsAt=ExplicitTime(text,"will start at ");a.endsAt=ExplicitTime(text,"will remain active until ");
+                    if(started&&!a.startsAt)a.startsAt=ExplicitTime(text,"has started at ");
+                    // 用户约定：明确“已开始”且未给开始时间时使用发布时间，保留依据以免冒充精确来源时间。
+                    // Product convention: an explicit started notice without a start time uses publication time with provenance.
+                    if(started&&!a.startsAt){a.startsAt=time;a.startsAtFromPublication=true;}
                     // 年份/时区不完整的自然语言日期不以发布时间推测补齐。
                     // Natural-language dates lacking complete year/zone are not guessed from publication time.
                     // 仅首句的肯定范围声明；后文否定/例外规则不能反向成为适用范围。

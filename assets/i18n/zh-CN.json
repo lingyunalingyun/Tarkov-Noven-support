@@ -1,4 +1,5 @@
 {
+  "events.publication_start": "开始时间按公告发布时间记录。",
   "events.machine_translation": "机器翻译 · MyMemory",
   "events.show_original": "查看原文",
   "events.show_translation": "查看译文",

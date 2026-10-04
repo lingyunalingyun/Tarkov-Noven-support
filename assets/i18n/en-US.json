@@ -1,4 +1,5 @@
 {
+  "events.publication_start": "Start time uses the announcement publication time.",
   "events.machine_translation": "Machine translation · MyMemory",
   "events.show_original": "Show original",
   "events.show_translation": "Show translation",

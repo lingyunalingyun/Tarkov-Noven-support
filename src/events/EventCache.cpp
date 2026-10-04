@@ -40,7 +40,8 @@ std::string EventCache::Encode(const EventCatalog& catalog, const EventSourceSta
         o<<"{\"eventId\":"<<json::Quote(e.eventId)<<",\"title\":"<<json::Quote(e.title)<<",\"summary\":"<<json::Quote(e.summary)
             <<",\"titleIsExcerpt\":"<<(e.titleIsExcerpt?"true":"false")
             <<",\"sourceStatus\":"<<static_cast<int>(e.sourceStatus)<<",\"announcedAt\":"<<Number(e.announcedAt)
-            <<",\"startsAt\":"<<Number(e.startsAt)<<",\"endsAt\":"<<Number(e.endsAt)<<",\"lastUpdatedAt\":"<<Number(e.lastUpdatedAt)
+            <<",\"startsAt\":"<<Number(e.startsAt)<<",\"startsAtFromPublication\":"<<(e.startsAtFromPublication?"true":"false")
+            <<",\"endsAt\":"<<Number(e.endsAt)<<",\"lastUpdatedAt\":"<<Number(e.lastUpdatedAt)
             <<",\"partial\":"<<(e.partial?"true":"false")<<",\"localizedTitles\":{";
         bool first=true;for(const auto& [locale,title]:e.localizedTitles){if(!first)o<<',';first=false;o<<json::Quote(locale)<<':'<<json::Quote(title);}
         o<<"},\"modes\":[";first=true;for(auto mode:e.modes){if(!first)o<<',';first=false;o<<static_cast<int>(mode);}
@@ -73,6 +74,7 @@ bool EventCache::Decode(std::string_view text, EventCatalog& catalog, EventSourc
             const auto excerpt=v.object.find("titleIsExcerpt");e.titleIsExcerpt=excerpt==v.object.end()?true:excerpt->second.Bool();
             e.sourceStatus=Enum<EventStatus>(v.At("sourceStatus"),3);e.announcedAt=Time(v.At("announcedAt"));
             e.startsAt=Time(v.At("startsAt"));e.endsAt=Time(v.At("endsAt"));e.lastUpdatedAt=Time(v.At("lastUpdatedAt"));
+            if(const auto basis=v.object.find("startsAtFromPublication");basis!=v.object.end())e.startsAtFromPublication=basis->second.Bool();
             e.partial=v.At("partial").Bool();const auto& titles=v.At("localizedTitles");
             if(titles.type!=Value::Type::Object)throw std::runtime_error("invalid localized titles");
             for(const auto& [locale,title]:titles.object)e.localizedTitles.emplace(locale,title.String());

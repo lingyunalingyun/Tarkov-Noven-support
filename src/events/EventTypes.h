@@ -33,6 +33,7 @@ struct EventRecord {
     // sourceStatus is an announcement fact; clock-derived StatusAt never mutates it.
     EventStatus sourceStatus{EventStatus::Unknown};
     std::optional<Timestamp> announcedAt, startsAt, endsAt, lastUpdatedAt;
+    bool startsAtFromPublication{};
     std::vector<EventMode> modes;
     std::vector<std::string> taskIds, itemIds, mapIds, bossIds;
     std::vector<EventEvidence> sourceEvidence;
@@ -47,6 +48,7 @@ struct OfficialAnnouncement {
     std::optional<std::string> updatesRecordId;
     EventStatus status{EventStatus::Unknown};
     std::optional<Timestamp> publishedAt, startsAt, endsAt;
+    bool startsAtFromPublication{};
     std::vector<EventMode> modes;
     std::vector<std::string> linkedChangeRecordIds;
 };

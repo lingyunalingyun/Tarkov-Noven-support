@@ -103,6 +103,7 @@ bool ValidRecord(const EventRecord& e) {
         || e.title.empty() || e.title.size()>2048 || e.summary.size()>16384
         || static_cast<int>(e.sourceStatus)<0 || static_cast<int>(e.sourceStatus)>3
         || !Time(e.announcedAt) || !Time(e.startsAt) || !Time(e.endsAt) || !Time(e.lastUpdatedAt)
+        || (e.startsAtFromPublication&&(!e.startsAt||community))
         || (e.startsAt && e.endsAt && *e.endsAt<*e.startsAt)
         || !Ids(e.taskIds) || !Ids(e.itemIds) || !Ids(e.mapIds) || !Ids(e.bossIds)
         || e.sourceEvidence.empty() || e.sourceEvidence.size()>kMaximumEvidence || e.modes.size()>3
@@ -147,6 +148,7 @@ bool EventCatalog::Apply(std::span<const OfficialAnnouncement> announcements, st
         if(!MessageId(a.sourceRecordId) || a.sourceUrl!=Url(a.sourceRecordId)
             || (a.updatesRecordId && (!MessageId(*a.updatesRecordId) || *a.updatesRecordId==a.sourceRecordId))
             || !Time(a.publishedAt) || !Time(a.startsAt) || !Time(a.endsAt)
+            || (a.startsAtFromPublication&&(!a.startsAt||a.startsAt!=a.publishedAt||a.status!=EventStatus::Active||a.updatesRecordId))
             || (a.startsAt && a.endsAt && *a.endsAt<*a.startsAt)
             || a.title.empty() || a.title.size()>2048 || a.summary.size()>16384
             || static_cast<int>(a.status)<0 || static_cast<int>(a.status)>3 || a.modes.size()>3
@@ -169,7 +171,9 @@ bool EventCatalog::Apply(std::span<const OfficialAnnouncement> announcements, st
         if(newer) {
             if(!a.updatesRecordId) {it->title=a.title;it->summary=a.summary;it->titleIsExcerpt=a.titleIsExcerpt;}
             if(a.status!=EventStatus::Unknown) it->sourceStatus=a.status;
-            if(a.startsAt) it->startsAt=a.startsAt;
+            if(a.startsAt&&(!a.startsAtFromPublication||!it->startsAt||it->startsAtFromPublication)){
+                it->startsAt=a.startsAt;it->startsAtFromPublication=a.startsAtFromPublication;
+            }
             if(a.endsAt) it->endsAt=a.endsAt;
             if(!a.modes.empty()) it->modes=a.modes;
             it->lastUpdatedAt=a.publishedAt;

@@ -16,6 +16,13 @@ int main(){
         Check(cache.Save(c,s,error));
         const auto encoded=EventCache::Encode(c,s);EventCatalog restored;EventSourceState state;
         Check(EventCache::Decode(encoded,restored,state,error));Check(restored.Events()==c.Events() && state==s);
+        auto withBasis=c.Events();withBasis[0].startsAt=100;withBasis[0].startsAtFromPublication=true;
+        EventCatalog basis;Check(basis.Restore(withBasis,error));
+        Check(EventCache::Decode(EventCache::Encode(basis,s),restored,state,error));
+        Check(restored.Events()[0].startsAtFromPublication&&restored.Events()[0].startsAt==100);
+        auto oldCache=encoded;const std::string missingBasis=",\"startsAtFromPublication\":false";
+        oldCache.erase(oldCache.find(missingBasis),missingBasis.size());
+        Check(EventCache::Decode(oldCache,restored,state,error)&&!restored.Events()[0].startsAtFromPublication);
         auto legacy=encoded;legacy.replace(legacy.find("\"schemaVersion\":2"),17,"\"schemaVersion\":1");
         const std::string extra=",\"sourceRevision\":\"\",\"summary\":\"\"";
         legacy.erase(legacy.find(extra),extra.size());
