@@ -21,6 +21,29 @@ int wmain(int argc,wchar_t** argv){try{
     page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);Check(page.Select(event.eventId));
     const auto prepare=[&](float width){page.Prepare(width,900,theme,factory.Get(),body.Get(),label.Get());};
     prepare(1500);Check(!page.Narrow());
+    // 活动标签直接遵循共享姿态；快速重选不跳色/跳线，离页停止计时。
+    // Event tabs follow the shared pose exactly; retargeting preserves colors/underline and leaving settles timers.
+    EventsPage tabsPage;tabsPage.Prepare(1500,900,theme,factory.Get(),body.Get(),label.Get());
+    TabSelectionAnimation expected;expected.Select(0,5,true);
+    Check(tabsPage.FilterPosition()==0&&tabsPage.FilterWeight(0)==1&&!tabsPage.Animating());
+    tabsPage.SetFilter(EventStatus::Active,{});expected.Select(1,5);
+    tabsPage.Tick(.05F);expected.Tick(.05F);
+    Check(tabsPage.FilterPosition()==expected.Position()&&tabsPage.FilterWeight(0)==expected.Weight(0)
+        &&tabsPage.FilterWeight(1)==expected.Weight(1)&&tabsPage.Animating());
+    const auto position=tabsPage.FilterPosition(),weight=tabsPage.FilterWeight(1);
+    tabsPage.SetFilter(EventStatus::Ended,{});expected.Select(3,5);
+    Check(tabsPage.FilterPosition()==position&&tabsPage.FilterWeight(1)==weight);
+    for(int i=0;i<30;++i){tabsPage.Tick(.016F);expected.Tick(.016F);
+        Check(tabsPage.FilterPosition()==expected.Position());
+        for(std::size_t j=0;j<5;++j)Check(tabsPage.FilterWeight(j)==expected.Weight(j));}
+    Check(!tabsPage.Animating()&&tabsPage.FilterPosition()==3&&tabsPage.FilterWeight(3)==1);
+    tabsPage.SetFilter(EventStatus::Upcoming,{});tabsPage.Tick(.016F);tabsPage.Blur();
+    Check(!tabsPage.Animating()&&tabsPage.FilterPosition()==2&&tabsPage.FilterWeight(2)==1);
+    const float tabLeft=theme.sidebarWidth+theme.contentPadding,tabRight=1500-theme.contentPadding;
+    const auto click=[&](float x,float y){tabsPage.MouseDown(x,y);tabsPage.MouseUp(x,y);};
+    click(tabRight,140);Check(tabsPage.Browser().Filter()==EventStatus::Upcoming);
+    click(tabLeft+1,170);Check(tabsPage.Browser().Filter()==EventStatus::Upcoming);
+    click(tabLeft+1,140);Check(!tabsPage.Browser().Filter()&&tabsPage.Animating());
     Check(page.LastRefreshText().find(L"{time}")==std::wstring::npos&&page.LastRefreshText().find(EventTimeText(200))!=std::wstring::npos);
     Check(EventEvidencePreview(std::string(1024,'x')).size()==161);
     Check(page.OfficialText().size()>=4&&page.EvidenceText().size()==1);

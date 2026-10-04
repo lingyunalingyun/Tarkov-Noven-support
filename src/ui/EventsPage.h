@@ -7,6 +7,7 @@
 #include "ui/SearchBox.h"
 #include "ui/Scrollbar.h"
 #include "ui/PageComponents.h"
+#include "ui/TabSelectionAnimation.h"
 #include <unordered_map>
 
 namespace noven::ui {
@@ -19,6 +20,7 @@ struct EventAction {
 // Resident input/selection/scroll state; service snapshots supply data, with no cache or remote parsing.
 class EventsPage final {
 public:
+    EventsPage(){filterAnimation_.Select(0,5,true);}
     void SetSnapshot(std::vector<events::EventRecord> records,events::EventRefreshState state,std::optional<events::Timestamp> refreshed);
     void SetCatalogs(const data::ItemCatalog* items,const data::TaskCatalog* tasks,const data::MapCatalog* maps);
     void Prepare(float width,float height,const UiTheme& theme,IDWriteFactory* factory,IDWriteTextFormat* body,IDWriteTextFormat* label);
@@ -30,7 +32,7 @@ public:
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t value);
     void CancelDrag(){grab_.reset();pressed_.reset();}
-    void Blur(){search_.Blur();CancelDrag();listTarget_=listScroll_;detailTarget_=detailScroll_;detailOpacity_=1;filterPosition_=filterTarget_;}
+    void Blur();
     bool Animating() const noexcept;
     void Tick(float seconds);
     bool ClockTick(events::Timestamp now);
@@ -44,6 +46,8 @@ public:
     bool Narrow() const noexcept{return narrow_;}
     bool ShowingDetail() const noexcept{return !narrow_||(narrowDetail_&&!selected_.empty());}
     float DetailOpacity() const noexcept{return detailOpacity_;}
+    float FilterPosition() const noexcept{return filterAnimation_.Position();}
+    float FilterWeight(std::size_t index) const noexcept{return filterAnimation_.Weight(index);}
     std::vector<std::string> VisibleImages() const;
     std::optional<D2D1_RECT_F> ActionBounds(EventAction::Kind kind,std::string_view id) const;
     const std::vector<std::wstring>& OfficialText() const noexcept{return officialText_;}
@@ -63,6 +67,7 @@ private:
     std::optional<EventAction> ActionAt(float x,float y) const;
     std::optional<std::size_t> RowAt(float x,float y) const;
     std::optional<int> TabAt(float x,float y) const;
+    TabBarLayout Tabs() const;
     D2D1_RECT_F BlockRect(const Block& block) const;
     std::optional<ScrollbarGeometry> Bar(bool detail) const;
     events::EventBrowser browser_;
@@ -75,7 +80,7 @@ private:
     std::vector<std::wstring> officialText_,evidenceText_;
     bool detailDirty_{true},narrow_{},narrowDetail_{};
     float detailHeight_{},detailWidth_{},listScroll_{},listTarget_{},detailScroll_{},detailTarget_{},detailOpacity_{1};
-    float filterPosition_{},filterTarget_{};
+    TabSelectionAnimation filterAnimation_;
     D2D1_RECT_F searchRect_{},tabsRect_{},listRect_{},detailRect_{},refreshRect_{},listButton_{};
     std::optional<D2D1_POINT_2F> pressed_,hover_;
     std::optional<std::pair<bool,float>> grab_;

@@ -72,14 +72,16 @@ template <typename Id>
 void DrawTabBar(const UiCanvas& canvas, const UiTheme& theme,
     IDWriteTextFormat& font, std::span<const TabBarItem<Id>> items,
     TabBarLayout layout, Id selected, std::optional<Id> hovered, Id outgoing,
-    float progress, float underlineIndex) {
+    float progress, float underlineIndex, std::span<const float> selectionWeights = {}) {
     const auto pose = SampleTabTransition(progress);
     const auto previousAlignment = font.GetTextAlignment();
     font.SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
     for (std::size_t index = 0; index < items.size(); ++index) {
         const auto& item = items[index];
         const float left = layout.left + static_cast<float>(index) * layout.itemWidth;
-        const float selectedWeight = progress < 1.0F
+        // 可选的共享动画权重保留快速重选时的当前颜色；旧调用方继续使用原进度合同。
+        // Optional shared-animation weights retain current colors on retarget; legacy callers keep their progress contract.
+        const float selectedWeight = index < selectionWeights.size() ? selectionWeights[index] : progress < 1.0F
             ? (item.id == selected ? pose.textProgress
                 : (item.id == outgoing ? 1.0F - pose.textProgress : 0.0F))
             : (item.id == selected ? 1.0F : 0.0F);
@@ -113,7 +115,7 @@ template <typename Id, std::size_t Count>
 template <typename Id, std::size_t Count>
 void DrawTabBar(const UiCanvas& canvas,const UiTheme& theme,IDWriteTextFormat& font,
     const std::array<TabBarItem<Id>,Count>& items,TabBarLayout layout,Id selected,
-    std::optional<Id> hovered,Id outgoing,float progress,float underlineIndex){
-    DrawTabBar<Id>(canvas,theme,font,std::span<const TabBarItem<Id>>(items),layout,selected,hovered,outgoing,progress,underlineIndex);
+    std::optional<Id> hovered,Id outgoing,float progress,float underlineIndex,std::span<const float> selectionWeights = {}){
+    DrawTabBar<Id>(canvas,theme,font,std::span<const TabBarItem<Id>>(items),layout,selected,hovered,outgoing,progress,underlineIndex,selectionWeights);
 }
 } // namespace noven::ui

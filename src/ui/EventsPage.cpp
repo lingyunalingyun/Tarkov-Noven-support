@@ -49,7 +49,7 @@ bool EventsPage::Select(std::string_view id) {
 }
 void EventsPage::SetFilter(std::optional<events::EventStatus> status,std::wstring query) {
     search_.SetText(std::move(query));browser_.SetFilter(status,EventUtf8(search_.Text()));
-    filterTarget_=static_cast<float>(FilterIndex(status));listScroll_=listTarget_=0;
+    filterAnimation_.Select(FilterIndex(status),5);listScroll_=listTarget_=0;
     if(narrow_)narrowDetail_=false;
 }
 void EventsPage::ApplyFilter() {
@@ -149,7 +149,7 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
     // Labels must live through this draw; never retain temporary localized string views across frames.
     const std::array<std::wstring,5> labels{Tr(TextKey::EventAll),Tr(TextKey::EventActive),Tr(TextKey::EventUpcoming),Tr(TextKey::EventEnded),Tr(TextKey::Unknown)};
     std::array<TabBarItem<int>,5> ownedTabs{};for(int i=0;i<5;++i)ownedTabs[i]={i,labels[i]};
-    DrawTabBar(canvas,theme,canvas.body,ownedTabs,{tabsRect_.left,tabsRect_.top,tabsRect_.bottom,(tabsRect_.right-tabsRect_.left)/5,18},FilterIndex(browser_.Filter()),TabAt(hover_?hover_->x:-1,hover_?hover_->y:-1),FilterIndex(browser_.Filter()),1,filterPosition_);
+    DrawTabBar(canvas,theme,canvas.body,ownedTabs,Tabs(),FilterIndex(browser_.Filter()),TabAt(hover_?hover_->x:-1,hover_?hover_->y:-1),FilterIndex(browser_.Filter()),1,filterAnimation_.Position(),filterAnimation_.Weights());
     const auto summary=UiLocalization().Format(TextKey::EventSummary,{{L"active",std::to_wstring(browser_.Count(events::EventStatus::Active))},
         {L"upcoming",std::to_wstring(browser_.Count(events::EventStatus::Upcoming))},{L"total",std::to_wstring(browser_.Events().size())}});
     canvas.Text(summary,canvas.smallFormat,{searchRect_.left,176,searchRect_.right,198},theme.secondaryText);
@@ -203,7 +203,11 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
         canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(true),1});
     }
 }
-std::optional<int> EventsPage::TabAt(float x,float y) const {if(!Hit(tabsRect_,x,y))return {};return static_cast<int>((x-tabsRect_.left)/((tabsRect_.right-tabsRect_.left)/5));}
+TabBarLayout EventsPage::Tabs() const {return {tabsRect_.left,tabsRect_.top,tabsRect_.bottom,(tabsRect_.right-tabsRect_.left)/5,18};}
+std::optional<int> EventsPage::TabAt(float x,float y) const {
+    const std::array<TabBarItem<int>,5> tabs{{{0,{}},{1,{}},{2,{}},{3,{}},{4,{}}}};
+    return HitTestTabBar(tabs,Tabs(),x,y);
+}
 std::optional<std::size_t> EventsPage::RowAt(float x,float y) const {
     if((narrow_&&ShowingDetail())||!Hit(listRect_,x,y)||x>=listRect_.right-16)return {};
     const auto index=static_cast<std::size_t>((y-listRect_.top+listScroll_)/rowHeight);return index<browser_.Rows().size()?std::optional(index):std::nullopt;
@@ -241,10 +245,15 @@ bool EventsPage::Wheel(int delta,float x,float y) {
 }
 bool EventsPage::Key(WPARAM key,bool control) {if(!search_.HandleKeyDown(key,control))return false;ApplyFilter();return true;}
 bool EventsPage::Char(wchar_t value) {if(!search_.HandleChar(value))return false;ApplyFilter();return true;}
-bool EventsPage::Animating() const noexcept {return std::abs(listScroll_-listTarget_)>.1F||std::abs(detailScroll_-detailTarget_)>.1F||detailOpacity_<1||filterPosition_!=filterTarget_;}
+void EventsPage::Blur() {
+    search_.Blur();CancelDrag();listTarget_=listScroll_;detailTarget_=detailScroll_;detailOpacity_=1;
+    filterAnimation_.Select(FilterIndex(browser_.Filter()),5,true);
+}
+bool EventsPage::Animating() const noexcept {return std::abs(listScroll_-listTarget_)>.1F||std::abs(detailScroll_-detailTarget_)>.1F||detailOpacity_<1||filterAnimation_.Active();}
 void EventsPage::Tick(float seconds) {
     seconds=std::clamp(seconds,0.0F,.05F);const float alpha=1-std::exp(-22*seconds);
-    for(auto pair:{std::pair{&listScroll_,&listTarget_},std::pair{&detailScroll_,&detailTarget_},std::pair{&filterPosition_,&filterTarget_}})
+    filterAnimation_.Tick(seconds);
+    for(auto pair:{std::pair{&listScroll_,&listTarget_},std::pair{&detailScroll_,&detailTarget_}})
         if(std::abs(*pair.first-*pair.second)<.1F)*pair.first=*pair.second;else *pair.first+=(*pair.second-*pair.first)*alpha;
     detailOpacity_=(std::min)(1.0F,detailOpacity_+seconds/0.18F);
 }

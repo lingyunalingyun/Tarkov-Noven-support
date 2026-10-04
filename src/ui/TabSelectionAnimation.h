@@ -26,6 +26,7 @@ public:
     }
     bool Active() const { return progress_<1; }
     float Position() const { return position_; }
+    std::span<const float> Weights() const { return weights_; }
     float Weight(std::size_t index) const { return index<weights_.size()?weights_[index]:0; }
 private:
     std::vector<float> weights_,fromWeights_;
