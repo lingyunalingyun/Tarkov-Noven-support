@@ -47,6 +47,7 @@ public:
     bool ShowingDetail() const noexcept{return !narrow_||(narrowDetail_&&!selected_.empty());}
     float DetailOpacity() const noexcept{return detailOpacity_;}
     float ListOpacity() const noexcept{return listOpacity_;}
+    ScrollbarPose DetailBarPose() const;
     IDWriteTextLayout* RowTitleLayout(std::string_view id) const {
         const auto it=rowTitles_.find(std::string(id));return it==rowTitles_.end()?nullptr:it->second.Get();
     }
@@ -72,6 +73,7 @@ private:
     void BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDWriteTextFormat* label);
     void BuildRowTitles(IDWriteFactory* factory,IDWriteTextFormat* label);
     void ClampScroll();
+    void BeginDetailBarTransition();
     std::optional<EventAction> ActionAt(float x,float y) const;
     std::optional<std::size_t> RowAt(float x,float y) const;
     std::optional<int> TabAt(float x,float y) const;
@@ -91,6 +93,9 @@ private:
     float titleWidth_{},listOpacity_{1};
     float detailHeight_{},detailWidth_{},listScroll_{},listTarget_{},detailScroll_{},detailTarget_{},detailOpacity_{1};
     TabSelectionAnimation filterAnimation_;
+    std::optional<ScrollbarGeometry> detailBarFrom_;
+    float detailBarProgress_{1};
+    bool detailBarPending_{};
     D2D1_RECT_F searchRect_{},tabsRect_{},listRect_{},detailRect_{},refreshRect_{},listButton_{};
     std::optional<D2D1_POINT_2F> pressed_,hover_;
     std::optional<std::pair<bool,float>> grab_;

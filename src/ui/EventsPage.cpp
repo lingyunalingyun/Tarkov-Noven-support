@@ -43,6 +43,7 @@ bool EventsPage::Select(std::string_view id) {
     if(!browser_.Find(id))return false;
     narrowDetail_=true;
     if(selected_==id)return true;
+    BeginDetailBarTransition();
     selected_=id;detailScroll_=detailTarget_=0;detailDirty_=true;showOriginal_=false;
     // 快速切换从当前姿态继续，保持有限动画；选择不重排列表。
     // Rapid switching continues from the current pose with a finite transition; selection never reorders rows.
@@ -62,6 +63,8 @@ bool EventsPage::ClockTick(events::Timestamp now) {
     const auto before=browser_.Builds();browser_.SetNow(now);const bool changed=before!=browser_.Builds();detailDirty_|=changed;return changed;
 }
 void EventsPage::Prepare(float width,float height,const UiTheme& theme,IDWriteFactory* factory,IDWriteTextFormat* body,IDWriteTextFormat* label) {
+    const auto previousBar=DetailBarPose().bar;
+    const float previousViewport=detailRect_.bottom-detailRect_.top;
     const float left=theme.sidebarWidth+theme.contentPadding,right=(std::max)(left+100,width-theme.contentPadding);
     narrow_=right-left<680;
     searchRect_={left,84,right,122};tabsRect_={left,132,right,170};
@@ -75,7 +78,12 @@ void EventsPage::Prepare(float width,float height,const UiTheme& theme,IDWriteFa
     if(titlesDirty_){BuildRowTitles(factory,label);titlesDirty_=false;}
     const float detailWidth=detailRect_.right-detailRect_.left;
     if(detailWidth_!=detailWidth){detailWidth_=detailWidth;detailDirty_=true;}
-    if(detailDirty_){BuildDetail(factory,body,label);detailDirty_=false;}
+    if(!detailBarPending_&&detailHeight_>0&&(detailDirty_||previousViewport!=detailRect_.bottom-detailRect_.top)){
+        detailBarFrom_=previousBar;detailBarProgress_=0;
+    }
+    if(detailDirty_){
+        BuildDetail(factory,body,label);detailDirty_=false;detailBarPending_=false;
+    }
     ClampScroll();
 }
 void EventsPage::BuildRowTitles(IDWriteFactory* factory,IDWriteTextFormat* label) {
@@ -181,6 +189,14 @@ std::optional<ScrollbarGeometry> EventsPage::Bar(bool detail) const {
     auto rect=detail?detailRect_:listRect_;rect.left=rect.right-14;
     return MakeScrollbar(rect,detail?detailHeight_:rowHeight*static_cast<float>(browser_.Rows().size()),detail?detailScroll_:listScroll_);
 }
+ScrollbarPose EventsPage::DetailBarPose() const {
+    return SampleScrollbarTransition(detailBarFrom_,Bar(true),detailBarProgress_);
+}
+void EventsPage::BeginDetailBarTransition() {
+    // 切换前捕获可见滑块，复用共享弹性几何过渡；连续切换从当前长度接续。
+    // Capture the visible thumb before switching; reuse shared elastic geometry and retarget from its current size.
+    detailBarFrom_=DetailBarPose().bar;detailBarProgress_=0;detailBarPending_=true;
+}
 std::wstring EventsPage::RefreshText() const {
     if(refresh_.phase==events::RefreshPhase::Refreshing)return Tr(TextKey::EventRefreshing);
     if(refresh_.phase==events::RefreshPhase::Failed)return Tr(browser_.Events().empty()?TextKey::EventUnavailable:TextKey::EventCached);
@@ -258,7 +274,7 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             else canvas.Text(b.text,b.footnote?canvas.smallFormat:b.heading?canvas.label:canvas.body,{x,rect.top,rect.right-8,rect.bottom},b.footnote?theme.secondaryText:theme.primaryText);
         }
         }
-        canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(true),1});
+        canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,DetailBarPose());
     }
 }
 TabBarLayout EventsPage::Tabs() const {return {tabsRect_.left,tabsRect_.top,tabsRect_.bottom,(tabsRect_.right-tabsRect_.left)/5,18};}
@@ -278,6 +294,9 @@ std::optional<EventAction> EventsPage::ActionAt(float x,float y) const {
 void EventsPage::MouseDown(float x,float y) {
     pressed_=D2D1::Point2F(x,y);if(Hit(searchRect_,x,y))search_.Focus();else search_.Blur();
     for(bool detail:{false,true})if(!(narrow_&&(detail?!ShowingDetail():ShowingDetail())))if(const auto bar=Bar(detail);bar&&Hit(bar->track,x,y)) {
+        // 动画几何只用于绘制；用户拖动时落定，按目标内容范围映射偏移。
+        // Animated geometry is visual only; settle on interaction and map offsets against target content.
+        if(detail){detailBarProgress_=1;detailBarFrom_.reset();}
         auto& target=detail?detailTarget_:listTarget_;
         if(Hit(bar->thumb,x,y))grab_=std::pair{detail,y-bar->thumb.top};
         else target=bar->OffsetFromThumbTop(y-(bar->thumb.bottom-bar->thumb.top)/2);
@@ -291,7 +310,7 @@ std::optional<EventAction> EventsPage::MouseUp(float x,float y) {
     if(narrow_&&ShowingDetail()&&Hit(listButton_,x,y)&&Hit(listButton_,down->x,down->y)){narrowDetail_=false;return {};}
     if(const auto row=RowAt(x,y);row&&row==RowAt(down->x,down->y)){Select(browser_.Events()[browser_.Rows()[*row]].eventId);return {};}
     const auto action=ActionAt(x,y);if(action!=ActionAt(down->x,down->y))return {};
-    if(action&&action->kind==EventAction::Kind::Original){showOriginal_=!showOriginal_;detailDirty_=true;detailOpacity_=.75F;return {};}
+    if(action&&action->kind==EventAction::Kind::Original){BeginDetailBarTransition();showOriginal_=!showOriginal_;detailDirty_=true;detailOpacity_=.75F;return {};}
     return action;
 }
 bool EventsPage::MouseMove(float x,float y) {
@@ -301,18 +320,22 @@ bool EventsPage::MouseMove(float x,float y) {
 bool EventsPage::Wheel(int delta,float x,float y) {
     const bool detail=ShowingDetail()&&Hit(detailRect_,x,y);
     const bool list=(!narrow_||!ShowingDetail())&&Hit(listRect_,x,y);if(!detail&&!list)return false;
+    if(detail){detailBarProgress_=1;detailBarFrom_.reset();}
     auto& target=detail?detailTarget_:listTarget_;target-=static_cast<float>(delta)/WHEEL_DELTA*100;ClampScroll();return true;
 }
 bool EventsPage::Key(WPARAM key,bool control) {if(!search_.HandleKeyDown(key,control))return false;ApplyFilter();return true;}
 bool EventsPage::Char(wchar_t value) {if(!search_.HandleChar(value))return false;ApplyFilter();return true;}
 void EventsPage::Blur() {
     search_.Blur();CancelDrag();listTarget_=listScroll_;detailTarget_=detailScroll_;detailOpacity_=listOpacity_=1;
+    detailBarProgress_=1;detailBarFrom_.reset();detailBarPending_=false;
     filterAnimation_.Select(FilterIndex(browser_.Filter()),5,true);
 }
-bool EventsPage::Animating() const noexcept {return std::abs(listScroll_-listTarget_)>.1F||std::abs(detailScroll_-detailTarget_)>.1F||detailOpacity_<1||listOpacity_<1||filterAnimation_.Active();}
+bool EventsPage::Animating() const noexcept {return std::abs(listScroll_-listTarget_)>.1F||std::abs(detailScroll_-detailTarget_)>.1F||detailOpacity_<1||listOpacity_<1||detailBarProgress_<1||filterAnimation_.Active();}
 void EventsPage::Tick(float seconds) {
     seconds=std::clamp(seconds,0.0F,.05F);const float alpha=1-std::exp(-22*seconds);
     filterAnimation_.Tick(seconds);
+    detailBarProgress_=(std::min)(1.0F,detailBarProgress_+seconds/.36F);
+    if(detailBarProgress_==1)detailBarFrom_.reset();
     for(auto pair:{std::pair{&listScroll_,&listTarget_},std::pair{&detailScroll_,&detailTarget_}})
         if(std::abs(*pair.first-*pair.second)<.1F)*pair.first=*pair.second;else *pair.first+=(*pair.second-*pair.first)*alpha;
     detailOpacity_=(std::min)(1.0F,detailOpacity_+seconds/0.18F);

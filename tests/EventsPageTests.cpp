@@ -2,9 +2,12 @@
 #include "ui/EventFormat.h"
 #include <iostream>
 #include <stdexcept>
+#include <source_location>
 using namespace noven::ui;
 using namespace noven::events;
-void Check(bool value){if(!value)throw std::runtime_error("events page assertion");}
+void Check(bool value,std::source_location location=std::source_location::current()){
+    if(!value)throw std::runtime_error("events page assertion at line "+std::to_string(location.line()));
+}
 int wmain(int argc,wchar_t** argv){try{
     Check(argc==2);std::wstring error;Check(UiLocalization().DiscoverLocales(argv[1],error));
     Microsoft::WRL::ComPtr<IDWriteFactory> factory;
@@ -146,6 +149,30 @@ int wmain(int argc,wchar_t** argv){try{
     const auto toggle=page.ActionBounds(EventAction::Kind::Original,{});Check(toggle.has_value());
     page.MouseDown(toggle->left+10,toggle->top+10);Check(!page.MouseUp(toggle->left+10,toggle->top+10));prepare(1500);
     Check(page.ContentText(event.summary)==L"Original official text");
+    // 原文/译文高度改变时滑块长度和位置接续；快速反向切换、淡出与离页均可落定。
+    // Thumb size and position continue across text-height changes; rapid reversal, fade-out and blur settle safely.
+    EventsPage barPage;auto barEvent=event;
+    barEvent.summary.clear();for(int i=0;i<90;++i)barEvent.summary+="Long original announcement line.\n";
+    barEvent.machineText={{barEvent.summary,"简短译文"}};
+    barPage.SetSnapshot({barEvent},{RefreshPhase::Ready,{},{}},200);Check(barPage.Select(barEvent.eventId));
+    const auto prepareBar=[&](float height=700){barPage.Prepare(1500,height,theme,factory.Get(),body.Get(),label.Get());};
+    const auto settleBar=[&]{for(int i=0;i<100;++i)barPage.Tick(.016F);};
+    const auto toggleBar=[&]{const auto r=barPage.ActionBounds(EventAction::Kind::Original,{});Check(r.has_value());
+        barPage.MouseDown(r->left+8,r->top+8);barPage.MouseUp(r->left+8,r->top+8);prepareBar();};
+    const auto sameThumb=[](const auto& a,const auto& b){return a.bar&&b.bar&&
+        std::abs(a.bar->thumb.top-b.bar->thumb.top)<.001F&&std::abs(a.bar->thumb.bottom-b.bar->thumb.bottom)<.001F;};
+    prepareBar();settleBar();const auto translatedBar=barPage.DetailBarPose();Check(translatedBar.bar.has_value());
+    toggleBar();Check(barPage.Animating()&&sameThumb(translatedBar,barPage.DetailBarPose()));
+    barPage.Tick(.05F);const auto intermediateBar=barPage.DetailBarPose();
+    Check(intermediateBar.bar&&!sameThumb(translatedBar,intermediateBar));
+    toggleBar();Check(sameThumb(intermediateBar,barPage.DetailBarPose()));
+    settleBar();Check(!barPage.Animating()&&sameThumb(translatedBar,barPage.DetailBarPose()));
+    toggleBar();settleBar();const auto originalBar=barPage.DetailBarPose();
+    Check(originalBar.bar&&!sameThumb(originalBar,translatedBar));
+    Check(originalBar.bar->thumb.bottom-originalBar.bar->thumb.top<translatedBar.bar->thumb.bottom-translatedBar.bar->thumb.top);
+    prepareBar(5000);Check(barPage.DetailBarPose().bar&&barPage.Animating());
+    settleBar();Check(!barPage.DetailBarPose().bar&&!barPage.Animating());
+    prepareBar();settleBar();toggleBar();barPage.Blur();Check(!barPage.Animating());
     Check(UiLocalization().SetLocale("en-US"));prepare(1500);Check(!page.ActionBounds(EventAction::Kind::Original,{}));
     std::cout<<"Native event presentation PASS (not visual acceptance)\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
