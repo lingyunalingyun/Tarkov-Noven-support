@@ -61,6 +61,21 @@ int main(int argc,char** argv){try {
         Check(cached.Refresh(records,{},error)&&http.calls==calls);
         cached.Apply(records);Check(records[0].machineText.at(event.title)=="污水处理厂的Scav");
     }
+    {
+        std::ofstream out(dir/L"scav-terms.json",std::ios::binary);
+        out<<"{\"schemaVersion\":1,\"provider\":\"MyMemory\",\"locale\":\"zh-CN\",\"entries\":["
+            "{\"source\":\"Eliminating a Scav, including player Scavs\",\"translated\":\"消灭扫荡者，包括玩家扫荡者\"},"
+            "{\"source\":\"Rogues\",\"translated\":\"扫荡者\"},"
+            "{\"source\":\"Scav and Raiders\",\"translated\":\"扫荡者\"}]}";out.close();
+        EventTranslation cached(http);const auto calls=http.calls;Check(cached.Load(dir/L"scav-terms.json",error));
+        EventRecord event;event.title="Eliminating a Scav, including player Scavs";event.summary="Rogues";
+        std::vector<EventRecord> records{event};cached.Apply(records);
+        Check(records[0].machineText.at(event.title)=="消灭Scav，包括玩家Scav");
+        Check(records[0].machineText.at(event.summary)=="扫荡者");
+        Check(cached.Refresh(records,{},error)&&http.calls==calls);
+        event.title="Scav and Raiders";records={event};cached.Apply(records);
+        Check(records[0].machineText.at(event.title)=="扫荡者");
+    }
     Check(!EventTranslation::Parse({200,"text/html","<html>error</html>"},translated,error));
     Check(!EventTranslation::Parse({200,"application/json",std::string(128*1024+1,'x')},translated,error));
     Check(!EventTranslation::Parse({200,"application/json","{}"},translated,error));

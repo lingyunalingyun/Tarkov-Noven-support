@@ -25,14 +25,24 @@ std::wstring Escape(std::string_view s) {
         else{out+=L'%';out+=hex[c>>4];out+=hex[c&15];}}
     return out;
 }
-std::string Terms(std::string value) {
+std::string Terms(std::string value,std::string_view source={}) {
     // 仅修正明确的显示术语，不用译文识别地图、任务或活动状态。
     // Correct explicit display terms only; translations never identify maps/tasks/event status.
+    const auto letter=[](unsigned char c){return (c>='A'&&c<='Z')||(c>='a'&&c<='z');};
+    const auto word=[&](std::string_view term){
+        std::size_t pos{};while((pos=source.find(term,pos))!=source.npos){
+            if((!pos||!letter(source[pos-1]))&&(pos+term.size()==source.size()||!letter(source[pos+term.size()])))return true;
+            pos+=term.size();
+        }return false;
+    };
+    // “扫荡者”是机翻歧义词：只有原文明确 Scav 且未混入 Rogues/Raiders 才修正。
+    // The ambiguous machine term is corrected only with explicit Scav source text and no mixed Rogue/Raider identities.
+    const bool scav=(word("Scav")||word("Scavs"))&&!word("Rogue")&&!word("Rogues")&&!word("Raider")&&!word("Raiders");
     for(const auto& [from,to]:std::initializer_list<std::pair<std::string_view,std::string_view>>{
         {"Glukhar","格鲁哈"},{"Reserve","储备站"},{"Lighthouse","灯塔"},{"季节性游戏模式","赛季模式"},
-        {"水处理厂","污水处理厂"},{"拾荒者","Scav"},{"游荡者","Rogues"},{"掠夺者","Raiders"}}) {
+        {"水处理厂","污水处理厂"},{"拾荒者","Scav"},{"游荡者","Rogues"},{"掠夺者","Raiders"},{"扫荡者","Scav"}}) {
+        if(from=="扫荡者"&&!scav)continue;
         std::size_t pos{};while((pos=value.find(from,pos))!=value.npos) {
-            const auto letter=[](unsigned char c){return (c>='A'&&c<='Z')||(c>='a'&&c<='z');};
             if((pos&&letter(value[pos-1]))||(pos+from.size()<value.size()&&letter(value[pos+from.size()]))){pos+=from.size();continue;}
             // 已正确的地点名不重复加前缀；旧缓存也能安全复用同一规则。
             // Do not prefix an already-correct location again; the same rules safely normalize old cache entries.
@@ -85,7 +95,7 @@ bool EventTranslation::Load(const std::filesystem::path& file,std::string& error
             const auto& values=root.At("entries").Array();if(values.size()>maxEntries)throw std::runtime_error("translation capacity exceeded");
             std::map<std::string,std::string> next;
             for(const auto& v:values){const auto& source=v.At("source").String();const auto& target=v.At("translated").String();
-                if(!Valid(source)||!Valid(target)||!next.emplace(source,Terms(target)).second)throw std::runtime_error("invalid translation entry");}
+                if(!Valid(source)||!Valid(target)||!next.emplace(source,Terms(target,source)).second)throw std::runtime_error("invalid translation entry");}
             text_=std::move(next);
         }
         writable_=true;return true;
@@ -120,7 +130,7 @@ bool EventTranslation::Refresh(const std::vector<EventRecord>& records,std::stop
             if(!part.empty()&&(part.back()=='\n'||part.back()==' '))translated+=part.back();
         }
         if(!ok)break;
-        if(Valid(translated)){next[source]=std::move(translated);dirty=true;}
+        if(Valid(translated)){next[source]=Terms(std::move(translated),source);dirty=true;}
     }
     // 原文变更不复用旧译文；只保留当前窗口，失败保留已有缓存。
     // Changed originals never reuse stale translations; retain the current window, preserving cache on failure.
