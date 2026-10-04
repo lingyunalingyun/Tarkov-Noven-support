@@ -19,6 +19,10 @@ public:
     void SetItemCatalog(const data::ItemCatalog& catalog) noexcept {items_=&catalog;}
     std::wstring ScanName(const data::RecentScanEntry& scan) const;
     void Prepare(float width, float height, const UiTheme& theme);
+    [[nodiscard]] D2D1_RECT_F SearchBounds() const noexcept {return searchRect_;}
+    [[nodiscard]] D2D1_RECT_F ScanButtonBounds() const noexcept {
+        return D2D1::RectF(searchRect_.right+12,searchRect_.top,searchRect_.right+124,searchRect_.bottom);
+    }
     void Draw(const UiCanvas& canvas, const UiTheme& theme,
         const std::unordered_map<std::string,Microsoft::WRL::ComPtr<ID2D1Bitmap>>& images) const;
     void MouseDown(float x,float y);

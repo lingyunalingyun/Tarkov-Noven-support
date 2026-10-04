@@ -27,6 +27,12 @@ int wmain(int argc,wchar_t** argv) {
         Require(card.TextBounds(10,39).left==320&&card.TextBounds(10,39).right==300+width-34,"text aligns to shared card padding at both widths");
     }
     const UiTheme theme;RaidHistoryPage page;
+    for(float width:{900.0F,1600.0F}) {
+        page.Prepare(width,900,theme);
+        const auto search=page.SearchBounds(),button=page.ScanButtonBounds();
+        Require(button.top==search.top&&button.bottom==search.bottom,"scan button shares search vertical edges at both widths");
+        Require(button.left-search.right==12&&button.right==width-theme.contentPadding,"scan button shares row spacing and right edge");
+    }
     noven::data::ItemCatalog catalog;Require(catalog.Load(std::filesystem::path(argv[1]).parent_path()/"data"/"items_catalog.tsv",error),"item catalog");
     page.SetItemCatalog(catalog);
     noven::raid::RaidSession raid;raid.localSessionId="local-one";raid.eftRaidId="eft-one";

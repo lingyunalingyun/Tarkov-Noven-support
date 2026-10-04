@@ -563,8 +563,7 @@ void MainWindowUi::Paint() {
                     price_rows_, item_bitmaps_, price_page_, price_total_, &price_page_input_,mode_menu_progress_);
         if (page == MainPage::Settings) DrawLanguageSettings(canvas, size.width, size.height);
         if(page==MainPage::RaidHistory) {
-            const float right=size.width-theme_.contentPadding;
-            raid_scan_button_=D2D1::RectF(right-112,90,right,128);
+            raid_scan_button_=raid_history_.ScanButtonBounds();
             DrawTextButton(canvas,theme_,raid_scan_button_,Tr("raid.scan_logs"),false,raid_scan_pressed_);
         }
         };
