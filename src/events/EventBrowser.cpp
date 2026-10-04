@@ -56,6 +56,7 @@ void EventBrowser::PrepareSearch() {
     search_.clear();search_.reserve(events_.size());
     for(const auto& e:events_) {
         std::string text=e.eventId+"\n"+e.title+"\n"+e.summary;
+        for(const auto& [source,translated]:e.machineText)text+='\n'+translated;
         for(const auto& entity:Associations(e))text+='\n'+entity.name;
         search_.push_back(Fold(std::move(text)));
     }

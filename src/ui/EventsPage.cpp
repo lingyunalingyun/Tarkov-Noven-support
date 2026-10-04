@@ -20,6 +20,7 @@ events::Timestamp Now(){return std::chrono::duration_cast<std::chrono::seconds>(
 }
 void EventsPage::SetSnapshot(std::vector<events::EventRecord> records,events::EventRefreshState state,std::optional<events::Timestamp> refreshed) {
     const auto oldBuilds=browser_.Builds();browser_.SetEvents(std::move(records));browser_.SetNow(Now());
+    detailDirty_|=refresh_.translationWarning!=state.translationWarning;
     refresh_=std::move(state);refreshed_=refreshed;
     if(browser_.Builds()!=oldBuilds)detailDirty_=true;
     if(!selected_.empty()&&!browser_.Find(selected_)){selected_.clear();narrowDetail_=false;detailDirty_=true;}
@@ -42,7 +43,7 @@ bool EventsPage::Select(std::string_view id) {
     if(!browser_.Find(id))return false;
     narrowDetail_=true;
     if(selected_==id)return true;
-    selected_=id;detailScroll_=detailTarget_=0;detailDirty_=true;
+    selected_=id;detailScroll_=detailTarget_=0;detailDirty_=true;showOriginal_=false;
     // 快速切换从当前姿态继续，保持有限动画；选择不重排列表。
     // Rapid switching continues from the current pose with a finite transition; selection never reorders rows.
     if(detailOpacity_==1)detailOpacity_=0.75F;return true;
@@ -95,18 +96,25 @@ void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDW
     // 正文优先；社区来源用页底小字标识，不进入官方事实快照。
     // Content comes first; a small footer credits community sources outside official fact snapshots.
     if(official)add(Tr(TextKey::EventOfficial),true);
-    add(EventWide(event->title),true,official);
+    const auto content=[&](const std::string& text,bool heading=false,bool sourceFact=false){
+        add(ContentText(text),heading);if(sourceFact)officialText_.push_back(EventWide(text));
+    };
+    content(event->title,true,official);
+    if(locale_=="zh-CN"&&!event->machineText.empty()) {
+        add(Tr(TextKey::EventMachineTranslation),false,false,{},{},true);
+        add(Tr(showOriginal_?TextKey::EventShowTranslation:TextKey::EventShowOriginal),false,false,EventAction{EventAction::Kind::Original,{}});
+    }
     if(event->titleIsExcerpt)add(Tr(TextKey::EventExcerpt),false,official);
     add(EventStatusText(browser_.Status(*event))+L" · "+Tr(TextKey::EventScope)+L": "+EventScopeText(*event),false,official);
     add(Tr(TextKey::EventAnnounced)+L": "+EventTimeText(event->announcedAt)+L"\n"+
         Tr(TextKey::EventStarts)+L": "+EventTimeText(event->startsAt)+L"\n"+Tr(TextKey::EventEnds)+L": "+EventTimeText(event->endsAt),false,official);
-    add(EventWide(event->summary),false,official);
+    content(event->summary,false,official);
     for(const auto& source:event->sourceEvidence)if(source.sourceKind==events::SourceKind::OfficialTelegram&&events::SafeEventSourceUrl(source.sourceUrl))
         add(Tr(TextKey::EventOpenSource)+L" · "+EventTimeText(source.publishedAt),false,true,EventAction{EventAction::Kind::Source,source.sourceUrl});
     bool communityHeading=!official;
     for(const auto& source:event->sourceEvidence)if(source.sourceKind==events::SourceKind::CommunityWiki) {
         if(!communityHeading){add(Tr(TextKey::EventCommunity),true);communityHeading=true;}
-        if(official)add(EventWide(source.summary));
+        if(official)content(source.summary);
         if(!official)add(Tr(TextKey::EventSourceUpdated)+L": "+EventTimeText(event->lastUpdatedAt));
         if(events::SafeEventSourceUrl(source.sourceUrl))add(Tr(TextKey::EventOpenSource)+L" · "+Tr(TextKey::EventWikiSource),false,false,EventAction{EventAction::Kind::Source,source.sourceUrl});
     }
@@ -134,6 +142,7 @@ void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDW
         }
     }
     if(!any)add(Tr(TextKey::EventNoChanges));
+    if(!refresh_.translationWarning.empty())add(Tr(TextKey::EventTranslationUnavailable),false,false,{},{},true);
     if(communityHeading)add(Tr(TextKey::EventCommunityHint),false,false,{},{},true);
     detailHeight_+=16;
 }
@@ -156,6 +165,11 @@ std::wstring EventsPage::RefreshText() const {
 }
 std::wstring EventsPage::LastRefreshText() const {
     return refreshed_?UiLocalization().Format(TextKey::EventLastRefresh,{{L"time",EventTimeText(refreshed_)}}):std::wstring{};
+}
+std::wstring EventsPage::ContentText(std::string_view text) const {
+    const auto* event=browser_.Find(selected_);
+    if(!showOriginal_&&locale_=="zh-CN"&&event)if(const auto i=event->machineText.find(std::string(text));i!=event->machineText.end())return EventWide(i->second);
+    return EventWide(text);
 }
 void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::unordered_map<std::string,Microsoft::WRL::ComPtr<ID2D1Bitmap>>& images) const {
     DrawPageHeader(canvas,theme,searchRect_.left,searchRect_.right,Tr(TextKey::NavEvents));
@@ -187,7 +201,8 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             // 临时换行后恢复共享格式，长原文不会改变其他页面的排版契约。
             // Restore the shared format after wrapping long source titles; other pages keep their layout contract.
             const auto wrapping=canvas.label.GetWordWrapping();canvas.label.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
-            canvas.Text(EventWide(e.title),canvas.label,{card.left+12,top+8,card.right-12,top+58},theme.primaryText);
+            const auto translated=e.machineText.find(e.title);
+            canvas.Text(EventWide(locale_=="zh-CN"&&translated!=e.machineText.end()?translated->second:e.title),canvas.label,{card.left+12,top+8,card.right-12,top+58},theme.primaryText);
             canvas.label.SetWordWrapping(wrapping);
             const D2D1_RECT_F badge{card.left+12,top+62,(std::min)(card.left+122,card.right-12),top+85};
             canvas.Round(badge,5,theme.background);
@@ -248,7 +263,9 @@ std::optional<EventAction> EventsPage::MouseUp(float x,float y) {
     if(const auto tab=TabAt(x,y);tab&&tab==TabAt(down->x,down->y)){SetFilter(FilterAt(*tab),search_.Text());return {};}
     if(narrow_&&ShowingDetail()&&Hit(listButton_,x,y)&&Hit(listButton_,down->x,down->y)){narrowDetail_=false;return {};}
     if(const auto row=RowAt(x,y);row&&row==RowAt(down->x,down->y)){Select(browser_.Events()[browser_.Rows()[*row]].eventId);return {};}
-    const auto action=ActionAt(x,y);return action==ActionAt(down->x,down->y)?action:std::nullopt;
+    const auto action=ActionAt(x,y);if(action!=ActionAt(down->x,down->y))return {};
+    if(action&&action->kind==EventAction::Kind::Original){showOriginal_=!showOriginal_;detailDirty_=true;detailOpacity_=.75F;return {};}
+    return action;
 }
 bool EventsPage::MouseMove(float x,float y) {
     if(grab_)if(const auto bar=Bar(grab_->first)){auto& scroll=grab_->first?detailScroll_:listScroll_;auto& target=grab_->first?detailTarget_:listTarget_;target=scroll=bar->OffsetFromThumbTop(y-grab_->second);}

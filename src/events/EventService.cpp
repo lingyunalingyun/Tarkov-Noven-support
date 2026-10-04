@@ -5,14 +5,16 @@ namespace noven::events {
 bool EventService::Start(const std::filesystem::path& file) {
     if(started_)return cacheReady_;
     started_=true;
-    {std::lock_guard lock(mutex_);cacheReady_=cache_.Load(file,catalog_,sourceState_,refreshState_.error);}
+    {std::lock_guard lock(mutex_);cacheReady_=cache_.Load(file,catalog_,sourceState_,refreshState_.error);
+        presentation_=catalog_.Events();
+        if(translation_){translation_->Load(file.parent_path()/L"event-translations.json",refreshState_.translationWarning);translation_->Apply(presentation_);}}
     RequestRefresh();return cacheReady_;
 }
 bool EventService::RequestRefresh() {
     if(!started_)return false;
     {std::lock_guard lock(mutex_);if(refreshState_.phase==RefreshPhase::Refreshing)return false;}
     if(worker_.joinable())worker_.join();
-    {std::lock_guard lock(mutex_);refreshState_.phase=RefreshPhase::Refreshing;refreshState_.enrichmentWarning.clear();refreshState_.sourceWarning.clear();}
+    {std::lock_guard lock(mutex_);refreshState_.phase=RefreshPhase::Refreshing;refreshState_.enrichmentWarning.clear();refreshState_.sourceWarning.clear();refreshState_.translationWarning.clear();}
     // 单次 worker 执行后退出，没有空闲轮询、定时器或渲染帧任务。
     // A single-shot worker exits after refresh; no idle polling, timer or render-frame work.
     worker_=std::jthread([this](std::stop_token stop){Refresh(stop);});return true;
@@ -55,16 +57,36 @@ void EventService::Refresh(std::stop_token stop) {
             }
         }
     }catch(const std::exception& e){error=e.what();}
+    std::vector<EventRecord> view;
     {std::lock_guard lock(mutex_);
         if(published){catalog_=std::move(next);sourceState_=std::move(state);}
-        refreshState_={published?RefreshPhase::Ready:RefreshPhase::Failed,std::move(error),std::move(warning),std::move(sourceWarning)};
+        view=catalog_.Events();
+    }
+    if(translation_) {
+        // 先发布原文/缓存译文，再后台翻译；翻译失败不改变来源刷新成功状态。
+        // Publish source/cached text first, then translate off-thread; translation failure never changes source success.
+        translation_->Apply(view);
+        {std::lock_guard lock(mutex_);presentation_=view;}
+        if(changed_){try{changed_();}catch(...){} }
+        std::string translationError;
+        try{translation_->Refresh(view,stop,translationError);translation_->Apply(view);}
+        catch(const std::exception& e){translationError=e.what();}
+        {std::lock_guard lock(mutex_);refreshState_.translationWarning=std::move(translationError);}
+    }
+    {std::lock_guard lock(mutex_);
+        presentation_=std::move(view);
+        refreshState_.phase=published?RefreshPhase::Ready:RefreshPhase::Failed;
+        refreshState_.error=std::move(error);refreshState_.enrichmentWarning=std::move(warning);refreshState_.sourceWarning=std::move(sourceWarning);
     }
     if(changed_) {try{changed_();}catch(...){} }
 }
-std::vector<EventRecord> EventService::Events() const {std::lock_guard lock(mutex_);return catalog_.Events();}
-std::vector<EventRecord> EventService::ActiveEvents(Timestamp now) const {std::lock_guard lock(mutex_);return catalog_.ActiveEvents(now);}
+std::vector<EventRecord> EventService::Events() const {std::lock_guard lock(mutex_);return presentation_;}
+std::vector<EventRecord> EventService::ActiveEvents(Timestamp now) const {
+    std::lock_guard lock(mutex_);std::vector<EventRecord> active;
+    for(const auto& event:presentation_)if(StatusAt(event,now)==EventStatus::Active)active.push_back(event);return active;
+}
 std::optional<EventRecord> EventService::FindEvent(std::string_view id) const {
-    std::lock_guard lock(mutex_);if(const auto* event=catalog_.FindEvent(id))return *event;return {};
+    std::lock_guard lock(mutex_);for(const auto& event:presentation_)if(event.eventId==id)return event;return {};
 }
 EventRefreshState EventService::RefreshState() const {std::lock_guard lock(mutex_);return refreshState_;}
 std::optional<Timestamp> EventService::LastSuccessfulRefresh() const {std::lock_guard lock(mutex_);return sourceState_.lastSuccessfulRefresh;}

@@ -1,4 +1,8 @@
 {
+  "events.machine_translation": "Machine translation · MyMemory",
+  "events.show_original": "Show original",
+  "events.show_translation": "Show translation",
+  "events.translation_unavailable": "Some content could not be translated; original or cached text is retained.",
   "events.community": "Community information",
   "events.community_hint": "Community source: Tarkov Wiki.",
   "events.wiki_source": "Community Wiki",

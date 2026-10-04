@@ -1,4 +1,8 @@
 {
+  "events.machine_translation": "机器翻译 · MyMemory",
+  "events.show_original": "查看原文",
+  "events.show_translation": "查看译文",
+  "events.translation_unavailable": "部分内容未能翻译，保留原文或已有译文。",
   "events.community": "社区资料",
   "events.community_hint": "社区资料来源：Tarkov Wiki。",
   "events.wiki_source": "社区 Wiki",

@@ -12,7 +12,7 @@
 
 namespace noven::ui {
 struct EventAction {
-    enum class Kind { Map, Task, Item, Source, Refresh };
+    enum class Kind { Map, Task, Item, Source, Refresh, Original };
     Kind kind{};std::string id;
     bool operator==(const EventAction&) const = default;
 };
@@ -56,6 +56,7 @@ public:
     const std::vector<std::wstring>& EvidenceText() const noexcept{return evidenceText_;}
     std::wstring RefreshText() const;
     std::wstring LastRefreshText() const;
+    std::wstring ContentText(std::string_view text) const;
 private:
     struct Block {
         std::wstring text;float top{},height{};bool heading{},official{},footnote{};
@@ -80,7 +81,7 @@ private:
     std::string locale_,selected_;
     std::vector<Block> blocks_;
     std::vector<std::wstring> officialText_,evidenceText_;
-    bool detailDirty_{true},narrow_{},narrowDetail_{};
+    bool detailDirty_{true},narrow_{},narrowDetail_{},showOriginal_{};
     float detailHeight_{},detailWidth_{},listScroll_{},listTarget_{},detailScroll_{},detailTarget_{},detailOpacity_{1};
     TabSelectionAnimation filterAnimation_;
     D2D1_RECT_F searchRect_{},tabsRect_{},listRect_{},detailRect_{},refreshRect_{},listButton_{};

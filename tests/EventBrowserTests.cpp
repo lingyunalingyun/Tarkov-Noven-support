@@ -38,5 +38,7 @@ int main(){try{
     future.startsAt=200;tie=future;tie.eventId="e";tie.startsAt=150;
     b.SetEvents({future,tie});Check(b.Events()[b.Rows()[0]].eventId=="e");
     b.SetEvents({});Check(b.Rows().empty());
+    active.machineText={{active.title,"格鲁哈活动"}};b.SetEvents({active});
+    b.SetFilter({},"格鲁哈");Check(b.Rows().size()==1);
     std::cout<<"Cached event browser PASS\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

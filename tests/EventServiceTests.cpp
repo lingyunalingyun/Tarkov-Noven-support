@@ -19,6 +19,13 @@ struct CommunitySource: ICommunityEventSource {
     int calls{};CommunitySourceResult result;
     CommunitySourceResult Fetch(std::stop_token) override {++calls;return result;}
 };
+struct TranslationHttp:IEventHttp {
+    int calls{};bool fail{};
+    HttpResponse Get(std::wstring_view,std::wstring_view,std::string_view={},std::string_view={}) override {
+        ++calls;if(fail)return {503,"text/html","unavailable"};
+        return {200,"application/json","{\"responseStatus\":200,\"quotaFinished\":false,\"responseData\":{\"translatedText\":\"活动已经开始\",\"match\":0.85}}"};
+    }
+};
 int main(int argc,char** argv){
     const auto dir=std::filesystem::temp_directory_path()/("noven-event-service-"+std::to_string(GetCurrentProcessId()));
     try {
@@ -72,6 +79,29 @@ int main(int argc,char** argv){
             EventService service(source,{},&wiki);std::promise<void> done;auto finished=done.get_future();service.SetChangedCallback([&]{done.set_value();});
             Check(service.Start(dir/"catalog.json"));finished.get();service.Stop();
             Check(service.Events().size()==2 && service.RefreshState().phase==RefreshPhase::Failed);}
+        }
+        {
+            Source source;source.result.success=true;source.result.announcements={{"99","https://t.me/escapefromtarkovEN/99","Title","Summary"}};
+            TranslationHttp http;EventService service(source,{},nullptr,&http);std::promise<void> done;auto finished=done.get_future();
+            service.SetChangedCallback([&]{if(service.RefreshState().phase==RefreshPhase::Ready)done.set_value();});
+            Check(service.Start(dir/"translated"/"catalog.json"));finished.get();service.Stop();
+            const auto event=service.FindEvent("official-telegram:99");Check(event&&event->machineText.size()==2&&event->title=="Title"&&!event->startsAt);
+            Check(http.calls==2&&service.RefreshState().translationWarning.empty());
+        }
+        {
+            Source source;source.result.success=true;source.result.notModified=true;TranslationHttp http;http.fail=true;
+            EventService service(source,{},nullptr,&http);std::promise<void> done;auto finished=done.get_future();
+            service.SetChangedCallback([&]{if(service.RefreshState().phase==RefreshPhase::Ready)done.set_value();});
+            Check(service.Start(dir/"translated"/"catalog.json"));Check(service.Events().front().machineText.size()==2);
+            finished.get();service.Stop();Check(http.calls==0&&service.Events().front().machineText.size()==2);
+        }
+        {
+            Source source;source.result.success=true;source.result.announcements={{"99","https://t.me/escapefromtarkovEN/99","Updated title","Summary"}};
+            TranslationHttp http;http.fail=true;EventService service(source,{},nullptr,&http);std::promise<void> done;auto finished=done.get_future();
+            service.SetChangedCallback([&]{if(service.RefreshState().phase==RefreshPhase::Ready)done.set_value();});
+            Check(service.Start(dir/"translated"/"catalog.json"));finished.get();service.Stop();
+            Check(service.Events().front().title=="Updated title"&&service.Events().front().machineText.size()==1);
+            Check(!service.RefreshState().translationWarning.empty()&&service.RefreshState().error.empty());
         }
         std::filesystem::remove_all(dir);std::cout<<"Single-shot cache-preserving service PASS\n";return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

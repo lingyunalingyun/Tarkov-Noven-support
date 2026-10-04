@@ -99,5 +99,14 @@ int wmain(int argc,wchar_t** argv){try{
     page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);
     Check(page.LastRefreshText()==L"Last successful check: "+EventTimeText(200));
     Check(EventTimeText(-1)==L"Unknown"&&EventTimeText(253402300800LL)==L"Unknown");
+    Check(UiLocalization().SetLocale("zh-CN"));
+    event.machineText={{event.title,"活动标题"},{event.summary,"活动正文"}};
+    page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);prepare(1500);
+    Check(page.ContentText(event.title)==L"活动标题"&&page.ContentText(event.summary)==L"活动正文");
+    Check(std::ranges::find(page.OfficialText(),L"Original official text")!=page.OfficialText().end());
+    const auto toggle=page.ActionBounds(EventAction::Kind::Original,{});Check(toggle.has_value());
+    page.MouseDown(toggle->left+10,toggle->top+10);Check(!page.MouseUp(toggle->left+10,toggle->top+10));prepare(1500);
+    Check(page.ContentText(event.summary)==L"Original official text");
+    Check(UiLocalization().SetLocale("en-US"));prepare(1500);Check(!page.ActionBounds(EventAction::Kind::Original,{}));
     std::cout<<"Native event presentation PASS (not visual acceptance)\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -2,6 +2,13 @@
 
 ## Public event sources / 公开活动来源
 
+活动内容的可选机器译文由 [MyMemory](https://mymemory.translated.net/) 提供，并标明为机器翻译。
+仅向该服务发送公开活动标题、正文及社区摘要；不发送 EFT 日志、扫描记录或账户信息。
+译文独立缓存在本地，原文修改才需重新翻译；译文不改变来源事实和游戏内容关联。
+Optional event machine translations use MyMemory and are labelled as machine translations. Only public
+event titles, descriptions and community summaries are sent, never EFT logs, scans or account data.
+Translations are cached separately and invalidated by original text changes, without changing source facts or associations.
+
 官方活动事实来自 [Escape from Tarkov Official 英语公开频道](https://t.me/s/escapefromtarkovEN)。
 完整名称/身份补充复用 [Tarkov.dev](https://tarkov.dev/api/) 生成目录；
 配置变化证据来源为 [Tarkov Silent Changes](https://changes.tarkov-changes.com/latest)，且仅附加官方明确链接的记录。

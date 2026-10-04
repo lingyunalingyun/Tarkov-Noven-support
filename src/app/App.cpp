@@ -298,10 +298,11 @@ int App::Run(HINSTANCE instance, int show_command) {
     official_event_source_=std::make_unique<events::OfficialEventSource>(*event_http_);
     wiki_event_source_=std::make_unique<events::WikiEventSource>(*event_http_);
     event_service_=std::make_unique<events::EventService>(*official_event_source_,
-        events::MakeEventEnrichment(ExecutableDirectory()/L"assets",*event_http_),wiki_event_source_.get());
+        events::MakeEventEnrichment(ExecutableDirectory()/L"assets",*event_http_),wiki_event_source_.get(),event_http_.get());
     event_service_->SetChangedCallback([this]{
         const auto state=event_service_->RefreshState();
-        common::DebugLog(state.phase==events::RefreshPhase::Ready?L"[events] refresh ready":L"[events] refresh failed; cache preserved");
+        common::DebugLog(state.phase==events::RefreshPhase::Ready?L"[events] refresh ready":
+            state.phase==events::RefreshPhase::Refreshing?L"[events] source snapshot ready; translation running":L"[events] refresh failed; cache preserved");
         PostMessageW(window_,kEventsMessage,0,0);
     });
     if(!event_service_->Start(ExecutableDirectory()/L"data"/L"events"/L"event-catalog.json"))

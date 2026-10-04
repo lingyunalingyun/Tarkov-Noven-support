@@ -5,6 +5,10 @@
 // 新语言只添加 JSON；只有新增文字概念才需要修改这里。
 // New languages add JSON only; edit this file only for new text concepts.
 namespace noven::ui::TextKey {
+inline constexpr std::string_view EventMachineTranslation = "events.machine_translation";
+inline constexpr std::string_view EventShowOriginal = "events.show_original";
+inline constexpr std::string_view EventShowTranslation = "events.show_translation";
+inline constexpr std::string_view EventTranslationUnavailable = "events.translation_unavailable";
 inline constexpr std::string_view EventCommunity = "events.community";
 inline constexpr std::string_view EventCommunityHint = "events.community_hint";
 inline constexpr std::string_view EventWikiSource = "events.wiki_source";
