@@ -50,6 +50,8 @@ int main(int argc,char** argv){try {
     Check(translated=="污水处理厂；污水处理厂；Scav；玩家扫荡者");
     Check(EventTranslation::Parse({200,"application/json","{\"responseStatus\":200,\"quotaFinished\":false,\"responseData\":{\"translatedText\":\"拾荒者；游荡者；掠夺者；Scav；Rogues；Raiders\"}}"},translated,error));
     Check(translated=="Scav；Rogues；Raiders；Scav；Rogues；Raiders");
+    Check(EventTranslation::Parse({200,"application/json","{\"responseStatus\":200,\"quotaFinished\":false,\"responseData\":{\"translatedText\":\"玩家拾荒者；玩家Scav；Scav\"}}"},translated,error));
+    Check(translated=="玩家Scav；玩家Scav；Scav");
     {
         std::ofstream out(dir/L"old-terms.json",std::ios::binary);
         out<<"{\"schemaVersion\":1,\"provider\":\"MyMemory\",\"locale\":\"zh-CN\",\"entries\":[{\"source\":\"Old text\",\"translated\":\"水处理厂的拾荒者\"}]}";out.close();
