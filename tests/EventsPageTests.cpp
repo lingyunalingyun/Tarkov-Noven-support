@@ -21,6 +21,8 @@ int wmain(int argc,wchar_t** argv){try{
     page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);Check(page.Select(event.eventId));
     const auto prepare=[&](float width){page.Prepare(width,900,theme,factory.Get(),body.Get(),label.Get());};
     prepare(1500);Check(!page.Narrow());
+    Check(page.LastRefreshText().find(L"{time}")==std::wstring::npos&&page.LastRefreshText().find(EventTimeText(200))!=std::wstring::npos);
+    Check(EventEvidencePreview(std::string(1024,'x')).size()==161);
     Check(page.OfficialText().size()>=4&&page.EvidenceText().size()==1);
     for(const auto& text:page.OfficialText())Check(text.find(L"SpawnWeight")==text.npos);
     Check(EventTimeText({})==Tr(TextKey::Unknown)&&EventScopeText(event)==Tr(TextKey::EventUnspecified));
@@ -50,7 +52,10 @@ int wmain(int argc,wchar_t** argv){try{
     page.SetFilter(EventStatus::Ended,{});prepare(800);Check(page.Browser().Rows().empty()&&!page.Browser().Events().empty());
     page.SetSnapshot({},{RefreshPhase::Failed,"offline",{}},{});prepare(800);Check(page.RefreshText()==Tr(TextKey::EventUnavailable));
     page.SetSnapshot({},{RefreshPhase::Ready,{},{}},{});Check(page.RefreshText()==Tr(TextKey::EventEmpty));
+    Check(page.LastRefreshText().empty());
     Check(UiLocalization().SetLocale("en-US"));Check(EventTimeText({})==L"Unknown");
+    page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);
+    Check(page.LastRefreshText()==L"Last successful check: "+EventTimeText(200));
     Check(EventTimeText(-1)==L"Unknown"&&EventTimeText(253402300800LL)==L"Unknown");
     std::cout<<"Native event presentation PASS (not visual acceptance)\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -49,6 +49,7 @@ public:
     const std::vector<std::wstring>& OfficialText() const noexcept{return officialText_;}
     const std::vector<std::wstring>& EvidenceText() const noexcept{return evidenceText_;}
     std::wstring RefreshText() const;
+    std::wstring LastRefreshText() const;
 private:
     struct Block {
         std::wstring text;float top{},height{};bool heading{},official{};

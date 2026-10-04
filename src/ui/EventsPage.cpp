@@ -114,7 +114,7 @@ void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDW
     std::string lastSource;bool any=false;
     for(const auto& evidence:event->sourceEvidence)if(evidence.sourceKind==events::SourceKind::TarkovChanges&&evidence.type==events::EvidenceType::ConfigurationChange) {
         any=true;
-        const auto text=EventWide(evidence.changedKey)+L"\n"+EventWide(evidence.oldValue)+L" → "+EventWide(evidence.newValue);
+        const auto text=EventEvidencePreview(evidence.changedKey)+L"\n"+EventEvidencePreview(evidence.oldValue)+L" → "+EventEvidencePreview(evidence.newValue);
         evidenceText_.push_back(text);add(text);
         if(lastSource!=evidence.sourceRecordId) {
             lastSource=evidence.sourceRecordId;add(Tr(TextKey::EventEvidenceSource)+L" · "+EventTimeText(evidence.publishedAt));
@@ -139,6 +139,9 @@ std::wstring EventsPage::RefreshText() const {
     if(refresh_.phase==events::RefreshPhase::Failed)return Tr(browser_.Events().empty()?TextKey::EventUnavailable:TextKey::EventCached);
     return refreshed_?Tr(TextKey::EventUpdated):Tr(TextKey::EventEmpty);
 }
+std::wstring EventsPage::LastRefreshText() const {
+    return refreshed_?UiLocalization().Format(TextKey::EventLastRefresh,{{L"time",EventTimeText(refreshed_)}}):std::wstring{};
+}
 void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::unordered_map<std::string,Microsoft::WRL::ComPtr<ID2D1Bitmap>>& images) const {
     DrawPageHeader(canvas,theme,searchRect_.left,searchRect_.right,Tr(TextKey::NavEvents));
     search_.Draw(canvas,theme,searchRect_,Tr(TextKey::EventSearch),true);
@@ -151,7 +154,7 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
         {L"upcoming",std::to_wstring(browser_.Count(events::EventStatus::Upcoming))},{L"total",std::to_wstring(browser_.Events().size())}});
     canvas.Text(summary,canvas.smallFormat,{searchRect_.left,176,searchRect_.right,198},theme.secondaryText);
     canvas.Text(RefreshText(),canvas.smallFormat,{searchRect_.left,198,refreshRect_.left-8,218},theme.secondaryText);
-    if(refreshed_)canvas.Text(Tr(TextKey::EventLastRefresh)+L": "+EventTimeText(refreshed_),canvas.smallFormat,
+    if(refreshed_)canvas.Text(LastRefreshText(),canvas.smallFormat,
         {searchRect_.left,220,searchRect_.right,242},theme.secondaryText);
     const bool refreshing=refresh_.phase==events::RefreshPhase::Refreshing;
     canvas.Round(refreshRect_,8,theme.surface);canvas.CenteredText(Tr(TextKey::EventRefresh),canvas.smallFormat,refreshRect_,refreshing?theme.secondaryText:theme.accent);

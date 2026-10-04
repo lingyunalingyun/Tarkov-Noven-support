@@ -13,6 +13,13 @@ inline std::string EventUtf8(std::wstring_view text) {
     const int size=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,text.data(),static_cast<int>(text.size()),nullptr,0,nullptr,nullptr);
     std::string value(size,'\0');if(size)WideCharToMultiByte(CP_UTF8,0,text.data(),static_cast<int>(text.size()),value.data(),size,nullptr,nullptr);return value;
 }
+// 变更区只展示有界预览；不删改缓存事实，原始支持证据通过来源链接查看。
+// Show bounded change previews without altering cached facts; source links expose the supporting record.
+inline std::wstring EventEvidencePreview(std::string_view text) {
+    auto value=EventWide(text);
+    if(value.size()>160){std::size_t size=160;if(value[size-1]>=0xD800&&value[size-1]<=0xDBFF)--size;value.resize(size);value+=L"…";}
+    return value;
+}
 inline std::wstring EventStatusText(events::EventStatus status) {
     switch(status){case events::EventStatus::Active:return Tr(TextKey::EventActive);
         case events::EventStatus::Upcoming:return Tr(TextKey::EventUpcoming);case events::EventStatus::Ended:return Tr(TextKey::EventEnded);
