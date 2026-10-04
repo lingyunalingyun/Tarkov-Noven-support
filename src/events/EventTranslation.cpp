@@ -29,10 +29,14 @@ std::string Terms(std::string value) {
     // 仅修正明确的显示术语，不用译文识别地图、任务或活动状态。
     // Correct explicit display terms only; translations never identify maps/tasks/event status.
     for(const auto& [from,to]:std::initializer_list<std::pair<std::string_view,std::string_view>>{
-        {"Glukhar","格鲁哈"},{"Reserve","储备站"},{"Lighthouse","灯塔"},{"季节性游戏模式","赛季模式"}}) {
+        {"Glukhar","格鲁哈"},{"Reserve","储备站"},{"Lighthouse","灯塔"},{"季节性游戏模式","赛季模式"},
+        {"水处理厂","污水处理厂"},{"拾荒者","Scav"},{"扫荡者","Scav"}}) {
         std::size_t pos{};while((pos=value.find(from,pos))!=value.npos) {
             const auto letter=[](unsigned char c){return (c>='A'&&c<='Z')||(c>='a'&&c<='z');};
             if((pos&&letter(value[pos-1]))||(pos+from.size()<value.size()&&letter(value[pos+from.size()]))){pos+=from.size();continue;}
+            // 已正确的地点名不重复加前缀；旧缓存也能安全复用同一规则。
+            // Do not prefix an already-correct location again; the same rules safely normalize old cache entries.
+            if(from=="水处理厂"&&std::string_view(value).substr(0,pos).ends_with("污")){pos+=from.size();continue;}
             value.replace(pos,from.size(),to);pos+=to.size();
         }
     }return value;
@@ -81,7 +85,7 @@ bool EventTranslation::Load(const std::filesystem::path& file,std::string& error
             const auto& values=root.At("entries").Array();if(values.size()>maxEntries)throw std::runtime_error("translation capacity exceeded");
             std::map<std::string,std::string> next;
             for(const auto& v:values){const auto& source=v.At("source").String();const auto& target=v.At("translated").String();
-                if(!Valid(source)||!Valid(target)||!next.emplace(source,target).second)throw std::runtime_error("invalid translation entry");}
+                if(!Valid(source)||!Valid(target)||!next.emplace(source,Terms(target)).second)throw std::runtime_error("invalid translation entry");}
             text_=std::move(next);
         }
         writable_=true;return true;

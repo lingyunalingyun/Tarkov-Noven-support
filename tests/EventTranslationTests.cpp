@@ -46,6 +46,17 @@ int main(int argc,char** argv){try {
         Check(!corrupt.Refresh({}, {},error));
     }
     std::string translated;
+    Check(EventTranslation::Parse({200,"application/json","{\"responseStatus\":200,\"quotaFinished\":false,\"responseData\":{\"translatedText\":\"水处理厂；污水处理厂；拾荒者；玩家扫荡者\"}}"},translated,error));
+    Check(translated=="污水处理厂；污水处理厂；Scav；玩家Scav");
+    {
+        std::ofstream out(dir/L"old-terms.json",std::ios::binary);
+        out<<"{\"schemaVersion\":1,\"provider\":\"MyMemory\",\"locale\":\"zh-CN\",\"entries\":[{\"source\":\"Old text\",\"translated\":\"水处理厂的拾荒者\"}]}";out.close();
+        EventTranslation cached(http);const auto calls=http.calls;Check(cached.Load(dir/L"old-terms.json",error));
+        EventRecord event;event.title="Old text";std::vector<EventRecord> records{event};cached.Apply(records);
+        Check(records[0].machineText.at(event.title)=="污水处理厂的Scav");
+        Check(cached.Refresh(records,{},error)&&http.calls==calls);
+        cached.Apply(records);Check(records[0].machineText.at(event.title)=="污水处理厂的Scav");
+    }
     Check(!EventTranslation::Parse({200,"text/html","<html>error</html>"},translated,error));
     Check(!EventTranslation::Parse({200,"application/json",std::string(128*1024+1,'x')},translated,error));
     Check(!EventTranslation::Parse({200,"application/json","{}"},translated,error));
