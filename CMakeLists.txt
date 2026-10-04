@@ -229,7 +229,7 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME event_browser COMMAND NovenEventBrowserTests)
     add_executable(NovenEventServiceTests tests/EventServiceTests.cpp src/events/EventService.cpp src/events/EventCache.cpp
-        src/events/EventCatalog.cpp src/events/EventHttp.cpp src/events/OfficialEventSource.cpp src/events/EventEnrichment.cpp
+        src/events/EventCatalog.cpp src/events/EventHttp.cpp src/events/OfficialEventSource.cpp src/events/WikiEventSource.cpp src/events/EventEnrichment.cpp
         src/events/TarkovDevEventEnricher.cpp src/events/TarkovChangesEnricher.cpp src/data/ItemCatalog.cpp src/data/TaskCatalog.cpp src/data/MapCatalog.cpp)
     target_include_directories(NovenEventServiceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_definitions(NovenEventServiceTests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)

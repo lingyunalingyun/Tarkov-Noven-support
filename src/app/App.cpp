@@ -28,6 +28,7 @@
 #include "raid/LocalRaidService.h"
 #include "raid/RaidScanAssociation.h"
 #include "events/OfficialEventSource.h"
+#include "events/WikiEventSource.h"
 #include "events/EventService.h"
 #include "events/EventEnrichment.h"
 
@@ -295,8 +296,9 @@ int App::Run(HINSTANCE instance, int show_command) {
     // Publish cached snapshots first; worker notifications let the UI thread query the service, never its sources.
     event_http_=std::make_unique<events::WinHttpEventClient>();
     official_event_source_=std::make_unique<events::OfficialEventSource>(*event_http_);
+    wiki_event_source_=std::make_unique<events::WikiEventSource>(*event_http_);
     event_service_=std::make_unique<events::EventService>(*official_event_source_,
-        events::MakeEventEnrichment(ExecutableDirectory()/L"assets",*event_http_));
+        events::MakeEventEnrichment(ExecutableDirectory()/L"assets",*event_http_),wiki_event_source_.get());
     event_service_->SetChangedCallback([this]{
         const auto state=event_service_->RefreshState();
         common::DebugLog(state.phase==events::RefreshPhase::Ready?L"[events] refresh ready":L"[events] refresh failed; cache preserved");

@@ -58,7 +58,9 @@ bool TarkovDevEventEnricher::EnrichReferences(EventCatalog& catalog,std::string_
 }
 bool TarkovDevEventEnricher::EnrichText(EventCatalog& catalog,std::string_view id,std::string& error) const {
     const auto* e=catalog.FindEvent(id);if(!e){error="enrichment event missing";return false;}
-    const auto text=Normalize(e->summary);std::vector<EntityReference> refs;
+    auto text=Normalize(e->summary);std::vector<EntityReference> refs;
+    for(const auto& evidence:e->sourceEvidence)if(evidence.sourceKind==SourceKind::CommunityWiki)
+        text+='\n'+Normalize(evidence.summary);
     for(const auto& [key,ids]:aliases_)if(ids.size()==1 && Mention(text,std::string_view(key).substr(2))) {
         refs.push_back({static_cast<EntityKind>(key[0]-'0'),key.substr(2)});
         if(refs.size()>256){error="entity reference capacity exceeded";return false;}

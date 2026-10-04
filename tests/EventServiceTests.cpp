@@ -15,15 +15,20 @@ struct Source: IEventSource {
         ++calls;received=state;if(gate.valid())gate.wait();return result;
     }
 };
+struct CommunitySource: ICommunityEventSource {
+    int calls{};CommunitySourceResult result;
+    CommunitySourceResult Fetch(std::stop_token) override {++calls;return result;}
+};
 int main(int argc,char** argv){
     const auto dir=std::filesystem::temp_directory_path()/("noven-event-service-"+std::to_string(GetCurrentProcessId()));
     try {
         if(argc==3 && std::string_view(argv[1])=="--live") {
             WinHttpEventClient http;OfficialEventSource source(http);
-            EventService service(source,MakeEventEnrichment(argv[2],http));std::promise<void> done;auto finished=done.get_future();
+            WikiEventSource wiki(http);EventService service(source,MakeEventEnrichment(argv[2],http),&wiki);std::promise<void> done;auto finished=done.get_future();
             service.SetChangedCallback([&]{done.set_value();});Check(service.Start(dir/"live.json"));finished.get();service.Stop();
             if(service.RefreshState().phase!=RefreshPhase::Ready)throw std::runtime_error(service.RefreshState().error);
             std::cout<<"Live service events="<<service.Events().size()<<" warning="<<service.RefreshState().enrichmentWarning<<'\n';
+            for(const auto& e:service.Events())std::cout<<e.eventId<<" maps="<<e.mapIds.size()<<" tasks="<<e.taskIds.size()<<" bosses="<<e.bossIds.size()<<'\n';
         }else {
             EventCatalog initial;EventSourceState state;std::string error;
             OfficialAnnouncement a;a.sourceRecordId="40";a.sourceUrl="https://t.me/escapefromtarkovEN/40";
@@ -48,6 +53,23 @@ int main(int argc,char** argv){
             Check(service.Events()==initial.Events() && service.RefreshState().phase==RefreshPhase::Ready);
             Check(!service.RefreshState().enrichmentWarning.empty());Check(service.LastSuccessfulRefresh()>100);}
             {EventCache cache;EventCatalog restarted;EventSourceState s;Check(cache.Load(dir/"catalog.json",restarted,s,error));Check(restarted.Events()==initial.Events());}
+            CommunityAnnouncement w;w.sourceRecordId="26936:Test_Event";w.sourceUrl=WikiEventUrl(w.sourceRecordId);
+            w.sourceRevision="100";w.title="Community event";w.summary="Lighthouse";w.revisionAt=200;
+            {Source source;source.result.error="official unavailable";CommunitySource wiki;wiki.result={true,{w},{}};
+            EventService service(source,{},&wiki);std::promise<void> done;auto finished=done.get_future();service.SetChangedCallback([&]{done.set_value();});
+            Check(service.Start(dir/"catalog.json"));finished.get();service.Stop();
+            Check(service.Events().size()==2 && service.RefreshState().phase==RefreshPhase::Ready && !service.RefreshState().sourceWarning.empty());
+            Check(service.FindEvent("official-telegram:40")==std::optional<EventRecord>{initial.Events().front()});
+            Check(source.calls==1 && wiki.calls==1);}
+            {Source source;source.result.success=true;source.result.announcements={a};CommunitySource wiki;wiki.result.error="wiki malformed";
+            EventService service(source,{},&wiki);std::promise<void> done;auto finished=done.get_future();service.SetChangedCallback([&]{done.set_value();});
+            Check(service.Start(dir/"catalog.json"));finished.get();service.Stop();
+            Check(service.FindEvent("community-wiki:26936:Test_Event")->sourceStatus==EventStatus::Active);
+            Check(service.Events().size()==2 && service.RefreshState().phase==RefreshPhase::Ready && !service.RefreshState().sourceWarning.empty());}
+            {Source source;source.result.error="official unavailable";CommunitySource wiki;wiki.result.error="wiki unavailable";
+            EventService service(source,{},&wiki);std::promise<void> done;auto finished=done.get_future();service.SetChangedCallback([&]{done.set_value();});
+            Check(service.Start(dir/"catalog.json"));finished.get();service.Stop();
+            Check(service.Events().size()==2 && service.RefreshState().phase==RefreshPhase::Failed);}
         }
         std::filesystem::remove_all(dir);std::cout<<"Single-shot cache-preserving service PASS\n";return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
