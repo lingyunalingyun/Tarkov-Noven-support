@@ -100,8 +100,7 @@ void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
     canvas.Fill(D2D1::RectF(22, height - 71, theme.sidebarWidth - 22,
                             height - 70), theme.divider);
 
-    auto selection=ItemRect(active,height,theme);
-    if(Animating()){selection.top=top_;selection.bottom=top_+theme.navigationHeight;}
+    const auto selection=SelectionRect(active,height,theme);
     canvas.Round(selection,8.0F,theme.selected);
     canvas.Round(D2D1::RectF(selection.left,selection.top+9,selection.left+3,selection.bottom-9),1.5F,theme.accent);
     for (const PageInfo& page : kPages) {

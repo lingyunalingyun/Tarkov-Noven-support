@@ -426,9 +426,14 @@ int wmain(int argc, wchar_t** argv) try {
         Sidebar sidebar;
         sidebar.StartSelection(MainPage::Scanner,MainPage::Prices,height,theme);
         Require(sidebar.Animating(),"sidebar selection starts a bounded transition");
-        sidebar.Tick(0.08F);sidebar.StartSelection(MainPage::Prices,MainPage::Map,height,theme);
+        sidebar.Tick(0.09F);
+        const auto springTop=sidebar.SelectionRect(MainPage::Prices,height,theme).top;
+        Require(springTop>sidebar.ItemRect(MainPage::Prices,height,theme).top,"sidebar spring briefly overshoots its target");
+        sidebar.StartSelection(MainPage::Prices,MainPage::Map,height,theme);
+        Require(sidebar.SelectionRect(MainPage::Map,height,theme).top==springTop,"rapid sidebar retarget preserves current position");
         for(int i=0;i<30;++i)sidebar.Tick(0.016F);
         Require(!sidebar.Animating(),"rapid sidebar retarget settles without idle frame work");
+        Require(sidebar.SelectionRect(MainPage::Map,height,theme).top==sidebar.ItemRect(MainPage::Map,height,theme).top,"spring settles exactly at selected row");
         const auto selectPage = [&](MainPage page) {
             const auto rect = sidebar.ItemRect(page, height, theme);
             Require(!click(rect.left + 30, (rect.top + rect.bottom) / 2), "page selection emits no GameMode change");
