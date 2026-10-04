@@ -23,10 +23,12 @@ struct RaidHistoryCardLayout final {
 // Borrow active-locale text only; the formatting layer preserves Unknown semantics, without card-level inference.
 inline void DrawRaidHistoryCard(const UiCanvas& canvas,const UiTheme& theme,
     const RaidHistoryCardLayout& layout,std::wstring_view title,std::wstring_view mode,
-    std::wstring_view time,bool selected,bool hovered,float extraHeight=0) {
+    std::wstring_view time,bool hovered,float extraHeight=0) {
     // 展开详情与标题共用物价卡片底座，不再叠加第二张卡片。
     // Expanded details and header share the price-card surface instead of nesting a second card.
-    DrawListCardSurface(canvas,theme,layout.SurfaceBounds(extraHeight),selected&&extraHeight<=0,hovered&&extraHeight<=0);
+    // 与物价卡片一致，不绘制选中黄条；不能由展开高度是否为零切换选中样式。
+    // Match price cards without a selection rail; zero expansion extent must not toggle selection styling.
+    DrawListCardSurface(canvas,theme,layout.SurfaceBounds(extraHeight),false,hovered&&extraHeight<=0);
     canvas.Text(title,canvas.label,layout.TextBounds(10,39),theme.primaryText);
     canvas.Text(mode,canvas.smallFormat,layout.TextBounds(40,63),theme.secondaryText);
     canvas.Text(time,canvas.smallFormat,layout.TextBounds(71,93),theme.secondaryText);

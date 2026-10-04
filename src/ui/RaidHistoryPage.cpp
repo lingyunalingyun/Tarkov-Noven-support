@@ -184,7 +184,7 @@ void RaidHistoryPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std
             const RaidHistoryCardLayout card{listRect_,y};
             DrawRaidHistoryCard(canvas,theme,card,name.empty()?Tr(TextKey::Unknown):Wide(name),
                 RaidModeText(s.gameMode)+L" · "+RaidTypeText(s.raidType)+(s.outcome==raid::RaidOutcome::Unknown?L"":L" · "+RaidOutcomeText(s.outcome)),
-                RaidTimeText(s.startedAt)+L" · "+RaidDurationText(s.duration),s.localSessionId==selected_&&expansion_.open,
+                RaidTimeText(s.startedAt)+L" · "+RaidDurationText(s.duration),
                 hover_&&Hit(card.bounds,hover_->x,hover_->y),i==expansion_.rowIndex?expansion_.extent:0);
             if(i==expansion_.rowIndex&&expansion_.extent>0)DrawDetail(canvas,theme,images);
         }
