@@ -295,9 +295,9 @@ D2D1_RECT_F PageHost::ModeSelectorRect(const UiTheme& theme) const noexcept {
 std::optional<data::GameMode> PageHost::ModeOptionAt(
     float x, float y, const UiTheme& theme) const noexcept {
     const auto selector = ModeSelectorRect(theme);
-    if (x < selector.left || x >= selector.right || y < selector.bottom + 4
-        || y >= selector.bottom + 100) return std::nullopt;
-    return data::AllGameModes()[static_cast<std::size_t>((y - selector.bottom - 4) / 32)];
+    for(std::size_t i=0;i<data::AllGameModes().size();++i)
+        if(HitTestDropdownRect(DropdownLayout{selector}.Option(i),x,y))return data::AllGameModes()[i];
+    return {};
 }
 
 void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
@@ -325,7 +325,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                     bool priceCaretVisible,
                     const std::vector<data::PriceRow>& prices,
                     const ItemBitmapMap& images, std::size_t pricePage,
-                    std::size_t priceTotal, const SearchBox* pricePageInput) const {
+                    std::size_t priceTotal, const SearchBox* pricePageInput,float modeMenuProgress) const {
     const PageInfo* page = FindPage(active);
     if (page == nullptr) return;
     const float x = theme.sidebarWidth + theme.contentPadding;
@@ -570,10 +570,10 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
     canvas.Round(D2D1::RectF(x, 95, card_right, 218),
                  theme.cornerRadius, theme.surface);
     canvas.Round(D2D1::RectF(x + 22, 117, x + 70, 165), 10.0F, theme.selected);
-    canvas.Text(L"F2", canvas.label, D2D1::RectF(x + 30, 122, x + 68, 159), theme.accent);
+    canvas.Text(scanner.shortcut.substr(scanner.shortcut.rfind(L'+')+1), canvas.smallFormat, D2D1::RectF(x + 26, 122, x + 68, 159), theme.accent);
     canvas.Text(Tr(TextKey::ScanReady), canvas.label,
                 D2D1::RectF(x + 88, 111, card_right - 20, 148), theme.primaryText);
-    canvas.Text(Tr(TextKey::ScanHint),
+    canvas.Text(UiLocalization().Format(TextKey::ScanHint,{{L"shortcut",scanner.shortcut}}),
                 canvas.body, D2D1::RectF(x + 88, 150, card_right - 20, 201),
                 theme.secondaryText);
 
@@ -608,27 +608,14 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
     // Paint the selector in the same Direct2D frame as the card to avoid
     // independent child-window repainting during resize.
     const auto selector = ModeSelectorRect(theme);
-    canvas.Round(selector, 6.0F, modeHovered || modeMenuOpen ? theme.hover : theme.selected);
-    canvas.Text(data::GameModeName(scanner.mode), canvas.body,
-                D2D1::RectF(selector.left + 12, selector.top, selector.right - 28,
-                            selector.bottom), theme.primaryText);
-    canvas.brush.SetColor(theme.secondaryText);
-    canvas.target.DrawLine(D2D1::Point2F(selector.right - 21, selector.top + 14),
-                           D2D1::Point2F(selector.right - 15, selector.top + 20),
-                           &canvas.brush, 1.5F);
-    canvas.target.DrawLine(D2D1::Point2F(selector.right - 15, selector.top + 20),
-                           D2D1::Point2F(selector.right - 9, selector.top + 14),
-                           &canvas.brush, 1.5F);
-    if (modeMenuOpen) {
+    DrawDropdownHeader(canvas,theme,selector,data::GameModeName(scanner.mode),modeMenuOpen,modeHovered);
+    if (modeMenuOpen||modeMenuProgress>0) {
+        const auto pose=SampleDropdownTransition(modeMenuProgress);
+        const ScopedContentTransition transition(canvas,D2D1::Point2F((selector.left+selector.right)/2,selector.bottom),pose.opacity,pose.scale);
+        const DropdownLayout layout{selector};DrawDropdownPanel(canvas,theme,layout,data::AllGameModes().size());
         for (std::size_t index = 0; index < data::AllGameModes().size(); ++index) {
             const auto mode = data::AllGameModes()[index];
-            const float top = selector.bottom + 4 + static_cast<float>(index) * 32;
-            const auto row = D2D1::RectF(selector.left, top, selector.right, top + 32);
-            canvas.Round(row, 4.0F, hoveredMode == mode || scanner.mode == mode
-                ? theme.selected : theme.surface);
-            canvas.Text(data::GameModeName(mode), canvas.body,
-                        D2D1::RectF(row.left + 12, row.top, row.right - 12, row.bottom),
-                        scanner.mode == mode ? theme.accent : theme.primaryText);
+            DrawDropdownOption(canvas,theme,layout.Option(index),data::GameModeName(mode),scanner.mode==mode,true,hoveredMode==mode);
         }
     }
 }

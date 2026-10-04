@@ -1,4 +1,5 @@
 #pragma once
+#include "data/AppSettings.h"
 
 // Win32 UI 线程拥有主窗口、覆盖层和共享服务；工作线程结果通过 WM_APP 消息交接。
 // The Win32 UI thread owns the main window, overlays, and shared services;
@@ -93,6 +94,8 @@ private:
     void UpdateDebugRoi(POINT anchor);
     void CheckDebugVisualizationCursor();
     void OnModeChanged(data::GameMode mode);
+    bool ApplyPreferences(const data::AppSettings& next);
+    data::AppSettings preferences_;
     void EnsureRecentAnimationTimer();
     void StartMapAssetUpdate();
     void PublishEvents();

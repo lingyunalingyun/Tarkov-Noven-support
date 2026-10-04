@@ -714,6 +714,16 @@ int wmain(int argc, wchar_t** argv) try {
         Require(!click(theme.sidebarWidth+theme.contentPadding+30,170)&&ui.ActivePage()==MainPage::Prices
             &&ui.PriceTotal()==1&&ui.CanGoBack(),"recent card opens exact item detail through contextual navigation");
         Require(ui.GoBack()&&ui.ActivePage()==MainPage::RecentScans,"recent-card return keeps resident page");
+        selectPage(MainPage::Settings);
+        unsigned settingsCalls{};ui.SetPreferencesHandler([&](const auto& next){++settingsCalls;return next.scanKey!=VK_F8;});
+        Require(!click(theme.sidebarWidth+theme.contentPadding+30,455)&&ui.RecordingShortcut(),"native shortcut control starts capture");
+        Require(ui.KeyDown(VK_F6,true)&&!ui.RecordingShortcut()&&ui.Preferences().scanKey==VK_F6
+            &&ui.Preferences().scanModifiers==MOD_CONTROL&&settingsCalls==1,"shortcut capture passes modifiers through app boundary");
+        click(theme.sidebarWidth+theme.contentPadding+30,455);(void)ui.KeyDown(VK_F8,false);
+        Require(ui.RecordingShortcut()&&ui.Preferences().scanKey==VK_F6,"failed shortcut application retains previous setting");
+        Require(ui.KeyDown(VK_ESCAPE,false)&&!ui.RecordingShortcut(),"escape cancels shortcut capture");
+        unsigned manualScans{};ui.SetRaidScanHandler([&]{++manualScans;return true;});selectPage(MainPage::RaidHistory);
+        click(width-theme.contentPadding-50,110);Require(manualScans==1,"manual raid scan stays behind service callback");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

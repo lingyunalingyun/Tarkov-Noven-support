@@ -11,6 +11,7 @@
 #include "ui/RaidHistoryPage.h"
 #include "ui/EventsPage.h"
 #include "ui/PageTransition.h"
+#include "ui/PreferencesPanel.h"
 
 #include <d2d1.h>
 #include <dwrite.h>
@@ -29,6 +30,11 @@ namespace noven::ui {
 // Main-window drawing and navigation state; owns no OCR, scanner, or economy cache.
 class MainWindowUi final {
 public:
+    void SetPreferences(const data::AppSettings& value){preferences_.value=value;scanner_.shortcut=ScanShortcutText(value.scanKey,value.scanModifiers);Invalidate();}
+    void SetPreferencesHandler(std::function<bool(const data::AppSettings&)> handler){preferences_.changed=std::move(handler);}
+    bool RecordingShortcut() const noexcept {return preferences_.Recording();}
+    const data::AppSettings& Preferences() const noexcept {return preferences_.value;}
+    void SetRaidScanHandler(std::function<bool()> handler){raid_scan_=std::move(handler);}
     bool Initialize(HWND window, std::wstring& error);
     void Paint();
     void Resize(UINT width, UINT height);
@@ -141,6 +147,10 @@ private:
     ScannerPageState scanner_;
     UiTheme theme_;
     Sidebar sidebar_;
+    PreferencesPanel preferences_;
+    std::function<bool()> raid_scan_;
+    D2D1_RECT_F raid_scan_button_{};
+    bool raid_scan_pressed_{};
     PageHost pages_;
     HideoutPage hideout_;
     TasksPage tasks_;
@@ -207,6 +217,7 @@ private:
     std::optional<MainPage> hovered_;
     std::optional<MainPage> pressed_;
     bool mode_menu_open_{};
+    float mode_menu_progress_{};
     bool mode_hovered_{};
     bool mode_pressed_{};
     std::optional<data::GameMode> hovered_mode_;

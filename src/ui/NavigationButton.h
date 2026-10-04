@@ -9,6 +9,11 @@ enum class NavigationGlyph { Back,Left,Right };
 inline bool HitNavigationButton(D2D1_RECT_F bounds,float x,float y,bool enabled=true) {
     return enabled && x>=bounds.left && x<bounds.right && y>=bounds.top && y<bounds.bottom;
 }
+inline void DrawTextButton(const UiCanvas& canvas,const UiTheme& theme,D2D1_RECT_F bounds,
+    std::wstring_view text,bool hovered=false,bool pressed=false) {
+    canvas.Round(bounds,theme.cornerRadius,pressed?theme.selected:hovered?theme.hover:theme.surface);
+    canvas.Text(text,canvas.smallFormat,D2D1::RectF(bounds.left+12,bounds.top,bounds.right-12,bounds.bottom),theme.accent);
+}
 inline void DrawNavigationButton(const UiCanvas& canvas,const UiTheme& theme,D2D1_RECT_F bounds,
     NavigationGlyph glyph,bool enabled,bool hovered,bool pressed) {
     const float x=(bounds.left+bounds.right)*.5F,y=(bounds.top+bounds.bottom)*.5F;

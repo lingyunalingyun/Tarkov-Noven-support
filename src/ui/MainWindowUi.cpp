@@ -124,6 +124,8 @@ bool MainWindowUi::SelectPage(MainPage page) {
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
     if (page != MainPage::Prices) price_page_input_.Blur();
+    if(page!=MainPage::Settings)preferences_.Blur();
+    if(page!=MainPage::Scanner){mode_menu_open_=false;mode_menu_progress_=0;}
     if(page!=MainPage::RaidHistory)raid_history_.Blur();
     if(page!=MainPage::Events)events_.Blur();
     if(page==MainPage::Events){EventClockTick();SetTimer(window_,EventClockTimerId,60000,nullptr);}else KillTimer(window_,EventClockTimerId);
@@ -276,6 +278,11 @@ void MainWindowUi::RequestVisiblePriceImages() {
 }
 
 bool MainWindowUi::KeyDown(WPARAM key, bool control) {
+    if(preferences_.Recording()) {
+        const UINT modifiers=(control?MOD_CONTROL:0)|((GetKeyState(VK_MENU)&0x8000)?MOD_ALT:0)
+            |((GetKeyState(VK_SHIFT)&0x8000)?MOD_SHIFT:0)|((GetKeyState(VK_LWIN)&0x8000||GetKeyState(VK_RWIN)&0x8000)?MOD_WIN:0);
+        preferences_.Key(static_cast<UINT>(key),modifiers);Invalidate();return true;
+    }
     if(navigation_.Active()==MainPage::Events){const bool handled=events_.Key(key,control);if(handled)Invalidate();return handled;}
     if(navigation_.Active()==MainPage::RaidHistory) {const bool handled=raid_history_.Key(key,control);if(handled)Invalidate();return handled;}
     if (navigation_.Active()==MainPage::Map) {
@@ -412,8 +419,6 @@ void MainWindowUi::DrawLanguageSettings(const UiCanvas& canvas, float width, flo
     float attributionTop = 156;
     attributionTop += wrapped(Tr("settings.attribution.title"), canvas.label,
         attributionTop, theme_.primaryText) + 12;
-    attributionTop += wrapped(Tr("settings.attribution.body"), canvas.body,
-        attributionTop, theme_.secondaryText) + 16;
     attribution_button_ = {};
     const auto link = Tr("settings.attribution.link") + L" · NOTICE.md";
     Microsoft::WRL::ComPtr<IDWriteTextLayout> linkLayout;
@@ -436,6 +441,7 @@ void MainWindowUi::DrawLanguageSettings(const UiCanvas& canvas, float width, flo
                 linkLayout.Get(), &canvas.brush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
         }
     }
+    preferences_.Draw(canvas,theme_,left,right);
 }
 
 std::optional<std::size_t> MainWindowUi::LanguageAt(int x, int y) const {
@@ -554,8 +560,13 @@ void MainWindowUi::Paint() {
                     price_search_,
                     (std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::steady_clock::now().time_since_epoch()).count() / 500) % 2 == 0,
-                    price_rows_, item_bitmaps_, price_page_, price_total_, &price_page_input_);
+                    price_rows_, item_bitmaps_, price_page_, price_total_, &price_page_input_,mode_menu_progress_);
         if (page == MainPage::Settings) DrawLanguageSettings(canvas, size.width, size.height);
+        if(page==MainPage::RaidHistory) {
+            const float right=size.width-theme_.contentPadding;
+            raid_scan_button_=D2D1::RectF(right-112,90,right,128);
+            DrawTextButton(canvas,theme_,raid_scan_button_,Tr("raid.scan_logs"),false,raid_scan_pressed_);
+        }
         };
         {
             const auto pose=page_transition_.Sample(navigation_.Active());
@@ -873,6 +884,9 @@ void MainWindowUi::MouseDown(int x, int y) {
     if(page_transition_.Active() && x/Scale()>=theme_.sidebarWidth) {
         page_content_press_blocked_=true;return;
     }
+    raid_scan_pressed_=navigation_.Active()==MainPage::RaidHistory&&HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale());
+    if(raid_scan_pressed_){Invalidate();return;}
+    if(navigation_.Active()==MainPage::Settings&&preferences_.Down(x/Scale(),y/Scale())){Invalidate();return;}
     pressed_price_card_.reset();
     pressed_history_range_.reset();
     if (HitNavigationButton(attribution_button_, x / Scale(), y / Scale(),
@@ -957,6 +971,14 @@ void MainWindowUi::MouseDown(int x, int y) {
 }
 
 std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
+    if(raid_scan_pressed_) {
+        raid_scan_pressed_=false;
+        if(HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale())&&(!raid_scan_||!raid_scan_())){
+            return_pages_.push_back(MainPage::RaidHistory);SelectPage(MainPage::Settings);
+        }
+        Invalidate();return {};
+    }
+    if(navigation_.Active()==MainPage::Settings&&preferences_.Up(window_,x/Scale(),y/Scale())){Invalidate();return {};}
     if(page_content_press_blocked_) { page_content_press_blocked_=false;return std::nullopt; }
     if(back_pressed_) {
         back_pressed_=false;
@@ -1224,6 +1246,7 @@ std::optional<std::size_t> MainWindowUi::RecentCardAt(int x,int y) const {
     return {};
 }
 void MainWindowUi::SetScannerState(ScannerPageState state) {
+    state.shortcut=ScanShortcutText(preferences_.value.scanKey,preferences_.value.scanModifiers);
     scanner_ = state;
     Invalidate();
 }
@@ -1296,6 +1319,7 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
 }
 
 bool MainWindowUi::AnimationActive() const noexcept {
+    if(navigation_.Active()==MainPage::Scanner&&mode_menu_progress_!=(mode_menu_open_?1.0F:0.0F))return true;
     if(sidebar_.Animating())return true;
     if(navigation_.Active()==MainPage::Events&&events_.Animating())return true;
     const bool mapVisible=navigation_.Active()==MainPage::Map||page_transition_.ShowingOutgoing(MainPage::Map);
@@ -1328,6 +1352,7 @@ bool MainWindowUi::AnimationTick() {
         : std::chrono::duration<float>(now - recent_scroll_tick_).count();
     recent_scroll_tick_ = now;
     sidebar_.Tick(std::clamp(elapsed,0.0F,0.05F));
+    if(navigation_.Active()==MainPage::Scanner)mode_menu_progress_=AdvanceDropdownTransition(mode_menu_progress_,!mode_menu_open_,std::clamp(elapsed,0.0F,0.05F));
     hideout_.Tick(elapsed);
     if(navigation_.Active()==MainPage::RaidHistory)raid_history_.Tick(elapsed);
     if(navigation_.Active()==MainPage::Events)events_.Tick(elapsed);

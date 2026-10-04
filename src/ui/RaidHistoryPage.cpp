@@ -105,7 +105,7 @@ void RaidHistoryPage::ApplyFilter() {
 void RaidHistoryPage::Prepare(float width,float height,const UiTheme& theme) {
     const float left=theme.sidebarWidth+theme.contentPadding,right=width-theme.contentPadding;
     compact_=right-left<720;
-    searchRect_=D2D1::RectF(left,84,right,122);
+    searchRect_=D2D1::RectF(left,84,right-124,122);
     const int columns=compact_?2:4;const float cell=(right-left-8*(columns-1))/columns;
     for(int i=0;i<4;++i) { const float x=left+(i%columns)*(cell+8),y=132+(i/columns)*40.0F;controls_[i]=D2D1::RectF(x,y,x+cell,y+32); }
     const float top=compact_?278.0F:238.0F,bottom=(std::max)(top+20,height-22);

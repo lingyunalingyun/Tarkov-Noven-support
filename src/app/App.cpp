@@ -287,6 +287,9 @@ int App::Run(HINSTANCE instance, int show_command) {
         return 1;
     }
     std::wstring history_error;
+    preferences_=data::AppSettings::Load(ExecutableDirectory()/L"data"/L"settings.json").value_or(data::AppSettings{});
+    main_ui_->SetPreferences(preferences_);
+    main_ui_->SetPreferencesHandler([this](const auto& next){return ApplyPreferences(next);});
     if (!recent_scan_store_->Load(ExecutableDirectory() / L"data" / L"recent-scans.json",
                                   history_error)) {
         common::DebugLog(L"[recent-scans] load warning: " + history_error);
@@ -317,11 +320,13 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
     // 本地对局服务独立于 Scanner/UI；仅明确配置路径时启动后台读取。
     // Local raid service is independent of Scanner/UI; start background reads only for explicit configuration.
-    const auto raidRoot=raid::ReadEftLogRoot(ExecutableDirectory()/L"data"/L"eft-log-root.txt");
+    const auto raidRoot=preferences_.gameDirectory.empty()?raid::ReadEftLogRoot(ExecutableDirectory()/L"data"/L"eft-log-root.txt")
+        :data::GameLogRoot(preferences_.gameDirectory);
     local_raid_service_=std::make_unique<raid::LocalRaidService>();
     local_raid_service_->SetChangedCallback([window=window_]{PostMessageW(window,kRaidHistoryMessage,0,0);});
     if(!local_raid_service_->Start(raidRoot.value_or(std::filesystem::path{}),ExecutableDirectory()/L"data"/L"raid-history.json"))
         common::DebugLog(L"[local-raid] service could not start");
+    main_ui_->SetRaidScanHandler([this]{return local_raid_service_&&local_raid_service_->RequestScan();});
 
     std::wstring overlay_error;
     if (!overlay_window_->Create(instance, overlay_error)) {
@@ -420,7 +425,8 @@ int App::Run(HINSTANCE instance, int show_command) {
     common::DebugLog(L"[ocr] recognizer warm-up completed");
 
     main_ui_->SetScannerState(ui::ScannerPageState{
-        data::GameMode::Pvp, true, item_catalog_->ItemCount()});
+        preferences_.mode, true, item_catalog_->ItemCount()});
+    scan_trigger_->SetGameMode(preferences_.mode);
 
     if (!capture_backend_->Initialize()) {
         common::DebugLog(L"[app] capture backend initialization failed");
@@ -464,10 +470,11 @@ int App::Run(HINSTANCE instance, int show_command) {
     });
     scan_trigger_->Start();
 
-    if (!hotkey_->Register(window_, kCaptureHotkeyId, kCaptureHotkey)) {
-        DestroyWindow(window_);
-        window_ = nullptr;
-        return 1;
+    if (!hotkey_->Register(window_, kCaptureHotkeyId, {preferences_.scanModifiers|MOD_NOREPEAT,preferences_.scanKey})) {
+        common::DebugLog(L"[hotkey] saved shortcut unavailable; attempting default");
+        if(hotkey_->Register(window_,kCaptureHotkeyId,kCaptureHotkey)){
+            preferences_.scanKey=VK_F2;preferences_.scanModifiers=0;main_ui_->SetPreferences(preferences_);
+        }
     }
 
     ShowWindow(window_, show_command);
@@ -553,6 +560,9 @@ int App::Run(HINSTANCE instance, int show_command) {
 }
 
 void App::OnHotkey(WPARAM hotkey_id) {
+    if(main_ui_->RecordingShortcut()) {
+        (void)main_ui_->KeyDown(preferences_.scanKey,(preferences_.scanModifiers&MOD_CONTROL)!=0);return;
+    }
     if (hotkey_id == static_cast<WPARAM>(kCaptureHotkeyId)) {
         // 这里只隐藏 Noven 的覆盖层；若主窗口本身盖住 EFT，它仍可能进入桌面截图。
         // Only Noven overlays are hidden here. A main window covering EFT can
@@ -616,10 +626,31 @@ void App::CheckDebugVisualizationCursor() {
 }
 
 void App::OnModeChanged(data::GameMode mode) {
+    auto next=preferences_;next.mode=mode;
+    if(!next.Save(ExecutableDirectory()/L"data"/L"settings.json"))common::DebugLog(L"[settings] could not save scanner mode");
+    preferences_=next;main_ui_->SetPreferences(preferences_);
     scan_trigger_->SetGameMode(mode);
     main_ui_->SetScannerState(ui::ScannerPageState{
         mode, true, item_catalog_->ItemCount()});
     common::DebugLog(L"[economy] active mode=" + std::wstring(data::GameModeName(mode)));
+}
+
+bool App::ApplyPreferences(const data::AppSettings& next) {
+    if(!next.Valid())return false;
+    const bool directoryChanged=next.gameDirectory!=preferences_.gameDirectory;
+    const auto root=data::GameLogRoot(next.gameDirectory);
+    if(directoryChanged&&!root)return false;
+    const bool shortcutChanged=next.scanKey!=preferences_.scanKey||next.scanModifiers!=preferences_.scanModifiers;
+    const hotkey::HotkeyDefinition previous{preferences_.scanModifiers|MOD_NOREPEAT,preferences_.scanKey};
+    if(shortcutChanged&&!hotkey_->Register(window_,kCaptureHotkeyId,{next.scanModifiers|MOD_NOREPEAT,next.scanKey})){
+        hotkey_->Register(window_,kCaptureHotkeyId,previous);return false;
+    }
+    if(!next.Save(ExecutableDirectory()/L"data"/L"settings.json")){
+        if(shortcutChanged)hotkey_->Register(window_,kCaptureHotkeyId,previous);return false;
+    }
+    preferences_=next;main_ui_->SetPreferences(preferences_);
+    if(directoryChanged&&local_raid_service_)local_raid_service_->Start(*root,ExecutableDirectory()/L"data"/L"raid-history.json");
+    return true;
 }
 
 void App::StartMapAssetUpdate(){
@@ -907,6 +938,9 @@ LRESULT CALLBACK App::WindowProc(
                     GET_WHEEL_DELTA_WPARAM(w_param), (GET_KEYSTATE_WPARAM(w_param)&MK_CONTROL)!=0)) app->EnsureRecentAnimationTimer();
             return 0;
         }
+        case WM_SYSKEYDOWN:
+            if(!app->main_ui_->RecordingShortcut())break;
+            [[fallthrough]];
         case WM_KEYDOWN:
             if (app->main_ui_ != nullptr && app->main_ui_->KeyDown(
                     w_param, (GetKeyState(VK_CONTROL) & 0x8000) != 0)) {

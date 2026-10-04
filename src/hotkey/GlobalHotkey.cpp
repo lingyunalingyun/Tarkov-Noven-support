@@ -23,7 +23,7 @@ bool GlobalHotkey::Register(HWND target_window, int id, HotkeyDefinition definit
 
     target_window_ = target_window;
     id_ = id;
-    common::DebugLog(L"[hotkey] registered F2 capture trigger");
+    common::DebugLog(L"[hotkey] registered capture key="+std::to_wstring(definition.virtual_key));
     return true;
 }
 

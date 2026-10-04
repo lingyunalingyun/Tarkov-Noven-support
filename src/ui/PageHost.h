@@ -27,6 +27,7 @@ struct ScannerPageState final {
     data::GameMode mode{data::GameMode::Pvp};
     bool ocrReady{};
     std::size_t catalogItems{};
+    std::wstring shortcut{L"F2"};
 };
 
 struct RecentTabTransition final {
@@ -138,7 +139,7 @@ public:
               bool priceCaretVisible,
               const std::vector<data::PriceRow>& prices,
               const ItemBitmapMap& images, std::size_t pricePage = 0,
-              std::size_t priceTotal = 0, const SearchBox* pricePageInput = nullptr) const;
+              std::size_t priceTotal = 0, const SearchBox* pricePageInput = nullptr,float modeMenuProgress=0) const;
     [[nodiscard]] static float RecentMaxScroll(float height, std::size_t count) noexcept;
     [[nodiscard]] static float PriceRowHeight(float width, const UiTheme& theme) noexcept;
     [[nodiscard]] static float PriceMaxScroll(float height, std::size_t count,
