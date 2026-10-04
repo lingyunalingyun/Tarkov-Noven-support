@@ -9,7 +9,7 @@ namespace noven::events {
 using Timestamp = std::int64_t; // UTC 秒；缺失时间使用 optional。 / UTC seconds; missing times are optional.
 enum class EventStatus { Unknown, Upcoming, Active, Ended };
 enum class EventMode { PvP, PvE, Seasonal };
-enum class SourceKind { OfficialTelegram, TarkovDev, TarkovChanges };
+enum class SourceKind { OfficialTelegram, TarkovDev, TarkovChanges, CommunityWiki };
 enum class EvidenceType { Announcement, Update, EntityReference, ConfigurationChange };
 struct EventEvidence {
     std::string evidenceId, sourceRecordId, sourceUrl;
@@ -19,6 +19,7 @@ struct EventEvidence {
     std::vector<std::string> taskIds, itemIds, mapIds, bossIds;
     std::vector<std::string> linkedChangeRecordIds;
     std::string changedKey, oldValue, newValue;
+    std::string sourceRevision, summary;
     bool operator==(const EventEvidence&) const = default;
 };
 struct EventRecord {
@@ -46,6 +47,16 @@ struct OfficialAnnouncement {
     std::vector<EventMode> modes;
     std::vector<std::string> linkedChangeRecordIds;
 };
+// 社区当前列表不是官方公告；页面修订时间不得用作活动开始/公告时间。
+// Community current listings are not official announcements; page revision time is not event start/publication.
+struct CommunityAnnouncement {
+    std::string sourceRecordId, sourceUrl, sourceRevision, title, summary;
+    std::optional<Timestamp> revisionAt;
+    std::optional<std::string> officialRecordId;
+    std::vector<EventMode> modes;
+};
+[[nodiscard]] std::string WikiEventUrl(std::string_view sourceRecordId);
+[[nodiscard]] inline bool CommunitySourced(const EventRecord& event) { return event.eventId.starts_with("community-wiki:"); }
 [[nodiscard]] std::optional<Timestamp> ParseTimestamp(std::string_view iso8601);
 [[nodiscard]] EventStatus StatusAt(const EventRecord&, Timestamp now) noexcept;
 inline constexpr std::size_t kMaximumEvents = 256;

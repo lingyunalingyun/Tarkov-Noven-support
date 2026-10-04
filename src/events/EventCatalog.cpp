@@ -54,6 +54,17 @@ std::optional<Timestamp> ParseTimestamp(std::string_view text) {
     const auto result=duration_cast<seconds>(sys_days{date}.time_since_epoch()).count()+h*3600+min*60+s-offset;
     return result>=0 && result<=253402300799LL ? std::optional<Timestamp>{result} : std::nullopt;
 }
+std::string WikiEventUrl(std::string_view record) {
+    constexpr std::string_view prefix="26936:";
+    if(!record.starts_with(prefix))return {};
+    const auto anchor=record.substr(prefix.size());
+    if(anchor.empty() || anchor.size()>240 || anchor.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-.%")!=anchor.npos)return {};
+    for(std::size_t i=0;i<anchor.size();++i)if(anchor[i]=='%') {
+        if(i+2>=anchor.size() || anchor.substr(i+1,2).find_first_not_of("0123456789ABCDEF")!=anchor.npos)return {};
+        i+=2;
+    }
+    return "https://escapefromtarkov.fandom.com/wiki/Events#"+std::string(anchor);
+}
 EventStatus StatusAt(const EventRecord& e, Timestamp now) noexcept {
     if (e.sourceStatus==EventStatus::Ended || (e.endsAt && *e.endsAt<=now)) return EventStatus::Ended;
     if (e.startsAt) return *e.startsAt>now ? EventStatus::Upcoming : EventStatus::Active;
@@ -63,6 +74,9 @@ bool ValidEvidence(const EventEvidence& e) {
     if(e.sourceKind==SourceKind::OfficialTelegram) {
         if(e.type!=EvidenceType::Announcement && e.type!=EvidenceType::Update)return false;
         for(const auto& id:e.linkedChangeRecordIds)if(!MessageId(id))return false;
+    }else if(e.sourceKind==SourceKind::CommunityWiki) {
+        if(!e.linkedChangeRecordIds.empty() || e.type!=EvidenceType::Announcement || !MessageId(e.sourceRevision)
+            || WikiEventUrl(e.sourceRecordId).empty() || e.sourceUrl!=WikiEventUrl(e.sourceRecordId))return false;
     }else {
         if(!e.linkedChangeRecordIds.empty())return false;
         if(e.sourceKind==SourceKind::TarkovDev && (e.type!=EvidenceType::EntityReference || e.sourceUrl!="https://tarkov.dev/api/"))return false;
@@ -71,16 +85,21 @@ bool ValidEvidence(const EventEvidence& e) {
     }
     return !e.evidenceId.empty() && e.evidenceId.size()<=256 && !e.sourceRecordId.empty()
         && e.sourceRecordId.size()<=256 && e.sourceUrl.size()<=2048 && e.sourceUrl.starts_with("https://")
-        && static_cast<int>(e.sourceKind)>=0 && static_cast<int>(e.sourceKind)<=2
+        && static_cast<int>(e.sourceKind)>=0 && static_cast<int>(e.sourceKind)<=3
         && static_cast<int>(e.type)>=0 && static_cast<int>(e.type)<=3 && Time(e.publishedAt)
         && Ids(e.itemIds) && Ids(e.taskIds) && Ids(e.mapIds) && Ids(e.bossIds)
         && e.linkedChangeRecordIds.size()<=4 && Ids(e.linkedChangeRecordIds)
         && e.changedKey.size()<=1024 && e.oldValue.size()<=1024 && e.newValue.size()<=1024
+        && e.summary.size()<=16384 && e.sourceRevision.size()<=20
+        && (e.sourceKind==SourceKind::CommunityWiki || (e.sourceRevision.empty() && e.summary.empty()))
         && (e.sourceKind!=SourceKind::OfficialTelegram || (MessageId(e.sourceRecordId)
             && e.sourceUrl==Url(e.sourceRecordId)));
 }
 bool ValidRecord(const EventRecord& e) {
-    if (!e.eventId.starts_with("official-telegram:") || !MessageId(std::string_view(e.eventId).substr(18))
+    const bool community=CommunitySourced(e);
+    const bool identity=community ? !WikiEventUrl(std::string_view(e.eventId).substr(15)).empty()
+        : e.eventId.starts_with("official-telegram:") && MessageId(std::string_view(e.eventId).substr(18));
+    if (!identity
         || e.title.empty() || e.title.size()>2048 || e.summary.size()>16384
         || static_cast<int>(e.sourceStatus)<0 || static_cast<int>(e.sourceStatus)>3
         || !Time(e.announcedAt) || !Time(e.startsAt) || !Time(e.endsAt) || !Time(e.lastUpdatedAt)
@@ -97,8 +116,9 @@ bool ValidRecord(const EventRecord& e) {
     for(const auto& evidence:e.sourceEvidence) {
         if(!ValidEvidence(evidence) || !evidenceIds.insert(evidence.evidenceId).second) return false;
         if(evidence.sourceKind==SourceKind::TarkovChanges && !linkedChanges.contains(evidence.sourceRecordId))return false;
-        origin |= evidence.sourceKind==SourceKind::OfficialTelegram && evidence.type==EvidenceType::Announcement
-            && Identity(evidence.sourceRecordId)==e.eventId;
+        origin |= evidence.type==EvidenceType::Announcement && (community
+            ? evidence.sourceKind==SourceKind::CommunityWiki && "community-wiki:"+evidence.sourceRecordId==e.eventId
+            : evidence.sourceKind==SourceKind::OfficialTelegram && Identity(evidence.sourceRecordId)==e.eventId);
     }
     auto rebuilt=e;RebuildEntities(rebuilt);
     return origin && e.itemIds==rebuilt.itemIds && e.taskIds==rebuilt.taskIds && e.mapIds==rebuilt.mapIds && e.bossIds==rebuilt.bossIds;
@@ -166,6 +186,38 @@ bool EventCatalog::Apply(std::span<const OfficialAnnouncement> announcements, st
     std::ranges::stable_sort(next,[](const auto& a,const auto& b){return a.announcedAt>b.announcedAt;});
     if(next.size()>kMaximumEvents) next.resize(kMaximumEvents);
     events_=std::move(next);unresolved_=std::move(unresolved);return true;
+}
+bool EventCatalog::ApplyCommunity(std::span<const CommunityAnnouncement> records,std::string& error) {
+    error.clear();if(records.size()>16){error="community event window exceeded";return false;}
+    auto next=*this;std::set<std::string> seen;
+    for(const auto& a:records) {
+        const auto id="community-wiki:"+a.sourceRecordId;
+        if(!seen.insert(id).second || WikiEventUrl(a.sourceRecordId).empty() || a.sourceUrl!=WikiEventUrl(a.sourceRecordId)
+            || !MessageId(a.sourceRevision) || !Time(a.revisionAt) || a.title.empty() || a.title.size()>2048
+            || a.summary.empty() || a.summary.size()>16384 || (a.officialRecordId && !MessageId(*a.officialRecordId))) {
+            error="invalid community event";return false;
+        }
+        // 只有明确原公告身份且原记录存在时才附加，绝不按标题/日期猜合并或覆盖官方事实。
+        // Attach only with explicit original identity and an existing record; never guess from titles/dates or overwrite official facts.
+        auto it=a.officialRecordId?std::ranges::find(next.events_,Identity(*a.officialRecordId),&EventRecord::eventId):next.events_.end();
+        const bool official=it!=next.events_.end();
+        if(!official) {
+            it=std::ranges::find(next.events_,id,&EventRecord::eventId);
+            if(it==next.events_.end()){EventRecord e;e.eventId=id;next.events_.push_back(std::move(e));it=next.events_.end()-1;}
+            it->title=a.title;it->summary=a.summary;it->sourceStatus=EventStatus::Active;it->modes=a.modes;
+            it->lastUpdatedAt=a.revisionAt;
+        }
+        EventEvidence ev;ev.evidenceId=id;ev.sourceKind=SourceKind::CommunityWiki;ev.sourceRecordId=a.sourceRecordId;
+        ev.sourceUrl=a.sourceUrl;ev.sourceRevision=a.sourceRevision;ev.summary=a.summary;
+        auto old=std::ranges::find(it->sourceEvidence,id,&EventEvidence::evidenceId);
+        if(old==it->sourceEvidence.end())it->sourceEvidence.push_back(std::move(ev));else *old=std::move(ev);
+        RebuildEntities(*it);if(!ValidRecord(*it)){error="invalid community record";return false;}
+        if(official)std::erase_if(next.events_,[&](const auto& e){return e.eventId==id;});
+    }
+    for(auto& event:next.events_)if(CommunitySourced(event)&&!seen.contains(event.eventId))
+        event.sourceStatus=EventStatus::Unknown; // 不再列出不证明结束。 / Disappearance does not prove an end.
+    if(next.events_.size()>kMaximumEvents){error="community catalog capacity exceeded";return false;}
+    *this=std::move(next);return true;
 }
 bool EventCatalog::AttachEvidence(std::string_view id, EventEvidence evidence, std::string& error) {
     error.clear(); auto it=std::ranges::find(events_,id,&EventRecord::eventId);

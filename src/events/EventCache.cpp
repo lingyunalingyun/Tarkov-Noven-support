@@ -32,7 +32,7 @@ bool ValidState(const EventSourceState& s) {
 }
 }
 std::string EventCache::Encode(const EventCatalog& catalog, const EventSourceState& state) {
-    std::ostringstream o;o<<"{\"schemaVersion\":1,\"state\":{\"etag\":"<<json::Quote(state.etag)
+    std::ostringstream o;o<<"{\"schemaVersion\":2,\"state\":{\"etag\":"<<json::Quote(state.etag)
         <<",\"lastModified\":"<<json::Quote(state.lastModified)<<",\"newestMessageId\":"<<json::Quote(state.newestMessageId)
         <<",\"lastSuccessfulRefresh\":"<<Number(state.lastSuccessfulRefresh)<<"},\"events\":[";
     bool comma=false;for(const auto& e:catalog.Events()) {
@@ -54,14 +54,16 @@ std::string EventCache::Encode(const EventCatalog& catalog, const EventSourceSta
                 <<",\"linkedChanges\":"<<Array(v.linkedChangeRecordIds)
                 <<",\"taskIds\":"<<Array(v.taskIds)<<",\"itemIds\":"<<Array(v.itemIds)<<",\"mapIds\":"<<Array(v.mapIds)
                 <<",\"bossIds\":"<<Array(v.bossIds)<<",\"changedKey\":"<<json::Quote(v.changedKey)
-                <<",\"oldValue\":"<<json::Quote(v.oldValue)<<",\"newValue\":"<<json::Quote(v.newValue)<<'}';
+                <<",\"oldValue\":"<<json::Quote(v.oldValue)<<",\"newValue\":"<<json::Quote(v.newValue)
+                <<",\"sourceRevision\":"<<json::Quote(v.sourceRevision)<<",\"summary\":"<<json::Quote(v.summary)<<'}';
         }o<<"]}";
     }o<<"]}";return o.str();
 }
 bool EventCache::Decode(std::string_view text, EventCatalog& catalog, EventSourceState& state, std::string& error) {
     error.clear();try {
         if(text.size()>kMaximumCache)throw std::runtime_error("event cache capacity exceeded");
-        const auto root=json::Parser(text).Parse();if(root.At("schemaVersion").Int()!=1)throw std::runtime_error("unsupported event schema");
+        const auto root=json::Parser(text).Parse();const auto schema=root.At("schemaVersion").Int();
+        if(schema!=1 && schema!=2)throw std::runtime_error("unsupported event schema");
         EventSourceState loaded;const auto& s=root.At("state");loaded.etag=s.At("etag").String();
         loaded.lastModified=s.At("lastModified").String();loaded.newestMessageId=s.At("newestMessageId").String();
         loaded.lastSuccessfulRefresh=Time(s.At("lastSuccessfulRefresh"));if(!ValidState(loaded))throw std::runtime_error("invalid source state");
@@ -80,11 +82,13 @@ bool EventCache::Decode(std::string_view text, EventCatalog& catalog, EventSourc
             if(v.At("evidence").Array().size()>kMaximumEvidence)throw std::runtime_error("evidence capacity exceeded");
             for(const auto& item:v.At("evidence").Array()) {
                 EventEvidence ev;ev.evidenceId=item.At("id").String();ev.sourceRecordId=item.At("sourceRecordId").String();
-                ev.sourceUrl=item.At("sourceUrl").String();ev.sourceKind=Enum<SourceKind>(item.At("kind"),2);
+                ev.sourceUrl=item.At("sourceUrl").String();ev.sourceKind=Enum<SourceKind>(item.At("kind"),schema==1?2:3);
                 ev.type=Enum<EvidenceType>(item.At("type"),3);ev.publishedAt=Time(item.At("publishedAt"));
                 ev.linkedChangeRecordIds=Strings(item.At("linkedChanges"));
                 ev.taskIds=Strings(item.At("taskIds"));ev.itemIds=Strings(item.At("itemIds"));ev.mapIds=Strings(item.At("mapIds"));ev.bossIds=Strings(item.At("bossIds"));
-                ev.changedKey=item.At("changedKey").String();ev.oldValue=item.At("oldValue").String();ev.newValue=item.At("newValue").String();e.sourceEvidence.push_back(std::move(ev));
+                ev.changedKey=item.At("changedKey").String();ev.oldValue=item.At("oldValue").String();ev.newValue=item.At("newValue").String();
+                if(schema>=2){ev.sourceRevision=item.At("sourceRevision").String();ev.summary=item.At("summary").String();}
+                e.sourceEvidence.push_back(std::move(ev));
             }events.push_back(std::move(e));
         }
         EventCatalog next;if(!next.Restore(std::move(events),error))return false;

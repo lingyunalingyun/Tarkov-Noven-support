@@ -6,6 +6,7 @@ namespace noven::events {
 class EventCatalog final {
 public:
     bool Apply(std::span<const OfficialAnnouncement>, std::string& error);
+    bool ApplyCommunity(std::span<const CommunityAnnouncement>,std::string& error);
     bool Restore(std::vector<EventRecord>, std::string& error);
     [[nodiscard]] const std::vector<EventRecord>& Events() const noexcept { return events_; }
     [[nodiscard]] const EventRecord* FindEvent(std::string_view id) const noexcept;

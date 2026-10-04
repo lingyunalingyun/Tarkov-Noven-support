@@ -38,6 +38,21 @@ int main() {
         auto latest=a;latest.sourceRecordId="300";latest.sourceUrl="https://t.me/escapefromtarkovEN/300";latest.publishedAt=300;
         Check(window.Apply({&latest,1},error));Check(window.Events().size()==kMaximumEvents && !window.FindEvent("official-telegram:1"));
         for(int i=0;i<1000;++i)Check(window.FindEvent("official-telegram:300")!=nullptr);
+        CommunityAnnouncement wiki;wiki.sourceRecordId="26936:Sample_Event";wiki.sourceRevision="100";
+        wiki.sourceUrl=WikiEventUrl(wiki.sourceRecordId);wiki.title=a.title;wiki.summary="Community facts";wiki.revisionAt=500;
+        Check(c.ApplyCommunity({&wiki,1},error)&&c.Events().size()==2);
+        const auto wikiId="community-wiki:"+wiki.sourceRecordId;
+        Check(c.ApplyCommunity({&wiki,1},error)&&c.Events().size()==2);
+        Check(!c.FindEvent(wikiId)->startsAt&&!c.FindEvent(wikiId)->endsAt&&!c.FindEvent(wikiId)->announcedAt);
+        Check(c.FindEvent(id)->sourceStatus==EventStatus::Ended);
+        Check(c.ApplyCommunity({},error)&&c.FindEvent(wikiId)->sourceStatus==EventStatus::Unknown);
+        wiki.officialRecordId="10";const auto official=*c.FindEvent(id);
+        Check(c.ApplyCommunity({&wiki,1},error)&&c.Events().size()==1);
+        Check(c.FindEvent(id)->title==official.title&&c.FindEvent(id)->summary==official.summary
+            &&c.FindEvent(id)->endsAt==official.endsAt&&c.FindEvent(id)->sourceStatus==EventStatus::Ended);
+        auto badWiki=wiki;badWiki.sourceUrl="https://example.com/Events";
+        Check(!c.ApplyCommunity({&badWiki,1},error)&&c.Events().size()==1);
+        Check(WikiEventUrl("26936:Bad%ZZ").empty()&&WikiEventUrl("26936:Bad/Path").empty());
         std::cout<<"Event catalog contracts PASS\n";return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }
