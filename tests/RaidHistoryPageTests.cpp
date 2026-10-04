@@ -23,8 +23,8 @@ int wmain(int argc,wchar_t** argv) {
     checkLocalizedFormats();
     for(float width:{500.0F,1100.0F}) {
         const RaidHistoryCardLayout card{D2D1::RectF(300,238,300+width,878),342};
-        Require(card.bounds.bottom==438&&card.bounds.right==300+width-16,"shared card bounds retain accepted row spacing and scrollbar inset");
-        Require(card.TextBounds(5,30).left==312&&card.TextBounds(5,30).right==300+width-22,"text aligns to card padding at both widths");
+        Require(card.bounds.bottom==450&&card.bounds.right==300+width-16,"shared card bounds use price-card height and scrollbar inset");
+        Require(card.TextBounds(10,39).left==320&&card.TextBounds(10,39).right==300+width-34,"text aligns to shared card padding at both widths");
     }
     const UiTheme theme;RaidHistoryPage page;
     noven::data::ItemCatalog catalog;Require(catalog.Load(std::filesystem::path(argv[1]).parent_path()/"data"/"items_catalog.tsv",error),"item catalog");
@@ -42,7 +42,8 @@ int wmain(int argc,wchar_t** argv) {
     page.MouseDown(cardLeft+30,258);(void)page.MouseUp(cardLeft+30,258);
     Require(!page.Expanded()&&page.Animating(),"same card click starts collapse without losing selection");
     for(int i=0;i<30;++i)page.Tick(0.016F);
-    page.MouseDown(cardLeft+30,338);(void)page.MouseUp(cardLeft+30,338);
+    const float cardGap=238+RaidHistoryCardLayout::RowHeight-4;
+    page.MouseDown(cardLeft+30,cardGap);(void)page.MouseUp(cardLeft+30,cardGap);
     Require(!page.Expanded(),"spacing below a card is not an invisible clickable header");
     Require(!page.Animating()&&page.VisibleImages().empty(),"collapsed card stops animation and image requests");
     page.MouseDown(cardLeft+30,258);(void)page.MouseUp(cardLeft+30,258);
@@ -100,9 +101,9 @@ int wmain(int argc,wchar_t** argv) {
     Require(cards.SelectedId()=="local-two"&&cards.Expanded(),"following card hit position includes inline expansion height");
     Require(cards.ListScroll()==0,"selection does not jump the viewport immediately");
     cards.Tick(0.016F);
-    Require(cards.ListScroll()>0&&cards.ListScroll()<104,"selected card starts smooth top anchoring");
+    Require(cards.ListScroll()>0&&cards.ListScroll()<RaidHistoryCardLayout::RowHeight,"selected card starts smooth top anchoring");
     for(int i=0;i<60;++i)cards.Tick(0.016F);
-    Require(cards.ListScroll()==104&&!cards.Animating(),"last card reaches first visual position with bounded trailing space");
+    Require(cards.ListScroll()==RaidHistoryCardLayout::RowHeight&&!cards.Animating(),"last card reaches first visual position with bounded trailing space");
     cards.MouseDown(left+30,258);(void)cards.MouseUp(left+30,258);
     Require(!cards.Expanded(),"retargeted header closes the correct card");
     for(int i=0;i<60;++i){cards.Tick(0.016F);cards.Prepare(1600,900,theme);}
@@ -127,7 +128,7 @@ int wmain(int argc,wchar_t** argv) {
     const auto beforeLeaving=scrolling.ListScroll();scrolling.Blur();scrolling.Tick(0.016F);
     Require(scrolling.ListScroll()==beforeLeaving&&!scrolling.Animating(),"leaving during wheel motion preserves current viewport without a hidden jump");
     scrolling.Wheel(-120000,left+30,300);for(int i=0;i<60;++i)scrolling.Tick(0.016F);scrolling.Blur();
-    Require(scrolling.ListScroll()==2480&&!scrolling.Animating(),"hidden page settles at bounded bottom without animation work");
+    Require(scrolling.ListScroll()==30*RaidHistoryCardLayout::RowHeight-(900-22-238)&&!scrolling.Animating(),"hidden page settles at bounded bottom without animation work");
     scrolling.Wheel(120000,left+30,300);for(int i=0;i<60;++i)scrolling.Tick(0.016F);
     Require(scrolling.ListScroll()==0&&!scrolling.Animating(),"large upward wheel clamps and settles at top");
     std::cout<<"Native raid history resident-page contracts PASS\n";

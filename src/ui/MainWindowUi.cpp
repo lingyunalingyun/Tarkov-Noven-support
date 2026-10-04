@@ -5,6 +5,7 @@
 #include "ui/ItemTypeLabel.h"
 #include "ui/localization/LocalizationService.h"
 #include "ui/EventFormat.h"
+#include "data/LocalizedName.h"
 
 #include <algorithm>
 #include <cmath>
@@ -90,7 +91,8 @@ void MainWindowUi::OpenPriceItem(const std::string& id,data::GameMode mode) {
     // Cross-page navigation uses stable ID/source mode without changing Scanner or Hideout state.
     const auto found=price_browser_->Query(id,mode);
     if(found.empty() || found.front().item->id!=id) return;
-    price_mode_=mode; price_query_=std::wstring(id.begin(),id.end());
+    price_mode_=mode;price_exact_id_=id;
+    price_query_=EventWide(data::LocalizedName(found.front().item->nameZh,found.front().item->nameEn,UiLocalization().ActiveLocale()));
     price_search_.SetText(price_query_); price_search_.Blur();
     price_scroll_=price_scroll_target_=0;
     price_transition_={}; price_transition_.underlineIndex=static_cast<float>(mode);
@@ -118,6 +120,7 @@ bool MainWindowUi::GoBack() {
 }
 bool MainWindowUi::SelectPage(MainPage page) {
     if(page==navigation_.Active()) return false;
+    sidebar_.StartSelection(navigation_.Active(),page,DipHeight(),theme_);
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
     if (page != MainPage::Prices) price_page_input_.Blur();
@@ -174,12 +177,13 @@ void MainWindowUi::RefreshPriceRows(bool animateSearch, bool resetPage) {
                 tagAliases.push_back({WideToUtf8(labels.Get(mapping.key)), std::string(mapping.type)});
         }
     }
-    price_rows_ = price_browser_->Query(WideToUtf8(price_query_), price_mode_,
+    const auto query=price_exact_id_.empty()?WideToUtf8(price_query_):price_exact_id_;
+    price_rows_ = price_browser_->Query(query, price_mode_,
         price_sort_, price_sort_descending_, price_trader_side_, PricePageSize, tagAliases,
         price_page_ * PricePageSize, &price_total_);
     if (price_page_ >= PricePageCount(price_total_)) {
         price_page_ = PricePageCount(price_total_) - 1;
-        price_rows_ = price_browser_->Query(WideToUtf8(price_query_), price_mode_,
+        price_rows_ = price_browser_->Query(query, price_mode_,
             price_sort_, price_sort_descending_, price_trader_side_, PricePageSize, tagAliases,
             price_page_ * PricePageSize);
     }
@@ -298,6 +302,7 @@ bool MainWindowUi::KeyDown(WPARAM key, bool control) {
     }
     if (!price_search_.HandleKeyDown(key, control)) return false;
     if (price_query_ != price_search_.Text()) {
+        price_exact_id_.clear();
         price_query_ = price_search_.Text();
         RefreshPriceRows(true);
     }
@@ -325,6 +330,7 @@ bool MainWindowUi::Char(wchar_t character) {
         return true;
     }
     if (!price_search_.HandleChar(character)) return false;
+    price_exact_id_.clear();
     price_query_ = price_search_.Text();
     RefreshPriceRows(true);
     Invalidate();
@@ -922,6 +928,7 @@ void MainWindowUi::MouseDown(int x, int y) {
             return;
         }
     }
+    pressed_recent_card_=RecentCardAt(x,y);
     pressed_ = HitTest(x, y);
     mode_pressed_ = OnModeSelector(x, y);
     pressed_mode_ = ModeOptionAt(x, y);
@@ -1024,6 +1031,11 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
         CancelScrollDrag();
         return std::nullopt;
     }
+    if(pressed_recent_card_&&pressed_recent_card_==RecentCardAt(x,y)) {
+        const auto entry=recent_[*pressed_recent_card_];pressed_recent_card_.reset();
+        OpenPriceItem(entry.stableItemId,entry.gameMode);return std::nullopt;
+    }
+    pressed_recent_card_.reset();
     const auto released = HitTest(x, y);
     if(pressed_ && pressed_==released) { return_pages_.clear();back_hovered_=false; }
     const bool page_changed = pressed_.has_value() && pressed_ == released
@@ -1198,6 +1210,19 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     return selection;
 }
 
+std::optional<std::size_t> MainWindowUi::RecentCardAt(int x,int y) const {
+    if(navigation_.Active()!=MainPage::RecentScans||recent_transition_.progress<1)return {};
+    const float left=theme_.sidebarWidth+theme_.contentPadding;
+    const float right=(std::min)(DipWidth()-theme_.contentPadding,left+760.0F);
+    const float dx=x/Scale(),dy=y/Scale();
+    if(dx<left||dx>=right||dy<139||dy>=DipHeight()-22)return {};
+    std::size_t row{};
+    for(std::size_t i=0;i<recent_.size();++i)if(recent_[i].gameMode==recent_filter_) {
+        const float top=139+static_cast<float>(row++)*130-recent_scroll_;
+        if(dy>=top&&dy<top+118)return i;
+    }
+    return {};
+}
 void MainWindowUi::SetScannerState(ScannerPageState state) {
     scanner_ = state;
     Invalidate();
@@ -1271,6 +1296,7 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
 }
 
 bool MainWindowUi::AnimationActive() const noexcept {
+    if(sidebar_.Animating())return true;
     if(navigation_.Active()==MainPage::Events&&events_.Animating())return true;
     const bool mapVisible=navigation_.Active()==MainPage::Map||page_transition_.ShowingOutgoing(MainPage::Map);
     const bool tasksVisible=navigation_.Active()==MainPage::Tasks
@@ -1301,6 +1327,7 @@ bool MainWindowUi::AnimationTick() {
         ? 0.016F
         : std::chrono::duration<float>(now - recent_scroll_tick_).count();
     recent_scroll_tick_ = now;
+    sidebar_.Tick(std::clamp(elapsed,0.0F,0.05F));
     hideout_.Tick(elapsed);
     if(navigation_.Active()==MainPage::RaidHistory)raid_history_.Tick(elapsed);
     if(navigation_.Active()==MainPage::Events)events_.Tick(elapsed);

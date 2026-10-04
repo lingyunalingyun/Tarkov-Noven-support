@@ -86,6 +86,7 @@ public:
     bool GoBack();
     bool CanGoBack() const noexcept { return !return_pages_.empty(); }
     const SearchBox& PriceSearch() const noexcept { return price_search_; }
+    const std::string& PriceExactId() const noexcept {return price_exact_id_;}
     const PriceSearchTransition& PriceListTransition() const noexcept { return price_search_transition_; }
     [[nodiscard]] std::size_t PricePage() const noexcept { return price_page_; }
     [[nodiscard]] std::size_t PriceTotal() const noexcept { return price_total_; }
@@ -108,6 +109,7 @@ private:
     [[nodiscard]] std::optional<int> PricePagerAt(int x, int y) const;
     void SelectPricePage(std::size_t page);
     void OpenPriceItem(const std::string& id,data::GameMode mode);
+    std::optional<std::size_t> RecentCardAt(int x,int y) const;
     void RequestVisiblePriceImages();
     void RequestVisibleHideoutImages();
     void RequestVisibleTaskImages();
@@ -156,6 +158,7 @@ private:
     std::optional<int> pressed_price_pager_;
     SearchBox price_page_input_;
     std::wstring price_query_;
+    std::string price_exact_id_;
     SearchBox price_search_;
     data::GameMode price_mode_{data::GameMode::Pvp};
     float price_scroll_{};
@@ -187,6 +190,7 @@ private:
     std::size_t price_image_window_start_{static_cast<std::size_t>(-1)};
     std::chrono::system_clock::time_point price_data_updated_{};
     std::vector<data::RecentScanEntry> recent_;
+    std::optional<std::size_t> pressed_recent_card_;
     ItemImageCache image_cache_;
     std::unordered_map<std::string, ItemImage> image_pixels_;
     ItemBitmapMap item_bitmaps_;

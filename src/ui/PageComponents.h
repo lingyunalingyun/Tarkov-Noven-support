@@ -30,6 +30,14 @@ struct ItemCardView final {
     std::wstring_view tag;
 };
 
+// 列表卡片共用底座与选中强调；内容布局由各页保留。
+// List cards share a surface and selection accent, while pages retain content layouts.
+inline void DrawListCardSurface(const UiCanvas& canvas,const UiTheme& theme,
+    D2D1_RECT_F bounds,bool selected=false,bool hovered=false) {
+    canvas.Round(bounds,theme.cornerRadius,selected?theme.selected:hovered?theme.hover:theme.surface);
+    if(selected)canvas.Round(D2D1::RectF(bounds.left,bounds.top+12,bounds.left+3,bounds.bottom-12),1.5F,theme.accent);
+}
+
 // 等比例居中，不拉伸物品图片；输入与输出均为 DIP。
 // Center with preserved aspect ratio; both input bounds and output use DIPs.
 [[nodiscard]] inline D2D1_RECT_F FitImage(D2D1_SIZE_F size, D2D1_RECT_F bounds) noexcept {
@@ -46,7 +54,7 @@ struct ItemCardView final {
 inline void DrawItemCard(const UiCanvas& canvas, const UiTheme& theme,
                         D2D1_RECT_F bounds, const ItemCardView& item, bool stackedPrices = false) {
     const float x = bounds.left, top = bounds.top, right = bounds.right;
-    canvas.Round(bounds, theme.cornerRadius, theme.surface);
+    DrawListCardSurface(canvas,theme,bounds);
     canvas.Round(D2D1::RectF(x + 16, top + 15, x + 96, top + 103), 6.0F, theme.background);
     if (item.image) {
         canvas.target.DrawBitmap(item.image, FitImage(item.image->GetSize(),

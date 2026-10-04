@@ -424,6 +424,11 @@ int wmain(int argc, wchar_t** argv) try {
         ui.SetHideoutDataSources(std::filesystem::path(argv[1]).parent_path()/"data",catalog,economy);
         ui.SetTaskDataSources(std::filesystem::path(argv[1]).parent_path()/"data",catalog);
         Sidebar sidebar;
+        sidebar.StartSelection(MainPage::Scanner,MainPage::Prices,height,theme);
+        Require(sidebar.Animating(),"sidebar selection starts a bounded transition");
+        sidebar.Tick(0.08F);sidebar.StartSelection(MainPage::Prices,MainPage::Map,height,theme);
+        for(int i=0;i<30;++i)sidebar.Tick(0.016F);
+        Require(!sidebar.Animating(),"rapid sidebar retarget settles without idle frame work");
         const auto selectPage = [&](MainPage page) {
             const auto rect = sidebar.ItemRect(page, height, theme);
             Require(!click(rect.left + 30, (rect.top + rect.bottom) / 2), "page selection emits no GameMode change");
@@ -690,10 +695,11 @@ int wmain(int argc, wchar_t** argv) try {
         Require(!ui.OpenEventAssociation({EventAction::Kind::Map,"unresolved-map"})&&ui.ActivePage()==MainPage::Events,"unresolved map cannot produce a guessed jump");
         for(const auto action:{EventAction{EventAction::Kind::Map,eventMapId},EventAction{EventAction::Kind::Task,taskId},EventAction{EventAction::Kind::Item,linkedScan.stableItemId}}) {
             Require(ui.OpenEventAssociation(action)&&ui.CanGoBack(),"Events association opens through shared contextual navigation");
+            if(action.kind==EventAction::Kind::Item)Require(ui.PriceSearch().Text()!=std::wstring(action.id.begin(),action.id.end())&&ui.PriceTotal()==1,"exact item jump displays its name, not its storage identity");
             if(action.kind==EventAction::Kind::Map)Require(ui.ActivePage()==MainPage::Map&&ui.Map().MapId()==eventMapId,"Events uses exact map identity");
             if(action.kind==EventAction::Kind::Task)Require(ui.ActivePage()==MainPage::Tasks&&ui.Tasks().SelectedTask()==taskId
                 &&ui.Tasks().SelectedTrader()==ui.Tasks().Catalog().Task("regular",taskId)->traderId,"Events uses exact task and trader identity");
-            if(action.kind==EventAction::Kind::Item)Require(ui.ActivePage()==MainPage::Prices&&ui.PriceSearch().Text()==std::wstring(action.id.begin(),action.id.end()),"Events uses exact item ID");
+            if(action.kind==EventAction::Kind::Item)Require(ui.ActivePage()==MainPage::Prices&&ui.PriceExactId()==action.id,"Events uses exact item ID independently of display text");
             Require(ui.GoBack()&&ui.ActivePage()==MainPage::Events,"contextual and side-back return to Events");
             Require(ui.Events().SelectedId()==eventSelected&&ui.Events().Search().Text()==L"fixture"
                 &&ui.Events().Browser().Filter()==noven::events::EventStatus::Active,"Events selection/query/filter remain resident");
@@ -703,6 +709,11 @@ int wmain(int argc, wchar_t** argv) try {
         }
         ui.SetEvents(eventFixtures,{noven::events::RefreshPhase::Failed,"synthetic offline",{}},100);ui.Paint();
         Require(ui.Events().Browser().Rows()==eventRows&&ui.Events().RefreshText()==Tr(TextKey::EventCached),"failed refresh never clears valid visible event data");
+        auto recentClick=linkedScan;recentClick.gameMode=noven::data::GameMode::Pvp;
+        ui.SetRecentScans({recentClick});selectPage(MainPage::RecentScans);
+        Require(!click(theme.sidebarWidth+theme.contentPadding+30,170)&&ui.ActivePage()==MainPage::Prices
+            &&ui.PriceTotal()==1&&ui.CanGoBack(),"recent card opens exact item detail through contextual navigation");
+        Require(ui.GoBack()&&ui.ActivePage()==MainPage::RecentScans,"recent-card return keeps resident page");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

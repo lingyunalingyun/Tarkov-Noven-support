@@ -2,6 +2,7 @@
 #include "ui/localization/LocalizationService.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace noven::ui {
 namespace {
@@ -9,6 +10,15 @@ namespace {
 void DrawIcon(const UiCanvas& canvas, MainPage page, float x, float y,
               D2D1_COLOR_F color) {
     canvas.brush.SetColor(color);
+    const auto line=[&](float a,float b,float c,float d){canvas.target.DrawLine(D2D1::Point2F(x+a,y+b),D2D1::Point2F(x+c,y+d),&canvas.brush,1.4F);};
+    // 原生矢量轮廓，无图标字体或位图依赖。
+    // Native vector outlines without icon-font or bitmap dependencies.
+    if(page==MainPage::Hideout){line(0,8,9,1);line(9,1,18,8);line(3,7,3,17);line(3,17,15,17);line(15,17,15,7);line(7,17,7,11);line(7,11,11,11);line(11,11,11,17);return;}
+    if(page==MainPage::Map){line(1,3,6,1);line(6,1,12,4);line(12,4,17,2);line(17,2,17,15);line(17,15,12,17);line(12,17,6,14);line(6,14,1,16);line(1,16,1,3);line(6,1,6,14);line(12,4,12,17);return;}
+    if(page==MainPage::RaidHistory){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),8,8),&canvas.brush,1.4F);line(9,4,9,9);line(9,9,13,11);return;}
+    if(page==MainPage::Squad){for(float offset:{5.0F,13.0F}){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+offset,y+5),3,3),&canvas.brush,1.4F);line(offset-4,16,offset-4,12);line(offset-4,12,offset+4,12);line(offset+4,12,offset+4,16);}return;}
+    if(page==MainPage::Settings){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),5,5),&canvas.brush,1.4F);canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),2,2),&canvas.brush,1.4F);for(int i=0;i<8;++i){float a=i*0.785398F;line(9+5*std::cos(a),9+5*std::sin(a),9+8*std::cos(a),9+8*std::sin(a));}return;}
+    if(page==MainPage::RecentScans){line(1,5,1,17);line(1,17,13,17);line(5,1,17,1);line(17,1,17,13);line(17,13,5,13);line(5,13,5,1);line(8,5,14,5);line(8,9,12,9);return;}
     const auto bounds = D2D1::RoundedRect(D2D1::RectF(x, y, x + 18, y + 18), 4.0F, 4.0F);
     canvas.target.DrawRoundedRectangle(bounds, &canvas.brush, 1.4F);
     if (page == MainPage::Scanner) {
@@ -22,6 +32,8 @@ void DrawIcon(const UiCanvas& canvas, MainPage page, float x, float y,
                                D2D1::Point2F(x + 9, y + 5), &canvas.brush, 1.5F);
         canvas.target.DrawLine(D2D1::Point2F(x + 14, y + 13),
                                D2D1::Point2F(x + 14, y + 7), &canvas.brush, 1.5F);
+    } else if(page==MainPage::Events) {
+        line(0,5,18,5);line(5,-1,5,3);line(13,-1,13,3);line(6,10,8,13);line(8,13,13,8);
     } else {
         canvas.target.DrawLine(D2D1::Point2F(x + 5, y + 7),
                                D2D1::Point2F(x + 13, y + 7), &canvas.brush, 1.3F);
@@ -88,17 +100,15 @@ void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
     canvas.Fill(D2D1::RectF(22, height - 71, theme.sidebarWidth - 22,
                             height - 70), theme.divider);
 
+    auto selection=ItemRect(active,height,theme);
+    if(Animating()){selection.top=top_;selection.bottom=top_+theme.navigationHeight;}
+    canvas.Round(selection,8.0F,theme.selected);
+    canvas.Round(D2D1::RectF(selection.left,selection.top+9,selection.left+3,selection.bottom-9),1.5F,theme.accent);
     for (const PageInfo& page : kPages) {
         const D2D1_RECT_F rect = ItemRect(page.id, height, theme);
         const bool selected = page.id == active;
         const bool is_hovered = hovered == page.id;
-        if (selected || is_hovered || pressed == page.id) {
-            canvas.Round(rect, 8.0F, selected ? theme.selected : theme.hover);
-        }
-        if (selected) {
-            canvas.Round(D2D1::RectF(rect.left, rect.top + 9, rect.left + 3,
-                                     rect.bottom - 9), 1.5F, theme.accent);
-        }
+        if (!selected && (is_hovered || pressed == page.id))canvas.Round(rect,8.0F,theme.hover);
         const D2D1_COLOR_F color = selected ? theme.primaryText : theme.secondaryText;
         DrawIcon(canvas, page.id, rect.left + 14, rect.top + 11, color);
         canvas.Text(Tr(page.titleKey), canvas.label,
