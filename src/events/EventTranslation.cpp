@@ -30,7 +30,7 @@ std::string Terms(std::string value) {
     // Correct explicit display terms only; translations never identify maps/tasks/event status.
     for(const auto& [from,to]:std::initializer_list<std::pair<std::string_view,std::string_view>>{
         {"Glukhar","格鲁哈"},{"Reserve","储备站"},{"Lighthouse","灯塔"},{"季节性游戏模式","赛季模式"},
-        {"水处理厂","污水处理厂"},{"拾荒者","Scav"},{"扫荡者","Scav"}}) {
+        {"水处理厂","污水处理厂"},{"拾荒者","Scav"},{"游荡者","Rogues"},{"掠夺者","Raiders"}}) {
         std::size_t pos{};while((pos=value.find(from,pos))!=value.npos) {
             const auto letter=[](unsigned char c){return (c>='A'&&c<='Z')||(c>='a'&&c<='z');};
             if((pos&&letter(value[pos-1]))||(pos+from.size()<value.size()&&letter(value[pos+from.size()]))){pos+=from.size();continue;}
