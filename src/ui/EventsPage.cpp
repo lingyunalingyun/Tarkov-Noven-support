@@ -89,15 +89,26 @@ void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDW
         if(official)officialText_.push_back(block.text);
         detailHeight_+=block.height+8;blocks_.push_back(std::move(block));
     };
-    add(Tr(TextKey::EventOfficial),true);
-    add(EventWide(event->title),true,true);
-    if(event->titleIsExcerpt)add(Tr(TextKey::EventExcerpt),false,true);
-    add(EventStatusText(browser_.Status(*event))+L" · "+Tr(TextKey::EventScope)+L": "+EventScopeText(*event),false,true);
+    const bool official=!events::CommunitySourced(*event);
+    // 社区描述有独立标题/提示，绝不进入官方事实区或官方展示快照。
+    // Community descriptions have their own heading/disclaimer, never official facts or presentation snapshots.
+    add(Tr(official?TextKey::EventOfficial:TextKey::EventCommunity),true);
+    if(!official)add(Tr(TextKey::EventCommunityHint));
+    add(EventWide(event->title),true,official);
+    if(event->titleIsExcerpt)add(Tr(TextKey::EventExcerpt),false,official);
+    add(EventStatusText(browser_.Status(*event))+L" · "+Tr(TextKey::EventScope)+L": "+EventScopeText(*event),false,official);
     add(Tr(TextKey::EventAnnounced)+L": "+EventTimeText(event->announcedAt)+L"\n"+
-        Tr(TextKey::EventStarts)+L": "+EventTimeText(event->startsAt)+L"\n"+Tr(TextKey::EventEnds)+L": "+EventTimeText(event->endsAt),false,true);
-    add(EventWide(event->summary),false,true);
+        Tr(TextKey::EventStarts)+L": "+EventTimeText(event->startsAt)+L"\n"+Tr(TextKey::EventEnds)+L": "+EventTimeText(event->endsAt),false,official);
+    add(EventWide(event->summary),false,official);
     for(const auto& source:event->sourceEvidence)if(source.sourceKind==events::SourceKind::OfficialTelegram&&events::SafeEventSourceUrl(source.sourceUrl))
         add(Tr(TextKey::EventOpenSource)+L" · "+EventTimeText(source.publishedAt),false,true,EventAction{EventAction::Kind::Source,source.sourceUrl});
+    bool communityHeading=!official;
+    for(const auto& source:event->sourceEvidence)if(source.sourceKind==events::SourceKind::CommunityWiki) {
+        if(!communityHeading){add(Tr(TextKey::EventCommunity),true);add(Tr(TextKey::EventCommunityHint));communityHeading=true;}
+        if(official)add(EventWide(source.summary));
+        if(!official)add(Tr(TextKey::EventSourceUpdated)+L": "+EventTimeText(event->lastUpdatedAt));
+        if(events::SafeEventSourceUrl(source.sourceUrl))add(Tr(TextKey::EventOpenSource)+L" · "+Tr(TextKey::EventWikiSource),false,false,EventAction{EventAction::Kind::Source,source.sourceUrl});
+    }
     add(Tr(TextKey::EventRelated),true);add(Tr(TextKey::EventRelatedHint));
     const auto related=browser_.Associations(*event);
     if(related.empty())add(Tr(TextKey::EventNoRelated));
@@ -137,6 +148,7 @@ std::optional<ScrollbarGeometry> EventsPage::Bar(bool detail) const {
 std::wstring EventsPage::RefreshText() const {
     if(refresh_.phase==events::RefreshPhase::Refreshing)return Tr(TextKey::EventRefreshing);
     if(refresh_.phase==events::RefreshPhase::Failed)return Tr(browser_.Events().empty()?TextKey::EventUnavailable:TextKey::EventCached);
+    if(!refresh_.sourceWarning.empty())return Tr(TextKey::EventPartialRefresh);
     return refreshed_?Tr(TextKey::EventUpdated):Tr(TextKey::EventEmpty);
 }
 std::wstring EventsPage::LastRefreshText() const {
@@ -178,8 +190,9 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             canvas.Round(badge,5,theme.background);
             canvas.CenteredText(EventStatusText(browser_.Status(e)),canvas.smallFormat,badge,
                 browser_.Status(e)==events::EventStatus::Active?theme.accent:theme.secondaryText);
-            canvas.Text(EventScopeText(e),canvas.smallFormat,{card.left+12,top+88,card.right-12,top+110},theme.secondaryText);
-            canvas.Text(Tr(TextKey::EventAnnounced)+L": "+EventTimeText(e.announcedAt),canvas.smallFormat,{card.left+12,top+112,card.right-12,top+136},theme.secondaryText);
+            const bool community=events::CommunitySourced(e);
+            canvas.Text(Tr(community?TextKey::EventWikiSource:TextKey::EventOfficial)+L" · "+EventScopeText(e),canvas.smallFormat,{card.left+12,top+88,card.right-12,top+110},theme.secondaryText);
+            canvas.Text(Tr(community?TextKey::EventSourceUpdated:TextKey::EventAnnounced)+L": "+EventTimeText(community?e.lastUpdatedAt:e.announcedAt),canvas.smallFormat,{card.left+12,top+112,card.right-12,top+136},theme.secondaryText);
             canvas.Text(Tr(TextKey::EventStarts)+L": "+EventTimeText(e.startsAt)+L"\n"+Tr(TextKey::EventEnds)+L": "+EventTimeText(e.endsAt),canvas.smallFormat,{card.left+12,top+138,card.right-12,top+183},theme.secondaryText);
         }
         canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(false),1});

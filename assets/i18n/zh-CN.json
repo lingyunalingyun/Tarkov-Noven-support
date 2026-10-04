@@ -1,4 +1,9 @@
 {
+  "events.community": "社区资料",
+  "events.community_hint": "资料来自 Tarkov Wiki 社区，不是 BSG 官方公告。进行中依据 Wiki 当前活动列表；开始、结束与适用范围未明确时保持未知。",
+  "events.wiki_source": "社区 Wiki",
+  "events.source_updated": "资料更新",
+  "events.partial_refresh": "部分来源刷新失败，保留该来源的上次有效数据",
   "events.search": "搜索活动或相关地图、任务、物品……",
   "events.all": "全部",
   "events.active": "进行中",

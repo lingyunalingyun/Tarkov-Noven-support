@@ -16,6 +16,21 @@ permission. Noven is an independent tool, not officially affiliated with or endo
 本文件记录 Noven 打包地图资源的署名及权利边界，不授予额外权利，不替代第三方原有许可，也不改变应用源码的许可。免费提供或公开源码本身不等于满足素材许可。
 These notices preserve third-party rights and licenses; they do not grant additional permissions or change the application source license. Free distribution or public source alone does not establish asset-license compliance.
 
+## Community event supplement / 社区活动补充
+
+社区活动摘录来自 [Escape from Tarkov Wiki](https://escapefromtarkov.fandom.com/wiki/Events)
+及其贡献者；以 MediaWiki 公开 API 当前列表补充官方来源，界面明确标为社区资料。
+Wiki 的 API rightsinfo 声明 [CC BY-NC-SA](https://www.fandom.com/licensing)；不猜测未声明的许可版本。
+修改仅为移除标记、提取当前条目及相关章节要点，不下载/打包图片，不镜像全文。
+相应内容及本项目享有版权的改编贡献保留署名、非商业和相同方式共享条件，
+不改为应用源码许可；再分发须保留来源链接与许可说明，游戏素材原有权利不变。
+Community excerpts credit Escape from Tarkov Wiki contributors. The public MediaWiki current list
+supplements official sources and is explicitly labelled community information. API rightsinfo declares
+CC BY-NC-SA via the linked Fandom licensing page; no unspecified license version is assumed.
+Changes remove markup and extract current entries/section highlights without packaging images or mirroring pages.
+These excerpts and copyrightable Noven adaptations retain attribution, noncommercial and share-alike terms,
+not the application source license. Redistribution must retain source/license notices and underlying game rights.
+
 ## All-map resources / 全地图素材
 
 来源、作者、原始字节与输出哈希逐项记录在 `assets/maps/all.manifest.json` 和每层的 `.manifest.json`。

@@ -76,6 +76,18 @@ int wmain(int argc,wchar_t** argv){try{
     page.SetSnapshot({},{RefreshPhase::Failed,"offline",{}},{});prepare(800);Check(page.RefreshText()==Tr(TextKey::EventUnavailable));
     page.SetSnapshot({},{RefreshPhase::Ready,{},{}},{});Check(page.RefreshText()==Tr(TextKey::EventEmpty));
     Check(page.LastRefreshText().empty());
+    EventRecord wiki;wiki.eventId="community-wiki:26936:Test";wiki.title="Community title";
+    wiki.summary="Community description";wiki.sourceStatus=EventStatus::Active;wiki.lastUpdatedAt=200;
+    EventEvidence wikiEvidence;wikiEvidence.sourceKind=SourceKind::CommunityWiki;wikiEvidence.sourceUrl=WikiEventUrl("26936:Test");
+    wiki.sourceEvidence={wikiEvidence};
+    page.SetSnapshot({wiki},{RefreshPhase::Ready,{},{},"Wiki failed"},200);page.SetFilter({},{});
+    Check(page.Select(wiki.eventId));prepare(1500);
+    Check(page.OfficialText().empty() && page.EvidenceText().empty());
+    Check(!page.Browser().Find(wiki.eventId)->announcedAt && !page.Browser().Find(wiki.eventId)->startsAt);
+    Check(page.RefreshText()==Tr(TextKey::EventPartialRefresh));
+    event.sourceEvidence.push_back(wikiEvidence);page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);
+    Check(page.Select(event.eventId));prepare(1500);
+    for(const auto& text:page.OfficialText())Check(text.find(Tr(TextKey::EventCommunityHint))==text.npos);
     Check(UiLocalization().SetLocale("en-US"));Check(EventTimeText({})==L"Unknown");
     page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);
     Check(page.LastRefreshText()==L"Last successful check: "+EventTimeText(200));

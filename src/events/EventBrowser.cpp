@@ -69,6 +69,7 @@ void EventBrowser::Rebuild() {
     std::ranges::sort(rows_,[&](auto a,auto b) {
         const auto& x=events_[a];const auto& y=events_[b];const auto sx=Status(x),sy=Status(y);
         if(sx!=sy)return Priority(sx)<Priority(sy);
+        if(CommunitySourced(x)!=CommunitySourced(y))return !CommunitySourced(x);
         const auto time=[&](const auto& e){return sx==EventStatus::Ended?e.endsAt.value_or(e.announcedAt.value_or(0)):
             e.startsAt.value_or(e.announcedAt.value_or(0));};
         if(time(x)!=time(y))return sx==EventStatus::Upcoming?time(x)<time(y):time(x)>time(y);
@@ -76,6 +77,8 @@ void EventBrowser::Rebuild() {
     });
 }
 bool SafeEventSourceUrl(std::string_view url) noexcept {
+    constexpr std::string_view wiki="https://escapefromtarkov.fandom.com/wiki/Events#";
+    if(url.starts_with(wiki))return WikiEventUrl("26936:"+std::string(url.substr(wiki.size())))==url;
     for(auto prefix:{"https://t.me/escapefromtarkovEN/","https://changes.tarkov-changes.com/view/"})
         if(url.starts_with(prefix)) {
             const auto id=url.substr(std::string_view(prefix).size());
