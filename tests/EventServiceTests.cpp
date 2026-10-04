@@ -27,7 +27,9 @@ int main(int argc,char** argv){
             WikiEventSource wiki(http);EventService service(source,MakeEventEnrichment(argv[2],http),&wiki);std::promise<void> done;auto finished=done.get_future();
             service.SetChangedCallback([&]{done.set_value();});Check(service.Start(dir/"live.json"));finished.get();service.Stop();
             if(service.RefreshState().phase!=RefreshPhase::Ready)throw std::runtime_error(service.RefreshState().error);
-            std::cout<<"Live service events="<<service.Events().size()<<" warning="<<service.RefreshState().enrichmentWarning<<'\n';
+            std::cout<<"Live service events="<<service.Events().size()<<" enrichment warning="<<service.RefreshState().enrichmentWarning
+                <<" source warning="<<service.RefreshState().sourceWarning<<'\n';
+            if(!service.RefreshState().sourceWarning.empty())throw std::runtime_error("live validation had a source failure");
             for(const auto& e:service.Events())std::cout<<e.eventId<<" maps="<<e.mapIds.size()<<" tasks="<<e.taskIds.size()<<" bosses="<<e.bossIds.size()<<'\n';
         }else {
             EventCatalog initial;EventSourceState state;std::string error;

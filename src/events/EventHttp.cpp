@@ -47,7 +47,7 @@ HttpResponse WinHttpEventClient::Get(std::wstring_view host,std::wstring_view pa
     if(!etag.empty())headers+=L"If-None-Match: "+Wide(etag)+L"\r\n";
     if(!modified.empty())headers+=L"If-Modified-Since: "+Wide(modified)+L"\r\n";
     if(!WinHttpSendRequest(request.value,headers.c_str(),static_cast<DWORD>(headers.size()),WINHTTP_NO_REQUEST_DATA,0,0,0)
-        || !WinHttpReceiveResponse(request.value,nullptr)){result.error="event HTTP fetch failed";return result;}
+        || !WinHttpReceiveResponse(request.value,nullptr)){result.error="event HTTP fetch failed ("+std::to_string(GetLastError())+")";return result;}
     DWORD bytes=sizeof(result.status);
     if(!WinHttpQueryHeaders(request.value,WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,WINHTTP_HEADER_NAME_BY_INDEX,&result.status,&bytes,WINHTTP_NO_HEADER_INDEX)){
         result.error="event HTTP status missing";return result;
