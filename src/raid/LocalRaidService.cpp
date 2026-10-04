@@ -128,12 +128,17 @@ struct LocalRaidService::Pipeline {
         }
     }
 };
-LocalRaidService::LocalRaidService() : stopEvent_(CreateEventW(nullptr,TRUE,FALSE,nullptr)) {}
-LocalRaidService::~LocalRaidService() {Stop();if(stopEvent_)CloseHandle(stopEvent_);}
+LocalRaidService::LocalRaidService() : stopEvent_(CreateEventW(nullptr,TRUE,FALSE,nullptr)),scanEvent_(CreateEventW(nullptr,FALSE,FALSE,nullptr)) {}
+LocalRaidService::~LocalRaidService() {Stop();if(stopEvent_)CloseHandle(stopEvent_);if(scanEvent_)CloseHandle(scanEvent_);}
+bool LocalRaidService::RequestScan() {
+    std::lock_guard lock(mutex_);
+    return status_.running&&scanEvent_&&SetEvent(scanEvent_);
+}
 bool LocalRaidService::Start(const std::filesystem::path& root,const std::filesystem::path& history) {
     Stop();
-    if(!stopEvent_||(!root.empty()&&!root.is_absolute())||!history.is_absolute())return false;
+    if(!stopEvent_||!scanEvent_||(!root.empty()&&!root.is_absolute())||!history.is_absolute())return false;
     ResetEvent(stopEvent_);
+    ResetEvent(scanEvent_);
     {std::lock_guard lock(mutex_);published_={};status_={};status_.running=true;}
     worker_=std::jthread([this,root,history](std::stop_token stop){Run(stop,root,history);});return true;
 }
@@ -178,8 +183,11 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
                 notify=published_.active!=snapshot.active||published_.completed!=snapshot.completed;
                 published_=snapshot;status_=pipeline_->stats;status_.running=true;}
             if(notify&&changed_)changed_();
-            HANDLE waits[]{stopEvent_,change};const DWORD result=WaitForMultipleObjects(2,waits,FALSE,INFINITE);
+            // 手动扫描也交给同一工作线程和增量游标；没有 UI 线程重读或额外轮询。
+            // Manual scans share the worker and incremental cursors, with no UI-thread reread or extra polling.
+            HANDLE waits[]{stopEvent_,change,scanEvent_};const DWORD result=WaitForMultipleObjects(3,waits,FALSE,INFINITE);
             if(result==WAIT_OBJECT_0)break;
+            if(result==WAIT_OBJECT_0+2)continue;
             if(result!=WAIT_OBJECT_0+1)throw std::runtime_error("EFT watch wait failed");
             if(!FindNextChangeNotification(change))throw std::runtime_error("EFT watch rearm failed");
             // 合并短时间内的文件追加通知；空闲时无限等待，没有周期性轮询。

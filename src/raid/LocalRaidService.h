@@ -19,6 +19,7 @@ public:
     ~LocalRaidService();
     bool Start(const std::filesystem::path& root, const std::filesystem::path& history);
     void Stop();
+    bool RequestScan();
     std::optional<RaidSession> ActiveSession() const;
     std::optional<RaidSession> FindSession(std::string_view localId) const;
     std::vector<RaidSession> CompletedSessions() const;
@@ -30,6 +31,7 @@ private:
     struct Pipeline;
     std::unique_ptr<Pipeline> pipeline_;
     HANDLE stopEvent_{};
+    HANDLE scanEvent_{};
     std::jthread worker_;
     mutable std::mutex mutex_;
     DetectorSnapshot published_;

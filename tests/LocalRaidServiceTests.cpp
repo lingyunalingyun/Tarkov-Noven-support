@@ -53,6 +53,9 @@ int main(int argc,char** argv) {
     std::cout<<"idle passes "<<idle.directoryPasses<<" -> "<<service.Status().directoryPasses
         <<", bytes "<<idle.bytesRead<<" -> "<<service.Status().bytesRead<<'\n';
     Require(service.Status().directoryPasses==idle.directoryPasses&&service.Status().bytesRead==idle.bytesRead,"idle does not poll/read");
+    Require(service.RequestScan(),"manual scan schedules native worker");
+    Wait(service,[&]{return service.Status().directoryPasses>idle.directoryPasses;});
+    Require(service.Status().bytesRead==idle.bytesRead&&service.CompletedSessions().size()==2,"manual scan preserves cursors and deduplicates history");
     const auto before=notifications.load();
     Write(app,"2026-01-01 12:19:00.000|unrelated synthetic diagnostic\n",true);
     Wait(service,[&]{return service.Status().bytesRead>idle.bytesRead;});
