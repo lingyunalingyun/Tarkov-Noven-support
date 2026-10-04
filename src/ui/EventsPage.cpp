@@ -22,7 +22,7 @@ void EventsPage::SetSnapshot(std::vector<events::EventRecord> records,events::Ev
     const auto oldBuilds=browser_.Builds();browser_.SetEvents(std::move(records));browser_.SetNow(Now());
     detailDirty_|=refresh_.translationWarning!=state.translationWarning;
     refresh_=std::move(state);refreshed_=refreshed;
-    if(browser_.Builds()!=oldBuilds)detailDirty_=true;
+    if(browser_.Builds()!=oldBuilds){detailDirty_=true;titlesDirty_=true;}
     if(!selected_.empty()&&!browser_.Find(selected_)){selected_.clear();narrowDetail_=false;detailDirty_=true;}
 }
 void EventsPage::SetCatalogs(const data::ItemCatalog* items,const data::TaskCatalog* tasks,const data::MapCatalog* maps) {
@@ -50,12 +50,13 @@ bool EventsPage::Select(std::string_view id) {
 }
 void EventsPage::SetFilter(std::optional<events::EventStatus> status,std::wstring query) {
     search_.SetText(std::move(query));browser_.SetFilter(status,EventUtf8(search_.Text()));
-    filterAnimation_.Select(FilterIndex(status),5);listScroll_=listTarget_=0;
+    filterAnimation_.Select(FilterIndex(status),5);listTarget_=0;
+    if(listOpacity_==1)listOpacity_=.75F;
     if(narrow_)narrowDetail_=false;
 }
 void EventsPage::ApplyFilter() {
     const auto builds=browser_.Builds();browser_.SetFilter(browser_.Filter(),EventUtf8(search_.Text()));
-    if(builds!=browser_.Builds()){listScroll_=listTarget_=0;if(narrow_)narrowDetail_=false;}
+    if(builds!=browser_.Builds()){listTarget_=0;if(listOpacity_==1)listOpacity_=.75F;if(narrow_)narrowDetail_=false;}
 }
 bool EventsPage::ClockTick(events::Timestamp now) {
     const auto before=browser_.Builds();browser_.SetNow(now);const bool changed=before!=browser_.Builds();detailDirty_|=changed;return changed;
@@ -68,11 +69,34 @@ void EventsPage::Prepare(float width,float height,const UiTheme& theme,IDWriteFa
     const float bottom=(std::max)(310.0F,height-22),top=narrow_&&ShowingDetail()?292.0F:248.0F;
     if(narrow_){listRect_={left,top,right,bottom};detailRect_=listRect_;}
     else {const float split=left+std::clamp((right-left)*.32F,230.0F,320.0F);listRect_={left,top,split,bottom};detailRect_={split+16,top,right,bottom};}
-    if(locale_!=UiLocalization().ActiveLocale()){locale_=UiLocalization().ActiveLocale();RebindEntities();detailDirty_=true;}
+    if(locale_!=UiLocalization().ActiveLocale()){locale_=UiLocalization().ActiveLocale();RebindEntities();detailDirty_=true;titlesDirty_=true;}
+    const float titleWidth=(std::max)(20.0F,listRect_.right-listRect_.left-40);
+    if(titleWidth_!=titleWidth){titleWidth_=titleWidth;titlesDirty_=true;}
+    if(titlesDirty_){BuildRowTitles(factory,label);titlesDirty_=false;}
     const float detailWidth=detailRect_.right-detailRect_.left;
     if(detailWidth_!=detailWidth){detailWidth_=detailWidth;detailDirty_=true;}
     if(detailDirty_){BuildDetail(factory,body,label);detailDirty_=false;}
     ClampScroll();
+}
+void EventsPage::BuildRowTitles(IDWriteFactory* factory,IDWriteTextFormat* label) {
+    // 标题独立缓存并固定为两行省略；不借改共享字体的对齐/换行状态。
+    // Cache two-line ellipsized titles independently, without mutating shared font alignment or wrapping.
+    rowTitles_.clear();if(!factory||!label)return;
+    Microsoft::WRL::ComPtr<IDWriteInlineObject> ellipsis;
+    factory->CreateEllipsisTrimmingSign(label,&ellipsis);
+    for(const auto& event:browser_.Events()) {
+        const auto translated=event.machineText.find(event.title);
+        const auto text=EventWide(locale_=="zh-CN"&&translated!=event.machineText.end()?translated->second:event.title);
+        Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
+        if(FAILED(factory->CreateTextLayout(text.data(),static_cast<UINT32>(text.size()),label,titleWidth_,50,&layout)))continue;
+        layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+        layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+        layout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+        layout->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM,24,19);
+        const DWRITE_TRIMMING trimming{DWRITE_TRIMMING_GRANULARITY_CHARACTER,0,0};
+        layout->SetTrimming(&trimming,ellipsis.Get());
+        rowTitles_.emplace(event.eventId,std::move(layout));
+    }
 }
 void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDWriteTextFormat* label) {
     blocks_.clear();officialText_.clear();evidenceText_.clear();detailHeight_=16;
@@ -190,6 +214,9 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
     if(narrow_&&ShowingDetail()){canvas.Round(listButton_,8,theme.surface);canvas.CenteredText(Tr(TextKey::EventList),canvas.body,listButton_,theme.accent);}
     if(!narrow_||!ShowingDetail()) {
         canvas.target.PushAxisAlignedClip(listRect_,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        {
+        const auto pose=SampleTabTransition(.42F+.58F*listOpacity_);
+        const ScopedContentTransition transition(canvas,D2D1::Point2F(listRect_.left,listRect_.top),pose.incomingOpacity,pose.incomingScale);
         const auto& rows=browser_.Rows();
         if(rows.empty())canvas.Text(Tr(browser_.Events().empty()?(refresh_.phase==events::RefreshPhase::Failed?TextKey::EventUnavailable:TextKey::EventEmpty):TextKey::EventNoResults),canvas.body,{listRect_.left+12,listRect_.top+20,listRect_.right-18,listRect_.bottom},theme.secondaryText);
         for(std::size_t i=static_cast<std::size_t>(listScroll_/rowHeight);i<rows.size();++i) {
@@ -198,12 +225,10 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             const bool selected=e.eventId==selected_,hovered=hover_&&Hit(card,hover_->x,hover_->y);
             canvas.Round(card,theme.cornerRadius,selected?theme.selected:hovered?theme.hover:theme.surface);
             if(selected||browser_.Status(e)==events::EventStatus::Active)canvas.Round({card.left,top+14,card.left+3,card.bottom-14},2,theme.accent);
-            // 临时换行后恢复共享格式，长原文不会改变其他页面的排版契约。
-            // Restore the shared format after wrapping long source titles; other pages keep their layout contract.
-            const auto wrapping=canvas.label.GetWordWrapping();canvas.label.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
-            const auto translated=e.machineText.find(e.title);
-            canvas.Text(EventWide(locale_=="zh-CN"&&translated!=e.machineText.end()?translated->second:e.title),canvas.label,{card.left+12,top+8,card.right-12,top+58},theme.primaryText);
-            canvas.label.SetWordWrapping(wrapping);
+            if(const auto title=rowTitles_.find(e.eventId);title!=rowTitles_.end()) {
+                canvas.brush.SetColor(theme.primaryText);
+                canvas.target.DrawTextLayout({card.left+12,top+8},title->second.Get(),&canvas.brush,D2D1_DRAW_TEXT_OPTIONS_CLIP);
+            }
             const D2D1_RECT_F badge{card.left+12,top+62,(std::min)(card.left+122,card.right-12),top+85};
             canvas.Round(badge,5,theme.background);
             canvas.CenteredText(EventStatusText(browser_.Status(e)),canvas.smallFormat,badge,
@@ -213,6 +238,7 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             canvas.Text(Tr(community?TextKey::EventSourceUpdated:TextKey::EventAnnounced)+L": "+EventTimeText(community?e.lastUpdatedAt:e.announcedAt),canvas.smallFormat,{card.left+12,top+112,card.right-12,top+136},theme.secondaryText);
             canvas.Text(Tr(TextKey::EventStarts)+L": "+EventTimeText(e.startsAt)+L"\n"+Tr(TextKey::EventEnds)+L": "+EventTimeText(e.endsAt),canvas.smallFormat,{card.left+12,top+138,card.right-12,top+183},theme.secondaryText);
         }
+        }
         canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(false),1});
     }
     if(ShowingDetail()) {
@@ -220,7 +246,8 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
         canvas.target.PushAxisAlignedClip(detailRect_,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
         if(selected_.empty())canvas.Text(Tr(TextKey::EventSelect),canvas.body,{detailRect_.left+20,detailRect_.top+24,detailRect_.right-20,detailRect_.bottom},theme.secondaryText);
         {
-        const ScopedContentTransition transition(canvas,D2D1::Point2F(detailRect_.left,detailRect_.top),detailOpacity_,.985F+.015F*detailOpacity_);
+        const auto pose=SampleTabTransition(.42F+.58F*detailOpacity_);
+        const ScopedContentTransition transition(canvas,D2D1::Point2F(detailRect_.left,detailRect_.top),pose.incomingOpacity,pose.incomingScale);
         for(const auto& b:blocks_) {
             const auto rect=BlockRect(b);if(rect.bottom<=detailRect_.top||rect.top>=detailRect_.bottom)continue;
             if(b.action)canvas.Round(rect,6,hover_&&Hit(rect,hover_->x,hover_->y)?theme.hover:theme.selected);
@@ -251,9 +278,9 @@ std::optional<EventAction> EventsPage::ActionAt(float x,float y) const {
 void EventsPage::MouseDown(float x,float y) {
     pressed_=D2D1::Point2F(x,y);if(Hit(searchRect_,x,y))search_.Focus();else search_.Blur();
     for(bool detail:{false,true})if(!(narrow_&&(detail?!ShowingDetail():ShowingDetail())))if(const auto bar=Bar(detail);bar&&Hit(bar->track,x,y)) {
-        auto& scroll=detail?detailScroll_:listScroll_;auto& target=detail?detailTarget_:listTarget_;
+        auto& target=detail?detailTarget_:listTarget_;
         if(Hit(bar->thumb,x,y))grab_=std::pair{detail,y-bar->thumb.top};
-        else target=scroll=bar->OffsetFromThumbTop(y-(bar->thumb.bottom-bar->thumb.top)/2);
+        else target=bar->OffsetFromThumbTop(y-(bar->thumb.bottom-bar->thumb.top)/2);
         pressed_.reset();break;
     }
 }
@@ -279,16 +306,17 @@ bool EventsPage::Wheel(int delta,float x,float y) {
 bool EventsPage::Key(WPARAM key,bool control) {if(!search_.HandleKeyDown(key,control))return false;ApplyFilter();return true;}
 bool EventsPage::Char(wchar_t value) {if(!search_.HandleChar(value))return false;ApplyFilter();return true;}
 void EventsPage::Blur() {
-    search_.Blur();CancelDrag();listTarget_=listScroll_;detailTarget_=detailScroll_;detailOpacity_=1;
+    search_.Blur();CancelDrag();listTarget_=listScroll_;detailTarget_=detailScroll_;detailOpacity_=listOpacity_=1;
     filterAnimation_.Select(FilterIndex(browser_.Filter()),5,true);
 }
-bool EventsPage::Animating() const noexcept {return std::abs(listScroll_-listTarget_)>.1F||std::abs(detailScroll_-detailTarget_)>.1F||detailOpacity_<1||filterAnimation_.Active();}
+bool EventsPage::Animating() const noexcept {return std::abs(listScroll_-listTarget_)>.1F||std::abs(detailScroll_-detailTarget_)>.1F||detailOpacity_<1||listOpacity_<1||filterAnimation_.Active();}
 void EventsPage::Tick(float seconds) {
     seconds=std::clamp(seconds,0.0F,.05F);const float alpha=1-std::exp(-22*seconds);
     filterAnimation_.Tick(seconds);
     for(auto pair:{std::pair{&listScroll_,&listTarget_},std::pair{&detailScroll_,&detailTarget_}})
         if(std::abs(*pair.first-*pair.second)<.1F)*pair.first=*pair.second;else *pair.first+=(*pair.second-*pair.first)*alpha;
     detailOpacity_=(std::min)(1.0F,detailOpacity_+seconds/0.18F);
+    listOpacity_=(std::min)(1.0F,listOpacity_+seconds/0.18F);
 }
 std::vector<std::string> EventsPage::VisibleImages() const {
     std::vector<std::string> ids;if(!ShowingDetail())return ids;

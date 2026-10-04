@@ -46,6 +46,10 @@ public:
     bool Narrow() const noexcept{return narrow_;}
     bool ShowingDetail() const noexcept{return !narrow_||(narrowDetail_&&!selected_.empty());}
     float DetailOpacity() const noexcept{return detailOpacity_;}
+    float ListOpacity() const noexcept{return listOpacity_;}
+    IDWriteTextLayout* RowTitleLayout(std::string_view id) const {
+        const auto it=rowTitles_.find(std::string(id));return it==rowTitles_.end()?nullptr:it->second.Get();
+    }
     float FilterPosition() const noexcept{return filterAnimation_.Position();}
     float FilterWeight(std::size_t index) const noexcept{return filterAnimation_.Weight(index);}
     std::vector<std::string> VisibleImages() const;
@@ -66,6 +70,7 @@ private:
     void ApplyFilter();
     void RebindEntities();
     void BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDWriteTextFormat* label);
+    void BuildRowTitles(IDWriteFactory* factory,IDWriteTextFormat* label);
     void ClampScroll();
     std::optional<EventAction> ActionAt(float x,float y) const;
     std::optional<std::size_t> RowAt(float x,float y) const;
@@ -80,8 +85,10 @@ private:
     SearchBox search_;
     std::string locale_,selected_;
     std::vector<Block> blocks_;
+    std::unordered_map<std::string,Microsoft::WRL::ComPtr<IDWriteTextLayout>> rowTitles_;
     std::vector<std::wstring> officialText_,evidenceText_;
-    bool detailDirty_{true},narrow_{},narrowDetail_{},showOriginal_{};
+    bool detailDirty_{true},titlesDirty_{true},narrow_{},narrowDetail_{},showOriginal_{};
+    float titleWidth_{},listOpacity_{1};
     float detailHeight_{},detailWidth_{},listScroll_{},listTarget_{},detailScroll_{},detailTarget_{},detailOpacity_{1};
     TabSelectionAnimation filterAnimation_;
     D2D1_RECT_F searchRect_{},tabsRect_{},listRect_{},detailRect_{},refreshRect_{},listButton_{};

@@ -21,6 +21,26 @@ int wmain(int argc,wchar_t** argv){try{
     page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);Check(page.Select(event.eventId));
     const auto prepare=[&](float width){page.Prepare(width,900,theme,factory.Get(),body.Get(),label.Get());};
     prepare(1500);Check(!page.Narrow());
+    // 生产共享字体垂直居中时，独立标题仍顶端对齐、两行省略；静止帧复用排版。
+    // Independent titles stay top-aligned and two-line trimmed with centered production fonts; idle frames reuse layouts.
+    label->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    auto longEvent=event;longEvent.title=std::string(600,'W');
+    EventsPage titlePage;titlePage.SetSnapshot({longEvent},{RefreshPhase::Ready,{},{}},200);
+    titlePage.Prepare(1500,900,theme,factory.Get(),body.Get(),label.Get());
+    auto* titleLayout=titlePage.RowTitleLayout(event.eventId);Check(titleLayout);
+    Check(titleLayout->GetParagraphAlignment()==DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+    Check(titleLayout->GetTextAlignment()==DWRITE_TEXT_ALIGNMENT_LEADING);
+    DWRITE_TEXT_METRICS titleMetrics{};Check(SUCCEEDED(titleLayout->GetMetrics(&titleMetrics)));
+    Check(titleMetrics.lineCount<=2&&titleMetrics.height<=50);
+    DWRITE_TRIMMING trimming{};Microsoft::WRL::ComPtr<IDWriteInlineObject> trimmingSign;
+    titleLayout->GetTrimming(&trimming,&trimmingSign);
+    Check(trimming.granularity==DWRITE_TRIMMING_GRANULARITY_CHARACTER);
+    for(int i=0;i<20;++i)titlePage.Prepare(1500,900,theme,factory.Get(),body.Get(),label.Get());
+    Check(titlePage.RowTitleLayout(event.eventId)==titleLayout);
+    Check(label->GetParagraphAlignment()==DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    const auto oldTitleWidth=titleLayout->GetMaxWidth();
+    titlePage.Prepare(800,900,theme,factory.Get(),body.Get(),label.Get());
+    Check(titlePage.RowTitleLayout(event.eventId)->GetMaxWidth()>oldTitleWidth);
     Check(!page.SourceNoteBounds());
     // 活动标签直接遵循共享姿态；快速重选不跳色/跳线，离页停止计时。
     // Event tabs follow the shared pose exactly; retargeting preserves colors/underline and leaving settles timers.
@@ -73,6 +93,25 @@ int wmain(int argc,wchar_t** argv){try{
     Check(page.Select(other.eventId));page.Tick(.016F);const auto opacity=page.DetailOpacity();
     Check(page.Select(event.eventId)&&page.DetailOpacity()==opacity);
     for(int i=0;i<200;++i)page.Tick(.016F);Check(!page.Animating()&&page.DetailOpacity()==1);
+    EventsPage scrollPage;std::vector<EventRecord> many;
+    for(int i=0;i<15;++i){auto copy=event;copy.eventId="official-telegram:"+std::to_string(i+10);many.push_back(copy);}
+    scrollPage.SetSnapshot(many,{RefreshPhase::Ready,{},{}},200);
+    scrollPage.Prepare(1500,900,theme,factory.Get(),body.Get(),label.Get());
+    const float listLeft=theme.sidebarWidth+theme.contentPadding;
+    Check(scrollPage.Wheel(-120,listLeft+20,500));Check(scrollPage.ListScroll()==0&&scrollPage.Animating());
+    scrollPage.Tick(.016F);Check(scrollPage.ListScroll()>0&&scrollPage.ListScroll()<100);
+    for(int i=0;i<200;++i)scrollPage.Tick(.016F);Check(!scrollPage.Animating());
+    const auto beforeFilter=scrollPage.ListScroll();scrollPage.SetFilter({},{});
+    Check(scrollPage.ListScroll()==beforeFilter&&scrollPage.ListOpacity()<1);
+    const auto listOpacity=scrollPage.ListOpacity();scrollPage.SetFilter(EventStatus::Active,{});
+    Check(scrollPage.ListOpacity()==listOpacity);
+    for(int i=0;i<200;++i)scrollPage.Tick(.016F);
+    Check(!scrollPage.Animating()&&scrollPage.ListScroll()==0&&scrollPage.ListOpacity()==1);
+    const float listRight=listLeft+std::clamp((1500-theme.contentPadding-listLeft)*.32F,230.0F,320.0F);
+    scrollPage.MouseDown(listRight-7,820);scrollPage.MouseUp(listRight-7,820);
+    Check(scrollPage.ListScroll()==0&&scrollPage.Animating());
+    scrollPage.Tick(.016F);Check(scrollPage.ListScroll()>0);
+    scrollPage.Blur();Check(!scrollPage.Animating());
     page.SetFilter(EventStatus::Ended,{});prepare(800);Check(page.Browser().Rows().empty()&&!page.Browser().Events().empty());
     page.SetSnapshot({},{RefreshPhase::Failed,"offline",{}},{});prepare(800);Check(page.RefreshText()==Tr(TextKey::EventUnavailable));
     page.SetSnapshot({},{RefreshPhase::Ready,{},{}},{});Check(page.RefreshText()==Tr(TextKey::EventEmpty));
