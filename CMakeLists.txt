@@ -598,6 +598,12 @@ if(BUILD_TESTING)
     endif()
     target_link_libraries(NovenTarkovSupportNavigationTests PRIVATE imm32)
     add_test(NAME main_navigation COMMAND NovenTarkovSupportNavigationTests)
+    add_executable(NovenPageRegistryTests tests/PageRegistryTests.cpp)
+    target_include_directories(NovenPageRegistryTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    if(MSVC)
+        target_compile_options(NovenPageRegistryTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME page_registry COMMAND NovenPageRegistryTests)
 
     add_executable(NovenTarkovSupportRecentScanTests
         tests/RecentScanStoreTests.cpp
