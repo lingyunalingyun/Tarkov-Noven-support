@@ -55,6 +55,7 @@ public:
     float FilterWeight(std::size_t index) const noexcept{return filterAnimation_.Weight(index);}
     std::vector<std::string> VisibleImages() const;
     std::optional<D2D1_RECT_F> ActionBounds(EventAction::Kind kind,std::string_view id) const;
+    std::optional<D2D1_RECT_F> ActionTextBounds(EventAction::Kind kind,std::string_view id) const;
     std::optional<D2D1_RECT_F> SourceNoteBounds() const;
     float SourceNoteFontSize() const;
     const std::vector<std::wstring>& OfficialText() const noexcept{return officialText_;}

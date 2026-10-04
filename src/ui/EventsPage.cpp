@@ -120,7 +120,12 @@ void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDW
             if(footnote)block.layout->SetFontSize(format->GetFontSize()*.8F,{0,static_cast<UINT32>(block.text.size())});
             DWRITE_TEXT_METRICS metrics{};block.layout->GetMetrics(&metrics);block.height=(std::max)(footnote?18.0F:heading?32.0F:26.0F,metrics.height+(footnote?8:12));
         }else block.height=heading?38.0F:54.0F;
-        if(block.action)block.height=(std::max)(44.0F,block.height);
+        if(block.action){
+            block.height=(std::max)(44.0F,block.height);
+            // 所有详情操作共用行内边距，文字与物品缩略图都居中于可点击区域。
+            // All detail actions share row padding, centering text and item thumbnails within the hit region.
+            if(block.layout){block.layout->SetMaxHeight(block.height-8);block.layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);}
+        }
         if(official)officialText_.push_back(block.text);
         detailHeight_+=block.height+8;blocks_.push_back(std::move(block));
     };
@@ -268,7 +273,8 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             const auto rect=BlockRect(b);if(rect.bottom<=detailRect_.top||rect.top>=detailRect_.bottom)continue;
             if(b.action)canvas.Round(rect,6,hover_&&Hit(rect,hover_->x,hover_->y)?theme.hover:theme.selected);
             float x=rect.left+8;
-            if(!b.imageId.empty()){if(const auto image=images.find(b.imageId);image!=images.end())canvas.target.DrawBitmap(image->second.Get(),FitImage(image->second->GetSize(),{x,rect.top+4,x+32,rect.top+36}),canvas.brush.GetOpacity());x+=44;}
+            if(!b.imageId.empty()){const float imageTop=(rect.top+rect.bottom-32)*.5F;
+                if(const auto image=images.find(b.imageId);image!=images.end())canvas.target.DrawBitmap(image->second.Get(),FitImage(image->second->GetSize(),{x,imageTop,x+32,imageTop+32}),canvas.brush.GetOpacity());x+=44;}
             canvas.brush.SetColor(b.footnote?theme.secondaryText:b.heading||b.action?theme.accent:theme.primaryText);
             if(b.layout)canvas.target.DrawTextLayout({x,rect.top+4},b.layout.Get(),&canvas.brush,D2D1_DRAW_TEXT_OPTIONS_CLIP);
             else canvas.Text(b.text,b.footnote?canvas.smallFormat:b.heading?canvas.label:canvas.body,{x,rect.top,rect.right-8,rect.bottom},b.footnote?theme.secondaryText:theme.primaryText);
@@ -347,6 +353,14 @@ std::vector<std::string> EventsPage::VisibleImages() const {
 }
 std::optional<D2D1_RECT_F> EventsPage::ActionBounds(EventAction::Kind kind,std::string_view id) const {
     for(const auto& b:blocks_)if(b.action&&b.action->kind==kind&&b.action->id==id)return BlockRect(b);return {};
+}
+std::optional<D2D1_RECT_F> EventsPage::ActionTextBounds(EventAction::Kind kind,std::string_view id) const {
+    for(const auto& b:blocks_)if(b.action&&b.action->kind==kind&&b.action->id==id&&b.layout){
+        DWRITE_TEXT_METRICS metrics{};if(FAILED(b.layout->GetMetrics(&metrics)))return {};
+        const auto rect=BlockRect(b);const float x=rect.left+8+(b.imageId.empty()?0:44)+metrics.left;
+        const float y=rect.top+4+metrics.top;return D2D1::RectF(x,y,x+metrics.width,y+metrics.height);
+    }
+    return {};
 }
 std::optional<D2D1_RECT_F> EventsPage::SourceNoteBounds() const {
     return !blocks_.empty()&&blocks_.back().footnote?std::optional(BlockRect(blocks_.back())):std::nullopt;

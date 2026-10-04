@@ -147,6 +147,15 @@ int wmain(int argc,wchar_t** argv){try{
     Check(page.ContentText(event.title)==L"活动标题"&&page.ContentText(event.summary)==L"活动正文");
     Check(std::ranges::find(page.OfficialText(),L"Original official text")!=page.OfficialText().end());
     const auto toggle=page.ActionBounds(EventAction::Kind::Original,{});Check(toggle.has_value());
+    // 操作文字垂直居中且沿用左内边距，不影响正文布局或共享字体格式。
+    // Action text is vertically centered with shared left padding, leaving prose and font formats untouched.
+    const auto checkActionAlignment=[&](EventAction::Kind kind,std::string_view id){
+        const auto button=page.ActionBounds(kind,id),text=page.ActionTextBounds(kind,id);Check(button&&text);
+        Check(std::abs((button->top+button->bottom)-(text->top+text->bottom))<.01F);
+        Check(std::abs(text->left-button->left-8)<.01F&&text->top>=button->top&&text->bottom<=button->bottom);
+    };
+    checkActionAlignment(EventAction::Kind::Original,{});
+    checkActionAlignment(EventAction::Kind::Source,official.sourceUrl);
     page.MouseDown(toggle->left+10,toggle->top+10);Check(!page.MouseUp(toggle->left+10,toggle->top+10));prepare(1500);
     Check(page.ContentText(event.summary)==L"Original official text");
     // 原文/译文高度改变时滑块长度和位置接续；快速反向切换、淡出与离页均可落定。
