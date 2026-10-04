@@ -372,13 +372,22 @@ an EFT log path; reading new logs still requires explicit configuration.
 已知扫描小计排除未知价格，不代表全部战利品或对局收益。
 未配置日志路径也能浏览保存的对局；新增日志读取仍需显式配置。
 
-## Events source/cache foundation / 活动来源与缓存基础
+## Events / 活动
 
 启动时立即读取 `<exe>/data/events/event-catalog.json`，再由原生 WinHTTP 后台检查一次官方
-英语 Telegram 公开页；不需要账号、令牌或游戏进程访问，没有永久轮询，也尚未提供活动页面。
+英语 Telegram 公开页；不需要账号、令牌或游戏进程访问，没有永久轮询。
 Startup loads this local cache immediately, then checks the official English Telegram public page once
-using native WinHTTP. No account, token, game-process access or permanent polling is required; the Events
-page is not implemented yet.
+using native WinHTTP. No account, token, game-process access or permanent polling is required.
+
+原生活动页支持状态筛选和本地搜索，将官方信息、关联游戏内容与社区变更证据分别展示。
+缺失的时间和范围仍为未知，原文不会自动翻译。地图、任务和物品使用已解析的精确身份跳转，
+返回后保留选中、搜索、筛选及滚动位置。刷新失败继续显示有效缓存，不等同于“没有活动”。
+可手动刷新，但不会并行重复检查。仅页面可见时按分钟检查本地状态时间，不触发网络轮询。
+The native Events page provides local search and status filters, separating official facts, related content
+and community change evidence. Missing timing/scope remains unknown; source content is not auto-translated.
+Resolved map/task/item links navigate by exact identity and preserve selection, search, filters and scrolling
+on return. Failed refreshes keep valid cached data, not a claim that no events exist. Manual refresh cannot
+start parallel checks. A visible-page minute clock updates local status only, never polls the network.
 
 活动身份采用官方消息 ID；公告发布时间不等于活动开始时间。只有明确的游戏内活动措辞进入
 目录，维护、营销和普通新闻不作为活动。没有正式标题时保存原文首段摘录，不生成猜测名称。

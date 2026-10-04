@@ -71,6 +71,7 @@ private:
     static constexpr UINT kScanStepMessage = WM_APP + 2;
     static constexpr UINT kMapAssetsMessage = WM_APP + 5;
     static constexpr UINT kRaidHistoryMessage = WM_APP + 6;
+    static constexpr UINT kEventsMessage = WM_APP + 7;
     static constexpr UINT kDebugMouseTimerId = 2;
     static constexpr UINT kDebugMouseCheckMilliseconds = 50;
     static constexpr UINT kRecentAnimationTimerId = 3;
@@ -94,6 +95,7 @@ private:
     void OnModeChanged(data::GameMode mode);
     void EnsureRecentAnimationTimer();
     void StartMapAssetUpdate();
+    void PublishEvents();
     bool RegisterWindowClass(HINSTANCE instance) const;
     HWND CreateMainWindow(HINSTANCE instance) const;
 

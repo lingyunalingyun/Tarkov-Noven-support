@@ -291,8 +291,8 @@ int App::Run(HINSTANCE instance, int show_command) {
         common::DebugLog(L"[recent-scans] load warning: " + history_error);
     }
     recent_scan_id_base_ = recent_scan_store_->MaxScanId();
-    // 先加载本地活动缓存，再后台检查一次；暂不接入 Events 页面或扫描流程。
-    // Load local event cache first, then check once in background; no Events page or Scanner integration yet.
+    // 页面先接收本地快照；后台结果只投递通知，由 UI 线程查询服务，不解析来源。
+    // Publish cached snapshots first; worker notifications let the UI thread query the service, never its sources.
     event_http_=std::make_unique<events::WinHttpEventClient>();
     official_event_source_=std::make_unique<events::OfficialEventSource>(*event_http_);
     event_service_=std::make_unique<events::EventService>(*official_event_source_,
@@ -300,9 +300,15 @@ int App::Run(HINSTANCE instance, int show_command) {
     event_service_->SetChangedCallback([this]{
         const auto state=event_service_->RefreshState();
         common::DebugLog(state.phase==events::RefreshPhase::Ready?L"[events] refresh ready":L"[events] refresh failed; cache preserved");
+        PostMessageW(window_,kEventsMessage,0,0);
     });
     if(!event_service_->Start(ExecutableDirectory()/L"data"/L"events"/L"event-catalog.json"))
         common::DebugLog(L"[events] cache unavailable; original file preserved");
+    PublishEvents();
+    main_ui_->SetEventRefreshHandler([this]{
+        if(!event_service_||!event_service_->RequestRefresh())return false;
+        PublishEvents();return true;
+    });
     main_ui_->StartItemImages(ExecutableDirectory() / L"data" / L"item-images");
     main_ui_->StartPriceHistory(ExecutableDirectory() / L"data" / L"price-history");
     main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
@@ -656,6 +662,11 @@ void App::EnsureRecentAnimationTimer() {
             kRecentAnimationFrameMilliseconds, nullptr) != 0;
 }
 
+void App::PublishEvents() {
+    if(event_service_&&main_ui_)main_ui_->SetEvents(event_service_->Events(),
+        event_service_->RefreshState(),event_service_->LastSuccessfulRefresh());
+}
+
 void App::OnScanCompletionMessage(LPARAM completion_pointer) {
     std::unique_ptr<scanner::ScanCompletion> completion(
         reinterpret_cast<scanner::ScanCompletion*>(completion_pointer));
@@ -786,6 +797,8 @@ LRESULT CALLBACK App::WindowProc(
 
     if (app != nullptr) {
         switch (message) {
+        case kEventsMessage:
+            app->PublishEvents();app->EnsureRecentAnimationTimer();return 0;
         case kRaidHistoryMessage:
             if(app->local_raid_service_&&app->main_ui_)app->main_ui_->SetRaidSessions(
                 app->local_raid_service_->CompletedSessions(),app->local_raid_service_->ActiveSession(),
@@ -914,6 +927,7 @@ LRESULT CALLBACK App::WindowProc(
             app->OnHotkey(w_param);
             return 0;
         case WM_TIMER:
+            if(w_param==ui::MainWindowUi::EventClockTimerId){app->main_ui_->EventClockTick();app->EnsureRecentAnimationTimer();return 0;}
             if(w_param==ui::MainWindowUi::MapClockTimerId){app->main_ui_->MapClockTick();return 0;}
             if (w_param == kRecentAnimationTimerId) {
                 if (!app->main_ui_->AnimationTick()) {
@@ -947,6 +961,7 @@ LRESULT CALLBACK App::WindowProc(
                 delete reinterpret_cast<std::filesystem::path*>(pending.lParam);
         }
         KillTimer(window,ui::MainWindowUi::MapClockTimerId);
+        KillTimer(window,ui::MainWindowUi::EventClockTimerId);
         if (app != nullptr && app->main_ui_ != nullptr) {
             app->main_ui_->StopPriceHistory();
             app->main_ui_->StopItemImages();
