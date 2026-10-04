@@ -604,6 +604,12 @@ if(BUILD_TESTING)
         target_compile_options(NovenPageRegistryTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME page_registry COMMAND NovenPageRegistryTests)
+    add_executable(NovenSidebarLayoutTests tests/SidebarLayoutTests.cpp)
+    target_include_directories(NovenSidebarLayoutTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    if(MSVC)
+        target_compile_options(NovenSidebarLayoutTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME sidebar_layout COMMAND NovenSidebarLayoutTests)
 
     add_executable(NovenTarkovSupportRecentScanTests
         tests/RecentScanStoreTests.cpp
