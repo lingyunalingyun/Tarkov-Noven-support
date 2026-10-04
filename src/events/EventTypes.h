@@ -26,6 +26,9 @@ struct EventRecord {
     std::string eventId, title, summary;
     bool titleIsExcerpt{};
     std::map<std::string, std::string> localizedTitles;
+    // 展示专用英中机器译文，键为精确原文；独立缓存，不进入来源目录或身份解析。
+    // Display-only English-to-Chinese machine text keyed by exact original; separate cache, never source facts/identity resolution.
+    std::map<std::string, std::string> machineText;
     // sourceStatus 是公告事实；StatusAt 的时钟派生不修改来源事实。
     // sourceStatus is an announcement fact; clock-derived StatusAt never mutates it.
     EventStatus sourceStatus{EventStatus::Unknown};

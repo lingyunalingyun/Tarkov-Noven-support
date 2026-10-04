@@ -11,7 +11,7 @@ namespace noven::raid::json {
 // 本 schema 只使用整数；对象与键顺序无关，重复键、非法 UTF-8 和过深输入均拒绝。
 // This schema uses integers only; object order is irrelevant, duplicate keys/invalid UTF-8/deep input reject.
 struct Value {
-    enum class Type { Null, Boolean, Integer, String, Array, Object } type{Type::Null};
+    enum class Type { Null, Boolean, Integer, String, Array, Object, Number } type{Type::Null};
     bool boolean{}; std::int64_t integer{}; std::string text;
     std::vector<Value> array; std::map<std::string, Value> object;
     const Value& At(const char* key) const {
@@ -27,7 +27,9 @@ struct Value {
 };
 class Parser {
 public:
-    explicit Parser(std::string_view input) : input_(input) {}
+    // 网络接口可包含非 schema 数字；默认仍严格拒绝小数，存储契约不变。
+    // Remote payloads may contain non-schema numbers; decimals remain rejected by default for storage.
+    explicit Parser(std::string_view input,bool allowNumbers=false) : input_(input),allowNumbers_(allowNumbers) {}
     Value Parse() {
         if (input_.size() > 64*1024*1024 || (!input_.empty() && !MultiByteToWideChar(CP_UTF8,
             MB_ERR_INVALID_CHARS,input_.data(),static_cast<int>(input_.size()),nullptr,0))) Fail();
@@ -84,10 +86,22 @@ private:
         const auto start=pos_;if(input_[pos_]=='-')++pos_;
         const auto digits=pos_;while(pos_<input_.size()&&input_[pos_]>='0'&&input_[pos_]<='9')++pos_;
         if(pos_==digits||(pos_-digits>1&&input_[digits]=='0'))Fail();
+        if(allowNumbers_ && pos_<input_.size() && (input_[pos_]=='.'||input_[pos_]=='e'||input_[pos_]=='E')) {
+            if(input_[pos_]=='.') {
+                const auto fraction=++pos_;while(pos_<input_.size()&&input_[pos_]>='0'&&input_[pos_]<='9')++pos_;
+                if(pos_==fraction)Fail();
+            }
+            if(pos_<input_.size()&&(input_[pos_]=='e'||input_[pos_]=='E')) {
+                ++pos_;if(pos_<input_.size()&&(input_[pos_]=='+'||input_[pos_]=='-'))++pos_;
+                const auto exponent=pos_;while(pos_<input_.size()&&input_[pos_]>='0'&&input_[pos_]<='9')++pos_;
+                if(pos_==exponent)Fail();
+            }
+            v.type=Value::Type::Number;v.text=input_.substr(start,pos_-start);return v;
+        }
         const auto [end,ec]=std::from_chars(input_.data()+start,input_.data()+pos_,v.integer);
         if(ec!=std::errc{}||end!=input_.data()+pos_)Fail();v.type=Value::Type::Integer;return v;
     }
-    std::string_view input_;std::size_t pos_{},nodes_{};
+    std::string_view input_;std::size_t pos_{},nodes_{};bool allowNumbers_{};
 };
 inline std::string Quote(std::string_view text) {
     std::string value("\"");constexpr char hex[]="0123456789abcdef";

@@ -31,7 +31,8 @@ HttpResponse WinHttpEventClient::Get(std::wstring_view host,std::wstring_view pa
     // 固定公开来源白名单，不允许公告中的 URL 驱动任意网络请求。
     // Fixed public-source allowlist; announcement URLs never drive arbitrary network requests.
     const bool wiki=host==L"escapefromtarkov.fandom.com" && path==kWikiEventPath;
-    if((host!=L"t.me" && host!=L"changes.tarkov-changes.com" && !wiki) || path.empty() || path.front()!=L'/'
+    const bool translation=host==L"api.mymemory.translated.net" && path.starts_with(L"/get?q=") && path.ends_with(L"&langpair=en%7Czh-CN") && path.size()<1700;
+    if((host!=L"t.me" && host!=L"changes.tarkov-changes.com" && !wiki && !translation) || path.empty() || path.front()!=L'/'
         || etag.size()>1024 || modified.size()>128 || etag.find_first_of("\r\n")!=etag.npos
         || modified.find_first_of("\r\n")!=modified.npos) {result.error="invalid event request";return result;}
     Handle session{WinHttpOpen(L"NovenTarkovSupport/0.1",WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0)};
@@ -43,7 +44,7 @@ HttpResponse WinHttpEventClient::Get(std::wstring_view host,std::wstring_view pa
     if(!request.value){result.error="event HTTP request failed";return result;}
     DWORD redirect=WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
     if(!WinHttpSetOption(request.value,WINHTTP_OPTION_REDIRECT_POLICY,&redirect,sizeof(redirect))){result.error="event redirect policy failed";return result;}
-    std::wstring headers=wiki?L"Accept: application/json\r\n":L"Accept: text/html\r\n";
+    std::wstring headers=wiki||translation?L"Accept: application/json\r\n":L"Accept: text/html\r\n";
     if(!etag.empty())headers+=L"If-None-Match: "+Wide(etag)+L"\r\n";
     if(!modified.empty())headers+=L"If-Modified-Since: "+Wide(modified)+L"\r\n";
     if(!WinHttpSendRequest(request.value,headers.c_str(),static_cast<DWORD>(headers.size()),WINHTTP_NO_REQUEST_DATA,0,0,0)
