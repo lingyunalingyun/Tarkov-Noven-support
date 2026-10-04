@@ -74,6 +74,54 @@ struct LocalRaidService::Pipeline {
         }
         std::string error;if(!store.Save(checkpoint,error))throw std::runtime_error(error);
     }
+    void RepairUnknownMaps(const std::filesystem::path& root,std::stop_token stop) {
+        auto snapshot=detector.Snapshot();
+        std::map<std::string,std::map<std::string,RaidSession*>> targets;
+        const auto target=[&](RaidSession& session) {
+            if(session.mapId.empty()&&!session.eftRaidId.empty()&&!session.startSource.empty()&&session.startedAt)
+                targets[session.startSource].emplace(session.eftRaidId,&session);
+        };
+        for(auto& session:snapshot.completed)target(session);
+        if(snapshot.active)target(*snapshot.active);
+        if(targets.empty())return;
+        bool changed{};
+        for(const auto& cursor:checkpoint.cursors) {
+            if(stop.stop_requested())return;
+            const auto source=cursor.fileIdentity+":"+std::to_string(cursor.generation);
+            const auto found=targets.find(source);if(found==targets.end())continue;
+            const auto attributes=GetFileAttributesW(cursor.path.c_str());
+            if(attributes==INVALID_FILE_ATTRIBUTES||(attributes&FILE_ATTRIBUTE_REPARSE_POINT)
+                ||!Supported(cursor.path)||!Within(cursor.path,root))continue;
+            EftLogReader reader;auto beginning=cursor;beginning.offset=0;
+            if(!reader.Open(cursor.path,beginning))throw std::runtime_error("EFT map repair source open failed");
+            if(reader.SourceIdentity()!=source||std::filesystem::file_size(cursor.path)<cursor.offset)continue;
+            // 仅回看同一文件世代的已提交前缀，按明确 RaidId 修补未知地图；不倒退游标或重建会话。
+            // Revisit only the committed prefix of the same file generation, keyed by explicit RaidId.
+            // Never rewind durable cursors, replace known maps, or rebuild session identities/times/scan links.
+            std::map<std::string,std::string> maps;
+            std::string line;std::uint64_t offset{};
+            while(!stop.stop_requested()) {
+                const auto before=reader.BytesRead();const auto result=reader.NextLine(line,offset);
+                stats.bytesRead+=reader.BytesRead()-before;
+                if(result==ReadResult::Error)throw std::runtime_error("EFT map repair source read failed");
+                if(result==ReadResult::End||reader.Cursor().offset>cursor.offset)break;
+                if(result!=ReadResult::Line)continue;
+                for(const auto& event:ParseRaidEvents(line,source,offset)) {
+                    if(event.kind!=EventKind::RaidIdentityDetected||event.mapId.empty()||!event.time)continue;
+                    const auto session=found->second.find(event.raidId);
+                    if(session==found->second.end()||*event.time>*session->second->startedAt
+                        ||event.offset>session->second->startOffset)continue;
+                    const auto [it,inserted]=maps.emplace(event.raidId,event.mapId);
+                    // 冲突身份保持未知，绝不按最后一行或时间接近选择地图。
+                    // Conflicting identities stay unknown, never choose the last line or a nearby timestamp.
+                    if(!inserted&&it->second!=event.mapId)it->second.clear();
+                }
+            }
+            for(const auto& [id,map]:maps)if(!map.empty()) {found->second.at(id)->mapId=map;changed=true;}
+        }
+        if(stop.stop_requested()||!changed)return;
+        detector.Restore(std::move(snapshot));Save();
+    }
     void Drain(const std::filesystem::path& root,std::stop_token stop) {
         ++stats.directoryPasses;
         std::vector<std::filesystem::path> groups;
@@ -172,8 +220,10 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
         if(!pipeline_->checkpoint.sourceGroup.empty()&&!Within(pipeline_->checkpoint.sourceGroup,root)) {
             pipeline_->detector.SourceBoundary();pipeline_->checkpoint.sourceGroup.clear();pipeline_->checkpoint.cursors.clear();
         }
+        pipeline_->RepairUnknownMaps(root,stop);
         bool manualScan{};
         while(!stop.stop_requested()) {
+            if(manualScan)pipeline_->RepairUnknownMaps(root,stop);
             pipeline_->Drain(root,stop);
             // 首次打开/读完前已排队的变更也要排空，再发布稳定状态。
             // Drain changes already queued during initial opening/reading before publishing a settled state.

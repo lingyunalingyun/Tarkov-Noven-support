@@ -91,5 +91,55 @@ int main(int argc,char** argv) {
     Write(config,"relative/Logs");Require(!ReadEftLogRoot(config),"no implicit disk scanning");
     std::ifstream in(history);const std::string persisted((std::istreambuf_iterator<char>(in)),{});in.close();
     Require(persisted.find("GameStarted")==std::string::npos&&persisted.find("Session mode:")==std::string::npos,"no raw logs persisted");
+    const auto repairLogs=root/"repair-logs",repairHistory=root/"repair-data"/"raid-history.json";
+    const auto oldGroup=repairLogs/"log_2025.12.30",newGroup=repairLogs/"log_2025.12.31";
+    std::filesystem::create_directories(oldGroup);std::filesystem::create_directories(newGroup);
+    const auto oldApp=oldGroup/"synthetic application_000.log";
+    std::string appText,backendText;
+    const char* locations[]{"Interchange","Shoreline","Woods","Interchange","UnverifiedMap"};
+    for(int index=0;index<5;++index) {
+        const auto minute=std::to_string(10+index),id="repair-"+std::to_string(index);
+        appText+="2025-12-30 12:"+minute+":00.000|[Transit] RaidId:"+id+", Locations:"+locations[index]+" -> \n";
+        if(index==3)appText+="2025-12-30 12:"+minute+":01.000|[Transit] RaidId:"+id+", Locations:Woods -> \n";
+        appText+="2025-12-30 12:"+minute+":02.000|GameStarted\n";
+        backendText+="2025-12-30 12:"+minute+":03.000|/client/match/local/end\n";
+    }
+    Write(oldApp,appText);Write(oldGroup/"synthetic backend_000.log",backendText);
+    Write(newGroup/"synthetic application_000.log","2025-12-31 12:00:00.000|[Transit] RaidId:known, Locations:Terminal -> \n"
+        "2025-12-31 12:00:01.000|GameStarted\n");
+    Write(newGroup/"synthetic backend_000.log","2025-12-31 12:00:02.000|/client/match/local/end\n");
+    Require(service.Start(repairLogs,repairHistory),"prepare legacy map history");
+    Wait(service,[&]{return service.Status().directoryPasses>0;});service.Stop();
+    RaidCheckpoint legacy;std::string error;
+    {RaidSessionStore store;Require(store.Load(repairHistory,legacy,error),"load legacy fixture");
+        Require(legacy.detector.completed.size()==6,"all map sessions captured");
+        for(std::size_t index=0;index<5;++index)legacy.detector.completed[index].mapId.clear();
+        legacy.detector.completed.back().mapId=NormalizeMap("RezervBase");
+        Require(store.Save(legacy,error),"simulate old unknown-map cache");}
+    auto expected=legacy.detector.completed;
+    for(std::size_t index=0;index<3;++index)expected[index].mapId=NormalizeMap(locations[index]);
+    Require(service.Start(repairLogs,repairHistory),"restart repairs historical source groups");
+    Wait(service,[&]{return service.Status().directoryPasses>0;});
+    Require(service.CompletedSessions()==expected,"repair only proven maps; preserve IDs, timestamps, known maps, ambiguous/unknown maps");
+    Require(service.RequestScan(),"repeat historical map scan");
+    Wait(service,[&]{return service.Status().manualScans==1;});
+    Require(service.CompletedSessions()==expected,"map repair is idempotent without duplicate sessions");service.Stop();
+    {RaidSessionStore store;RaidCheckpoint repaired;Require(store.Load(repairHistory,repaired,error),"repaired cache roundtrip");
+        Require(repaired.detector.completed==expected&&repaired.sourceGroup==legacy.sourceGroup
+            &&repaired.cursors.size()==legacy.cursors.size(),"preserve group and cursor count");
+        for(std::size_t index=0;index<legacy.cursors.size();++index) {
+            const auto& beforeCursor=legacy.cursors[index];const auto& afterCursor=repaired.cursors[index];
+            Require(beforeCursor.path==afterCursor.path&&beforeCursor.fileIdentity==afterCursor.fileIdentity
+                &&beforeCursor.generation==afterCursor.generation&&beforeCursor.offset==afterCursor.offset,"never rewind durable cursor");
+        }
+        repaired.detector.completed[0].mapId.clear();Require(store.Save(repaired,error),"prepare unavailable old source");}
+    std::filesystem::rename(oldApp,oldApp.string()+".unavailable");
+    Require(service.Start(repairLogs,repairHistory),"missing old source safe startup");
+    Wait(service,[&]{return service.Status().directoryPasses>0;});
+    Require(service.CompletedSessions()[0].mapId.empty(),"missing evidence remains unknown");
+    std::filesystem::rename(oldApp.string()+".unavailable",oldApp);
+    Require(service.RequestScan(),"manual recovery after old source restored");
+    Wait(service,[&]{return service.Status().manualScans==1;});
+    Require(service.CompletedSessions()==expected,"manual repair can revisit old groups without rebuilding history");service.Stop();
     std::filesystem::remove_all(root);std::cout<<"Local raid service synthetic integration PASS\n";
 }
