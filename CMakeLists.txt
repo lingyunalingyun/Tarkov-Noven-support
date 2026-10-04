@@ -302,7 +302,7 @@ if(BUILD_TESTING)
     if(MSVC)
         target_compile_options(NovenRaidEventParserTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
-    add_test(NAME raid_event_parser COMMAND NovenRaidEventParserTests)
+    add_test(NAME raid_event_parser COMMAND NovenRaidEventParserTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/data/map_maps.tsv")
     add_executable(NovenRaidSessionDetectorTests tests/RaidSessionDetectorTests.cpp
         src/raid/RaidSessionDetector.cpp src/raid/RaidEventParser.cpp)
     target_include_directories(NovenRaidSessionDetectorTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")

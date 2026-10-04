@@ -12,6 +12,9 @@ std::string_view Field(std::string_view line, std::string_view key) {
     const auto pos = line.find(key);
     if (pos == line.npos) return {};
     auto value = line.substr(pos + key.size());
+    const auto first = value.find_first_not_of(" \t");
+    if (first == value.npos) return {};
+    value.remove_prefix(first);
     return value.substr(0, value.find_first_of(" ,\t\r\n|"));
 }
 bool Token(std::string_view line, std::string_view token) {
@@ -32,10 +35,31 @@ bool Token(std::string_view line, std::string_view token) {
 }
 }
 std::string NormalizeMap(std::string_view upstream) {
-    // 仅纳入已核对的精确别名；使用 MapCatalog 的稳定 ID，不猜测未知地图。
-    // Only verified exact aliases map to MapCatalog stable IDs; never guess unknown maps.
-    if (upstream == "RezervBase" || upstream == "maps/rezerv_base_preset.bundle")
-        return "5704e5fad2720bc05b8b4567";
+    // 对照公开 maps 的 nameId/scenePath；只按精确身份关联既有 MapCatalog ID。
+    // Verified against https://json.tarkov.dev/regular/maps (2026-10-05).
+    // Like TarkovMonitor's public log contract, match nameId/scenePath exactly, never display-name substrings.
+    struct Alias {std::string_view id, nameId, scenePath;};
+    static constexpr Alias maps[]{
+        {"55f2d3fd4bdc2d5f408b4567", "factory4_day", "maps/factory_day_preset.bundle"},
+        {"56f40101d2720b2a4d8b45d6", "bigmap", "maps/customs_preset.bundle"},
+        {"5704e3c2d2720bac5b8b4567", "Woods", "maps/woods_preset.bundle"},
+        {"5704e4dad2720bb55b8b4567", "Lighthouse", "maps/lighthouse_preset.bundle"},
+        {"5704e554d2720bac5b8b456e", "Shoreline", "maps/shoreline_preset.bundle"},
+        {"5704e5fad2720bc05b8b4567", "RezervBase", "maps/rezerv_base_preset.bundle"},
+        {"5714dbc024597771384a510d", "Interchange", "maps/shopping_mall.bundle"},
+        {"5714dc692459777137212e12", "TarkovStreets", "maps/city_preset.bundle"},
+        {"59fc81d786f774390775787e", "factory4_night", "maps/factory_night_preset.bundle"},
+        {"5b0fc42d86f7744a585f9105", "laboratory", "maps/laboratory_preset.bundle"},
+        {"653e6760052c01c1c805532f", "Sandbox", "maps/sandbox_preset.bundle"},
+        {"65b8d6f5cdde2479cb2a3125", "Sandbox_high", "maps/sandbox_high_preset.bundle"},
+        {"65cc8f81a9aac3e77d0cfd3e", "Terminal", "maps/terminal_preset.bundle"},
+        {"6733700029c367a3d40b02af", "Labyrinth", "maps/labyrinth_preset.bundle"},
+        {"68236e8153654e8c1200798a", "Sandbox_start", "maps/sandbox_start_preset.bundle"},
+        {"69af492a4819ea4ba10a69c5", "Icebreaker", "maps/icebreaker.bundle"},
+        {"6a294a5b5eb5f9a1700417b7", "laboratory_dark", "maps/laboratory_dark_preset.bundle"},
+    };
+    for (const auto& map : maps)
+        if (upstream == map.nameId || upstream == map.scenePath) return std::string(map.id);
     return {};
 }
 std::optional<std::int64_t> ParseLogTime(std::string_view line) {
@@ -70,7 +94,7 @@ std::vector<RaidEvent> ParseRaidEvents(std::string_view line, std::string_view s
     const auto mode = Field(line, "Session mode: ");
     if (mode == "Pve" || mode == "Pvp")
         add(EventKind::SessionModeDetected).mode = mode == "Pve" ? GameMode::PvE : GameMode::PvP;
-    const auto preset = Field(line, "scene preset path: ");
+    const auto preset = Field(line, "scene preset path:");
     if (!preset.empty()) add(EventKind::MapPresetDetected).mapId = NormalizeMap(preset);
     if (line.find("[Transit]") != line.npos) {
         const auto id = Field(line, "RaidId:");
