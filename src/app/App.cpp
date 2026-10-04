@@ -834,9 +834,11 @@ LRESULT CALLBACK App::WindowProc(
         case kEventsMessage:
             app->PublishEvents();app->EnsureRecentAnimationTimer();return 0;
         case kRaidHistoryMessage:
-            if(app->local_raid_service_&&app->main_ui_)app->main_ui_->SetRaidSessions(
-                app->local_raid_service_->CompletedSessions(),app->local_raid_service_->ActiveSession(),
-                !app->local_raid_service_->Status().error.empty());
+            if(app->local_raid_service_&&app->main_ui_){
+                const auto status=app->local_raid_service_->Status();
+                app->main_ui_->SetRaidSessions(app->local_raid_service_->CompletedSessions(),app->local_raid_service_->ActiveSession(),!status.error.empty());
+                app->main_ui_->SetRaidScanStatus(status.manualScanPending,status.manualScans>0,!status.error.empty());
+            }
             return 0;
         case kMapAssetsMessage: {
             const std::unique_ptr<std::filesystem::path> generation(reinterpret_cast<std::filesystem::path*>(l_param));

@@ -35,6 +35,9 @@ public:
     bool RecordingShortcut() const noexcept {return preferences_.Recording();}
     const data::AppSettings& Preferences() const noexcept {return preferences_.value;}
     void SetRaidScanHandler(std::function<bool()> handler){raid_scan_=std::move(handler);}
+    void SetRaidScanStatus(bool pending,bool completed,bool failed){raid_scan_pending_=pending;raid_scan_completed_=completed;raid_scan_failed_=failed;Invalidate();}
+    bool RaidScanPending() const noexcept {return raid_scan_pending_;}
+    std::wstring RaidScanLabel() const {return Tr(raid_scan_pending_?"raid.scan_pending":raid_scan_failed_?"raid.scan_failed":raid_scan_completed_?"raid.scan_completed":"raid.scan_logs");}
     bool Initialize(HWND window, std::wstring& error);
     void Paint();
     void Resize(UINT width, UINT height);
@@ -151,6 +154,7 @@ private:
     std::function<bool()> raid_scan_;
     D2D1_RECT_F raid_scan_button_{};
     bool raid_scan_pressed_{};
+    bool raid_scan_pending_{},raid_scan_completed_{},raid_scan_failed_{};
     PageHost pages_;
     HideoutPage hideout_;
     TasksPage tasks_;

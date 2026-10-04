@@ -729,6 +729,10 @@ int wmain(int argc, wchar_t** argv) try {
         Require(ui.KeyDown(VK_ESCAPE,false)&&!ui.RecordingShortcut(),"escape cancels shortcut capture");
         unsigned manualScans{};ui.SetRaidScanHandler([&]{++manualScans;return true;});selectPage(MainPage::RaidHistory);
         click(width-theme.contentPadding-50,110);Require(manualScans==1,"manual raid scan stays behind service callback");
+        Require(ui.RaidScanPending()&&ui.RaidScanLabel()==Tr("raid.scan_pending"),"manual request shows immediate pending feedback");
+        click(width-theme.contentPadding-50,110);Require(manualScans==1,"pending scan blocks repeated requests");
+        ui.SetRaidScanStatus(false,true,false);Require(ui.RaidScanLabel()==Tr("raid.scan_completed"),"unchanged history still shows scan completion");
+        ui.SetRaidScanStatus(false,false,true);Require(ui.RaidScanLabel()==Tr("raid.scan_failed"),"scan failure is visible without clearing history");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

@@ -1,4 +1,7 @@
 {
+  "raid.scan_pending": "正在扫描…",
+  "raid.scan_completed": "扫描完成",
+  "raid.scan_failed": "扫描不可用",
   "settings.game_directory": "游戏文件目录",
   "settings.choose_directory": "选择 EFT 游戏目录",
   "settings.directory_unset": "尚未设置；用于读取本地对局日志。",

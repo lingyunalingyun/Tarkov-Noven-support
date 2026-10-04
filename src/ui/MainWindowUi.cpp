@@ -564,7 +564,7 @@ void MainWindowUi::Paint() {
         if (page == MainPage::Settings) DrawLanguageSettings(canvas, size.width, size.height);
         if(page==MainPage::RaidHistory) {
             raid_scan_button_=raid_history_.ScanButtonBounds();
-            DrawTextButton(canvas,theme_,raid_scan_button_,Tr("raid.scan_logs"),false,raid_scan_pressed_);
+            DrawTextButton(canvas,theme_,raid_scan_button_,RaidScanLabel(),false,raid_scan_pressed_);
         }
         };
         {
@@ -884,7 +884,7 @@ void MainWindowUi::MouseDown(int x, int y) {
         page_content_press_blocked_=true;return;
     }
     raid_scan_pressed_=navigation_.Active()==MainPage::RaidHistory&&HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale());
-    if(raid_scan_pressed_){Invalidate();return;}
+    if(raid_scan_pressed_){if(raid_scan_pending_)raid_scan_pressed_=false;Invalidate();return;}
     if(navigation_.Active()==MainPage::Settings&&preferences_.Down(x/Scale(),y/Scale())){Invalidate();return;}
     pressed_price_card_.reset();
     pressed_history_range_.reset();
@@ -972,8 +972,9 @@ void MainWindowUi::MouseDown(int x, int y) {
 std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     if(raid_scan_pressed_) {
         raid_scan_pressed_=false;
-        if(HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale())&&(!raid_scan_||!raid_scan_())){
-            return_pages_.push_back(MainPage::RaidHistory);SelectPage(MainPage::Settings);
+        if(HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale())){
+            if(raid_scan_&&raid_scan_())SetRaidScanStatus(true,false,false);
+            else {SetRaidScanStatus(false,false,true);return_pages_.push_back(MainPage::RaidHistory);SelectPage(MainPage::Settings);}
         }
         Invalidate();return {};
     }

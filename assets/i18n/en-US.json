@@ -1,4 +1,7 @@
 {
+  "raid.scan_pending": "Scanning…",
+  "raid.scan_completed": "Scan complete",
+  "raid.scan_failed": "Scan unavailable",
   "settings.game_directory": "Game directory",
   "settings.choose_directory": "Choose EFT game directory",
   "settings.directory_unset": "Not set; used to read local raid logs.",
