@@ -26,6 +26,12 @@ int main(){try{
     Check(SafeEventSourceUrl("https://t.me/escapefromtarkovEN/6880"));
     Check(!SafeEventSourceUrl("https://t.me.evil/escapefromtarkovEN/6880"));Check(!SafeEventSourceUrl("file:///x"));
     Check(!SafeEventSourceUrl("https://changes.tarkov-changes.com/view/12?evil"));
+    EventRecord tie=active;tie.eventId="z";tie.announcedAt=10;
+    active.announcedAt=10;
+    b.SetNow(100);b.SetEvents({tie,active});Check(b.Events()[b.Rows()[0]].eventId=="a");
+    b.SetEvents({active,tie});Check(b.Events()[b.Rows()[0]].eventId=="a");
+    future.startsAt=200;tie=future;tie.eventId="e";tie.startsAt=150;
+    b.SetEvents({future,tie});Check(b.Events()[b.Rows()[0]].eventId=="e");
     b.SetEvents({});Check(b.Rows().empty());
     std::cout<<"Cached event browser PASS\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

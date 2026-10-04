@@ -7,7 +7,7 @@
 
 namespace noven::ui {
 namespace {
-constexpr float rowHeight=176;
+constexpr float rowHeight=196;
 bool Hit(D2D1_RECT_F r,float x,float y){return HitNavigationButton(r,x,y);}
 std::optional<events::EventStatus> FilterAt(int index) {
     switch(index){case 1:return events::EventStatus::Active;case 2:return events::EventStatus::Upcoming;
@@ -22,7 +22,7 @@ void EventsPage::SetSnapshot(std::vector<events::EventRecord> records,events::Ev
     const auto oldBuilds=browser_.Builds();browser_.SetEvents(std::move(records));browser_.SetNow(Now());
     refresh_=std::move(state);refreshed_=refreshed;
     if(browser_.Builds()!=oldBuilds)detailDirty_=true;
-    if(!selected_.empty()&&!browser_.Find(selected_)){selected_.clear();detailDirty_=true;}
+    if(!selected_.empty()&&!browser_.Find(selected_)){selected_.clear();narrowDetail_=false;detailDirty_=true;}
 }
 void EventsPage::SetCatalogs(const data::ItemCatalog* items,const data::TaskCatalog* tasks,const data::MapCatalog* maps) {
     items_=items;tasks_=tasks;maps_=maps;locale_.clear();detailDirty_=true;
@@ -40,19 +40,21 @@ void EventsPage::RebindEntities() {
 }
 bool EventsPage::Select(std::string_view id) {
     if(!browser_.Find(id))return false;
+    narrowDetail_=true;
     if(selected_==id)return true;
     selected_=id;detailScroll_=detailTarget_=0;detailDirty_=true;
     // 快速切换从当前姿态继续，保持有限动画；选择不重排列表。
     // Rapid switching continues from the current pose with a finite transition; selection never reorders rows.
-    detailOpacity_=(std::min)(detailOpacity_,0.75F);return true;
+    if(detailOpacity_==1)detailOpacity_=0.75F;return true;
 }
 void EventsPage::SetFilter(std::optional<events::EventStatus> status,std::wstring query) {
     search_.SetText(std::move(query));browser_.SetFilter(status,EventUtf8(search_.Text()));
     filterTarget_=static_cast<float>(FilterIndex(status));listScroll_=listTarget_=0;
+    if(narrow_)narrowDetail_=false;
 }
 void EventsPage::ApplyFilter() {
     const auto builds=browser_.Builds();browser_.SetFilter(browser_.Filter(),EventUtf8(search_.Text()));
-    if(builds!=browser_.Builds())listScroll_=listTarget_=0;
+    if(builds!=browser_.Builds()){listScroll_=listTarget_=0;if(narrow_)narrowDetail_=false;}
 }
 bool EventsPage::ClockTick(events::Timestamp now) {
     const auto before=browser_.Builds();browser_.SetNow(now);const bool changed=before!=browser_.Builds();detailDirty_|=changed;return changed;
@@ -61,8 +63,8 @@ void EventsPage::Prepare(float width,float height,const UiTheme& theme,IDWriteFa
     const float left=theme.sidebarWidth+theme.contentPadding,right=(std::max)(left+100,width-theme.contentPadding);
     narrow_=right-left<680;
     searchRect_={left,84,right,122};tabsRect_={left,132,right,170};
-    refreshRect_={right-116,196,right,228};listButton_={left,238,left+150,270};
-    const float bottom=(std::max)(300.0F,height-22),top=narrow_&&!selected_.empty()?282.0F:238.0F;
+    refreshRect_={right-116,196,right,228};listButton_={left,248,left+150,280};
+    const float bottom=(std::max)(310.0F,height-22),top=narrow_&&ShowingDetail()?292.0F:248.0F;
     if(narrow_){listRect_={left,top,right,bottom};detailRect_=listRect_;}
     else {const float split=left+std::clamp((right-left)*.32F,230.0F,320.0F);listRect_={left,top,split,bottom};detailRect_={split+16,top,right,bottom};}
     if(locale_!=UiLocalization().ActiveLocale()){locale_=UiLocalization().ActiveLocale();RebindEntities();detailDirty_=true;}
@@ -148,11 +150,13 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
     const auto summary=UiLocalization().Format(TextKey::EventSummary,{{L"active",std::to_wstring(browser_.Count(events::EventStatus::Active))},
         {L"upcoming",std::to_wstring(browser_.Count(events::EventStatus::Upcoming))},{L"total",std::to_wstring(browser_.Events().size())}});
     canvas.Text(summary,canvas.smallFormat,{searchRect_.left,176,searchRect_.right,198},theme.secondaryText);
-    canvas.Text(RefreshText(),canvas.smallFormat,{searchRect_.left,200,refreshRect_.left-8,232},theme.secondaryText);
+    canvas.Text(RefreshText(),canvas.smallFormat,{searchRect_.left,198,refreshRect_.left-8,218},theme.secondaryText);
+    if(refreshed_)canvas.Text(Tr(TextKey::EventLastRefresh)+L": "+EventTimeText(refreshed_),canvas.smallFormat,
+        {searchRect_.left,220,searchRect_.right,242},theme.secondaryText);
     const bool refreshing=refresh_.phase==events::RefreshPhase::Refreshing;
     canvas.Round(refreshRect_,8,theme.surface);canvas.CenteredText(Tr(TextKey::EventRefresh),canvas.smallFormat,refreshRect_,refreshing?theme.secondaryText:theme.accent);
-    if(narrow_&&!selected_.empty()){canvas.Round(listButton_,8,theme.surface);canvas.CenteredText(Tr(TextKey::EventList),canvas.body,listButton_,theme.accent);}
-    if(!narrow_||selected_.empty()) {
+    if(narrow_&&ShowingDetail()){canvas.Round(listButton_,8,theme.surface);canvas.CenteredText(Tr(TextKey::EventList),canvas.body,listButton_,theme.accent);}
+    if(!narrow_||!ShowingDetail()) {
         canvas.target.PushAxisAlignedClip(listRect_,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
         const auto& rows=browser_.Rows();
         if(rows.empty())canvas.Text(Tr(browser_.Events().empty()?(refresh_.phase==events::RefreshPhase::Failed?TextKey::EventUnavailable:TextKey::EventEmpty):TextKey::EventNoResults),canvas.body,{listRect_.left+12,listRect_.top+20,listRect_.right-18,listRect_.bottom},theme.secondaryText);
@@ -162,17 +166,26 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             const bool selected=e.eventId==selected_,hovered=hover_&&Hit(card,hover_->x,hover_->y);
             canvas.Round(card,theme.cornerRadius,selected?theme.selected:hovered?theme.hover:theme.surface);
             if(selected||browser_.Status(e)==events::EventStatus::Active)canvas.Round({card.left,top+14,card.left+3,card.bottom-14},2,theme.accent);
-            canvas.Text(EventWide(e.title),canvas.label,{card.left+12,top+10,card.right-12,top+60},theme.primaryText);
-            canvas.Text(EventStatusText(browser_.Status(e))+L" · "+EventScopeText(e),canvas.smallFormat,{card.left+12,top+64,card.right-12,top+88},theme.accent);
-            canvas.Text(Tr(TextKey::EventAnnounced)+L": "+EventTimeText(e.announcedAt),canvas.smallFormat,{card.left+12,top+89,card.right-12,top+113},theme.secondaryText);
-            canvas.Text(Tr(TextKey::EventStarts)+L": "+EventTimeText(e.startsAt)+L"\n"+Tr(TextKey::EventEnds)+L": "+EventTimeText(e.endsAt),canvas.smallFormat,{card.left+12,top+114,card.right-12,top+163},theme.secondaryText);
+            // 临时换行后恢复共享格式，长原文不会改变其他页面的排版契约。
+            // Restore the shared format after wrapping long source titles; other pages keep their layout contract.
+            const auto wrapping=canvas.label.GetWordWrapping();canvas.label.SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+            canvas.Text(EventWide(e.title),canvas.label,{card.left+12,top+8,card.right-12,top+58},theme.primaryText);
+            canvas.label.SetWordWrapping(wrapping);
+            const D2D1_RECT_F badge{card.left+12,top+62,(std::min)(card.left+122,card.right-12),top+85};
+            canvas.Round(badge,5,theme.background);
+            canvas.CenteredText(EventStatusText(browser_.Status(e)),canvas.smallFormat,badge,
+                browser_.Status(e)==events::EventStatus::Active?theme.accent:theme.secondaryText);
+            canvas.Text(EventScopeText(e),canvas.smallFormat,{card.left+12,top+88,card.right-12,top+110},theme.secondaryText);
+            canvas.Text(Tr(TextKey::EventAnnounced)+L": "+EventTimeText(e.announcedAt),canvas.smallFormat,{card.left+12,top+112,card.right-12,top+136},theme.secondaryText);
+            canvas.Text(Tr(TextKey::EventStarts)+L": "+EventTimeText(e.startsAt)+L"\n"+Tr(TextKey::EventEnds)+L": "+EventTimeText(e.endsAt),canvas.smallFormat,{card.left+12,top+138,card.right-12,top+183},theme.secondaryText);
         }
         canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(false),1});
     }
-    if(!narrow_||!selected_.empty()) {
+    if(ShowingDetail()) {
         canvas.Round(detailRect_,theme.cornerRadius,theme.surface);
         canvas.target.PushAxisAlignedClip(detailRect_,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
         if(selected_.empty())canvas.Text(Tr(TextKey::EventSelect),canvas.body,{detailRect_.left+20,detailRect_.top+24,detailRect_.right-20,detailRect_.bottom},theme.secondaryText);
+        {
         const ScopedContentTransition transition(canvas,D2D1::Point2F(detailRect_.left,detailRect_.top),detailOpacity_,.985F+.015F*detailOpacity_);
         for(const auto& b:blocks_) {
             const auto rect=BlockRect(b);if(rect.bottom<=detailRect_.top||rect.top>=detailRect_.bottom)continue;
@@ -183,22 +196,23 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             if(b.layout)canvas.target.DrawTextLayout({x,rect.top+4},b.layout.Get(),&canvas.brush,D2D1_DRAW_TEXT_OPTIONS_CLIP);
             else canvas.Text(b.text,b.heading?canvas.label:canvas.body,{x,rect.top,rect.right-8,rect.bottom},theme.primaryText);
         }
+        }
         canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(true),1});
     }
 }
 std::optional<int> EventsPage::TabAt(float x,float y) const {if(!Hit(tabsRect_,x,y))return {};return static_cast<int>((x-tabsRect_.left)/((tabsRect_.right-tabsRect_.left)/5));}
 std::optional<std::size_t> EventsPage::RowAt(float x,float y) const {
-    if((narrow_&&!selected_.empty())||!Hit(listRect_,x,y)||x>=listRect_.right-16)return {};
+    if((narrow_&&ShowingDetail())||!Hit(listRect_,x,y)||x>=listRect_.right-16)return {};
     const auto index=static_cast<std::size_t>((y-listRect_.top+listScroll_)/rowHeight);return index<browser_.Rows().size()?std::optional(index):std::nullopt;
 }
 std::optional<EventAction> EventsPage::ActionAt(float x,float y) const {
     if(Hit(refreshRect_,x,y)&&refresh_.phase!=events::RefreshPhase::Refreshing)return EventAction{EventAction::Kind::Refresh,{}};
-    if((narrow_&&selected_.empty())||!Hit(detailRect_,x,y))return {};
+    if(!ShowingDetail()||!Hit(detailRect_,x,y))return {};
     for(const auto& b:blocks_)if(b.action&&Hit(BlockRect(b),x,y))return b.action;return {};
 }
 void EventsPage::MouseDown(float x,float y) {
     pressed_=D2D1::Point2F(x,y);if(Hit(searchRect_,x,y))search_.Focus();else search_.Blur();
-    for(bool detail:{false,true})if(!(narrow_&&(detail?selected_.empty():!selected_.empty())))if(const auto bar=Bar(detail);bar&&Hit(bar->track,x,y)) {
+    for(bool detail:{false,true})if(!(narrow_&&(detail?!ShowingDetail():ShowingDetail())))if(const auto bar=Bar(detail);bar&&Hit(bar->track,x,y)) {
         auto& scroll=detail?detailScroll_:listScroll_;auto& target=detail?detailTarget_:listTarget_;
         if(Hit(bar->thumb,x,y))grab_=std::pair{detail,y-bar->thumb.top};
         else target=scroll=bar->OffsetFromThumbTop(y-(bar->thumb.bottom-bar->thumb.top)/2);
@@ -209,7 +223,7 @@ std::optional<EventAction> EventsPage::MouseUp(float x,float y) {
     if(grab_){MouseMove(x,y);grab_.reset();return {};}
     const auto down=pressed_;pressed_.reset();if(!down)return {};
     if(const auto tab=TabAt(x,y);tab&&tab==TabAt(down->x,down->y)){SetFilter(FilterAt(*tab),search_.Text());return {};}
-    if(narrow_&&!selected_.empty()&&Hit(listButton_,x,y)&&Hit(listButton_,down->x,down->y)){selected_.clear();detailDirty_=true;return {};}
+    if(narrow_&&ShowingDetail()&&Hit(listButton_,x,y)&&Hit(listButton_,down->x,down->y)){narrowDetail_=false;return {};}
     if(const auto row=RowAt(x,y);row&&row==RowAt(down->x,down->y)){Select(browser_.Events()[browser_.Rows()[*row]].eventId);return {};}
     const auto action=ActionAt(x,y);return action==ActionAt(down->x,down->y)?action:std::nullopt;
 }
@@ -218,8 +232,8 @@ bool EventsPage::MouseMove(float x,float y) {
     const bool changed=!hover_||hover_->x!=x||hover_->y!=y;hover_=D2D1::Point2F(x,y);return changed;
 }
 bool EventsPage::Wheel(int delta,float x,float y) {
-    const bool detail=(!narrow_||!selected_.empty())&&Hit(detailRect_,x,y);
-    const bool list=(!narrow_||selected_.empty())&&Hit(listRect_,x,y);if(!detail&&!list)return false;
+    const bool detail=ShowingDetail()&&Hit(detailRect_,x,y);
+    const bool list=(!narrow_||!ShowingDetail())&&Hit(listRect_,x,y);if(!detail&&!list)return false;
     auto& target=detail?detailTarget_:listTarget_;target-=static_cast<float>(delta)/WHEEL_DELTA*100;ClampScroll();return true;
 }
 bool EventsPage::Key(WPARAM key,bool control) {if(!search_.HandleKeyDown(key,control))return false;ApplyFilter();return true;}
@@ -232,7 +246,7 @@ void EventsPage::Tick(float seconds) {
     detailOpacity_=(std::min)(1.0F,detailOpacity_+seconds/0.18F);
 }
 std::vector<std::string> EventsPage::VisibleImages() const {
-    std::vector<std::string> ids;if(narrow_&&selected_.empty())return ids;
+    std::vector<std::string> ids;if(!ShowingDetail())return ids;
     for(const auto& b:blocks_)if(!b.imageId.empty()){const auto r=BlockRect(b);if(r.bottom>detailRect_.top-80&&r.top<detailRect_.bottom+80)ids.push_back(b.imageId);}return ids;
 }
 std::optional<D2D1_RECT_F> EventsPage::ActionBounds(EventAction::Kind kind,std::string_view id) const {

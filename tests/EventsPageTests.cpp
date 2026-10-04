@@ -25,6 +25,7 @@ int wmain(int argc,wchar_t** argv){try{
     for(const auto& text:page.OfficialText())Check(text.find(L"SpawnWeight")==text.npos);
     Check(EventTimeText({})==Tr(TextKey::Unknown)&&EventScopeText(event)==Tr(TextKey::EventUnspecified));
     Check(!page.Browser().Find(event.eventId)->startsAt&&!page.Browser().Find(event.eventId)->endsAt);
+    Check(std::ranges::any_of(page.OfficialText(),[](const auto& text){return text.find(Tr(TextKey::EventEnds)+L": "+Tr(TextKey::Unknown))!=text.npos;}));
     const auto rows=page.Browser().Rows();page.SetFilter({},L"official");prepare(1500);
     page.Wheel(-240,1000,700);for(int i=0;i<200;++i)page.Tick(.016F);Check(!page.Animating());
     const auto detailScroll=page.DetailScroll();const auto builds=page.Browser().Builds();
@@ -32,10 +33,24 @@ int wmain(int argc,wchar_t** argv){try{
     page.Blur();prepare(1500);Check(page.SelectedId()==event.eventId&&page.Search().Text()==L"official"&&page.DetailScroll()==detailScroll);
     page.SetSnapshot({event},{RefreshPhase::Failed,"offline",{}},200);prepare(1500);
     Check(page.RefreshText()==Tr(TextKey::EventCached)&&page.Browser().Rows()==rows);
-    prepare(800);Check(page.Narrow());
+    prepare(800);Check(page.Narrow()&&page.ShowingDetail());
+    page.MouseDown(330,260);Check(!page.MouseUp(330,260));prepare(800);
+    Check(!page.ShowingDetail()&&page.SelectedId()==event.eventId&&page.Search().Text()==L"official");
+    Check(page.Select(event.eventId));prepare(800);Check(page.ShowingDetail());
+    page.SetSnapshot({event},{RefreshPhase::Refreshing,{},{}},200);prepare(800);
+    page.MouseDown(730,210);Check(!page.MouseUp(730,210));
+    page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);prepare(800);
+    page.MouseDown(730,210);const auto refreshAction=page.MouseUp(730,210);
+    Check(refreshAction&&refreshAction->kind==EventAction::Kind::Refresh);
+    auto other=event;other.eventId="official-telegram:2";
+    page.SetSnapshot({event,other},{RefreshPhase::Ready,{},{}},200);
+    Check(page.Select(other.eventId));page.Tick(.016F);const auto opacity=page.DetailOpacity();
+    Check(page.Select(event.eventId)&&page.DetailOpacity()==opacity);
+    for(int i=0;i<200;++i)page.Tick(.016F);Check(!page.Animating()&&page.DetailOpacity()==1);
     page.SetFilter(EventStatus::Ended,{});prepare(800);Check(page.Browser().Rows().empty()&&!page.Browser().Events().empty());
     page.SetSnapshot({},{RefreshPhase::Failed,"offline",{}},{});prepare(800);Check(page.RefreshText()==Tr(TextKey::EventUnavailable));
     page.SetSnapshot({},{RefreshPhase::Ready,{},{}},{});Check(page.RefreshText()==Tr(TextKey::EventEmpty));
     Check(UiLocalization().SetLocale("en-US"));Check(EventTimeText({})==L"Unknown");
+    Check(EventTimeText(-1)==L"Unknown"&&EventTimeText(253402300800LL)==L"Unknown");
     std::cout<<"Native event presentation PASS (not visual acceptance)\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

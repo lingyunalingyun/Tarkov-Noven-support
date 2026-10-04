@@ -42,6 +42,8 @@ public:
     float ListScroll() const noexcept{return listScroll_;}
     float DetailScroll() const noexcept{return detailScroll_;}
     bool Narrow() const noexcept{return narrow_;}
+    bool ShowingDetail() const noexcept{return !narrow_||(narrowDetail_&&!selected_.empty());}
+    float DetailOpacity() const noexcept{return detailOpacity_;}
     std::vector<std::string> VisibleImages() const;
     std::optional<D2D1_RECT_F> ActionBounds(EventAction::Kind kind,std::string_view id) const;
     const std::vector<std::wstring>& OfficialText() const noexcept{return officialText_;}
@@ -70,7 +72,7 @@ private:
     std::string locale_,selected_;
     std::vector<Block> blocks_;
     std::vector<std::wstring> officialText_,evidenceText_;
-    bool detailDirty_{true},narrow_{};
+    bool detailDirty_{true},narrow_{},narrowDetail_{};
     float detailHeight_{},detailWidth_{},listScroll_{},listTarget_{},detailScroll_{},detailTarget_{},detailOpacity_{1};
     float filterPosition_{},filterTarget_{};
     D2D1_RECT_F searchRect_{},tabsRect_{},listRect_{},detailRect_{},refreshRect_{},listButton_{};
