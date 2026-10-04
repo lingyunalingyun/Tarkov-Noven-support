@@ -132,7 +132,9 @@ LocalRaidService::LocalRaidService() : stopEvent_(CreateEventW(nullptr,TRUE,FALS
 LocalRaidService::~LocalRaidService() {Stop();if(stopEvent_)CloseHandle(stopEvent_);if(scanEvent_)CloseHandle(scanEvent_);}
 bool LocalRaidService::RequestScan() {
     std::lock_guard lock(mutex_);
-    return status_.running&&scanEvent_&&SetEvent(scanEvent_);
+    if(status_.manualScanPending)return true;
+    if(!status_.running||!scanEvent_||!SetEvent(scanEvent_))return false;
+    status_.manualScanPending=true;return true;
 }
 bool LocalRaidService::Start(const std::filesystem::path& root,const std::filesystem::path& history) {
     Stop();
@@ -170,6 +172,7 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
         if(!pipeline_->checkpoint.sourceGroup.empty()&&!Within(pipeline_->checkpoint.sourceGroup,root)) {
             pipeline_->detector.SourceBoundary();pipeline_->checkpoint.sourceGroup.clear();pipeline_->checkpoint.cursors.clear();
         }
+        bool manualScan{};
         while(!stop.stop_requested()) {
             pipeline_->Drain(root,stop);
             // 首次打开/读完前已排队的变更也要排空，再发布稳定状态。
@@ -181,13 +184,19 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
             bool notify{};
             {std::lock_guard lock(mutex_);const auto snapshot=pipeline_->detector.Snapshot();
                 notify=published_.active!=snapshot.active||published_.completed!=snapshot.completed;
-                published_=snapshot;status_=pipeline_->stats;status_.running=true;}
+                const auto scans=status_.manualScans+(manualScan?1:0);
+                const bool pending=status_.manualScanPending&&!manualScan;
+                published_=snapshot;status_=pipeline_->stats;status_.running=true;
+                status_.manualScans=scans;status_.manualScanPending=pending;
+                // 手动扫描即使无新对局也通知完成；普通无关追加仍不驱动 UI。
+                // Notify manual completion even without new raids; unrelated automatic appends still stay quiet.
+                notify=notify||manualScan;manualScan=false;}
             if(notify&&changed_)changed_();
             // 手动扫描也交给同一工作线程和增量游标；没有 UI 线程重读或额外轮询。
             // Manual scans share the worker and incremental cursors, with no UI-thread reread or extra polling.
             HANDLE waits[]{stopEvent_,change,scanEvent_};const DWORD result=WaitForMultipleObjects(3,waits,FALSE,INFINITE);
             if(result==WAIT_OBJECT_0)break;
-            if(result==WAIT_OBJECT_0+2)continue;
+            if(result==WAIT_OBJECT_0+2){manualScan=true;continue;}
             if(result!=WAIT_OBJECT_0+1)throw std::runtime_error("EFT watch wait failed");
             if(!FindNextChangeNotification(change))throw std::runtime_error("EFT watch rearm failed");
             // 合并短时间内的文件追加通知；空闲时无限等待，没有周期性轮询。
@@ -195,7 +204,7 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
             if(WaitForSingleObject(stopEvent_,500)==WAIT_OBJECT_0)break;
         }
     } catch(const std::exception& e) {
-        {std::lock_guard lock(mutex_);status_.error=e.what();published_.active.reset();}
+        {std::lock_guard lock(mutex_);status_.error=e.what();status_.manualScanPending=false;published_.active.reset();}
         if(changed_)changed_();
     }
     if(change!=INVALID_HANDLE_VALUE)FindCloseChangeNotification(change);

@@ -8,6 +8,8 @@
 namespace noven::raid {
 struct RaidServiceStatus final {
     bool running{};
+    bool manualScanPending{};
+    std::uint64_t manualScans{};
     std::string error;
     std::uint64_t bytesRead{}, ignoredLines{}, events{}, directoryPasses{};
 };
