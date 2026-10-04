@@ -1,6 +1,6 @@
 {
   "events.community": "Community information",
-  "events.community_hint": "From the Tarkov Wiki community, not an official BSG announcement. Active status follows the Wiki current-events list; unspecified timing and scope remain unknown.",
+  "events.community_hint": "Community source: Tarkov Wiki.",
   "events.wiki_source": "Community Wiki",
   "events.source_updated": "Source updated",
   "events.partial_refresh": "Some sources failed to refresh; their last valid data is retained",

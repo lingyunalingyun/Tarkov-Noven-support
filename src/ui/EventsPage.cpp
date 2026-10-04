@@ -76,24 +76,25 @@ void EventsPage::Prepare(float width,float height,const UiTheme& theme,IDWriteFa
 void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDWriteTextFormat* label) {
     blocks_.clear();officialText_.clear();evidenceText_.clear();detailHeight_=16;
     const auto* event=browser_.Find(selected_);if(!event)return;
-    const auto add=[&](std::wstring text,bool heading=false,bool official=false,std::optional<EventAction> action={},std::string image={}) {
+    const auto add=[&](std::wstring text,bool heading=false,bool official=false,std::optional<EventAction> action={},std::string image={},bool footnote=false) {
         Block block;block.text=std::move(text);block.heading=heading;block.official=official;block.action=std::move(action);block.imageId=std::move(image);
+        block.footnote=footnote;
         block.top=detailHeight_;const float textWidth=(std::max)(20.0F,detailWidth_-56-(block.imageId.empty()?0:44));
         auto* format=heading?label:body;
         if(factory&&format&&SUCCEEDED(factory->CreateTextLayout(block.text.data(),static_cast<UINT32>(block.text.size()),format,textWidth,100000,&block.layout))) {
             block.layout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);block.layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
             block.layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-            DWRITE_TEXT_METRICS metrics{};block.layout->GetMetrics(&metrics);block.height=(std::max)(heading?32.0F:26.0F,metrics.height+12);
+            if(footnote)block.layout->SetFontSize(format->GetFontSize()*.8F,{0,static_cast<UINT32>(block.text.size())});
+            DWRITE_TEXT_METRICS metrics{};block.layout->GetMetrics(&metrics);block.height=(std::max)(footnote?18.0F:heading?32.0F:26.0F,metrics.height+(footnote?8:12));
         }else block.height=heading?38.0F:54.0F;
         if(block.action)block.height=(std::max)(44.0F,block.height);
         if(official)officialText_.push_back(block.text);
         detailHeight_+=block.height+8;blocks_.push_back(std::move(block));
     };
     const bool official=!events::CommunitySourced(*event);
-    // 社区描述有独立标题/提示，绝不进入官方事实区或官方展示快照。
-    // Community descriptions have their own heading/disclaimer, never official facts or presentation snapshots.
-    add(Tr(official?TextKey::EventOfficial:TextKey::EventCommunity),true);
-    if(!official)add(Tr(TextKey::EventCommunityHint));
+    // 正文优先；社区来源用页底小字标识，不进入官方事实快照。
+    // Content comes first; a small footer credits community sources outside official fact snapshots.
+    if(official)add(Tr(TextKey::EventOfficial),true);
     add(EventWide(event->title),true,official);
     if(event->titleIsExcerpt)add(Tr(TextKey::EventExcerpt),false,official);
     add(EventStatusText(browser_.Status(*event))+L" · "+Tr(TextKey::EventScope)+L": "+EventScopeText(*event),false,official);
@@ -104,7 +105,7 @@ void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDW
         add(Tr(TextKey::EventOpenSource)+L" · "+EventTimeText(source.publishedAt),false,true,EventAction{EventAction::Kind::Source,source.sourceUrl});
     bool communityHeading=!official;
     for(const auto& source:event->sourceEvidence)if(source.sourceKind==events::SourceKind::CommunityWiki) {
-        if(!communityHeading){add(Tr(TextKey::EventCommunity),true);add(Tr(TextKey::EventCommunityHint));communityHeading=true;}
+        if(!communityHeading){add(Tr(TextKey::EventCommunity),true);communityHeading=true;}
         if(official)add(EventWide(source.summary));
         if(!official)add(Tr(TextKey::EventSourceUpdated)+L": "+EventTimeText(event->lastUpdatedAt));
         if(events::SafeEventSourceUrl(source.sourceUrl))add(Tr(TextKey::EventOpenSource)+L" · "+Tr(TextKey::EventWikiSource),false,false,EventAction{EventAction::Kind::Source,source.sourceUrl});
@@ -132,7 +133,9 @@ void EventsPage::BuildDetail(IDWriteFactory* factory,IDWriteTextFormat* body,IDW
             if(events::SafeEventSourceUrl(evidence.sourceUrl))add(Tr(TextKey::EventOpenSource),false,false,EventAction{EventAction::Kind::Source,evidence.sourceUrl});
         }
     }
-    if(!any)add(Tr(TextKey::EventNoChanges));detailHeight_+=16;
+    if(!any)add(Tr(TextKey::EventNoChanges));
+    if(communityHeading)add(Tr(TextKey::EventCommunityHint),false,false,{},{},true);
+    detailHeight_+=16;
 }
 void EventsPage::ClampScroll() {
     const float listMax=(std::max)(0.0F,rowHeight*static_cast<float>(browser_.Rows().size())-(listRect_.bottom-listRect_.top));
@@ -208,9 +211,9 @@ void EventsPage::Draw(const UiCanvas& canvas,const UiTheme& theme,const std::uno
             if(b.action)canvas.Round(rect,6,hover_&&Hit(rect,hover_->x,hover_->y)?theme.hover:theme.selected);
             float x=rect.left+8;
             if(!b.imageId.empty()){if(const auto image=images.find(b.imageId);image!=images.end())canvas.target.DrawBitmap(image->second.Get(),FitImage(image->second->GetSize(),{x,rect.top+4,x+32,rect.top+36}),canvas.brush.GetOpacity());x+=44;}
-            canvas.brush.SetColor(b.heading||b.action?theme.accent:theme.primaryText);
+            canvas.brush.SetColor(b.footnote?theme.secondaryText:b.heading||b.action?theme.accent:theme.primaryText);
             if(b.layout)canvas.target.DrawTextLayout({x,rect.top+4},b.layout.Get(),&canvas.brush,D2D1_DRAW_TEXT_OPTIONS_CLIP);
-            else canvas.Text(b.text,b.heading?canvas.label:canvas.body,{x,rect.top,rect.right-8,rect.bottom},theme.primaryText);
+            else canvas.Text(b.text,b.footnote?canvas.smallFormat:b.heading?canvas.label:canvas.body,{x,rect.top,rect.right-8,rect.bottom},b.footnote?theme.secondaryText:theme.primaryText);
         }
         }
         canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(true),1});
@@ -276,5 +279,13 @@ std::vector<std::string> EventsPage::VisibleImages() const {
 }
 std::optional<D2D1_RECT_F> EventsPage::ActionBounds(EventAction::Kind kind,std::string_view id) const {
     for(const auto& b:blocks_)if(b.action&&b.action->kind==kind&&b.action->id==id)return BlockRect(b);return {};
+}
+std::optional<D2D1_RECT_F> EventsPage::SourceNoteBounds() const {
+    return !blocks_.empty()&&blocks_.back().footnote?std::optional(BlockRect(blocks_.back())):std::nullopt;
+}
+float EventsPage::SourceNoteFontSize() const {
+    float size{};
+    if(!blocks_.empty()&&blocks_.back().footnote&&blocks_.back().layout)blocks_.back().layout->GetFontSize(0,&size);
+    return size;
 }
 }

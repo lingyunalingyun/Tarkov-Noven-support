@@ -50,13 +50,15 @@ public:
     float FilterWeight(std::size_t index) const noexcept{return filterAnimation_.Weight(index);}
     std::vector<std::string> VisibleImages() const;
     std::optional<D2D1_RECT_F> ActionBounds(EventAction::Kind kind,std::string_view id) const;
+    std::optional<D2D1_RECT_F> SourceNoteBounds() const;
+    float SourceNoteFontSize() const;
     const std::vector<std::wstring>& OfficialText() const noexcept{return officialText_;}
     const std::vector<std::wstring>& EvidenceText() const noexcept{return evidenceText_;}
     std::wstring RefreshText() const;
     std::wstring LastRefreshText() const;
 private:
     struct Block {
-        std::wstring text;float top{},height{};bool heading{},official{};
+        std::wstring text;float top{},height{};bool heading{},official{},footnote{};
         std::optional<EventAction> action;std::string imageId;
         Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
     };

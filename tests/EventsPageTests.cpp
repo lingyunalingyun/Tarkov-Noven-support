@@ -21,6 +21,7 @@ int wmain(int argc,wchar_t** argv){try{
     page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);Check(page.Select(event.eventId));
     const auto prepare=[&](float width){page.Prepare(width,900,theme,factory.Get(),body.Get(),label.Get());};
     prepare(1500);Check(!page.Narrow());
+    Check(!page.SourceNoteBounds());
     // 活动标签直接遵循共享姿态；快速重选不跳色/跳线，离页停止计时。
     // Event tabs follow the shared pose exactly; retargeting preserves colors/underline and leaving settles timers.
     EventsPage tabsPage;tabsPage.Prepare(1500,900,theme,factory.Get(),body.Get(),label.Get());
@@ -83,10 +84,16 @@ int wmain(int argc,wchar_t** argv){try{
     page.SetSnapshot({wiki},{RefreshPhase::Ready,{},{},"Wiki failed"},200);page.SetFilter({},{});
     Check(page.Select(wiki.eventId));prepare(1500);
     Check(page.OfficialText().empty() && page.EvidenceText().empty());
+    // 来源说明只出现在详情最末，字号小于正文，来源链接仍可用。
+    // Attribution appears only at the detail footer, smaller than body text, with the source action intact.
+    const auto note=page.SourceNoteBounds(),source=page.ActionBounds(EventAction::Kind::Source,wikiEvidence.sourceUrl);
+    Check(note&&source&&note->top>source->bottom);
+    Check(page.SourceNoteFontSize()>0&&page.SourceNoteFontSize()<body->GetFontSize());
     Check(!page.Browser().Find(wiki.eventId)->announcedAt && !page.Browser().Find(wiki.eventId)->startsAt);
     Check(page.RefreshText()==Tr(TextKey::EventPartialRefresh));
     event.sourceEvidence.push_back(wikiEvidence);page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);
     Check(page.Select(event.eventId));prepare(1500);
+    Check(page.SourceNoteBounds()&&page.SourceNoteFontSize()<body->GetFontSize());
     for(const auto& text:page.OfficialText())Check(text.find(Tr(TextKey::EventCommunityHint))==text.npos);
     Check(UiLocalization().SetLocale("en-US"));Check(EventTimeText({})==L"Unknown");
     page.SetSnapshot({event},{RefreshPhase::Ready,{},{}},200);
