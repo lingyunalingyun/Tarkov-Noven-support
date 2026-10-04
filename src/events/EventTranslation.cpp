@@ -25,6 +25,25 @@ std::wstring Escape(std::string_view s) {
         else{out+=L'%';out+=hex[c>>4];out+=hex[c&15];}}
     return out;
 }
+std::pair<std::size_t,std::string> TaskTail(std::string_view source) {
+    std::string result;std::size_t begin=source.size(),cursor{};
+    while(cursor<source.size()){
+        const auto end=source.find('\n',cursor);const auto line=source.substr(cursor,end==source.npos?source.size()-cursor:end-cursor);
+        if(line.starts_with("Quest ")&&line.ends_with(" has been added.")){
+            if(result.empty())begin=cursor;
+            const auto name=line.substr(6,line.size()-6-16);std::string display(name);
+            // 用户确认的显示译名，不创建任务身份；未确认名称保留英文。
+            // User-confirmed display names never create task identities; unconfirmed names remain English.
+            for(const auto& [english,chinese]:std::initializer_list<std::pair<std::string_view,std::string_view>>{
+                {"Fog of War","战争迷雾"},{"Number Temporarily Unavailable","无法接通的号码"},
+                {"All-Inclusive Support","全方位支援"},{"A Familiar Face...","熟悉的面孔……"},{"Scope the Clearing","圈地行动"}})
+                if(name==english)display=chinese;
+            if(!result.empty())result+='\n';result+="新增任务："+display;
+        }else{begin=source.size();result.clear();}
+        if(end==source.npos)break;cursor=end+1;
+    }
+    return {begin,result};
+}
 std::string Terms(std::string value,std::string_view source={}) {
     // 仅修正明确的显示术语，不用译文识别地图、任务或活动状态。
     // Correct explicit display terms only; translations never identify maps/tasks/event status.
@@ -49,7 +68,19 @@ std::string Terms(std::string value,std::string_view source={}) {
             if(from=="水处理厂"&&std::string_view(value).substr(0,pos).ends_with("污")){pos+=from.size();continue;}
             value.replace(pos,from.size(),to);pos+=to.size();
         }
-    }return value;
+    }
+    const auto [begin,tasks]=TaskTail(source);
+    if(!tasks.empty()){
+        const auto count=static_cast<std::size_t>(std::count(tasks.begin(),tasks.end(),'\n'))+1;
+        std::size_t cut=value.size();bool valid=true;
+        for(std::size_t i=0;i<count;++i){const auto p=cut?value.rfind('\n',cut-1):value.npos;
+            const auto line=std::string_view(value).substr(p==value.npos?0:p+1,cut-(p==value.npos?0:p+1));
+            valid&=line.find("任务")!=line.npos||line.find("Quest")!=line.npos;cut=p==value.npos?0:p;
+        }
+        if(valid){value.resize(cut);if(!value.empty())value+='\n';value+=tasks;}
+        else return std::string(source); // 缓存结构不确定时保留原文。 / Preserve original when cached structure is uncertain.
+    }
+    return value;
 }
 }
 std::vector<std::string> EventTranslation::Split(std::string_view text) {
@@ -120,9 +151,11 @@ bool EventTranslation::Refresh(const std::vector<EventRecord>& records,std::stop
     const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(30);
     for(const auto& source:originals) {
         if(text_.contains(source))continue;
-        if(stop.stop_requested()||std::chrono::steady_clock::now()>deadline||bytes+source.size()>4000||requests+Split(source).size()>12)break;
+        const auto [taskBegin,taskText]=TaskTail(source);
+        const auto input=std::string_view(source).substr(0,taskBegin);
+        if(stop.stop_requested()||std::chrono::steady_clock::now()>deadline||bytes+input.size()>4000||requests+Split(input).size()>12)break;
         std::string translated;
-        for(const auto& part:Split(source)) {
+        for(const auto& part:Split(input)) {
             if(stop.stop_requested()||std::chrono::steady_clock::now()>deadline){ok=false;error="translation stopped";break;}
             std::string value;++requests;bytes+=part.size();
             if(!Parse(http_.Get(L"api.mymemory.translated.net",L"/get?q="+Escape(part)+L"&langpair=en%7Czh-CN"),value,error)){ok=false;break;}
@@ -130,6 +163,7 @@ bool EventTranslation::Refresh(const std::vector<EventRecord>& records,std::stop
             if(!part.empty()&&(part.back()=='\n'||part.back()==' '))translated+=part.back();
         }
         if(!ok)break;
+        if(!taskText.empty()){if(!translated.empty()&&translated.back()!='\n')translated+='\n';translated+=taskText;}
         if(Valid(translated)){next[source]=Terms(std::move(translated),source);dirty=true;}
     }
     // 原文变更不复用旧译文；只保留当前窗口，失败保留已有缓存。

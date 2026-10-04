@@ -77,6 +77,20 @@ int main(int argc,char** argv){try {
         Check(records[0].machineText.at(event.title)=="扫荡者");
     }
     Check(!EventTranslation::Parse({200,"text/html","<html>error</html>"},translated,error));
+    {
+        const std::string source="Quest Fog of War has been added.\nQuest Number Temporarily Unavailable has been added.\nQuest All-Inclusive Support has been added.\nQuest A Familiar Face... has been added.\nQuest Scope the Clearing has been added.\nQuest Cut Down to the Root has been added.";
+        std::ofstream out(dir/L"task-terms.json",std::ios::binary);
+        out<<"{\"schemaVersion\":1,\"provider\":\"MyMemory\",\"locale\":\"zh-CN\",\"entries\":[{\"source\":"
+            <<noven::raid::json::Quote(source)<<",\"translated\":"<<noven::raid::json::Quote("任务战争迷雾已添加。\nQuest暂时不可用号码。\n任务全包支持已添加。\n任务熟悉的面孔。\n清算任务范围已添加。\n已添加任务斩根。")<<"}]}";out.close();
+        EventTranslation cached(http);Check(cached.Load(dir/L"task-terms.json",error));EventRecord event;event.title=source;
+        std::vector<EventRecord> records{event};cached.Apply(records);const auto text=records[0].machineText.at(source);
+        for(auto name:{"战争迷雾","无法接通的号码","全方位支援","熟悉的面孔……","圈地行动","Cut Down to the Root"})Check(text.find(name)!=text.npos);
+        Check(text.find("斩根")==text.npos&&text.find("斩断羽翼")==text.npos);
+        const auto calls=http.calls;Check(cached.Refresh(records,{},error)&&http.calls==calls);
+        EventTranslation fresh(http);Check(fresh.Load(dir/L"new-task-terms.json",error));
+        Check(fresh.Refresh(records,{},error)&&http.calls==calls);fresh.Apply(records);
+        Check(records[0].machineText.at(source)==text);
+    }
     Check(!EventTranslation::Parse({200,"application/json",std::string(128*1024+1,'x')},translated,error));
     Check(!EventTranslation::Parse({200,"application/json","{}"},translated,error));
     bool strict=false;try{noven::raid::json::Parser("0.85").Parse();}catch(...){strict=true;}Check(strict);
