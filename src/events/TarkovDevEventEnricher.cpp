@@ -62,7 +62,11 @@ bool TarkovDevEventEnricher::EnrichText(EventCatalog& catalog,std::string_view i
     for(const auto& evidence:e->sourceEvidence)if(evidence.sourceKind==SourceKind::CommunityWiki)
         text+='\n'+Normalize(evidence.summary);
     for(const auto& [key,ids]:aliases_)if(ids.size()==1 && Mention(text,std::string_view(key).substr(2))) {
-        refs.push_back({static_cast<EntityKind>(key[0]-'0'),key.substr(2)});
+        const auto kind=static_cast<EntityKind>(key[0]-'0');const auto name=key.substr(2);
+        // 任务必须有明确类别前缀，地图正文中的同名词不能建立任务关联。
+        // Tasks require an explicit category prefix; same-name map prose cannot establish a task association.
+        if(kind==EntityKind::Task&&!Mention(text,"quest "+name)&&!Mention(text,"task "+name))continue;
+        refs.push_back({kind,name});
         if(refs.size()>256){error="entity reference capacity exceeded";return false;}
     }
     std::ranges::sort(refs,[](const auto& a,const auto& b){return std::tie(a.kind,a.name)<std::tie(b.kind,b.name);});

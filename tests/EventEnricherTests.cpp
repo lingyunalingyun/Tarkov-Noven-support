@@ -8,16 +8,22 @@ using namespace noven::events;
 void Check(bool ok){if(!ok)throw std::runtime_error("event enrichment assertion");}
 int main(int argc,char** argv){try{
     std::vector<EntityAlias> aliases{{EntityKind::Item,"item1","Insurance case"},{EntityKind::Item,"item2","Shared name"},
-        {EntityKind::Item,"item3","Shared name"},{EntityKind::Map,"reserve","Reserve"},{EntityKind::Task,"task1","Explicit task"}};
+        {EntityKind::Item,"item3","Shared name"},{EntityKind::Map,"reserve","Reserve"},{EntityKind::Task,"task1","Explicit task"},
+        {EntityKind::Task,"reserve-task","Reserve"}};
     TarkovDevEventEnricher enrich(aliases);Check(!enrich.Resolve(EntityKind::Item,"Shared name"));
     Check(!enrich.Resolve(EntityKind::Map,"Reserved"));Check(!enrich.Resolve(EntityKind::Item,"Insuranc case"));
     Check(enrich.Resolve(EntityKind::Map,"RESERVE")=="reserve");
     OfficialAnnouncement a;a.sourceRecordId="30";a.sourceUrl="https://t.me/escapefromtarkovEN/30";a.title="An in-game event has started";
-    a.summary="Insurance case at Reserve. Explicit task. Shared name.";EventCatalog c;std::string error;
+    a.summary="Insurance case at Reserve. Quest Explicit task has been added. Shared name.";EventCatalog c;std::string error;
     Check(c.Apply({&a,1},error));Check(enrich.EnrichText(c,"official-telegram:30",error));
     Check(c.Events()[0].itemIds==std::vector<std::string>{"item1"});Check(c.Events()[0].mapIds==std::vector<std::string>{"reserve"});
     Check(c.Events()[0].taskIds==std::vector<std::string>{"task1"});Check(c.Events()[0].sourceStatus==EventStatus::Unknown);
     Check(enrich.EnrichText(c,"official-telegram:30",error));Check(c.Events()[0].sourceEvidence.size()==2);
+    a.summary="Glukhar moved from Reserve to Lighthouse.";Check(c.Apply({&a,1},error));
+    Check(enrich.EnrichText(c,"official-telegram:30",error));Check(c.Events()[0].taskIds.empty());
+    Check(c.Events()[0].mapIds==std::vector<std::string>{"reserve"});
+    a.summary="Quest Reserve has been added.";Check(c.Apply({&a,1},error));
+    Check(enrich.EnrichText(c,"official-telegram:30",error));Check(c.Events()[0].taskIds==std::vector<std::string>{"reserve-task"});
     a.summary="Unresolved new announcement content";Check(c.Apply({&a,1},error));
     Check(enrich.EnrichText(c,"official-telegram:30",error));Check(c.Events()[0].itemIds.empty() && c.Events()[0].mapIds.empty());
     Check(argc==2);const std::filesystem::path assets=argv[1];std::wstring loadError;
