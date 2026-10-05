@@ -61,7 +61,8 @@ bool ValidSemanticVersion(std::string_view value) {
 bool ValidRuntimeEntry(std::string_view filename) {
     if(filename.size()<=4||filename.size()>128||!filename.ends_with(".dll")
         ||filename.front()=='.'||filename.front()==' '||filename.find("..")!=filename.npos
-        ||filename.find_first_of("/\\:%$<>\"|?*")!=filename.npos||!TextSafe(filename,false))return false;
+        ||filename.find_first_of("/\\:%$<>\"|?*")!=filename.npos||!TextSafe(filename,false)
+        ||!MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,filename.data(),static_cast<int>(filename.size()),nullptr,0))return false;
     auto stem=std::string(filename.substr(0,filename.find('.')));
     for(auto& c:stem)if(c>='a'&&c<='z')c=static_cast<char>(c-'a'+'A');
     if(stem=="CON"||stem=="PRN"||stem=="AUX"||stem=="NUL"
