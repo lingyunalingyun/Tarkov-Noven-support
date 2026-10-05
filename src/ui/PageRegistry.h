@@ -31,6 +31,7 @@ struct PageDescriptor final {
     int order{};
     PageSource source{PageSource::BuiltIn};
     UiExtensionPolicy extensionPolicy{UiExtensionPolicy::Extensible};
+    std::string displayTitle;
 };
 class PageRegistry final {
 public:
@@ -38,7 +39,8 @@ public:
         const auto& id=page.id.Value();
         if(id.empty()||id.size()>256||id.find('.')==id.npos
             ||id.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789.-")!=id.npos
-            ||page.titleKey.empty()||Contains(page.id))return false;
+            ||(page.titleKey.empty()&&page.displayTitle.empty())||Contains(page.id))return false;
+        if(page.source==PageSource::Plugin&&(!id.starts_with("plugin.")||page.extensionPolicy==UiExtensionPolicy::Protected))return false;
         pages_.push_back(std::move(page));
         std::sort(pages_.begin(),pages_.end(),[](const auto& a,const auto& b) {
             if(a.section!=b.section)return a.section<b.section;

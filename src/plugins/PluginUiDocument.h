@@ -6,10 +6,11 @@
 namespace noven::plugins {
 inline constexpr std::size_t MaximumDocumentBytes=24*1024,MaximumPageBlocks=64,MaximumPluginPages=8;
 enum class BlockType { Heading,Text,KeyValue,Badge,Separator,Button };
-struct UiBlock final {BlockType type{};std::string text,value,action;};
+struct UiBlock final {BlockType type{};std::string text,value,action;bool operator==(const UiBlock&) const=default;};
 struct UiDocument final {
     std::vector<UiBlock> blocks;
     bool HasAction(std::string_view id) const;
+    bool operator==(const UiDocument&) const=default;
 };
 bool ValidLocalId(std::string_view value);
 bool ValidUiText(std::string_view value,std::size_t maximum,bool multiline=false);

@@ -30,8 +30,18 @@ inline SidebarLayout BuildSidebarLayout(const PageRegistry& registry,float heigh
     const float bottomTop=(std::max)(0.0F,height-17-step*static_cast<float>(bottomCount)+3);
     // 两个管理行时仅压缩分隔间隙 3 DIP，保留现有普通页面位置及 Settings 底部位置。
     // With two management rows compress only the separator gap by 3 DIP, preserving ordinary rows and Settings anchoring.
-    const float gap=bottomCount>1?11.0F:14.0F;
+    const bool pluginRows=std::any_of(pages.begin(),pages.end(),[](const auto& page){return page.source==PageSource::Plugin;});
+    const float gap=pluginRows?9.0F:bottomCount>1?11.0F:14.0F;
     const float contentBottom=bottomCount?(std::max)(0.0F,bottomTop-gap):height;
+    const auto ordinary=pages.size()-static_cast<std::size_t>(bottomCount);
+    float ordinaryStep=step,sectionGap=38;
+    if(pluginRows&&ordinary>1){
+        // 插件行需要空间时只压缩既有间隙；内置页面单独存在时保持验收坐标。
+        // Compress defined gaps only when plugin rows need space; built-in-only accepted coordinates stay unchanged.
+        float deficit=(std::max)(0.0F,186+step*static_cast<float>(ordinary-1)+sectionGap+rowHeight-contentBottom);
+        const float sectionCompression=(std::min)(13.0F,deficit);sectionGap-=sectionCompression;deficit-=sectionCompression;
+        ordinaryStep-=(std::min)(3.0F,deficit/static_cast<float>(ordinary-1));
+    }
     float top=186,bottom=bottomTop;
     bool primary{},secondary{};
     // 普通尺寸保持原有 43 DIP 行距和分区间隔；小高度裁掉不完整行，底部区不被覆盖。
@@ -46,12 +56,12 @@ inline SidebarLayout BuildSidebarLayout(const PageRegistry& registry,float heigh
             primary=true;layout.primaryLabel=D2D1::RectF(22,top-26,width-31,top-5);
         }
         if(page.section==PageSection::Secondary&&!secondary) {
-            secondary=true;if(primary)top+=38;
+            secondary=true;if(primary)top+=sectionGap;
             layout.secondaryDivider=D2D1::RectF(22,top-25,width-22,top-24);
             layout.secondaryLabel=D2D1::RectF(22,top-21,width-31,top-2);
         }
         layout.rows.push_back({page,D2D1::RectF(12,top,width-12,top+rowHeight),top+rowHeight<=contentBottom});
-        top+=step;
+        top+=ordinaryStep;
     }
     if(bottomCount)layout.bottomDivider=D2D1::RectF(22,contentBottom,width-22,contentBottom+1);
     if(layout.primaryLabel&&layout.primaryLabel->bottom>contentBottom)layout.primaryLabel.reset();
