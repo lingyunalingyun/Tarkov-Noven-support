@@ -1,11 +1,15 @@
 #pragma once
 #include "plugins/PluginDiscovery.h"
+#include "plugins/PluginStateStore.h"
+#include "plugins/PluginUiDocument.h"
 #include <chrono>
+#include <functional>
 #include <memory>
 
 namespace noven::plugins {
-enum class HostState { Stopped,Starting,Connecting,Handshaking,Ready,Stopping,Exited,Crashed,ProtocolError };
-enum class HostError { None,Startup,ConnectionTimeout,HandshakeTimeout,PeerMismatch,HandshakeMismatch,InvalidProtocol,Disconnected,PingTimeout,ShutdownTimeout,FrameTimeout };
+enum class HostState { Stopped,Starting,Connecting,Handshaking,Ready,Stopping,Exited,Crashed,ProtocolError,Loading,Running };
+enum class HostError { None,Startup,ConnectionTimeout,HandshakeTimeout,PeerMismatch,HandshakeMismatch,InvalidProtocol,Disconnected,PingTimeout,ShutdownTimeout,FrameTimeout,LoadFailed,LoadTimeout,ActionTimeout };
+struct RuntimePage final {std::string localId,title;UiDocument document;};
 struct HostSnapshot final {
     std::string pluginId;
     HostState state{HostState::Stopped};
@@ -14,10 +18,14 @@ struct HostSnapshot final {
     std::chrono::steady_clock::time_point startedAt{};
     std::uint64_t pongs{};
     bool jobOwned{},shutdownAcknowledged{};
+    std::uint64_t generation{};
+    std::int64_t loadResult{};
+    std::vector<RuntimePage> pages;
+    std::string lastLog;
 };
 bool Terminal(HostState state);
-// 第一方测试入口，不由发现或页面调用；独立进程是崩溃边界，不是 OS 安全沙箱。
-// First-party test entry, never called by discovery/pages; process isolation is a crash boundary, not an OS sandbox.
+// 会话所有权留在 Noven；发现不启动会话，独立进程不是 OS 安全沙箱。
+// Noven owns sessions; discovery never starts them, and process isolation is not an OS sandbox.
 class PluginRuntimeManager final {
 public:
     PluginRuntimeManager();
@@ -27,7 +35,15 @@ public:
     ~PluginRuntimeManager();
     PluginRuntimeManager(const PluginRuntimeManager&)=delete;
     PluginRuntimeManager& operator=(const PluginRuntimeManager&)=delete;
-    bool Start(const PluginRecord& validatedRecord);
+    bool Start(const PluginRecord& validatedRecord); // 第一方传输测试，不加载 DLL。 First-party transport test, no DLL load.
+    // 仅 Noven 显式同意/已保存授权可进入此入口；发现和刷新不调用它。
+    // Only explicit Noven consent/persisted grants enter here; discovery/refresh never call it.
+    bool StartNative(const PluginRecord& validatedRecord,const PluginStateStore& grants);
+    bool Action(std::string_view pluginId,std::uint64_t generation,std::string_view localPageId,std::string_view actionId);
+    // 在启动前设置无阻塞通知（例如 PostMessage）；不传原生句柄给插件。
+    // Set a nonblocking notification before starting (e.g. PostMessage); no native handles go to plugins.
+    void SetChangeHandler(std::function<void()> handler);
+    std::vector<HostSnapshot> Snapshots() const;
     bool Ping(std::string_view pluginId);
     bool Stop(std::string_view pluginId);
     std::optional<HostSnapshot> Snapshot(std::string_view pluginId) const;

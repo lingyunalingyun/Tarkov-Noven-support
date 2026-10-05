@@ -1,5 +1,7 @@
 #include "plugins/PluginRuntimeManager.h"
 #include "plugins/PluginPipe.h"
+#include "plugins/PluginNativePath.h"
+#include <algorithm>
 #include <condition_variable>
 #include <map>
 #include <mutex>
@@ -21,11 +23,39 @@ struct Session final {
     HostSnapshot snapshot;
     Handle wake{CreateEventW(nullptr,TRUE,FALSE,nullptr)};
     bool stopping{},ping{},awaitingPong{};
+    std::optional<Message> load,action;
+    std::optional<NativeFile> nativeFile;
+    bool awaitingAction{};
+    std::function<void()> notify;
     // 最后声明，先 join 后释放事件、锁和快照；没有 detached 线程。
     // Declared last so it joins before events/mutex/snapshot are destroyed; no detached threads.
     std::jthread worker;
-    void Publish(HostState state,HostError error=HostError::None){std::lock_guard lock(mutex);snapshot.state=state;snapshot.error=error;changed.notify_all();}
+    void Notify(){changed.notify_all();if(notify)notify();}
+    void Publish(HostState state,HostError error=HostError::None){
+        {std::lock_guard lock(mutex);snapshot.state=state;snapshot.error=error;if(Terminal(state))snapshot.pages.clear();}Notify();
+    }
 };
+bool AcceptNative(Session& session,const Message& message,unsigned& logs,unsigned& updates,Deadline& burst){
+    if(!session.load)return false;
+    if(std::chrono::steady_clock::now()>=burst){logs=updates=0;burst=After(1000);}
+    {
+        std::lock_guard lock(session.mutex);
+        if(session.stopping)return true;
+        // 两端窗口起点不同，接收端允许相邻两个发送窗口的突发，仍有硬上限。
+        // Receiver tolerates adjacent sender windows with different origins, while retaining a hard cap.
+        if(message.type==MessageType::Log){if(++logs>32)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};session.snapshot.lastLog=message.text;}
+        else if(message.type==MessageType::UiRegisterPage){
+            if(!session.load->pagePermission||session.snapshot.pages.size()>=MaximumPluginPages
+                ||std::any_of(session.snapshot.pages.begin(),session.snapshot.pages.end(),[&](const auto& page){return page.localId==message.pageId;}))throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+            session.snapshot.pages.push_back({message.pageId,message.title,{}});
+        }else if(message.type==MessageType::UiPublishPage){
+            const auto page=std::find_if(session.snapshot.pages.begin(),session.snapshot.pages.end(),[&](const auto& item){return item.localId==message.pageId;});
+            if(!session.load->pagePermission||page==session.snapshot.pages.end()||++updates>64)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+            page->document=ParseUiDocument(message.document);
+        }else return false;
+    }
+    session.Notify();return true;
+}
 void Require(IoResult result,HostError timeout,Session& session){
     if(result==IoResult::Complete)return;
     if(result==IoResult::Interrupted){std::lock_guard lock(session.mutex);if(session.stopping)throw Failure{HostState::Stopped,HostError::None};}
@@ -46,17 +76,20 @@ void Run(Session& session,const std::filesystem::path& host){
         Require(channel.Read(incoming,After(5000),session.wake.Get(),process.process.Get()),HostError::HandshakeTimeout,session);
         if(incoming.type!=MessageType::Hello||!MatchesSession(incoming,session.snapshot.pluginId,secret))throw Failure{HostState::ProtocolError,HostError::HandshakeMismatch};
         incoming.type=MessageType::HelloAck;Require(channel.Write(incoming,After(2000),process.process.Get()),HostError::HandshakeTimeout,session);
-        session.Publish(HostState::Ready);Deadline pongDeadline=Deadline::max();
+        Deadline pongDeadline=Deadline::max(),actionDeadline=Deadline::max(),loadDeadline=Deadline::max(),burst=After(1000);unsigned logs=0,updates=0;
+        if(session.load){session.Publish(HostState::Loading);Require(channel.Write(*session.load,After(2000),process.process.Get()),HostError::LoadTimeout,session);loadDeadline=After(5000);}
+        else session.Publish(HostState::Ready);
         for(;;){
-            bool stop=false,ping=false;
-            {std::lock_guard lock(session.mutex);stop=session.stopping;ping=std::exchange(session.ping,false);ResetEvent(session.wake.Get());}
+            bool stop=false,ping=false;std::optional<Message> action;
+            {std::lock_guard lock(session.mutex);stop=session.stopping;ping=std::exchange(session.ping,false);action=std::move(session.action);session.action.reset();ResetEvent(session.wake.Get());}
             if(stop){
                 session.Publish(HostState::Stopping);const auto deadline=After(2000);
                 auto result=channel.Write({MessageType::Shutdown},deadline,process.process.Get());
                 if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 // 在停止之前排队的 pong/ping 不得误判为关闭确认。
                 // Queued pong/ping before stopping must not be mistaken for shutdown acknowledgement.
-                while(result==IoResult::Complete&&(incoming.type==MessageType::Pong||incoming.type==MessageType::Ping)){
+                while(result==IoResult::Complete&&(incoming.type==MessageType::Pong||incoming.type==MessageType::Ping
+                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult)))){
                     if(incoming.type==MessageType::Ping)result=channel.Write({MessageType::Pong},deadline,process.process.Get());
                     if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 }
@@ -66,13 +99,25 @@ void Run(Session& session,const std::filesystem::path& host){
                 break;
             }
             if(ping){Require(channel.Write({MessageType::Ping},After(2000),process.process.Get()),HostError::PingTimeout,session);pongDeadline=After(3000);}
-            const auto result=channel.Read(incoming,pongDeadline,session.wake.Get(),process.process.Get());
+            if(action){Require(channel.Write(*action,After(2000),process.process.Get()),HostError::ActionTimeout,session);actionDeadline=After(3000);}
+            const auto deadline=std::min({pongDeadline,loadDeadline,actionDeadline});
+            const auto result=channel.Read(incoming,deadline,session.wake.Get(),process.process.Get());
             if(result==IoResult::Interrupted)continue;
             if(result==IoResult::Disconnected){
                 if(WaitForSingleObject(process.process.Get(),100)==WAIT_OBJECT_0){DWORD code{};GetExitCodeProcess(process.process.Get(),&code);finalState=code==0?HostState::Exited:HostState::Crashed;finalError=code==0?HostError::None:HostError::Disconnected;break;}
                 throw Failure{HostState::Crashed,HostError::Disconnected};
             }
-            Require(result,pongDeadline==Deadline::max()?HostError::FrameTimeout:HostError::PingTimeout,session);
+            Require(result,deadline==loadDeadline&&loadDeadline!=Deadline::max()?HostError::LoadTimeout:deadline==actionDeadline&&actionDeadline!=Deadline::max()?HostError::ActionTimeout:pongDeadline==Deadline::max()?HostError::FrameTimeout:HostError::PingTimeout,session);
+            if(AcceptNative(session,incoming,logs,updates,burst))continue;
+            if(incoming.type==MessageType::LoadPluginResult&&session.load&&loadDeadline!=Deadline::max()){
+                {std::lock_guard lock(session.mutex);session.snapshot.loadResult=incoming.result;}
+                if(incoming.result!=0)throw Failure{HostState::Crashed,HostError::LoadFailed};
+                loadDeadline=Deadline::max();session.Publish(HostState::Running);continue;
+            }
+            if(incoming.type==MessageType::UiActionResult&&session.load){
+                {std::lock_guard lock(session.mutex);if(!session.awaitingAction||actionDeadline==Deadline::max()||incoming.result!=0)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};session.awaitingAction=false;}
+                actionDeadline=Deadline::max();session.Notify();continue;
+            }
             if(incoming.type==MessageType::Ping)Require(channel.Write({MessageType::Pong},After(2000),process.process.Get()),HostError::Disconnected,session);
             else if(incoming.type==MessageType::Pong){
                 std::lock_guard lock(session.mutex);if(!session.awaitingPong)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
@@ -85,17 +130,19 @@ void Run(Session& session,const std::filesystem::path& host){
     // Publish terminal state only after child/handle cleanup; failures do not affect other sessions or auto-restart.
     pipe.Reset();job.Reset();
     if(process.process&&WaitForSingleObject(process.process.Get(),2000)!=WAIT_OBJECT_0){TerminateProcess(process.process.Get(),1);WaitForSingleObject(process.process.Get(),2000);finalState=HostState::Crashed;finalError=HostError::ShutdownTimeout;}
-    process.process.Reset();session.Publish(finalState,finalError);
+    process.process.Reset();session.nativeFile.reset();session.Publish(finalState,finalError);
 }
 }
 struct PluginRuntimeManager::Impl final {
     explicit Impl(std::filesystem::path directory):host(std::filesystem::absolute(std::move(directory))/L"NovenPluginHost.exe"){}
     std::filesystem::path host;
     mutable std::mutex mutex;
-    std::map<std::string,std::unique_ptr<Session>,std::less<>> sessions;
-    Session* Find(std::string_view id) const {const auto found=sessions.find(id);return found==sessions.end()?nullptr:found->second.get();}
+    std::function<void()> notify;
+    std::uint64_t nextGeneration{};
+    std::map<std::string,std::shared_ptr<Session>,std::less<>> sessions;
+    std::shared_ptr<Session> Find(std::string_view id) const {const auto found=sessions.find(id);return found==sessions.end()?nullptr:found->second;}
     template<class Predicate> bool Wait(std::string_view id,DWORD milliseconds,Predicate predicate) const {
-        Session* session;{std::lock_guard lock(mutex);session=Find(id);}if(!session)return false;
+        std::shared_ptr<Session> session;{std::lock_guard lock(mutex);session=Find(id);}if(!session)return false;
         std::unique_lock lock(session->mutex);
         session->changed.wait_for(lock,std::chrono::milliseconds(milliseconds),[&]{return predicate(session->snapshot)||Terminal(session->snapshot.state);});
         return predicate(session->snapshot);
@@ -111,23 +158,54 @@ bool PluginRuntimeManager::Start(const PluginRecord& record){
     if(record.state!=PluginState::Valid||!record.manifest||!ValidPluginId(record.manifest->id)||record.manifest->manifestVersion!=1||record.manifest->apiVersion!=1)return false;
     std::lock_guard lock(impl_->mutex);const auto& id=record.manifest->id;
     if(impl_->sessions.contains(id)||impl_->sessions.size()>=16)return false;
-    auto session=std::make_unique<Session>();if(!session->wake)return false;
+    auto session=std::make_shared<Session>();if(!session->wake)return false;session->notify=impl_->notify;
     session->snapshot.pluginId=id;session->snapshot.state=HostState::Starting;session->snapshot.startedAt=std::chrono::steady_clock::now();
     auto* owned=session.get();impl_->sessions.emplace(id,std::move(session));
     try{owned->worker=std::jthread([owned,host=impl_->host]{Run(*owned,host);});}
     catch(const std::exception&){impl_->sessions.erase(id);return false;}return true;
 }
 bool PluginRuntimeManager::Ping(std::string_view id){
-    std::lock_guard lock(impl_->mutex);auto* session=impl_->Find(id);if(!session)return false;std::lock_guard stateLock(session->mutex);
-    if(session->snapshot.state!=HostState::Ready||session->awaitingPong||session->stopping)return false;
+    std::lock_guard lock(impl_->mutex);auto session=impl_->Find(id);if(!session)return false;std::lock_guard stateLock(session->mutex);
+    if((session->snapshot.state!=HostState::Ready&&session->snapshot.state!=HostState::Running)||session->awaitingPong||session->stopping)return false;
     session->ping=true;session->awaitingPong=true;SetEvent(session->wake.Get());return true;
 }
 bool PluginRuntimeManager::Stop(std::string_view id){
-    std::lock_guard lock(impl_->mutex);auto* session=impl_->Find(id);if(!session)return false;std::lock_guard stateLock(session->mutex);
-    if(Terminal(session->snapshot.state))return false;session->stopping=true;SetEvent(session->wake.Get());return true;
+    std::shared_ptr<Session> session;{std::lock_guard lock(impl_->mutex);session=impl_->Find(id);}if(!session)return false;
+    {std::lock_guard stateLock(session->mutex);if(Terminal(session->snapshot.state))return false;session->stopping=true;session->snapshot.pages.clear();SetEvent(session->wake.Get());}session->Notify();return true;
 }
 std::optional<HostSnapshot> PluginRuntimeManager::Snapshot(std::string_view id) const {
-    std::lock_guard lock(impl_->mutex);auto* session=impl_->Find(id);if(!session)return std::nullopt;std::lock_guard stateLock(session->mutex);return session->snapshot;
+    std::lock_guard lock(impl_->mutex);auto session=impl_->Find(id);if(!session)return std::nullopt;std::lock_guard stateLock(session->mutex);return session->snapshot;
+}
+void PluginRuntimeManager::SetChangeHandler(std::function<void()> handler){std::lock_guard lock(impl_->mutex);impl_->notify=std::move(handler);}
+std::vector<HostSnapshot> PluginRuntimeManager::Snapshots() const {
+    std::vector<HostSnapshot> result;std::lock_guard lock(impl_->mutex);
+    for(const auto& [id,session]:impl_->sessions){std::lock_guard stateLock(session->mutex);result.push_back(session->snapshot);}return result;
+}
+bool PluginRuntimeManager::StartNative(const PluginRecord& record,const PluginStateStore& grants){
+    if(record.state!=PluginState::Valid||!record.manifest||!grants.Authorized(*record.manifest))return false;
+    std::optional<NativeFile> file;try{file=NativeFile::Open(impl_->host.parent_path()/L"plugins",record.directory,record.manifest->runtime->entry);}catch(const std::exception&){return false;}
+    std::unique_lock lock(impl_->mutex);const auto& id=record.manifest->id;
+    if(auto previous=impl_->Find(id)){
+        {std::lock_guard stateLock(previous->mutex);if(!Terminal(previous->snapshot.state))return false;}
+        lock.unlock();if(previous->worker.joinable())previous->worker.join();lock.lock();
+        if(impl_->Find(id)!=previous)return false;impl_->sessions.erase(id);
+    }
+    if(impl_->sessions.size()>=16)return false;
+    auto session=std::make_shared<Session>();if(!session->wake)return false;
+    session->notify=impl_->notify;session->nativeFile=std::move(file);session->snapshot.pluginId=id;session->snapshot.state=HostState::Starting;
+    session->snapshot.generation=++impl_->nextGeneration;session->snapshot.startedAt=std::chrono::steady_clock::now();
+    Message load{MessageType::LoadPlugin};const auto directory=std::filesystem::absolute(record.directory).u8string();load.directory.assign(directory.begin(),directory.end());load.entry=record.manifest->runtime->entry;
+    load.pagePermission=std::find(record.manifest->requestedPermissions.begin(),record.manifest->requestedPermissions.end(),"ui.page.register")!=record.manifest->requestedPermissions.end();session->load=std::move(load);
+    auto* owned=session.get();impl_->sessions.emplace(id,std::move(session));
+    try{owned->worker=std::jthread([owned,host=impl_->host]{Run(*owned,host);});}catch(const std::exception&){impl_->sessions.erase(id);return false;}return true;
+}
+bool PluginRuntimeManager::Action(std::string_view id,std::uint64_t generation,std::string_view pageId,std::string_view actionId){
+    if(!ValidLocalId(pageId)||!ValidLocalId(actionId))return false;
+    std::lock_guard lock(impl_->mutex);auto session=impl_->Find(id);if(!session)return false;std::lock_guard stateLock(session->mutex);
+    if(session->snapshot.generation!=generation||session->snapshot.state!=HostState::Running||session->stopping||session->awaitingAction||!session->load||!session->load->pagePermission)return false;
+    const auto page=std::find_if(session->snapshot.pages.begin(),session->snapshot.pages.end(),[&](const auto& item){return item.localId==pageId;});
+    if(page==session->snapshot.pages.end()||!page->document.HasAction(actionId))return false;
+    Message message{MessageType::UiAction};message.pageId=pageId;message.actionId=actionId;session->action=std::move(message);session->awaitingAction=true;SetEvent(session->wake.Get());return true;
 }
 std::size_t PluginRuntimeManager::SessionCount() const {std::lock_guard lock(impl_->mutex);return impl_->sessions.size();}
 const std::filesystem::path& PluginRuntimeManager::HostPath() const {return impl_->host;}
