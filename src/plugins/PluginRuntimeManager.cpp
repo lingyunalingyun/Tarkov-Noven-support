@@ -28,7 +28,6 @@ void Require(IoResult result,HostError timeout,Session& session){
 }
 void Run(Session& session,const std::filesystem::path& host){
     Handle job,pipe;HostProcess process;HostState finalState=HostState::Exited;HostError finalError=HostError::None;
-    bool established=false;
     try{
         const auto secret=RandomSecret(),name=RandomSecret();const auto pipeName=PipeName(name);
         pipe=CreateServer(pipeName);job=CreateHostJob();
@@ -41,7 +40,7 @@ void Run(Session& session,const std::filesystem::path& host){
         Require(channel.Read(incoming,After(5000),session.wake.Get(),process.process.Get()),HostError::HandshakeTimeout,session);
         if(incoming.type!=MessageType::Hello||!MatchesSession(incoming,session.snapshot.pluginId,secret))throw Failure{HostState::ProtocolError,HostError::HandshakeMismatch};
         incoming.type=MessageType::HelloAck;Require(channel.Write(incoming,After(2000),process.process.Get()),HostError::HandshakeTimeout,session);
-        established=true;session.Publish(HostState::Ready);Deadline pongDeadline=Deadline::max();
+        session.Publish(HostState::Ready);Deadline pongDeadline=Deadline::max();
         for(;;){
             bool stop=false,ping=false;
             {std::lock_guard lock(session.mutex);stop=session.stopping;ping=std::exchange(session.ping,false);ResetEvent(session.wake.Get());}
@@ -51,8 +50,10 @@ void Run(Session& session,const std::filesystem::path& host){
                 if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 // 在停止之前排队的 pong/ping 不得误判为关闭确认。
                 // Queued pong/ping before stopping must not be mistaken for shutdown acknowledgement.
-                while(result==IoResult::Complete&&(incoming.type==MessageType::Pong||incoming.type==MessageType::Ping))
-                    result=channel.Read(incoming,deadline,nullptr,process.process.Get());
+                while(result==IoResult::Complete&&(incoming.type==MessageType::Pong||incoming.type==MessageType::Ping)){
+                    if(incoming.type==MessageType::Ping)result=channel.Write({MessageType::Pong},deadline,process.process.Get());
+                    if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
+                }
                 if(result!=IoResult::Complete||incoming.type!=MessageType::ShutdownAck)throw Failure{HostState::Crashed,HostError::ShutdownTimeout};
                 {std::lock_guard lock(session.mutex);session.snapshot.shutdownAcknowledged=true;}
                 if(WaitForSingleObject(process.process.Get(),2000)!=WAIT_OBJECT_0)throw Failure{HostState::Crashed,HostError::ShutdownTimeout};
@@ -62,7 +63,7 @@ void Run(Session& session,const std::filesystem::path& host){
             const auto result=channel.Read(incoming,pongDeadline,session.wake.Get(),process.process.Get());
             if(result==IoResult::Interrupted)continue;
             if(result==IoResult::Disconnected){
-                if(WaitForSingleObject(process.process.Get(),0)==WAIT_OBJECT_0){DWORD code{};GetExitCodeProcess(process.process.Get(),&code);finalState=code==0?HostState::Exited:HostState::Crashed;finalError=code==0?HostError::None:HostError::Disconnected;break;}
+                if(WaitForSingleObject(process.process.Get(),100)==WAIT_OBJECT_0){DWORD code{};GetExitCodeProcess(process.process.Get(),&code);finalState=code==0?HostState::Exited:HostState::Crashed;finalError=code==0?HostError::None:HostError::Disconnected;break;}
                 throw Failure{HostState::Crashed,HostError::Disconnected};
             }
             Require(result,HostError::PingTimeout,session);
@@ -73,7 +74,7 @@ void Run(Session& session,const std::filesystem::path& host){
             }else throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
         }
     }catch(const Failure& failure){finalState=failure.state;finalError=failure.error;}
-    catch(const std::exception&){finalState=established?HostState::ProtocolError:HostState::Crashed;finalError=process.process?HostError::InvalidProtocol:HostError::Startup;}
+    catch(const std::exception&){finalState=process.process?HostState::ProtocolError:HostState::Crashed;finalError=process.process?HostError::InvalidProtocol:HostError::Startup;}
     // 终态只在句柄与子进程收束后发布；失败不影响其他会话，不自动重启。
     // Publish terminal state only after child/handle cleanup; failures do not affect other sessions or auto-restart.
     pipe.Reset();job.Reset();
