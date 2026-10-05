@@ -37,6 +37,19 @@ int wmain(int argc,wchar_t** argv) try {
         page.SetSnapshot({});page.Prepare(880,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows().empty()&&page.Scroll()==0,"refresh replaces snapshot and clamps scroll");
         PluginSnapshot failure;failure.diagnostics.push_back({"plugins.diag.root",{}});page.SetSnapshot(failure);
         Check(page.EmptyText()==Tr("plugins.diag.root"),"root failure does not masquerade as healthy empty state");
+        const auto native=ParseManifest(R"({"manifestVersion":2,"id":"com.example.native","name":"Native","version":"1.0.0","apiVersion":1,"permissions":["ui.page.register"],"runtime":{"kind":"native-dll","entry":"plugin.dll"}})");
+        PluginSnapshot runtimeSnapshot;runtimeSnapshot.records.push_back({L"plugins/native",native.state,native.manifest,{}});
+        page.SetSnapshot(runtimeSnapshot);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());
+        Check(page.Rows()[0].status==Tr("plugins.disabled")&&page.Rows()[0].body.find(Tr("plugins.native_unverified"))!=std::wstring::npos,"V2 defaults disabled and unverified");
+        const auto enable=page.ControlBounds(native.manifest->id);Check(enable&&page.Rows()[0].enable,"explicit enable request available");
+        // 按钮只产生第一方请求，不代表授权或进程创建。
+        // Buttons emit first-party requests, never consent or process creation themselves.
+        page.Down(enable->left+5,enable->top+5);page.Up(enable->left+5,enable->top+5);const auto request=page.TakeControlAction();Check(request&&request->enable&&request->id==native.manifest->id,"enable requires paired explicit user action");
+        HostSnapshot host;host.pluginId=native.manifest->id;host.state=HostState::Running;page.SetRuntime({host});page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows()[0].disable&&!page.Rows()[0].enable&&page.Rows()[0].status==Tr("plugins.running"),"running state offers disable only");
+        runtimeSnapshot.records[0].manifest->requestedPermissions.push_back("network.http");page.SetSnapshot(runtimeSnapshot);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(!page.ControlBounds(native.manifest->id)&&page.Rows()[0].body.find(Tr("plugins.unsupported"))!=std::wstring::npos,"unsupported requests cannot be granted or enabled");
+        for(int switchCount=0;switchCount<20;++switchCount){page.SelectTab(switchCount%2?PluginCenterTab::MyPlugins:PluginCenterTab::Marketplace);page.Tick(.016F);}
+        page.SelectTab(PluginCenterTab::Marketplace);Check(page.MarketplaceText()==Tr("plugins.marketplace_offline")&&!page.ControlBounds(native.manifest->id),"offline marketplace has no catalog or execution controls");
+        page.Down(button.left+10,button.top+10);Check(!page.Up(button.left+10,button.top+10),"marketplace does not offer discovery refresh");page.Blur();Check(!page.Animating(),"leaving plugin center settles native tab motion");
     }
     std::cout<<"Read-only Plugins presentation and shared interactions PASS\n";
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
