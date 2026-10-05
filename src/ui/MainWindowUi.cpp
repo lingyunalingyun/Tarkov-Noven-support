@@ -118,6 +118,17 @@ bool MainWindowUi::GoBack() {
     back_hovered_=back_pressed_=false;price_search_.Blur();
     CancelScrollDrag();Invalidate();return true;
 }
+void MainWindowUi::SetPluginRuntime(const std::vector<plugins::HostSnapshot>& snapshots) {
+    const auto active=navigation_.Active();const auto outgoing=page_transition_.Sample(active).page;
+    plugin_pages_.Sync(snapshots);plugins_.SetRuntime(snapshots);
+    for(auto it=plugin_views_.begin();it!=plugin_views_.end();)if(!plugin_pages_.Find(it->first))it=plugin_views_.erase(it);else ++it;
+    for(const auto& descriptor:registry_.Pages())if(const auto* page=plugin_pages_.Find(descriptor.id))plugin_views_[descriptor.id].SetPage(*page);
+    // 停止/崩溃必须撤销旧页面及输入，不允许过渡帧或返回栈继续引用失效身份。
+    // Stop/crash revokes pages/input; neither transition frames nor the return stack may retain dead identities.
+    if(!registry_.Contains(active)){navigation_.Select(BuiltinPageId::Plugins);CancelScrollDrag();}
+    if(!registry_.Contains(active)||!registry_.Contains(outgoing)){page_transition_={};sidebar_.Tick(1);pressed_.reset();hovered_.reset();back_pressed_=false;}
+    std::erase_if(return_pages_,[&](const auto& id){return !registry_.Contains(id);});Invalidate();
+}
 bool MainWindowUi::SelectPage(PageId page) {
     if(page==navigation_.Active()||!registry_.Contains(page)) return false;
     sidebar_.StartSelection(navigation_.Active(),page,DipHeight(),theme_);
@@ -129,6 +140,7 @@ bool MainWindowUi::SelectPage(PageId page) {
     if(page!=BuiltinPageId::RaidHistory)raid_history_.Blur();
     if(page!=BuiltinPageId::Events)events_.Blur();
     if(page!=BuiltinPageId::Plugins)plugins_.Blur();
+    for(auto& [id,view]:plugin_views_)if(id!=page)view.Cancel();
     if(page==BuiltinPageId::Events){EventClockTick();SetTimer(window_,EventClockTimerId,60000,nullptr);}else KillTimer(window_,EventClockTimerId);
     if(page==BuiltinPageId::Map)SetTimer(window_,MapClockTimerId,250,nullptr);else KillTimer(window_,MapClockTimerId);
     if(page==BuiltinPageId::Tasks)tasks_.Activate();
@@ -549,7 +561,10 @@ void MainWindowUi::Paint() {
         // The registry owns identity/metadata; concrete built-in dispatch remains transitional and preserves resident state.
         const auto drawPage=[&](PageId page) {
         canvas.inputWindow = page == navigation_.Active() ? window_ : nullptr;
-        if (page==BuiltinPageId::Hideout) hideout_.Draw(canvas,theme_,item_bitmaps_);
+        if(const auto it=plugin_views_.find(page);it!=plugin_views_.end()){
+            it->second.Prepare(size.width,size.height,theme_,write_factory_.Get(),body_format_.Get(),label_format_.Get());it->second.Draw(canvas,theme_);
+        }
+        else if (page==BuiltinPageId::Hideout) hideout_.Draw(canvas,theme_,item_bitmaps_);
         else if (page==BuiltinPageId::Tasks) tasks_.Draw(canvas,theme_,item_bitmaps_);
         else if (page==BuiltinPageId::Map) map_.Draw(canvas,theme_);
         else if (page==BuiltinPageId::RaidHistory)raid_history_.Draw(canvas,theme_,item_bitmaps_);
@@ -801,6 +816,7 @@ void MainWindowUi::Invalidate() const {
 }
 
 void MainWindowUi::MouseMove(int x, int y) {
+    if(auto* view=ActivePluginView();view&&view->Move(x/Scale(),y/Scale()))Invalidate();
     if(navigation_.Active()==BuiltinPageId::Plugins&&plugins_.Move(x/Scale(),y/Scale()))Invalidate();
     if(navigation_.Active()==BuiltinPageId::Map&&map_.MouseMove(x/Scale(),y/Scale()))Invalidate();
     if(navigation_.Active()==BuiltinPageId::RaidHistory&&raid_history_.MouseMove(x/Scale(),y/Scale()))Invalidate();
@@ -864,6 +880,7 @@ void MainWindowUi::MouseMove(int x, int y) {
 
 void MainWindowUi::MouseLeave() {
     if(navigation_.Active()==BuiltinPageId::Plugins&&plugins_.Leave())Invalidate();
+    if(auto* view=ActivePluginView()){view->Move(-1,-1);Invalidate();}
     map_.MouseLeave();
     if(back_hovered_) { back_hovered_=false;Invalidate(); }
     price_details_.hoverIndex.reset();
@@ -891,6 +908,7 @@ void MainWindowUi::MouseDown(int x, int y) {
         page_content_press_blocked_=true;return;
     }
     if(navigation_.Active()==BuiltinPageId::Plugins&&x/Scale()>=theme_.sidebarWidth){plugins_.Down(x/Scale(),y/Scale());Invalidate();return;}
+    if(auto* view=ActivePluginView();view&&x/Scale()>=theme_.sidebarWidth){view->Down(x/Scale(),y/Scale());Invalidate();return;}
     raid_scan_pressed_=navigation_.Active()==BuiltinPageId::RaidHistory&&HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale());
     if(raid_scan_pressed_){if(raid_scan_pending_)raid_scan_pressed_=false;Invalidate();return;}
     if(navigation_.Active()==BuiltinPageId::Settings&&preferences_.Down(x/Scale(),y/Scale())){Invalidate();return;}
@@ -990,6 +1008,11 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     if(page_content_press_blocked_) { page_content_press_blocked_=false;return std::nullopt; }
     if(navigation_.Active()==BuiltinPageId::Plugins) {
         if(plugins_.Up(x/Scale(),y/Scale())&&plugin_refresh_)plugin_refresh_();
+        if(const auto action=plugins_.TakeControlAction();action&&plugin_control_)plugin_control_(*action);
+        if(x/Scale()>=theme_.sidebarWidth&&!back_pressed_){Invalidate();return {};}
+    }
+    if(auto* view=ActivePluginView()){
+        if(const auto action=view->Up(x/Scale(),y/Scale());action&&plugin_action_)if(const auto* page=plugin_pages_.Find(navigation_.Active()))plugin_action_(*page,*action);
         if(x/Scale()>=theme_.sidebarWidth&&!back_pressed_){Invalidate();return {};}
     }
     if(back_pressed_) {
@@ -1293,6 +1316,7 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
 }
 
 bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
+    if(auto* view=ActivePluginView()){const bool handled=view->Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::Plugins){const bool handled=plugins_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::RaidHistory) {const bool handled=raid_history_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::Events){const bool handled=events_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
@@ -1332,6 +1356,7 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
 }
 
 bool MainWindowUi::AnimationActive() const noexcept {
+    if(const auto* view=PluginView(navigation_.Active());view&&view->Animating())return true;
     if(navigation_.Active()==BuiltinPageId::Plugins&&plugins_.Animating())return true;
     if(navigation_.Active()==BuiltinPageId::Scanner&&mode_menu_progress_!=(mode_menu_open_?1.0F:0.0F))return true;
     if(sidebar_.Animating())return true;
@@ -1367,6 +1392,7 @@ bool MainWindowUi::AnimationTick() {
     recent_scroll_tick_ = now;
     sidebar_.Tick(std::clamp(elapsed,0.0F,0.05F));
     if(navigation_.Active()==BuiltinPageId::Plugins)plugins_.Tick(elapsed);
+    if(auto* view=ActivePluginView())view->Tick(elapsed);
     if(navigation_.Active()==BuiltinPageId::Scanner)mode_menu_progress_=AdvanceDropdownTransition(mode_menu_progress_,!mode_menu_open_,std::clamp(elapsed,0.0F,0.05F));
     hideout_.Tick(elapsed);
     if(navigation_.Active()==BuiltinPageId::RaidHistory)raid_history_.Tick(elapsed);

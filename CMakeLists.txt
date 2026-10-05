@@ -817,6 +817,7 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME localization COMMAND NovenLocalizationTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenLocalizationUiTests
+        src/ui/PluginPageView.cpp
         tests/LocalizationUiTests.cpp
         src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
         src/ui/EventsPage.cpp src/events/EventBrowser.cpp src/events/EventCatalog.cpp

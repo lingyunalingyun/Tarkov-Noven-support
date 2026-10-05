@@ -11,6 +11,7 @@
 #include "ui/RaidHistoryPage.h"
 #include "ui/EventsPage.h"
 #include "ui/PluginsPage.h"
+#include "ui/PluginPageView.h"
 #include "ui/PageTransition.h"
 #include "ui/PreferencesPanel.h"
 
@@ -36,6 +37,10 @@ public:
     void SetPlugins(plugins::PluginSnapshot snapshot){plugins_.SetSnapshot(std::move(snapshot));Invalidate();}
     void SetPluginRefreshHandler(std::function<void()> handler){plugin_refresh_=std::move(handler);}
     const PluginsPage& Plugins() const noexcept {return plugins_;}
+    void SetPluginRuntime(const std::vector<plugins::HostSnapshot>& snapshots);
+    void SetPluginControlHandler(std::function<void(const PluginControlAction&)> handler){plugin_control_=std::move(handler);}
+    void SetPluginActionHandler(std::function<void(const PluginOwnedPage&,std::string_view)> handler){plugin_action_=std::move(handler);}
+    const PluginPageView* PluginView(const PageId& id) const {const auto it=plugin_views_.find(id);return it==plugin_views_.end()?nullptr:&it->second;}
     void SetPreferences(const data::AppSettings& value){preferences_.value=value;scanner_.shortcut=ScanShortcutText(value.scanKey,value.scanModifiers);Invalidate();}
     void SetPreferencesHandler(std::function<bool(const data::AppSettings&)> handler){preferences_.changed=std::move(handler);}
     bool RecordingShortcut() const noexcept {return preferences_.Recording();}
@@ -51,7 +56,7 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
-    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); raid_history_.CancelDrag(); events_.CancelDrag(); plugins_.CancelDrag(); }
+    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); raid_history_.CancelDrag(); events_.CancelDrag(); plugins_.CancelDrag();for(auto& [id,view]:plugin_views_)view.Cancel(); }
     void SetEvents(std::vector<events::EventRecord> records,events::EventRefreshState state,std::optional<events::Timestamp> refreshed) {
         events_.SetSnapshot(std::move(records),std::move(state),refreshed);Invalidate();
     }
@@ -109,6 +114,7 @@ public:
 
 private:
     bool SelectPage(PageId page);
+    PluginPageView* ActivePluginView(){const auto it=plugin_views_.find(navigation_.Active());return it==plugin_views_.end()?nullptr:&it->second;}
     PageTransition<PageId> page_transition_;
     bool page_content_press_blocked_{};
     bool OnBackButton(int x,int y) const noexcept;
@@ -164,6 +170,10 @@ private:
     bool raid_scan_pending_{},raid_scan_completed_{},raid_scan_failed_{};
     PageHost pages_{registry_};
     PluginsPage plugins_;
+    PluginPages plugin_pages_{registry_};
+    std::map<PageId,PluginPageView> plugin_views_;
+    std::function<void(const PluginControlAction&)> plugin_control_;
+    std::function<void(const PluginOwnedPage&,std::string_view)> plugin_action_;
     std::function<void()> plugin_refresh_;
     HideoutPage hideout_;
     TasksPage tasks_;

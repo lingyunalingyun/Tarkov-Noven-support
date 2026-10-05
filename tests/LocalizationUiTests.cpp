@@ -770,6 +770,19 @@ int wmain(int argc, wchar_t** argv) try {
         Require(!ui.AnimationActive(),"future page transition becomes idle");
         Require(ui.Registry().Unregister(futurePage)&&ui.ActivePage()==BuiltinPageId::Scanner,"removed active metadata safely falls back to scanner");
         Require(!sidebar.Layout(height,theme).Find(futurePage),"layout cache invalidates when registry changes");
+        noven::plugins::HostSnapshot pluginSession;pluginSession.pluginId="com.example.live";pluginSession.generation=7;pluginSession.state=noven::plugins::HostState::Running;
+        pluginSession.pages.push_back({"dashboard","Plugin dashboard",noven::plugins::ParseUiDocument(R"({"schemaVersion":1,"blocks":[{"type":"text","text":"Hello"},{"type":"button","id":"refresh","label":"Refresh"}]})")});
+        const PageId livePage{"plugin.com.example.live.dashboard"};std::size_t actions=0;
+        ui.SetPluginActionHandler([&](const auto& owner,std::string_view action){Require(owner.pluginId==pluginSession.pluginId&&owner.generation==7&&owner.page.localId=="dashboard"&&action=="refresh","action retains authenticated scope");++actions;});
+        ui.SetPluginRuntime({pluginSession});const auto liveRect=sidebar.ItemRect(livePage,height,theme);
+        Require(!click(liveRect.left+20,(liveRect.top+liveRect.bottom)*.5F)&&ui.ActivePage()==livePage,"running plugin page joins native navigation");
+        for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
+        const auto liveButton=ui.PluginView(livePage)->ActionBounds("refresh");Require(liveButton.has_value(),"document rendered by Noven");
+        Require(!click(liveButton->left+10,liveButton->top+10)&&actions==1,"native button sends scoped plugin action");
+        ui.MouseDown(static_cast<int>((liveButton->left+10)*scale),static_cast<int>((liveButton->top+10)*scale));
+        pluginSession.state=noven::plugins::HostState::Crashed;pluginSession.pages.clear();ui.SetPluginRuntime({pluginSession});
+        (void)ui.MouseUp(static_cast<int>((liveButton->left+10)*scale),static_cast<int>((liveButton->top+10)*scale));
+        Require(ui.ActivePage()==BuiltinPageId::Plugins&&!ui.PluginView(livePage)&&!ui.Registry().Contains(livePage)&&actions==1,"crash revokes active page and stale press, falls back to protected Plugins");ui.Paint();
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";
