@@ -20,7 +20,7 @@ private:
     std::string value_;
 };
 enum class PageSection { Primary, Secondary, Bottom };
-enum class PageIcon { Scanner, Prices, Hideout, Tasks, Map, RaidHistory, Squad, Events, RecentScans, Settings, GenericPlugin };
+enum class PageIcon { Scanner, Prices, Hideout, Tasks, Map, RaidHistory, Squad, Events, RecentScans, Settings, GenericPlugin, Plugins };
 enum class PageSource { BuiltIn, Plugin };
 enum class UiExtensionPolicy { Protected, Decoratable, Extensible, Replaceable };
 struct PageDescriptor final {

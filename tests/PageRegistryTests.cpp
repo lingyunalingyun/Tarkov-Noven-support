@@ -5,7 +5,10 @@ using namespace noven::ui;
 void Check(bool ok,const char* text){if(!ok){std::cerr<<text<<'\n';std::exit(1);}}
 int main(){
     auto registry=MakeBuiltinPageRegistry();
-    Check(registry.Pages().size()==10&&registry.Contains(BuiltinPageId::Scanner),"all built-ins and default");
+    Check(registry.Pages().size()==11&&registry.Contains(BuiltinPageId::Scanner),"all built-ins and default");
+    const auto management=registry.Find(BuiltinPageId::Plugins);
+    Check(management&&management->id.Value()=="builtin.plugins"&&management->source==PageSource::BuiltIn
+        &&management->extensionPolicy==UiExtensionPolicy::Protected,"stable protected built-in Plugins identity");
     const auto saved=registry.Find(BuiltinPageId::Settings);
     Check(saved&&saved->extensionPolicy==UiExtensionPolicy::Protected,"protected settings metadata");
     Check(registry.Find(BuiltinPageId::Map)->extensionPolicy==UiExtensionPolicy::Extensible,"ordinary page policy");

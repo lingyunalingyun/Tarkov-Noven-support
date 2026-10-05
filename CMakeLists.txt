@@ -47,6 +47,9 @@ endif()
 add_executable(NovenTarkovSupport WIN32
     src/main.cpp
     src/app/App.cpp
+    src/plugins/PluginManifest.cpp
+    src/plugins/PluginDiscovery.cpp
+    src/ui/PluginsPage.cpp
     src/events/EventCatalog.cpp
     src/events/EventBrowser.cpp
     src/events/EventCache.cpp
@@ -619,6 +622,14 @@ if(BUILD_TESTING)
         target_compile_options(NovenPluginDiscoveryTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME plugin_discovery COMMAND NovenPluginDiscoveryTests)
+    add_executable(NovenPluginsPageTests tests/PluginsPageTests.cpp src/ui/PluginsPage.cpp src/plugins/PluginManifest.cpp src/ui/localization/LocalizationService.cpp)
+    target_include_directories(NovenPluginsPageTests PRIVATE src)
+    target_compile_definitions(NovenPluginsPageTests PRIVATE UNICODE _UNICODE NOMINMAX)
+    if(MSVC)
+        target_compile_options(NovenPluginsPageTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenPluginsPageTests PRIVATE d2d1 dwrite)
+    add_test(NAME plugins_page COMMAND NovenPluginsPageTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenSidebarLayoutTests tests/SidebarLayoutTests.cpp)
     target_include_directories(NovenSidebarLayoutTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     if(MSVC)
@@ -683,7 +694,7 @@ if(BUILD_TESTING)
         tests/LocalizationUiTests.cpp
         src/ui/MainWindowUi.cpp src/ui/PageHost.cpp src/ui/Sidebar.cpp
         src/ui/EventsPage.cpp src/events/EventBrowser.cpp src/events/EventCatalog.cpp
-        src/ui/RaidHistoryPage.cpp src/raid/RaidHistoryBrowser.cpp
+        src/ui/RaidHistoryPage.cpp src/raid/RaidHistoryBrowser.cpp src/ui/PluginsPage.cpp
         src/ui/HideoutPage.cpp src/ui/TasksPage.cpp src/ui/MapPage.cpp src/data/HideoutCatalog.cpp src/data/HideoutBrowser.cpp
         src/data/TaskCatalog.cpp src/data/TaskBrowser.cpp
         src/data/MapCatalog.cpp

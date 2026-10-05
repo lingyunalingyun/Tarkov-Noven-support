@@ -10,6 +10,7 @@
 #include "ui/MapPage.h"
 #include "ui/RaidHistoryPage.h"
 #include "ui/EventsPage.h"
+#include "ui/PluginsPage.h"
 #include "ui/PageTransition.h"
 #include "ui/PreferencesPanel.h"
 
@@ -32,6 +33,9 @@ class MainWindowUi final {
 public:
     PageRegistry& Registry() noexcept {return registry_;}
     const PageRegistry& Registry() const noexcept {return registry_;}
+    void SetPlugins(plugins::PluginSnapshot snapshot){plugins_.SetSnapshot(std::move(snapshot));Invalidate();}
+    void SetPluginRefreshHandler(std::function<void()> handler){plugin_refresh_=std::move(handler);}
+    const PluginsPage& Plugins() const noexcept {return plugins_;}
     void SetPreferences(const data::AppSettings& value){preferences_.value=value;scanner_.shortcut=ScanShortcutText(value.scanKey,value.scanModifiers);Invalidate();}
     void SetPreferencesHandler(std::function<bool(const data::AppSettings&)> handler){preferences_.changed=std::move(handler);}
     bool RecordingShortcut() const noexcept {return preferences_.Recording();}
@@ -159,6 +163,8 @@ private:
     bool raid_scan_pressed_{};
     bool raid_scan_pending_{},raid_scan_completed_{},raid_scan_failed_{};
     PageHost pages_{registry_};
+    PluginsPage plugins_;
+    std::function<void()> plugin_refresh_;
     HideoutPage hideout_;
     TasksPage tasks_;
     MapPage map_;

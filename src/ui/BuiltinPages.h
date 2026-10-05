@@ -6,7 +6,7 @@ namespace noven::ui {
 namespace BuiltinPageId {
 inline const PageId Scanner{"builtin.scanner"}, Prices{"builtin.prices"}, Hideout{"builtin.hideout"},
     Tasks{"builtin.tasks"}, Map{"builtin.map"}, RaidHistory{"builtin.raid-history"}, Squad{"builtin.squad"},
-    Events{"builtin.events"}, RecentScans{"builtin.recent-scans"}, Settings{"builtin.settings"};
+    Events{"builtin.events"}, RecentScans{"builtin.recent-scans"}, Plugins{"builtin.plugins"}, Settings{"builtin.settings"};
 }
 // 这是内置页面元数据的唯一来源；不拥有页面实现，也不提供第三方代码执行入口。
 // The sole built-in metadata source owns no implementations and provides no third-party execution entry point.
@@ -27,7 +27,8 @@ inline PageRegistry MakeBuiltinPageRegistry() {
     add(BuiltinPageId::RecentScans,PageSection::Secondary,TextKey::NavRecentScans,TextKey::EmptyDescription,PageIcon::RecentScans,3);
     // 先声明保护策略；具体 UI 扩展权限执行留待后续阶段。
     // Declare protection now; enforcement of UI extension permissions belongs to later phases.
-    add(BuiltinPageId::Settings,PageSection::Bottom,TextKey::NavSettings,TextKey::LanguageHint,PageIcon::Settings,0,UiExtensionPolicy::Protected);
+    add(BuiltinPageId::Plugins,PageSection::Bottom,TextKey::NavPlugins,TextKey::PluginNotice,PageIcon::Plugins,0,UiExtensionPolicy::Protected);
+    add(BuiltinPageId::Settings,PageSection::Bottom,TextKey::NavSettings,TextKey::LanguageHint,PageIcon::Settings,1,UiExtensionPolicy::Protected);
     return registry;
 }
 }

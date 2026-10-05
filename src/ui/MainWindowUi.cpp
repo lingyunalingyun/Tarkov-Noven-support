@@ -128,6 +128,7 @@ bool MainWindowUi::SelectPage(PageId page) {
     if(page!=BuiltinPageId::Scanner){mode_menu_open_=false;mode_menu_progress_=0;}
     if(page!=BuiltinPageId::RaidHistory)raid_history_.Blur();
     if(page!=BuiltinPageId::Events)events_.Blur();
+    if(page!=BuiltinPageId::Plugins)plugins_.Blur();
     if(page==BuiltinPageId::Events){EventClockTick();SetTimer(window_,EventClockTimerId,60000,nullptr);}else KillTimer(window_,EventClockTimerId);
     if(page==BuiltinPageId::Map)SetTimer(window_,MapClockTimerId,250,nullptr);else KillTimer(window_,MapClockTimerId);
     if(page==BuiltinPageId::Tasks)tasks_.Activate();
@@ -531,6 +532,7 @@ void MainWindowUi::Paint() {
         if(navigation_.Active()==BuiltinPageId::RaidHistory)for(const auto& id:raid_history_.VisibleImages())image_cache_.Request(id);
         if(navigation_.Active()==BuiltinPageId::Events||page_transition_.ShowingOutgoing(BuiltinPageId::Events))events_.Prepare(size.width,size.height,theme_,write_factory_.Get(),body_format_.Get(),label_format_.Get());
         if(navigation_.Active()==BuiltinPageId::Events)for(const auto& id:events_.VisibleImages())image_cache_.Request(id);
+        if(navigation_.Active()==BuiltinPageId::Plugins||page_transition_.ShowingOutgoing(BuiltinPageId::Plugins))plugins_.Prepare(size.width,size.height,theme_,write_factory_.Get(),body_format_.Get(),label_format_.Get());
         RequestVisibleHideoutImages();
         RequestVisibleTaskImages();
         UiCanvas canvas{*render_target_.Get(), *brush_.Get(), *title_format_.Get(),
@@ -552,6 +554,7 @@ void MainWindowUi::Paint() {
         else if (page==BuiltinPageId::Map) map_.Draw(canvas,theme_);
         else if (page==BuiltinPageId::RaidHistory)raid_history_.Draw(canvas,theme_,item_bitmaps_);
         else if (page==BuiltinPageId::Events)events_.Draw(canvas,theme_,item_bitmaps_);
+        else if (page==BuiltinPageId::Plugins)plugins_.Draw(canvas,theme_);
         else pages_.Draw(canvas, theme_, size.width, size.height,
                     page, scanner_, mode_menu_open_,
                     mode_hovered_, hovered_mode_, recent_, recent_filter_,
@@ -798,6 +801,7 @@ void MainWindowUi::Invalidate() const {
 }
 
 void MainWindowUi::MouseMove(int x, int y) {
+    if(navigation_.Active()==BuiltinPageId::Plugins&&plugins_.Move(x/Scale(),y/Scale()))Invalidate();
     if(navigation_.Active()==BuiltinPageId::Map&&map_.MouseMove(x/Scale(),y/Scale()))Invalidate();
     if(navigation_.Active()==BuiltinPageId::RaidHistory&&raid_history_.MouseMove(x/Scale(),y/Scale()))Invalidate();
     if(navigation_.Active()==BuiltinPageId::Events&&events_.MouseMove(x/Scale(),y/Scale()))Invalidate();
@@ -859,6 +863,7 @@ void MainWindowUi::MouseMove(int x, int y) {
 }
 
 void MainWindowUi::MouseLeave() {
+    if(navigation_.Active()==BuiltinPageId::Plugins&&plugins_.Leave())Invalidate();
     map_.MouseLeave();
     if(back_hovered_) { back_hovered_=false;Invalidate(); }
     price_details_.hoverIndex.reset();
@@ -885,6 +890,7 @@ void MainWindowUi::MouseDown(int x, int y) {
     if(page_transition_.Active() && x/Scale()>=theme_.sidebarWidth) {
         page_content_press_blocked_=true;return;
     }
+    if(navigation_.Active()==BuiltinPageId::Plugins&&x/Scale()>=theme_.sidebarWidth){plugins_.Down(x/Scale(),y/Scale());Invalidate();return;}
     raid_scan_pressed_=navigation_.Active()==BuiltinPageId::RaidHistory&&HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale());
     if(raid_scan_pressed_){if(raid_scan_pending_)raid_scan_pressed_=false;Invalidate();return;}
     if(navigation_.Active()==BuiltinPageId::Settings&&preferences_.Down(x/Scale(),y/Scale())){Invalidate();return;}
@@ -982,6 +988,10 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     }
     if(navigation_.Active()==BuiltinPageId::Settings&&preferences_.Up(window_,x/Scale(),y/Scale())){Invalidate();return {};}
     if(page_content_press_blocked_) { page_content_press_blocked_=false;return std::nullopt; }
+    if(navigation_.Active()==BuiltinPageId::Plugins) {
+        if(plugins_.Up(x/Scale(),y/Scale())&&plugin_refresh_)plugin_refresh_();
+        if(x/Scale()>=theme_.sidebarWidth&&!back_pressed_){Invalidate();return {};}
+    }
     if(back_pressed_) {
         back_pressed_=false;
         if(OnBackButton(x,y)) GoBack();
@@ -1283,6 +1293,7 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
 }
 
 bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
+    if(navigation_.Active()==BuiltinPageId::Plugins){const bool handled=plugins_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::RaidHistory) {const bool handled=raid_history_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::Events){const bool handled=events_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::Map){const bool handled=map_.Wheel(delta,x/Scale(),y/Scale(),control);
@@ -1321,6 +1332,7 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
 }
 
 bool MainWindowUi::AnimationActive() const noexcept {
+    if(navigation_.Active()==BuiltinPageId::Plugins&&plugins_.Animating())return true;
     if(navigation_.Active()==BuiltinPageId::Scanner&&mode_menu_progress_!=(mode_menu_open_?1.0F:0.0F))return true;
     if(sidebar_.Animating())return true;
     if(navigation_.Active()==BuiltinPageId::Events&&events_.Animating())return true;
@@ -1354,6 +1366,7 @@ bool MainWindowUi::AnimationTick() {
         : std::chrono::duration<float>(now - recent_scroll_tick_).count();
     recent_scroll_tick_ = now;
     sidebar_.Tick(std::clamp(elapsed,0.0F,0.05F));
+    if(navigation_.Active()==BuiltinPageId::Plugins)plugins_.Tick(elapsed);
     if(navigation_.Active()==BuiltinPageId::Scanner)mode_menu_progress_=AdvanceDropdownTransition(mode_menu_progress_,!mode_menu_open_,std::clamp(elapsed,0.0F,0.05F));
     hideout_.Tick(elapsed);
     if(navigation_.Active()==BuiltinPageId::RaidHistory)raid_history_.Tick(elapsed);

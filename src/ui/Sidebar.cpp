@@ -19,6 +19,7 @@ void DrawIcon(const UiCanvas& canvas, PageIcon icon, float x, float y,
     if(icon==PageIcon::Squad){for(float offset:{5.0F,13.0F}){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+offset,y+5),3,3),&canvas.brush,1.4F);line(offset-4,16,offset-4,12);line(offset-4,12,offset+4,12);line(offset+4,12,offset+4,16);}return;}
     if(icon==PageIcon::Settings){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),5,5),&canvas.brush,1.4F);canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),2,2),&canvas.brush,1.4F);for(int i=0;i<8;++i){float a=i*0.785398F;line(9+5*std::cos(a),9+5*std::sin(a),9+8*std::cos(a),9+8*std::sin(a));}return;}
     if(icon==PageIcon::RecentScans){line(1,5,1,17);line(1,17,13,17);line(5,1,17,1);line(17,1,17,13);line(17,13,5,13);line(5,13,5,1);line(8,5,14,5);line(8,9,12,9);return;}
+    if(icon==PageIcon::Plugins){line(2,1,7,1);line(11,1,16,1);line(16,1,16,7);line(16,11,16,17);line(16,17,2,17);line(2,17,2,1);canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+2),2,2),&canvas.brush,1.4F);canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+15,y+9),2,2),&canvas.brush,1.4F);return;}
     const auto bounds = D2D1::RoundedRect(D2D1::RectF(x, y, x + 18, y + 18), 4.0F, 4.0F);
     canvas.target.DrawRoundedRectangle(bounds, &canvas.brush, 1.4F);
     if (icon==PageIcon::Scanner) {

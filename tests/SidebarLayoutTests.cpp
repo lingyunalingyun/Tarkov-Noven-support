@@ -7,8 +7,8 @@ void Check(bool ok,const char* text){if(!ok){std::cerr<<text<<'\n';std::exit(1);
 int main(){
     auto registry=MakeBuiltinPageRegistry();UiTheme theme;
     const auto layout=BuildSidebarLayout(registry,720,theme);
-    const float accepted[]{186,229,272,315,358,439,482,525,568,663};
-    Check(layout.rows.size()==10,"all rows computed");
+    const float accepted[]{186,229,272,315,358,439,482,525,568,620,663};
+    Check(layout.rows.size()==11,"all rows computed");
     for(std::size_t i=0;i<layout.rows.size();++i){const auto& row=layout.rows[i];
         Check(row.visible&&std::abs(row.rect.top-accepted[i])<.01F&&row.rect.bottom>row.rect.top,"accepted geometry parity");
         Check(layout.HitTest((row.rect.left+row.rect.right)/2,(row.rect.top+row.rect.bottom)/2)==row.page.id,"shared exact hit geometry");
@@ -26,7 +26,7 @@ int main(){
         for(const auto& row:compact.rows) {
             Check(std::isfinite(row.rect.top)&&row.rect.bottom>=row.rect.top&&row.rect.right>=row.rect.left,"bounded small-height geometry");
             if(row.visible){Check(compact.HitTest(30,(row.rect.top+row.rect.bottom)/2)==row.page.id,"small-height exact hits");
-                if(row.page.section!=PageSection::Bottom)Check(row.rect.bottom<=compact.Find(BuiltinPageId::Settings)->rect.top-14,"visible rows never overlap bottom section");}
+                if(row.page.section!=PageSection::Bottom)Check(row.rect.bottom<=compact.Find(BuiltinPageId::Plugins)->rect.top-11,"visible rows never overlap bottom section");}
         }
     }
     std::cout<<"Registry-driven sidebar geometry PASS\n";

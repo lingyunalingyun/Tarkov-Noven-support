@@ -28,7 +28,10 @@ inline SidebarLayout BuildSidebarLayout(const PageRegistry& registry,float heigh
     const auto pages=registry.Pages();
     const auto bottomCount=std::count_if(pages.begin(),pages.end(),[](const auto& page){return page.section==PageSection::Bottom;});
     const float bottomTop=(std::max)(0.0F,height-17-step*static_cast<float>(bottomCount)+3);
-    const float contentBottom=bottomCount?(std::max)(0.0F,bottomTop-14):height;
+    // 两个管理行时仅压缩分隔间隙 3 DIP，保留现有普通页面位置及 Settings 底部位置。
+    // With two management rows compress only the separator gap by 3 DIP, preserving ordinary rows and Settings anchoring.
+    const float gap=bottomCount>1?11.0F:14.0F;
+    const float contentBottom=bottomCount?(std::max)(0.0F,bottomTop-gap):height;
     float top=186,bottom=bottomTop;
     bool primary{},secondary{};
     // 普通尺寸保持原有 43 DIP 行距和分区间隔；小高度裁掉不完整行，底部区不被覆盖。

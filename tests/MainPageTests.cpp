@@ -39,7 +39,7 @@ int main() {
     noven::ui::NavigationState navigation{registry};
     Require(navigation.Active() == noven::ui::BuiltinPageId::Scanner,
             "Scanner is the default page");
-    Require(registry.Pages().size() == 10, "all ten pages are registered");
+    Require(registry.Pages().size() == 11, "all eleven built-in pages are registered");
 
     noven::ui::Sidebar sidebar{registry};
     noven::ui::UiTheme theme;

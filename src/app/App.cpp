@@ -27,6 +27,7 @@
 #include "ui/MainWindowUi.h"
 #include "raid/LocalRaidService.h"
 #include "raid/RaidScanAssociation.h"
+#include "plugins/PluginDiscovery.h"
 #include "events/OfficialEventSource.h"
 #include "events/WikiEventSource.h"
 #include "events/EventService.h"
@@ -290,6 +291,9 @@ int App::Run(HINSTANCE instance, int show_command) {
     preferences_=data::AppSettings::Load(ExecutableDirectory()/L"data"/L"settings.json").value_or(data::AppSettings{});
     main_ui_->SetPreferences(preferences_);
     main_ui_->SetPreferencesHandler([this](const auto& next){return ApplyPreferences(next);});
+    plugin_discovery_=std::make_unique<plugins::PluginDiscovery>(ExecutableDirectory());
+    RefreshPlugins();
+    main_ui_->SetPluginRefreshHandler([this]{RefreshPlugins();});
     if (!recent_scan_store_->Load(ExecutableDirectory() / L"data" / L"recent-scans.json",
                                   history_error)) {
         common::DebugLog(L"[recent-scans] load warning: " + history_error);
@@ -699,6 +703,12 @@ void App::EnsureRecentAnimationTimer() {
 void App::PublishEvents() {
     if(event_service_&&main_ui_)main_ui_->SetEvents(event_service_->Events(),
         event_service_->RefreshState(),event_service_->LastSuccessfulRefresh());
+}
+
+void App::RefreshPlugins() {
+    // 启动一次、手动刷新一次；只把元数据快照交给 UI，不向 PageRegistry 注册清单页面。
+    // Startup/manual discovery only; publish metadata snapshots, never register manifest pages in PageRegistry.
+    if(plugin_discovery_)main_ui_->SetPlugins(plugin_discovery_->Refresh());
 }
 
 void App::OnScanCompletionMessage(LPARAM completion_pointer) {

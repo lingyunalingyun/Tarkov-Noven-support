@@ -733,6 +733,25 @@ int wmain(int argc, wchar_t** argv) try {
         click(width-theme.contentPadding-50,110);Require(manualScans==1,"pending scan blocks repeated requests");
         ui.SetRaidScanStatus(false,true,false);Require(ui.RaidScanLabel()==Tr("raid.scan_completed"),"unchanged history still shows scan completion");
         ui.SetRaidScanStatus(false,false,true);Require(ui.RaidScanLabel()==Tr("raid.scan_failed"),"scan failure is visible without clearing history");
+        noven::plugins::PluginManifest localManifest;
+        localManifest.manifestVersion=1;localManifest.apiVersion=1;localManifest.id="com.example.loot-route";
+        localManifest.name="Loot Route";localManifest.version="1.0.0";localManifest.requestedPermissions={"ui.page.register"};
+        noven::plugins::PluginSnapshot localPlugins;
+        localPlugins.records.push_back({L"plugins/com.example.loot-route",noven::plugins::PluginState::Valid,localManifest,{}});
+        const auto registeredCount=ui.Registry().Pages().size();ui.SetPlugins(localPlugins);
+        unsigned pluginRefreshes{};
+        ui.SetPluginRefreshHandler([&]{++pluginRefreshes;localPlugins.records.push_back({L"plugins/invalid",noven::plugins::PluginState::InvalidManifest,{},{{"plugins.diag.json",{}}}});ui.SetPlugins(localPlugins);});
+        selectPage(BuiltinPageId::Plugins);
+        Require(ui.Plugins().Rows().size()==1&&ui.Plugins().Rows()[0].title==L"Loot Route","native Plugins page consumes original metadata snapshot");
+        const auto pluginRefresh=ui.Plugins().RefreshBounds();
+        Require(!click(pluginRefresh.left+20,pluginRefresh.top+15)&&pluginRefreshes==1,"native refresh requests discovery through App callback only");
+        ui.Paint();Require(ui.Plugins().Rows().size()==2,"native refresh replaces displayed plugin snapshot");
+        Require(ui.Registry().Pages().size()==registeredCount&&!ui.Registry().Contains(PageId{"plugin.com.example.loot-route.main"}),"requested registration permission cannot change main navigation");
+        for(const auto page:{BuiltinPageId::Prices,BuiltinPageId::Plugins,BuiltinPageId::Scanner,BuiltinPageId::Plugins}) {
+            const auto row=sidebar.ItemRect(page,height,theme);Require(!click(row.left+30,(row.top+row.bottom)*.5F)&&ui.ActivePage()==page,"rapid Plugins navigation keeps stable identity");ui.Paint();
+        }
+        for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
+        Require(!ui.AnimationActive()&&pluginRefreshes==1&&ui.Plugins().Rows().size()==2,"navigation neither polls discovery nor loses plugin snapshot");
         const PageId futurePage{"plugin.com.example.loot-route"};
         Require(ui.Registry().Register({futurePage,PageSection::Secondary,"nav.events","page.events.description",
             PageIcon::GenericPlugin,-1,PageSource::Plugin,UiExtensionPolicy::Extensible}),"future page registers metadata without an enum or executable code");

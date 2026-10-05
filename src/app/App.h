@@ -50,6 +50,7 @@ namespace noven::raid {
 class LocalRaidService;
 }
 namespace noven::events {class EventService;class WinHttpEventClient;class OfficialEventSource;class WikiEventSource;}
+namespace noven::plugins {class PluginDiscovery;}
 
 namespace noven {
 
@@ -99,6 +100,7 @@ private:
     void EnsureRecentAnimationTimer();
     void StartMapAssetUpdate();
     void PublishEvents();
+    void RefreshPlugins();
     bool RegisterWindowClass(HINSTANCE instance) const;
     HWND CreateMainWindow(HINSTANCE instance) const;
 
@@ -115,6 +117,7 @@ private:
     std::unique_ptr<overlay::DebugVisualizationWindow> debug_visualization_window_;
     std::unique_ptr<scanner::ScanTrigger> scan_trigger_;
     std::unique_ptr<ui::MainWindowUi> main_ui_;
+    std::unique_ptr<plugins::PluginDiscovery> plugin_discovery_;
     std::unique_ptr<data::RecentScanStore> recent_scan_store_;
     std::uint64_t recent_scan_id_base_{};
     HANDLE recent_animation_timer_{};
