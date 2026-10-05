@@ -162,6 +162,7 @@ else()
 endif()
 
 target_link_libraries(NovenTarkovSupport PRIVATE
+    NovenPluginRuntime
     user32
     shell32
     imm32
@@ -186,6 +187,7 @@ add_custom_target(NovenTranslations ALL
         "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/i18n"
 )
 add_dependencies(NovenTarkovSupport NovenTranslations)
+add_dependencies(NovenTarkovSupport NovenPluginHost)
 add_custom_target(NovenHideoutAssets ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/data"
@@ -660,6 +662,12 @@ if(BUILD_TESTING)
         target_compile_options(NovenPluginRuntimeFaultTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME plugin_runtime_faults COMMAND NovenPluginRuntimeFaultTests "$<TARGET_FILE:NovenPluginHostTestPeer>" "$<TARGET_FILE_DIR:NovenPluginHost>")
+    add_executable(NovenPluginExecutionBoundaryTests tests/PluginExecutionBoundaryTests.cpp src/plugins/PluginDiscovery.cpp src/ui/PluginsPage.cpp src/ui/localization/LocalizationService.cpp)
+    target_link_libraries(NovenPluginExecutionBoundaryTests PRIVATE NovenPluginRuntime d2d1 dwrite)
+    if(MSVC)
+        target_compile_options(NovenPluginExecutionBoundaryTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME plugin_execution_boundary COMMAND NovenPluginExecutionBoundaryTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenPluginDiscoveryTests tests/PluginDiscoveryTests.cpp src/plugins/PluginDiscovery.cpp src/plugins/PluginManifest.cpp)
     target_include_directories(NovenPluginDiscoveryTests PRIVATE src)
     target_compile_definitions(NovenPluginDiscoveryTests PRIVATE UNICODE _UNICODE NOMINMAX)

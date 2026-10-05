@@ -28,6 +28,7 @@
 #include "raid/LocalRaidService.h"
 #include "raid/RaidScanAssociation.h"
 #include "plugins/PluginDiscovery.h"
+#include "plugins/PluginRuntimeManager.h"
 #include "events/OfficialEventSource.h"
 #include "events/WikiEventSource.h"
 #include "events/EventService.h"
@@ -292,6 +293,9 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->SetPreferences(preferences_);
     main_ui_->SetPreferencesHandler([this](const auto& next){return ApplyPreferences(next);});
     plugin_discovery_=std::make_unique<plugins::PluginDiscovery>(ExecutableDirectory());
+    // Phase 2 只持有空闲管理器；发现、刷新、权限声明均不能启动进程。
+    // Phase 2 owns an idle manager only; discovery, refresh and permission declarations cannot launch processes.
+    plugin_runtime_=std::make_unique<plugins::PluginRuntimeManager>();
     RefreshPlugins();
     main_ui_->SetPluginRefreshHandler([this]{RefreshPlugins();});
     if (!recent_scan_store_->Load(ExecutableDirectory() / L"data" / L"recent-scans.json",

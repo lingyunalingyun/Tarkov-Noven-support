@@ -9,6 +9,11 @@ namespace noven::plugins {
 using namespace ipc;
 bool Terminal(HostState state){return state==HostState::Stopped||state==HostState::Exited||state==HostState::Crashed||state==HostState::ProtocolError;}
 namespace {
+std::filesystem::path ExecutableDirectory(){
+    std::wstring path(32768,L'\0');const auto length=GetModuleFileNameW(nullptr,path.data(),static_cast<DWORD>(path.size()));
+    if(!length||length==path.size())throw std::runtime_error("cannot resolve first-party runtime directory");
+    path.resize(length);return std::filesystem::path(path).parent_path();
+}
 struct Failure final {HostState state;HostError error;};
 struct Session final {
     mutable std::mutex mutex;
@@ -96,6 +101,7 @@ struct PluginRuntimeManager::Impl final {
         return predicate(session->snapshot);
     }
 };
+PluginRuntimeManager::PluginRuntimeManager():PluginRuntimeManager(ExecutableDirectory()){}
 PluginRuntimeManager::PluginRuntimeManager(std::filesystem::path directory):impl_(std::make_unique<Impl>(std::move(directory))){}
 PluginRuntimeManager::~PluginRuntimeManager(){
     for(auto& [id,session]:impl_->sessions){std::lock_guard lock(session->mutex);session->stopping=true;SetEvent(session->wake.Get());}
