@@ -15,15 +15,19 @@ DWORD Remaining(Deadline deadline){
     return left<=0?0:static_cast<DWORD>(std::min<std::int64_t>(left,MAXDWORD-1));
 }
 IoResult Await(HANDLE pipe,OVERLAPPED& operation,Deadline deadline,HANDLE interrupt,HANDLE peer,DWORD& transferred){
-    const HANDLE events[]{operation.hEvent,interrupt?interrupt:operation.hEvent,peer?peer:operation.hEvent};
-    const auto result=WaitForMultipleObjects(3,events,FALSE,Remaining(deadline));
+    // Win32 禁止重复等待句柄；缺少可选信号时缩短数组，而不是复制 I/O 事件。
+    // Win32 forbids duplicate wait handles; omit absent optional signals instead of repeating the I/O event.
+    std::array<HANDLE,3> events{operation.hEvent};DWORD count=1,interruptIndex=MAXDWORD;
+    if(interrupt){interruptIndex=count;events[count++]=interrupt;}
+    if(peer&&peer!=interrupt)events[count++]=peer;
+    const auto result=WaitForMultipleObjects(count,events.data(),FALSE,Remaining(deadline));
     if(result==WAIT_OBJECT_0)return GetOverlappedResult(pipe,&operation,&transferred,FALSE)?IoResult::Complete:IoResult::Disconnected;
     // 取消后必须收割完成，才能释放 OVERLAPPED 和缓冲区；不再等待对端的协议响应。
     // Drain cancellation before freeing OVERLAPPED/buffers; this no longer waits for a peer protocol response.
     CancelIoEx(pipe,&operation);
     if(GetOverlappedResult(pipe,&operation,&transferred,TRUE))return IoResult::Complete;
     transferred=0;
-    if(result==WAIT_OBJECT_0+1)return IoResult::Interrupted;
+    if(interruptIndex!=MAXDWORD&&result==WAIT_OBJECT_0+interruptIndex)return IoResult::Interrupted;
     if(result==WAIT_TIMEOUT)return IoResult::Timeout;
     return IoResult::Disconnected;
 }
@@ -33,7 +37,8 @@ IoResult Transfer(HANDLE pipe,void* bytes,DWORD size,bool write,Deadline deadlin
     const BOOL done=write?WriteFile(pipe,bytes,size,&transferred,&operation):ReadFile(pipe,bytes,size,&transferred,&operation);
     if(done)return transferred?IoResult::Complete:IoResult::Disconnected;
     if(GetLastError()!=ERROR_IO_PENDING)return IoResult::Disconnected;
-    return Await(pipe,operation,deadline,interrupt,peer,transferred);
+    const auto result=Await(pipe,operation,deadline,interrupt,peer,transferred);
+    return result==IoResult::Complete&&transferred==0?IoResult::Disconnected:result;
 }
 std::string Ascii(std::wstring_view text){
     if(text.size()>256)Fail();std::string result;for(const auto c:text){if(c<32||c>126)Fail();result+=static_cast<char>(c);}return result;

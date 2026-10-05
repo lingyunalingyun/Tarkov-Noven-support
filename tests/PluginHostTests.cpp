@@ -42,5 +42,15 @@ int wmain(int argc,wchar_t** argv){
         Check(WaitForSingleObject(process.process.Get(),3000)==WAIT_OBJECT_0,"bounded host exit");DWORD code=99;
         Check(GetExitCodeProcess(process.process.Get(),&code)&&code==((scenario==0||scenario==4)?0u:3u),"host exit classification");
     }
+    {
+        const auto name=PipeName(RandomSecret());auto server=CreateServer(name);auto client=ConnectClient(name,GetCurrentProcessId());
+        Check(ConnectServer(server.Get(),After(2000))==IoResult::Complete,"same-process bounded pipe fixture");
+        Channel channel(server.Get());Message incoming;
+        Check(channel.Read(incoming,After(20))==IoResult::Timeout,"pending read with no optional handles times out");
+        Handle interrupt(CreateEventW(nullptr,TRUE,TRUE,nullptr));
+        Check(channel.Read(incoming,After(2000),interrupt.Get())==IoResult::Interrupted,"pending read with only interrupt signal cancels");
+        ResetEvent(interrupt.Get());Channel sender(client.Get());
+        Check(sender.Write({MessageType::Ping},After(2000))==IoResult::Complete&&channel.Read(incoming,After(2000))==IoResult::Complete&&incoming.type==MessageType::Ping,"cancelled empty read remains aligned and reusable");
+    }
     std::cout<<"First-party host boundary PASS\n";
 }
