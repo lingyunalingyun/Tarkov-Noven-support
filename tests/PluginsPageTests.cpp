@@ -28,6 +28,9 @@ int wmain(int argc,wchar_t** argv) try {
         Check(registry.Pages().size()==pageCount&&!registry.Contains(PageId{"plugin.com.example.loot-route.main"}),"untrusted manifest presentation never registers a page");
         const auto button=page.RefreshBounds();page.Down(button.left+10,button.top+10);Check(page.Up(button.left+10,button.top+10),"sole page action requests refresh");
         page.Down(button.left+10,button.top+10);Check(!page.Up(button.left-10,button.top+10),"refresh uses paired shared geometry");
+        page.Down(button.left+10,button.top+10);page.CancelDrag();Check(!page.Up(button.left+10,button.top+10),"cancelled capture cannot trigger refresh");
+        page.Down(button.right-6,170);Check(!page.Wheel(-120,theme.sidebarWidth+theme.contentPadding+30,300),"thumb drag owns scroll input");
+        page.CancelDrag();Check(page.Wheel(-120,theme.sidebarWidth+theme.contentPadding+30,300),"capture cancellation releases thumb drag");
         Check(page.Wheel(-240,theme.sidebarWidth+theme.contentPadding+30,300)&&page.Animating(),"shared smooth scrolling");
         for(int frame=0;frame<200&&page.Animating();++frame)page.Tick(.016F);
         Check(!page.Animating()&&page.Scroll()>0,"scroll becomes idle");page.Blur();Check(!page.Animating(),"leaving page settles motion");

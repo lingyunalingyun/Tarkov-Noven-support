@@ -22,7 +22,8 @@ public:
     bool Move(float x,float y);
     bool Leave(){const bool changed=hovered_;hovered_=false;return changed;}
     bool Wheel(int delta,float x,float y);
-    void Blur(){scroll_=target_;pressed_=false;grab_.reset();hovered_=false;}
+    void CancelDrag() noexcept {pressed_=false;grab_.reset();}
+    void Blur(){scroll_=target_;CancelDrag();hovered_=false;}
     bool Animating() const noexcept {return std::abs(scroll_-target_)>.01F;}
     void Tick(float elapsed);
     D2D1_RECT_F RefreshBounds() const noexcept {return refresh_;}

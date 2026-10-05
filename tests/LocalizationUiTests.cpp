@@ -744,6 +744,10 @@ int wmain(int argc, wchar_t** argv) try {
         selectPage(BuiltinPageId::Plugins);
         Require(ui.Plugins().Rows().size()==1&&ui.Plugins().Rows()[0].title==L"Loot Route","native Plugins page consumes original metadata snapshot");
         const auto pluginRefresh=ui.Plugins().RefreshBounds();
+        ui.MouseDown(static_cast<int>((pluginRefresh.left+20)*scale),static_cast<int>((pluginRefresh.top+15)*scale));
+        ui.CancelScrollDrag();
+        (void)ui.MouseUp(static_cast<int>((pluginRefresh.left+20)*scale),static_cast<int>((pluginRefresh.top+15)*scale));
+        Require(pluginRefreshes==0,"capture loss cancels pending Plugins refresh press");
         Require(!click(pluginRefresh.left+20,pluginRefresh.top+15)&&pluginRefreshes==1,"native refresh requests discovery through App callback only");
         ui.Paint();Require(ui.Plugins().Rows().size()==2,"native refresh replaces displayed plugin snapshot");
         Require(ui.Registry().Pages().size()==registeredCount&&!ui.Registry().Contains(PageId{"plugin.com.example.loot-route.main"}),"requested registration permission cannot change main navigation");
