@@ -17,8 +17,13 @@ std::wstring PluginStateText(plugins::PluginState state);
 // Protected page emits explicit enable/disable requests; Noven owns consent/grants, marketplace is offline.
 class PluginsPage final {
 public:
-    void SetSnapshot(plugins::PluginSnapshot snapshot){snapshot_=std::move(snapshot);dirty_=true;}
-    void SetRuntime(std::vector<plugins::HostSnapshot> runtime){runtime_=std::move(runtime);dirty_=true;}
+    void SetSnapshot(plugins::PluginSnapshot snapshot){CancelDrag();controlAction_.reset();snapshot_=std::move(snapshot);dirty_=true;}
+    void SetRuntime(std::vector<plugins::HostSnapshot> runtime){
+        bool changed=runtime.size()!=runtime_.size();
+        for(std::size_t i=0;!changed&&i<runtime.size();++i)changed=runtime[i].pluginId!=runtime_[i].pluginId||runtime[i].generation!=runtime_[i].generation
+            ||runtime[i].state!=runtime_[i].state||runtime[i].error!=runtime_[i].error||runtime[i].loadResult!=runtime_[i].loadResult;
+        if(changed){CancelDrag();controlAction_.reset();dirty_=true;runtime_=std::move(runtime);}
+    }
     std::optional<PluginControlAction> TakeControlAction(){return std::exchange(controlAction_,{});}
     PluginCenterTab Tab() const noexcept {return tab_;}
     void SelectTab(PluginCenterTab tab);

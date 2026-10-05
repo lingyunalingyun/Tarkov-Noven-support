@@ -17,6 +17,7 @@ public:
             for(const auto& page:session.pages){
                 if(!plugins::ValidLocalId(page.localId)||!plugins::ValidUiText(page.title,256))continue;
                 const PageId id{"plugin."+session.pluginId+"."+page.localId};
+                if(const auto previous=pages_.find(id);previous!=pages_.end()&&previous->second.page.title!=page.title){registry_.Unregister(id);pages_.erase(previous);}
                 if(!pages_.contains(id)){
                     PageDescriptor descriptor{id,PageSection::Secondary,"","",PageIcon::GenericPlugin,1000,PageSource::Plugin,UiExtensionPolicy::Extensible,page.title};
                     if(!registry_.Register(std::move(descriptor)))continue;
