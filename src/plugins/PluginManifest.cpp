@@ -58,12 +58,22 @@ bool ValidSemanticVersion(std::string_view value) {
     }
     return true;
 }
+bool ValidRuntimeEntry(std::string_view filename) {
+    if(filename.size()<=4||filename.size()>128||!filename.ends_with(".dll")
+        ||filename.front()=='.'||filename.front()==' '||filename.find("..")!=filename.npos
+        ||filename.find_first_of("/\\:%$<>\"|?*")!=filename.npos||!TextSafe(filename,false))return false;
+    auto stem=std::string(filename.substr(0,filename.find('.')));
+    for(auto& c:stem)if(c>='a'&&c<='z')c=static_cast<char>(c-'a'+'A');
+    if(stem=="CON"||stem=="PRN"||stem=="AUX"||stem=="NUL"
+        ||(stem.size()==4&&(stem.starts_with("COM")||stem.starts_with("LPT"))&&stem[3]>='1'&&stem[3]<='9'))return false;
+    return !stem.empty()&&stem.back()!=' ';
+}
 ManifestResult ParseManifest(std::string_view text) {
     ManifestResult result;
     const auto fail=[&](std::string key,std::string field={}){result.diagnostics.push_back({std::move(key),std::move(field)});return result;};
     if(text.size()>MaximumManifestBytes)return fail("plugins.diag.size");
-    // 未知字段仅作为 JSON 数据跳过；没有可执行入口字段、权限授予或页面注册副作用。
-    // Unknown fields are JSON data only: no executable entry contract, permission grant or page-registration side effect.
+    // V1 未知字段永远仅为数据；V2 显式 opt-in 也没有执行/授权/页面注册副作用。
+    // V1 unknown fields stay data permanently; explicit V2 opt-in has no execution/grant/page-registration side effects.
     try {
         const auto root=raid::json::Parser(text,true).Parse();
         if(root.type!=raid::json::Value::Type::Object)return fail("plugins.diag.json");
@@ -75,7 +85,7 @@ ManifestResult ParseManifest(std::string_view text) {
             target=it->second.integer;return true;
         };
         if(!integer("manifestVersion",manifest.manifestVersion))return result;
-        if(manifest.manifestVersion!=1) {result.state=PluginState::IncompatibleManifest;return fail("plugins.diag.manifest_version");}
+        if(manifest.manifestVersion!=1&&manifest.manifestVersion!=2) {result.state=PluginState::IncompatibleManifest;return fail("plugins.diag.manifest_version");}
         const auto string=[&](const char* field,std::string& target,std::size_t maximum,bool required=false,bool multiline=false) {
             const auto it=root.object.find(field);
             if(it==root.object.end()){if(required)result.diagnostics.push_back({"plugins.diag.required",field});return !required;}
@@ -100,6 +110,17 @@ ManifestResult ParseManifest(std::string_view text) {
                 if(std::find(manifest.requestedPermissions.begin(),manifest.requestedPermissions.end(),value.text)==manifest.requestedPermissions.end())
                     manifest.requestedPermissions.push_back(value.text);
             }
+        }
+        if(manifest.manifestVersion==2) {
+            const auto it=root.object.find("runtime");
+            if(it==root.object.end())return fail("plugins.diag.required","runtime");
+            if(it->second.type!=raid::json::Value::Type::Object)return fail("plugins.diag.field","runtime");
+            const auto& members=it->second.object;
+            const auto kind=members.find("kind"),entry=members.find("entry");
+            if(kind==members.end()||entry==members.end())return fail("plugins.diag.required","runtime.kind/entry");
+            if(kind->second.type!=raid::json::Value::Type::String||kind->second.text!="native-dll")return fail("plugins.diag.field","runtime.kind");
+            if(entry->second.type!=raid::json::Value::Type::String||!ValidRuntimeEntry(entry->second.text))return fail("plugins.diag.field","runtime.entry");
+            manifest.runtime=NativeRuntime{kind->second.text,entry->second.text};
         }
         result.state=manifest.apiVersion==1?PluginState::Valid:PluginState::IncompatibleApi;
         if(result.state==PluginState::IncompatibleApi)result.diagnostics.push_back({"plugins.diag.api_version","apiVersion"});

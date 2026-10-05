@@ -57,8 +57,12 @@ int main() try {
     Check(snapshot.records.size()==2&&snapshot.records[0].state==PluginState::DuplicateId&&snapshot.records[1].state==PluginState::DuplicateId,"API incompatibility cannot hide a duplicate ID");
     std::filesystem::remove(versions.Root()/L"supported"/L"manifest.json");snapshot=versions.Refresh();
     Check(snapshot.records[0].state==PluginState::IncompatibleApi&&snapshot.records[0].manifest->apiVersion==2,"refresh restores incompatible API metadata after conflict removal");
-    Write(versions.Root()/L"schema",R"({"manifestVersion":2})");snapshot=versions.Refresh();
+    Write(versions.Root()/L"schema",R"({"manifestVersion":3})");snapshot=versions.Refresh();
     Check(snapshot.records[1].state==PluginState::IncompatibleManifest,"future schema visible without reinterpretation");
+    auto native=valid;native.replace(native.find("\"manifestVersion\":1"),19,"\"manifestVersion\":2");native.replace(native.find("com.example.loot-route"),22,"com.example.native");native.pop_back();native+=R"(,"runtime":{"kind":"native-dll","entry":"plugin.dll"}})";
+    Write(versions.Root()/L"native",native);snapshot=versions.Refresh();
+    bool foundNative=false;for(const auto& record:snapshot.records)if(record.manifest&&record.manifest->id=="com.example.native")foundNative=record.state==PluginState::Valid&&record.manifest->runtime.has_value();
+    Check(foundNative,"V2 discovery returns metadata without requiring or loading DLL");
     TemporaryDirectory entries;PluginDiscovery entryBound{entries.path};std::filesystem::create_directory(entryBound.Root());
     for(int i=0;i<1025;++i)std::ofstream(entryBound.Root()/std::to_string(i))<<"not executed";
     Check(entryBound.Refresh().records.empty()&&!entryBound.Snapshot().diagnostics.empty(),"root entry capacity includes files without inspecting or executing them");

@@ -1,7 +1,7 @@
-# Plugin Manifest V1
+# Plugin Manifest V1 / V2
 
-本阶段仅发现和显示本地元数据，不执行插件、不授予权限、不扩展主界面。
-This phase discovers and displays local metadata only: no execution, permission grants or main-UI extensions.
+V1 永久只发现和显示元数据，任何运行入口字段均无效。V2 显式描述原生运行时，但发现/刷新不执行、不授予权限。
+V1 permanently remains metadata-only; executable-looking fields have no effect. V2 explicitly describes a native runtime, but discovery/Refresh neither executes nor grants permissions.
 
 ## Location and discovery
 
@@ -39,8 +39,8 @@ Reparse points, hardlinked manifests and normalized out-of-root paths are reject
 
 必填字段是 `manifestVersion`、`id`、`name`、`version`、`apiVersion`；其他示例字段可省略。
 The first five fields are required; all other example fields are optional.
-前者定义清单格式，后者仅表示未来 API 兼容代际；均支持正整数 `1`，并不意味着已经存在可执行 API。
-`manifestVersion` defines the file schema; `apiVersion` declares future API compatibility only. Both support positive integer `1`, not an implemented executable API.
+前者定义清单格式，后者表示 API 兼容代际；清单支持 `1` 和 `2`，API 支持 `1`。V1 不因此获得运行资格。
+`manifestVersion` defines the schema (1 or 2); `apiVersion` declares API compatibility (1). V1 does not acquire runtime eligibility.
 未来清单版本标记格式不兼容且不解释其字段；未来 API 版本保留有效元数据并标记 API 不兼容。
 Future schema versions are marked incompatible without interpreting their fields; future API versions retain otherwise-valid metadata and are marked API-incompatible.
 
@@ -69,5 +69,28 @@ Member order is irrelevant. Duplicate keys, wrong types, invalid UTF-8 and malfo
 重复 ID 的所有已解析记录均标记冲突，包括 API 不兼容的记录，不按目录顺序选胜者。无效或不兼容目录保留可读状态和诊断，不能静默遮盖其他插件。
 All parsed records sharing an ID are conflicted, including API-incompatible records; directory order never chooses a winner. Invalid/incompatible directories remain visible with diagnostics and cannot silently shadow neighbors.
 
-`builtin.plugins` 是受保护的内置管理页，唯一动作是刷新。即使请求 `ui.page.register`，清单也不能注册页面或执行代码。
-`builtin.plugins` is a protected built-in management page. Refresh is its only action; even `ui.page.register` cannot register a page or execute code.
+`builtin.plugins` 是受保护的内置管理页。V1 即使请求 `ui.page.register`，清单也不能注册页面或执行代码。
+`builtin.plugins` is a protected built-in management page. V1 remains non-executable even when requesting `ui.page.register`.
+
+## Explicit V2 runtime descriptor
+
+V2 使用相同的公共字段/上限，额外要求以下对象；仅 `native-dll` 被识别。有效清单只是候选描述，不等于启用或授权。
+V2 retains the common fields/bounds and requires this object. Only `native-dll` is recognized; a valid manifest is a candidate, not enablement or consent.
+
+```json
+{
+  "manifestVersion": 2,
+  "id": "com.example.hello",
+  "name": "Hello",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "permissions": ["ui.page.register"],
+  "runtime": {"kind": "native-dll", "entry": "plugin.dll"}
+}
+```
+
+entry 是最多 128 UTF-8 字节的直接子文件名，必须使用小写 `.dll` 扩展名。拒绝空基本名、前导点/空格、`..`、路径分隔符、冒号、环境变量标记、Windows 非法文件名字符/设备名称和控制字符。运行阶段必须再次验证实际文件路径。
+Entry is a direct-child filename of at most 128 UTF-8 bytes, with lowercase `.dll` suffix. Empty stems, leading dots/spaces, `..`, separators, colons, environment markers, invalid Windows characters/device names and controls reject. Execution must separately revalidate the actual file path.
+
+不支持 EXE、脚本、命令或参数。V1 的 `runtime` 无论类型或内容都仍是忽略的未知字段；未来清单版本（>2）不被解释。
+EXEs, scripts, commands and arguments are unsupported. V1 `runtime` stays an ignored unknown field regardless of content/type; future schema versions (>2) are not interpreted.

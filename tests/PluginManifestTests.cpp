@@ -17,7 +17,7 @@ int main(){
     for(const auto good:{"1.2.3","0.0.0","1.2.3-beta.1","1.2.3+build.05","1.2.3-beta+sha-ABC"})Check(ValidSemanticVersion(good),"SemVer variants");
     for(const auto bad:{"1.2","1.2.3.4","01.2.3","v1.2.3","1.2.3-01","1.2.3-","1.2.3+","1.2.3+a..b","1.2.3+a+b","-1.2.3"})Check(!ValidSemanticVersion(bad),"invalid SemVer");
     for(const auto bad:{"{}",R"({"manifestVersion":"1"})",R"({"manifestVersion":0})",R"({"manifestVersion":-1})",R"({"manifestVersion":1,"id":2})",R"({"manifestVersion":1,"id":"a.b","name":"x","version":"1.2.3"})","[]","null","{", "{\"a\":1,\"a\":2}"})Check(ParseManifest(bad).state==PluginState::InvalidManifest,"missing/wrong/malformed required facts");
-    Check(ParseManifest(R"({"manifestVersion":2})").state==PluginState::IncompatibleManifest,"future schema not reinterpreted");
+    Check(ParseManifest(R"({"manifestVersion":3})").state==PluginState::IncompatibleManifest,"future schema not reinterpreted");
     auto api=Manifest();api.replace(api.find("\"apiVersion\":1"),14,"\"apiVersion\":2");
     const auto incompatible=ParseManifest(api);Check(incompatible.state==PluginState::IncompatibleApi&&incompatible.manifest.has_value(),"unsupported API preserves metadata");
     Check(ParseManifest(Manifest("INVALID.id")).state==PluginState::InvalidManifest,"ID rejects at schema boundary");
@@ -60,5 +60,22 @@ int main(){
     Check(ParseManifest(exact).state==PluginState::InvalidManifest,"one byte over file capacity");
     for(const auto field:{"description","author","homepage","source","license","permissions"})
         Check(ParseManifest(Manifest("a.b","1.0.0",",\""+std::string(field)+"\":false")).state==PluginState::InvalidManifest,"optional field wrong type");
-    std::cout<<"Manifest v1 validation PASS\n";
+    const auto v2=[](std::string runtime){auto value=Manifest();value.replace(value.find("\"manifestVersion\":1"),19,"\"manifestVersion\":2");value.pop_back();return value+runtime+"}";};
+    const auto native=ParseManifest(v2(R"(,"runtime":{"kind":"native-dll","entry":"plugin.dll"})"));
+    Check(native.state==PluginState::Valid&&native.manifest->runtime&&native.manifest->runtime->entry=="plugin.dll","minimal explicit V2 native descriptor");
+    for(const auto extra:{R"(,"runtime":{"entry":"evil.exe","kind":"native-dll"})",R"(,"entry":"evil.dll","dll":"evil.dll","exe":"evil.exe","command":"ignored","runtime":{"kind":"native-dll","entry":"evil.dll"})",R"(,"runtime":false)"}){
+        const auto metadata=ParseManifest(Manifest("a.b","1.0.0",extra));
+        Check(metadata.state==PluginState::Valid&&!metadata.manifest->runtime,"V1 runtime-like fields remain permanently inert");
+    }
+    for(const auto runtime:{"",R"(,"runtime":false)",R"(,"runtime":{})",R"(,"runtime":{"kind":"exe","entry":"plugin.dll"})",R"(,"runtime":{"kind":"native-dll","entry":1})"})
+        Check(ParseManifest(v2(runtime)).state==PluginState::InvalidManifest,"V2 requires correct runtime fields");
+    for(const auto entry:{"bin/plugin.dll","..\\plugin.dll","C:\\x\\plugin.dll","%TEMP%\\plugin.dll","plugin.exe","plugin.DLL","plugin..dll","plugin:stream.dll",".dll","CON.dll","aux.dll","COM1.dll","LPT9.dll"," plugin.dll","plugin .dll","$HOME.dll"}){
+        Check(!ValidRuntimeEntry(entry),"unsafe native entry rejected");
+        Check(ParseManifest(v2(",\"runtime\":{\"kind\":\"native-dll\",\"entry\":"+noven::raid::json::Quote(entry)+"}")).state==PluginState::InvalidManifest,"entry enforced by schema");
+    }
+    Check(ValidRuntimeEntry("plugin.dll")&&ValidRuntimeEntry("hello-1.dll")&&ValidRuntimeEntry("插件.dll"),"UTF8 direct-child filenames");
+    Check(ValidRuntimeEntry(std::string(124,'x')+".dll")&&!ValidRuntimeEntry(std::string(125,'x')+".dll"),"exact filename bound");
+    auto futureApi=v2(R"(,"runtime":{"kind":"native-dll","entry":"plugin.dll"})");futureApi.replace(futureApi.find("\"apiVersion\":1"),14,"\"apiVersion\":2");
+    Check(ParseManifest(futureApi).state==PluginState::IncompatibleApi,"V2 API incompatibility preserved");
+    std::cout<<"Manifest v1/v2 validation PASS\n";
 }
