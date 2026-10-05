@@ -1,22 +1,19 @@
-# 第一方 Host 传输 v1 / First-party Host transport v1
+# Host 传输 v1 / Host transport v1
 
-Phase 2 仅提供第一方进程边界，不执行第三方代码，也不改变已接受的 [Manifest V1](PLUGIN_MANIFEST.md)。
-软件启动、插件发现和 Refresh 均只读取元数据；请求权限不等于授权，`entry/dll/exe/command` 等未知字段无执行效果。
-Phase 2 provides a first-party process boundary only. Discovery/startup/Refresh read metadata without launching hosts.
-Requested permissions are not grants; unknown executable-looking manifest fields have no execution effect.
+Phase 2 建立的第一方进程边界继续保留；Phase 3 仅向明确授权的 Manifest V2 会话扩展原生加载与声明式页面。V1 永久仅元数据，未知运行字段无效；发现和 Refresh 不启动新插件，启动时只恢复有效的已保存授权。
+The Phase 2 boundary is preserved. Phase 3 adds native loading/declarative pages only for approved V2 sessions. V1 stays permanently metadata-only; unknown runtime fields remain harmless. Discovery/Refresh never start new plugins; startup resumes valid saved consent only. See [Native API](PLUGIN_API.md).
 
 ## 所有权 / Ownership
 
-App 持有空闲 PluginRuntimeManager。只有第一方测试显式调用 Start；每个插件身份一个独立 Host/管道/Job。
+App 持有 PluginRuntimeManager 和授权控制器；生产原生会话只由显式授权或有效已保存授权启动。Start 仍仅供第一方 V1 传输测试，不加载插件。每个身份一个独立 Host/管道/Job。
 生产 Host 路径固定为当前可执行文件目录中的 `NovenPluginHost.exe`，不从清单、插件目录或工作目录解析。
 通过 CreateProcessW 挂起创建、不继承句柄、无控制台、不提权；加入 KILL_ON_JOB_CLOSE Job 后才恢复执行。
-App owns an idle manager. Only first-party tests explicitly start sessions, one Host/pipe/Job per plugin identity.
+App owns manager/consent controller; native sessions require explicit or valid persisted consent. Start remains a first-party V1 transport test without DLL loading. One Host/pipe/Job per plugin identity.
 The host is executable-relative, created suspended without inherited handles/console/elevation, assigned to its Job, then resumed.
 
 这提供崩溃隔离、地址空间分离和受控 IPC，并不是 OS 安全沙箱。
-没有插件 DLL/EXE 加载、子运行时、网络、EFT 访问、UI 扩展消息或原生 UI/Core 指针传输。
-Process isolation is not an OS security sandbox. No third-party code, child runtime, network, EFT access,
-UI extension messages or raw native UI/core pointers exist in this protocol.
+只有 Host 可以加载已授权 V2 的 DLL；没有插件 EXE/子运行时/网络/EFT API/内置 UI 修改或原生 UI/Core 指针传输。
+Process isolation is not an OS security sandbox. Only Host loads approved V2 DLLs; there are no plugin EXEs, child runtimes, network/EFT APIs, built-in UI modifications or native UI/core pointers.
 
 ## 帧与握手 / Frames and handshake
 
@@ -78,21 +75,21 @@ Session and Host API boundaries both enforce permission; messages cannot spoof a
 Only Host loads DLLs, using absolute paths with DLL_LOAD_DIR / SYSTEM32, never CWD/PATH search.
 Process isolation is still not an OS sandbox. These extensions expose no network/product data/built-in UI modification APIs.
 
-除握手外，每条消息仅包含 `type`：ping、pong、shutdown、shutdownAck、protocolError。
+以下基础控制消息仅包含 `type`：ping、pong、shutdown、shutdownAck、protocolError；加载/UI 消息遵循上面的独立 schema。
 Ready 后重复 hello/helloAck、未请求的 pong 或其他非法消息会收束会话。无任意方法调用。
 握手期间允许 shutdown 并返回 shutdownAck；关闭交错的 ping/pong 不能伪装关闭确认。
-Non-handshake messages contain only type. Unexpected messages terminate the session; there is no arbitrary method invocation.
+Base control messages contain only type; runtime/UI messages use their schemas above. Unexpected messages terminate the session; there is no arbitrary method invocation.
 Shutdown is accepted during handshake; queued ping/pong cannot substitute for shutdownAck.
 
-状态：Stopped、Starting、Connecting、Handshaking、Ready、Stopping、Exited、Crashed、ProtocolError。
+状态：Stopped、Starting、Connecting、Handshaking、Ready、Loading、Running、Stopping、Exited、Crashed、ProtocolError。Loading 最多 5 秒，UI 动作最多 3 秒。
 管道连接/握手各最多 5 秒；半帧收到首字节后最多 5 秒；发送最多 2 秒；ping 响应最多 3 秒。
 关闭发送与确认共用 2 秒期限，再最多等待进程退出 2 秒；超时由父 Job 终止，仅针对自己拥有的进程。
 每会话使用可中断 I/O 的受管理 jthread，UI 不阻塞等待；取消 I/O 后收割内核完成，避免 OVERLAPPED 生命周期错误。
-没有后台轮询、无限重启或 detached 线程。每管理器最多保留 16 个会话，终态快照保留至管理器销毁；本阶段不提供重启/热重载。
+没有后台轮询、无限重启或 detached 线程。每管理器最多保留 16 个身份；终态快照可由同一身份的再次明确启用替换，无热重载。
 States and errors are stable, nonlocalized values. Connection/handshake/partial frames are bounded (5 s), writes (2 s), ping (3 s).
 Shutdown shares a 2 s send/ack deadline plus 2 s exit wait, followed by owned-Job cleanup on failure.
 Managed workers use interruptible I/O and drain kernel cancellation safely, never blocking the UI on protocol waits.
-No polling/restart loops/detached threads; at most 16 retained sessions per manager, without restart/hot reload in this phase.
+No polling/restart loops/detached threads; at most 16 retained identities per manager. Explicit re-enable may replace a terminal session; no hot reload.
 
 Windows 行为参考：[Named pipe security](https://learn.microsoft.com/en-us/windows/win32/ipc/named-pipe-security-and-access-rights)、
 [Job objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)、

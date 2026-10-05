@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 2,
+  "id": "com.example.noven-hello",
+  "name": "Hello Plugin",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "First-party ABI example: a declarative page and a counter button. No game or network access.",
+  "author": "Noven example",
+  "permissions": ["ui.page.register"],
+  "runtime": {"kind": "native-dll", "entry": "noven-hello.dll"}
+}
