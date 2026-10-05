@@ -29,6 +29,7 @@ void Require(IoResult result,HostError timeout,Session& session){
 void Run(Session& session,const std::filesystem::path& host){
     Handle job,pipe;HostProcess process;HostState finalState=HostState::Exited;HostError finalError=HostError::None;
     try{
+        {std::lock_guard lock(session.mutex);if(session.stopping)throw Failure{HostState::Stopped,HostError::None};}
         const auto secret=RandomSecret(),name=RandomSecret();const auto pipeName=PipeName(name);
         pipe=CreateServer(pipeName);job=CreateHostJob();
         process=LaunchHost(host,job.Get(),pipeName,session.snapshot.pluginId,secret);
@@ -66,7 +67,7 @@ void Run(Session& session,const std::filesystem::path& host){
                 if(WaitForSingleObject(process.process.Get(),100)==WAIT_OBJECT_0){DWORD code{};GetExitCodeProcess(process.process.Get(),&code);finalState=code==0?HostState::Exited:HostState::Crashed;finalError=code==0?HostError::None:HostError::Disconnected;break;}
                 throw Failure{HostState::Crashed,HostError::Disconnected};
             }
-            Require(result,HostError::PingTimeout,session);
+            Require(result,pongDeadline==Deadline::max()?HostError::FrameTimeout:HostError::PingTimeout,session);
             if(incoming.type==MessageType::Ping)Require(channel.Write({MessageType::Pong},After(2000),process.process.Get()),HostError::Disconnected,session);
             else if(incoming.type==MessageType::Pong){
                 std::lock_guard lock(session.mutex);if(!session.awaitingPong)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};

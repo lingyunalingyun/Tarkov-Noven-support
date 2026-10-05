@@ -2,10 +2,16 @@
 #include "plugins/PluginPipe.h"
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 using namespace noven::plugins;
 void Check(bool ok,const char* text){if(!ok){std::cerr<<text<<'\n';std::exit(1);}}
 PluginRecord Record(std::string id){PluginRecord record;record.state=PluginState::Valid;record.manifest=PluginManifest{};record.manifest->id=std::move(id);record.manifest->manifestVersion=record.manifest->apiVersion=1;return record;}
 int wmain(int argc,wchar_t** argv){
+    if(argc==4&&std::wstring_view(argv[1])==L"--owner-fixture"){
+        PluginRuntimeManager owner(argv[2]);Check(owner.Start(Record("com.example.owner-exit"))&&owner.WaitFor("com.example.owner-exit",HostState::Ready,10000),"abrupt-owner fixture ready");
+        {std::ofstream output(argv[3]);output<<owner.Snapshot("com.example.owner-exit")->processId;}
+        ExitProcess(0);
+    }
     Check(argc==2,"runtime directory required");const std::filesystem::path directory(argv[1]);DWORD before=0,after=0;
     // Win32/CNG 首次调用缓存系统句柄；先完整初始化，再精确比较后续会话的计数。
     // Win32/CNG cache system handles on first use; fully initialize before exact subsequent-session counts.
@@ -41,5 +47,16 @@ int wmain(int argc,wchar_t** argv){
     DWORD child=0;
     {PluginRuntimeManager manager(directory);manager.Start(Record("com.example.cleanup"));Check(manager.WaitFor("com.example.cleanup",HostState::Ready,10000),"cleanup session ready");child=manager.Snapshot("com.example.cleanup")->processId;}
     ipc::Handle process(OpenProcess(SYNCHRONIZE,FALSE,child));Check(!process||WaitForSingleObject(process.Get(),2000)==WAIT_OBJECT_0,"destruction leaves no orphan");
+    const auto output=std::filesystem::temp_directory_path()/("noven-owner-test-"+ipc::RandomSecret()+".txt");
+    wchar_t self[32768]{};Check(GetModuleFileNameW(nullptr,self,32768)!=0,"test owner executable");
+    auto command=ipc::QuoteArgument(self)+L" --owner-fixture "+ipc::QuoteArgument(directory.wstring())+L" "+ipc::QuoteArgument(output.wstring());
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION ownerProcess{};
+    Check(CreateProcessW(self,command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&ownerProcess),"first-party abrupt-owner test process");
+    ipc::Handle owner(ownerProcess.hProcess),ownerThread(ownerProcess.hThread);
+    Check(WaitForSingleObject(owner.Get(),15000)==WAIT_OBJECT_0,"test owner exits without destructors");DWORD ownerCode=99;
+    Check(GetExitCodeProcess(owner.Get(),&ownerCode)&&ownerCode==0,"test owner prepared host before abrupt exit");
+    {std::ifstream input(output);child=0;input>>child;Check(!input.fail()&&child!=0,"child identity recorded without secrets");}
+    std::filesystem::remove(output);ipc::Handle orphan(OpenProcess(SYNCHRONIZE,FALSE,child));
+    Check(!orphan||WaitForSingleObject(orphan.Get(),3000)==WAIT_OBJECT_0,"OS closes owner Job and kills host after abrupt owner exit");
     std::cout<<"Plugin runtime ownership PASS\n";
 }

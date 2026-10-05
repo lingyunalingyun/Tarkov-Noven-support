@@ -37,7 +37,8 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
         if(mode=="exit-normal")return 0;
         if(mode=="exit-abnormal")return 71;
         if(mode=="duplicate-hello"){channel.Write(hello,After(2000),parent.Get());WaitForSingleObject(parent.Get(),INFINITE);return 0;}
-        if(mode=="mid-frame")Raw(pipe.Get(),{100,0,0,0,'{'});
+        if(mode=="mid-frame"||mode=="stalled-frame")Raw(pipe.Get(),{100,0,0,0,'{'});
+        if(mode=="stalled-frame"){WaitForSingleObject(parent.Get(),INFINITE);return 0;}
         if(mode=="disconnect"||mode=="mid-frame"){pipe.Reset();WaitForSingleObject(parent.Get(),INFINITE);return 0;}
         if(mode=="host-ping"){
             if(channel.Write({MessageType::Ping},After(2000))!=IoResult::Complete||channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;

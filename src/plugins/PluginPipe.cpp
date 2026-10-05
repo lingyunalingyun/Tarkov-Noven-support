@@ -28,6 +28,7 @@ IoResult Await(HANDLE pipe,OVERLAPPED& operation,Deadline deadline,HANDLE interr
     return IoResult::Disconnected;
 }
 IoResult Transfer(HANDLE pipe,void* bytes,DWORD size,bool write,Deadline deadline,HANDLE interrupt,HANDLE peer,DWORD& transferred){
+    if(deadline!=Deadline::max()&&std::chrono::steady_clock::now()>=deadline){transferred=0;return IoResult::Timeout;}
     Handle event(CreateEventW(nullptr,TRUE,FALSE,nullptr));if(!event)Fail();OVERLAPPED operation{};operation.hEvent=event.Get();
     const BOOL done=write?WriteFile(pipe,bytes,size,&transferred,&operation):ReadFile(pipe,bytes,size,&transferred,&operation);
     if(done)return transferred?IoResult::Complete:IoResult::Disconnected;
@@ -114,7 +115,8 @@ HostArguments ParseHostArguments(int count,wchar_t** arguments){
 }
 IoResult Channel::Read(Message& message,Deadline deadline,HANDLE interrupt,HANDLE peer){
     while(headerOffset_<header_.size()){
-        DWORD bytes=0;const auto result=Transfer(pipe_,header_.data()+headerOffset_,static_cast<DWORD>(header_.size()-headerOffset_),false,deadline,interrupt,peer,bytes);
+        DWORD bytes=0;const auto result=Transfer(pipe_,header_.data()+headerOffset_,static_cast<DWORD>(header_.size()-headerOffset_),false,std::min(deadline,frameDeadline_),interrupt,peer,bytes);
+        if(bytes&&frameDeadline_==Deadline::max())frameDeadline_=After(5000);
         headerOffset_+=bytes;if(result!=IoResult::Complete)return result;
     }
     if(payload_.empty()){
@@ -122,10 +124,10 @@ IoResult Channel::Read(Message& message,Deadline deadline,HANDLE interrupt,HANDL
         if(length==0||length>MaximumFrameBytes)Fail();payload_.resize(length);
     }
     while(payloadOffset_<payload_.size()){
-        DWORD bytes=0;const auto result=Transfer(pipe_,payload_.data()+payloadOffset_,static_cast<DWORD>(payload_.size()-payloadOffset_),false,deadline,interrupt,peer,bytes);
+        DWORD bytes=0;const auto result=Transfer(pipe_,payload_.data()+payloadOffset_,static_cast<DWORD>(payload_.size()-payloadOffset_),false,std::min(deadline,frameDeadline_),interrupt,peer,bytes);
         payloadOffset_+=bytes;if(result!=IoResult::Complete)return result;
     }
-    message=ParseMessage(payload_);headerOffset_=payloadOffset_=0;payload_.clear();return IoResult::Complete;
+    message=ParseMessage(payload_);headerOffset_=payloadOffset_=0;payload_.clear();frameDeadline_=Deadline::max();return IoResult::Complete;
 }
 IoResult Channel::Write(const Message& message,Deadline deadline,HANDLE peer){
     auto frame=Frame(Serialize(message));std::size_t offset=0;

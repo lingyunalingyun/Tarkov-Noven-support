@@ -45,6 +45,7 @@ private:
     std::array<std::uint8_t,4> header_{};
     std::size_t headerOffset_{},payloadOffset_{};
     std::string payload_;
+    Deadline frameDeadline_{Deadline::max()};
 };
 int RunHost(const HostArguments& arguments);
 }

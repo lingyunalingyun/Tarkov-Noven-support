@@ -5,7 +5,7 @@
 
 namespace noven::plugins {
 enum class HostState { Stopped,Starting,Connecting,Handshaking,Ready,Stopping,Exited,Crashed,ProtocolError };
-enum class HostError { None,Startup,ConnectionTimeout,HandshakeTimeout,PeerMismatch,HandshakeMismatch,InvalidProtocol,Disconnected,PingTimeout,ShutdownTimeout };
+enum class HostError { None,Startup,ConnectionTimeout,HandshakeTimeout,PeerMismatch,HandshakeMismatch,InvalidProtocol,Disconnected,PingTimeout,ShutdownTimeout,FrameTimeout };
 struct HostSnapshot final {
     std::string pluginId;
     HostState state{HostState::Stopped};

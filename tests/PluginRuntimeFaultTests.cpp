@@ -13,7 +13,7 @@ struct Temp final {
 };
 int wmain(int argc,wchar_t** argv){
     Check(argc==3,"first-party test peer and real runtime paths required");
-    for(const auto mode:{"wrong-id","wrong-token","wrong-version","no-connect","no-hello","zero-frame","oversized-frame","bad-json","bad-utf8","missing-fields","unknown-type","duplicate-hello","disconnect","mid-frame","exit-normal","exit-abnormal","ignore-shutdown","silent-pong","host-ping"}){
+    for(const auto mode:{"wrong-id","wrong-token","wrong-version","no-connect","no-hello","zero-frame","oversized-frame","bad-json","bad-utf8","missing-fields","unknown-type","duplicate-hello","disconnect","mid-frame","stalled-frame","exit-normal","exit-abnormal","ignore-shutdown","silent-pong","host-ping"}){
         Temp fixture;std::filesystem::copy_file(argv[1],fixture.path/L"NovenPluginHost.exe");{std::ofstream file(fixture.path/"fault.txt");file<<mode;}
         PluginRuntimeManager manager(fixture.path);Check(manager.Start(Record()),"test session start");
         const std::string_view fault(mode);
@@ -33,6 +33,7 @@ int wmain(int argc,wchar_t** argv){
         else if(fault=="no-hello")Check(state.error==HostError::HandshakeTimeout,"missing hello timeout");
         else if(fault=="ignore-shutdown")Check(state.error==HostError::ShutdownTimeout,"forced cleanup after missing shutdownAck");
         else if(fault=="silent-pong")Check(state.error==HostError::PingTimeout,"bounded ping timeout");
+        else if(fault=="stalled-frame")Check(state.error==HostError::FrameTimeout,"partial frame has bounded deadline even without a pending ping");
         else if(fault=="exit-normal"||fault=="host-ping")Check(state.state==HostState::Exited,"normal exit / bidirectional ping");
         else if(fault=="exit-abnormal"||fault=="disconnect"||fault=="mid-frame")Check(state.state==HostState::Crashed,"crash/disconnect isolated");
         else Check(state.state==HostState::ProtocolError&&state.error==HostError::InvalidProtocol,"bad frames/messages rejected");
@@ -46,4 +47,7 @@ int wmain(int argc,wchar_t** argv){
     Check(healthy.Start(other)&&failed.Start(Record()),"parallel independent owners");
     Check(failed.WaitForTerminal("com.example.fault",10000)&&healthy.WaitFor("dev.example.healthy",HostState::Ready,10000),"failed session cannot corrupt healthy neighbor");
     Check(healthy.Ping("dev.example.healthy")&&healthy.WaitForPong("dev.example.healthy",1,5000),"healthy owner still communicates");
+    {std::ofstream file(fixture.path/"fault.txt");file<<"no-hello";}
+    PluginRuntimeManager handshaking(fixture.path);Check(handshaking.Start(Record())&&handshaking.WaitFor("com.example.fault",HostState::Handshaking,10000),"silent peer is handshaking");
+    Check(handshaking.Stop("com.example.fault")&&handshaking.WaitForTerminal("com.example.fault",6000)&&handshaking.Snapshot("com.example.fault")->state==HostState::Stopped,"shutdown cancels handshake safely");
 }
