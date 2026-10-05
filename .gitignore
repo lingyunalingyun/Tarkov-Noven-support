@@ -33,6 +33,7 @@ Testing/
 
 # Local tooling and temporary files
 /debug-captures/
+/plugins/
 /data/economy-cache/
 /data/recent-scans.json
 /data/raid-history.json*
