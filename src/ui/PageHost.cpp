@@ -301,7 +301,7 @@ std::optional<data::GameMode> PageHost::ModeOptionAt(
 }
 
 void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
-                    float height, MainPage active, const ScannerPageState& scanner,
+                    float height, PageId active, const ScannerPageState& scanner,
                     bool modeMenuOpen, bool modeHovered,
                     std::optional<data::GameMode> hoveredMode,
                     const std::vector<data::RecentScanEntry>& recent,
@@ -326,17 +326,17 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                     const std::vector<data::PriceRow>& prices,
                     const ItemBitmapMap& images, std::size_t pricePage,
                     std::size_t priceTotal, const SearchBox* pricePageInput,float modeMenuProgress) const {
-    const PageInfo* page = FindPage(active);
-    if (page == nullptr) return;
+    const auto page = registry_.Find(active);
+    if (!page) return;
     const float x = theme.sidebarWidth + theme.contentPadding;
     const float right = (std::max)(x + 1.0F, width - theme.contentPadding);
 
     // 所有页面共用紧凑标题行；内容与可选标签栏保持各自的布局。
     // All pages share a compact title row; content and optional tabs keep their own layout.
     DrawPageHeader(canvas, theme, x, right, Tr(page->titleKey));
-    if (active == MainPage::Settings) return;
+    if (active == BuiltinPageId::Settings) return;
 
-    if (active == MainPage::RecentScans) {
+    if (active == BuiltinPageId::RecentScans) {
         const auto pose = SampleTabTransition(recentTransition.progress);
         DrawTabBar(canvas, theme, canvas.body, kRecentTabs, RecentTabLayout(theme),
                    recentFilter, hoveredRecentTab, recentTransition.outgoingMode,
@@ -394,7 +394,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
         return;
     }
 
-    if (active == MainPage::Prices) {
+    if (active == BuiltinPageId::Prices) {
         const float listTop = PricesTop(width, theme);
         DrawPricePager(canvas, theme, D2D1::RectF(x, listTop - PricePagerHeight,
             right, listTop - 8), pricePage, priceTotal, pricePageInput, priceCaretVisible);
@@ -553,7 +553,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
         return;
     }
 
-    if (active != MainPage::Scanner) {
+    if (active != BuiltinPageId::Scanner) {
         const float card_right = (std::min)(right, x + 600.0F);
         canvas.Round(D2D1::RectF(x, 95, card_right, 245),
                      theme.cornerRadius, theme.surface);

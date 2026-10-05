@@ -1,7 +1,8 @@
 #pragma once
 
-#include "ui/MainPage.h"
+#include "ui/NavigationState.h"
 #include "ui/UiCanvas.h"
+#include "ui/SidebarLayout.h"
 #include "ui/Theme.h"
 #include "ui/TabBar.h"
 
@@ -12,7 +13,9 @@ namespace noven::ui {
 
 class Sidebar final {
 public:
-    void StartSelection(MainPage from,MainPage to,float height,const UiTheme& theme) {
+    explicit Sidebar(const PageRegistry& registry):registry_(registry){}
+    const SidebarLayout& Layout(float height,const UiTheme& theme) const;
+    void StartSelection(PageId from,PageId to,float height,const UiTheme& theme) {
         if(!Animating())top_=ItemRect(from,height,theme).top;
         from_=top_;target_=ItemRect(to,height,theme).top;progress_=0;
     }
@@ -23,20 +26,24 @@ public:
         const float t=SampleTabTransition(progress_).underlineProgress;top_=from_+(target_-from_)*t;
     }
     bool Animating() const noexcept {return progress_<1;}
-    [[nodiscard]] D2D1_RECT_F SelectionRect(MainPage active,float height,const UiTheme& theme) const noexcept {
+    [[nodiscard]] D2D1_RECT_F SelectionRect(PageId active,float height,const UiTheme& theme) const noexcept {
         auto rect=ItemRect(active,height,theme);
         if(Animating()){rect.top=top_;rect.bottom=top_+theme.navigationHeight;}
         return rect;
     }
-    [[nodiscard]] D2D1_RECT_F ItemRect(MainPage page, float height,
+    [[nodiscard]] D2D1_RECT_F ItemRect(PageId page, float height,
                                       const UiTheme& theme) const noexcept;
-    [[nodiscard]] std::optional<MainPage> HitTest(float x, float y,
+    [[nodiscard]] std::optional<PageId> HitTest(float x, float y,
                                                   float height,
                                                   const UiTheme& theme) const noexcept;
     void Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
-              MainPage active, std::optional<MainPage> hovered,
-              std::optional<MainPage> pressed) const;
+              PageId active, std::optional<PageId> hovered,
+              std::optional<PageId> pressed) const;
 private:
+    const PageRegistry& registry_;
+    mutable SidebarLayout layout_;
+    mutable std::uint64_t revision_{static_cast<std::uint64_t>(-1)};
+    mutable float height_{-1},width_{-1},rowHeight_{-1};
     float top_{-1},from_{},target_{},progress_{1};
 };
 

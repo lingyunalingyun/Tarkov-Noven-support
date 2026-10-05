@@ -7,32 +7,32 @@
 namespace noven::ui {
 namespace {
 
-void DrawIcon(const UiCanvas& canvas, MainPage page, float x, float y,
+void DrawIcon(const UiCanvas& canvas, PageIcon icon, float x, float y,
               D2D1_COLOR_F color) {
     canvas.brush.SetColor(color);
     const auto line=[&](float a,float b,float c,float d){canvas.target.DrawLine(D2D1::Point2F(x+a,y+b),D2D1::Point2F(x+c,y+d),&canvas.brush,1.4F);};
     // 原生矢量轮廓，无图标字体或位图依赖。
     // Native vector outlines without icon-font or bitmap dependencies.
-    if(page==MainPage::Hideout){line(0,8,9,1);line(9,1,18,8);line(3,7,3,17);line(3,17,15,17);line(15,17,15,7);line(7,17,7,11);line(7,11,11,11);line(11,11,11,17);return;}
-    if(page==MainPage::Map){line(1,3,6,1);line(6,1,12,4);line(12,4,17,2);line(17,2,17,15);line(17,15,12,17);line(12,17,6,14);line(6,14,1,16);line(1,16,1,3);line(6,1,6,14);line(12,4,12,17);return;}
-    if(page==MainPage::RaidHistory){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),8,8),&canvas.brush,1.4F);line(9,4,9,9);line(9,9,13,11);return;}
-    if(page==MainPage::Squad){for(float offset:{5.0F,13.0F}){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+offset,y+5),3,3),&canvas.brush,1.4F);line(offset-4,16,offset-4,12);line(offset-4,12,offset+4,12);line(offset+4,12,offset+4,16);}return;}
-    if(page==MainPage::Settings){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),5,5),&canvas.brush,1.4F);canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),2,2),&canvas.brush,1.4F);for(int i=0;i<8;++i){float a=i*0.785398F;line(9+5*std::cos(a),9+5*std::sin(a),9+8*std::cos(a),9+8*std::sin(a));}return;}
-    if(page==MainPage::RecentScans){line(1,5,1,17);line(1,17,13,17);line(5,1,17,1);line(17,1,17,13);line(17,13,5,13);line(5,13,5,1);line(8,5,14,5);line(8,9,12,9);return;}
+    if(icon==PageIcon::Hideout){line(0,8,9,1);line(9,1,18,8);line(3,7,3,17);line(3,17,15,17);line(15,17,15,7);line(7,17,7,11);line(7,11,11,11);line(11,11,11,17);return;}
+    if(icon==PageIcon::Map){line(1,3,6,1);line(6,1,12,4);line(12,4,17,2);line(17,2,17,15);line(17,15,12,17);line(12,17,6,14);line(6,14,1,16);line(1,16,1,3);line(6,1,6,14);line(12,4,12,17);return;}
+    if(icon==PageIcon::RaidHistory){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),8,8),&canvas.brush,1.4F);line(9,4,9,9);line(9,9,13,11);return;}
+    if(icon==PageIcon::Squad){for(float offset:{5.0F,13.0F}){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+offset,y+5),3,3),&canvas.brush,1.4F);line(offset-4,16,offset-4,12);line(offset-4,12,offset+4,12);line(offset+4,12,offset+4,16);}return;}
+    if(icon==PageIcon::Settings){canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),5,5),&canvas.brush,1.4F);canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x+9,y+9),2,2),&canvas.brush,1.4F);for(int i=0;i<8;++i){float a=i*0.785398F;line(9+5*std::cos(a),9+5*std::sin(a),9+8*std::cos(a),9+8*std::sin(a));}return;}
+    if(icon==PageIcon::RecentScans){line(1,5,1,17);line(1,17,13,17);line(5,1,17,1);line(17,1,17,13);line(17,13,5,13);line(5,13,5,1);line(8,5,14,5);line(8,9,12,9);return;}
     const auto bounds = D2D1::RoundedRect(D2D1::RectF(x, y, x + 18, y + 18), 4.0F, 4.0F);
     canvas.target.DrawRoundedRectangle(bounds, &canvas.brush, 1.4F);
-    if (page == MainPage::Scanner) {
+    if (icon==PageIcon::Scanner) {
         canvas.target.DrawEllipse(D2D1::Ellipse(D2D1::Point2F(x + 9, y + 9), 4, 4),
                                   &canvas.brush, 1.2F);
         canvas.Circle(D2D1::Point2F(x + 9, y + 9), 1.5F, color);
-    } else if (page == MainPage::Prices) {
+    } else if (icon==PageIcon::Prices) {
         canvas.target.DrawLine(D2D1::Point2F(x + 4, y + 13),
                                D2D1::Point2F(x + 4, y + 9), &canvas.brush, 1.5F);
         canvas.target.DrawLine(D2D1::Point2F(x + 9, y + 13),
                                D2D1::Point2F(x + 9, y + 5), &canvas.brush, 1.5F);
         canvas.target.DrawLine(D2D1::Point2F(x + 14, y + 13),
                                D2D1::Point2F(x + 14, y + 7), &canvas.brush, 1.5F);
-    } else if(page==MainPage::Events) {
+    } else if(icon==PageIcon::Events) {
         line(0,5,18,5);line(5,-1,5,3);line(13,-1,13,3);line(6,10,8,13);line(8,13,13,8);
     } else {
         canvas.target.DrawLine(D2D1::Point2F(x + 5, y + 7),
@@ -44,39 +44,24 @@ void DrawIcon(const UiCanvas& canvas, MainPage page, float x, float y,
 
 } // namespace
 
-D2D1_RECT_F Sidebar::ItemRect(MainPage page, float height,
-                              const UiTheme& theme) const noexcept {
-    float top = 0.0F;
-    switch (page) {
-    case MainPage::Scanner: top = 186.0F; break;
-    case MainPage::Prices: top = 229.0F; break;
-    case MainPage::Hideout: top = 272.0F; break;
-    case MainPage::Tasks: top = 315.0F; break;
-    case MainPage::Map: top = 358.0F; break;
-    case MainPage::RaidHistory: top = 439.0F; break;
-    case MainPage::Squad: top = 482.0F; break;
-    case MainPage::Events: top = 525.0F; break;
-    case MainPage::RecentScans: top = 568.0F; break;
-    case MainPage::Settings: top = height - 57.0F; break;
+const SidebarLayout& Sidebar::Layout(float height,const UiTheme& theme) const {
+    if(revision_!=registry_.Revision()||height_!=height||width_!=theme.sidebarWidth||rowHeight_!=theme.navigationHeight) {
+        layout_=BuildSidebarLayout(registry_,height,theme);revision_=registry_.Revision();
+        height_=height;width_=theme.sidebarWidth;rowHeight_=theme.navigationHeight;
     }
-    return D2D1::RectF(12.0F, top, theme.sidebarWidth - 12.0F,
-                       top + theme.navigationHeight);
+    return layout_;
 }
-
-std::optional<MainPage> Sidebar::HitTest(float x, float y, float height,
-                                          const UiTheme& theme) const noexcept {
-    if (x < 0.0F || x >= theme.sidebarWidth) return std::nullopt;
-    for (const PageInfo& page : kPages) {
-        const D2D1_RECT_F rect = ItemRect(page.id, height, theme);
-        if (x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom)
-            return page.id;
-    }
-    return std::nullopt;
+D2D1_RECT_F Sidebar::ItemRect(PageId page,float height,const UiTheme& theme) const noexcept {
+    const auto* row=Layout(height,theme).Find(page);
+    return row?row->rect:D2D1::RectF(0,0,0,0);
+}
+std::optional<PageId> Sidebar::HitTest(float x,float y,float height,const UiTheme& theme) const noexcept {
+    return Layout(height,theme).HitTest(x,y);
 }
 
 void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
-                   MainPage active, std::optional<MainPage> hovered,
-                   std::optional<MainPage> pressed) const {
+                   PageId active, std::optional<PageId> hovered,
+                   std::optional<PageId> pressed) const {
     canvas.Fill(D2D1::RectF(0, 0, theme.sidebarWidth, height), theme.sidebar);
     canvas.Circle(D2D1::Point2F(37, 47), 19, theme.accent);
     canvas.Text(L"N", canvas.title, D2D1::RectF(26, 27, 51, 70), theme.sidebar);
@@ -92,24 +77,27 @@ void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
     canvas.Text(Tr(TextKey::UserName), canvas.label, D2D1::RectF(69, 105, 215, 131), theme.primaryText);
     canvas.Text(Tr(TextKey::LocalUse), canvas.smallFormat, D2D1::RectF(70, 127, 215, 147), theme.secondaryText);
 
-    canvas.Text(Tr(TextKey::Primary), canvas.smallFormat,
-                D2D1::RectF(22, 160, 225, 181), theme.secondaryText);
-    canvas.Fill(D2D1::RectF(22, 414, theme.sidebarWidth - 22, 415), theme.divider);
-    canvas.Text(Tr(TextKey::More), canvas.smallFormat,
-                D2D1::RectF(22, 418, 225, 437), theme.secondaryText);
-    canvas.Fill(D2D1::RectF(22, height - 71, theme.sidebarWidth - 22,
-                            height - 70), theme.divider);
+    const auto& layout=Layout(height,theme);
+    if(layout.primaryLabel)canvas.Text(Tr(TextKey::Primary),canvas.smallFormat,*layout.primaryLabel,theme.secondaryText);
+    if(layout.secondaryDivider)canvas.Fill(*layout.secondaryDivider,theme.divider);
+    if(layout.secondaryLabel)canvas.Text(Tr(TextKey::More),canvas.smallFormat,*layout.secondaryLabel,theme.secondaryText);
+    if(layout.bottomDivider)canvas.Fill(*layout.bottomDivider,theme.divider);
 
+    const auto* selectedRow=layout.Find(active);
+    if(selectedRow&&selectedRow->visible) {
     const auto selection=SelectionRect(active,height,theme);
     canvas.Round(selection,8.0F,theme.selected);
     canvas.Round(D2D1::RectF(selection.left,selection.top+9,selection.left+3,selection.bottom-9),1.5F,theme.accent);
-    for (const PageInfo& page : kPages) {
-        const D2D1_RECT_F rect = ItemRect(page.id, height, theme);
+    }
+    for (const auto& row : layout.rows) {
+        if(!row.visible)continue;
+        const auto& page=row.page;
+        const D2D1_RECT_F rect = row.rect;
         const bool selected = page.id == active;
         const bool is_hovered = hovered == page.id;
         if (!selected && (is_hovered || pressed == page.id))canvas.Round(rect,8.0F,theme.hover);
         const D2D1_COLOR_F color = selected ? theme.primaryText : theme.secondaryText;
-        DrawIcon(canvas, page.id, rect.left + 14, rect.top + 11, color);
+        DrawIcon(canvas, page.icon, rect.left + 14, rect.top + 11, color);
         canvas.Text(Tr(page.titleKey), canvas.label,
                     D2D1::RectF(rect.left + 45, rect.top + 5,
                                 rect.right - 9, rect.bottom), color);

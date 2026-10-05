@@ -3,7 +3,7 @@
 #include "data/GameMode.h"
 #include "data/PriceBrowser.h"
 #include "data/RecentScanStore.h"
-#include "ui/MainPage.h"
+#include "ui/NavigationState.h"
 #include "ui/TabBar.h"
 #include "ui/Scrollbar.h"
 #include "ui/UiCanvas.h"
@@ -102,6 +102,7 @@ enum class PriceToolbarControl {
 // and do not own scanner services.
 class PageHost final {
 public:
+    explicit PageHost(const PageRegistry& registry):registry_(registry){}
     [[nodiscard]] D2D1_RECT_F ModeSelectorRect(const UiTheme& theme) const noexcept;
     [[nodiscard]] std::optional<data::GameMode> ModeOptionAt(
         float x, float y, const UiTheme& theme) const noexcept;
@@ -115,7 +116,7 @@ public:
     [[nodiscard]] static std::size_t RecentFilteredCount(
         const std::vector<data::RecentScanEntry>& recent, data::GameMode mode) noexcept;
     void Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
-              float height, MainPage active, const ScannerPageState& scanner,
+              float height, PageId active, const ScannerPageState& scanner,
               bool modeMenuOpen, bool modeHovered,
               std::optional<data::GameMode> hoveredMode,
               const std::vector<data::RecentScanEntry>& recent,
@@ -157,6 +158,8 @@ public:
     [[nodiscard]] static RecentScrollbarPose AnimatePriceScrollbar(
         const std::optional<RecentScrollbar>& outgoing,
         const std::optional<RecentScrollbar>& incoming, float progress) noexcept;
+private:
+    const PageRegistry& registry_;
 };
 
 } // namespace noven::ui

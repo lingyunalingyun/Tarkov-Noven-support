@@ -30,6 +30,8 @@ namespace noven::ui {
 // Main-window drawing and navigation state; owns no OCR, scanner, or economy cache.
 class MainWindowUi final {
 public:
+    PageRegistry& Registry() noexcept {return registry_;}
+    const PageRegistry& Registry() const noexcept {return registry_;}
     void SetPreferences(const data::AppSettings& value){preferences_.value=value;scanner_.shortcut=ScanShortcutText(value.scanKey,value.scanModifiers);Invalidate();}
     void SetPreferencesHandler(std::function<bool(const data::AppSettings&)> handler){preferences_.changed=std::move(handler);}
     bool RecordingShortcut() const noexcept {return preferences_.Recording();}
@@ -91,7 +93,7 @@ public:
     [[nodiscard]] bool KeyDown(WPARAM key, bool control);
     [[nodiscard]] bool Char(wchar_t character);
     [[nodiscard]] bool Ready() const noexcept { return window_ != nullptr; }
-    [[nodiscard]] MainPage ActivePage() const noexcept { return navigation_.Active(); }
+    [[nodiscard]] const PageId& ActivePage() const noexcept { return navigation_.Active(); }
     bool GoBack();
     bool CanGoBack() const noexcept { return !return_pages_.empty(); }
     const SearchBox& PriceSearch() const noexcept { return price_search_; }
@@ -102,11 +104,11 @@ public:
     const MapPage& Map() const noexcept { return map_; }
 
 private:
-    bool SelectPage(MainPage page);
-    PageTransition<MainPage> page_transition_;
+    bool SelectPage(PageId page);
+    PageTransition<PageId> page_transition_;
     bool page_content_press_blocked_{};
     bool OnBackButton(int x,int y) const noexcept;
-    std::vector<MainPage> return_pages_;
+    std::vector<PageId> return_pages_;
     void BindEventCatalogs(){events_.SetCatalogs(event_items_,&tasks_.Catalog(),&map_.Catalog(data::GameMode::Pvp));}
     bool back_hovered_{},back_pressed_{};
     bool CreateTextFormats(std::wstring& error);
@@ -128,7 +130,7 @@ private:
     [[nodiscard]] float PriceDetailsScrollExtra() const;
     void UpdateHistoryHover();
     void Invalidate() const;
-    [[nodiscard]] std::optional<MainPage> HitTest(int x, int y) const noexcept;
+    [[nodiscard]] std::optional<PageId> HitTest(int x, int y) const noexcept;
     [[nodiscard]] bool OnModeSelector(int x, int y) const noexcept;
     [[nodiscard]] std::optional<data::GameMode> ModeOptionAt(int x, int y) const noexcept;
     [[nodiscard]] float DipHeight() const noexcept;
@@ -146,16 +148,17 @@ private:
     D2D1_RECT_F attribution_button_{};
     bool attribution_pressed_{};
     UINT dpi_{96};
-    NavigationState navigation_;
+    PageRegistry registry_{MakeBuiltinPageRegistry()};
+    NavigationState navigation_{registry_};
     ScannerPageState scanner_;
     UiTheme theme_;
-    Sidebar sidebar_;
+    Sidebar sidebar_{registry_};
     PreferencesPanel preferences_;
     std::function<bool()> raid_scan_;
     D2D1_RECT_F raid_scan_button_{};
     bool raid_scan_pressed_{};
     bool raid_scan_pending_{},raid_scan_completed_{},raid_scan_failed_{};
-    PageHost pages_;
+    PageHost pages_{registry_};
     HideoutPage hideout_;
     TasksPage tasks_;
     MapPage map_;
@@ -218,8 +221,8 @@ private:
     std::chrono::steady_clock::time_point recent_tab_started_{};
     std::optional<data::GameMode> hovered_recent_tab_;
     std::optional<data::GameMode> pressed_recent_tab_;
-    std::optional<MainPage> hovered_;
-    std::optional<MainPage> pressed_;
+    std::optional<PageId> hovered_;
+    std::optional<PageId> pressed_;
     bool mode_menu_open_{};
     float mode_menu_progress_{};
     bool mode_hovered_{};

@@ -260,22 +260,22 @@ int wmain(int argc, wchar_t** argv) try {
     Require(restarted.slot == interrupted.slot && restarted.opacity == interrupted.opacity,
         "interrupted reflow retains current pose");
     Microsoft::WRL::ComPtr<IDWriteFactory> textFactory;
-    PageTransition<MainPage> pageMotion;
-    const auto start=PageTransition<MainPage>::Clock::time_point{};
-    Require(!pageMotion.Active() && pageMotion.Sample(MainPage::Scanner).opacity==1,"page transition starts settled");
-    pageMotion.Start(MainPage::Scanner,start);
+    PageTransition<PageId> pageMotion;
+    const auto start=PageTransition<PageId>::Clock::time_point{};
+    Require(!pageMotion.Active() && pageMotion.Sample(BuiltinPageId::Scanner).opacity==1,"page transition starts settled");
+    pageMotion.Start(BuiltinPageId::Scanner,start);
     pageMotion.Tick(start+std::chrono::milliseconds(90));
-    const auto outgoing=pageMotion.Sample(MainPage::Prices);
-    Require(outgoing.page==MainPage::Scanner && outgoing.opacity>0 && outgoing.opacity<1 && outgoing.shift<0,"old page fades and moves");
-    pageMotion.Start(MainPage::Prices,start+std::chrono::milliseconds(90));
-    Require(pageMotion.Sample(MainPage::Tasks).opacity==outgoing.opacity
-        && pageMotion.ShowingOutgoing(MainPage::Scanner),"rapid retarget preserves outgoing identity and opacity");
+    const auto outgoing=pageMotion.Sample(BuiltinPageId::Prices);
+    Require(outgoing.page==BuiltinPageId::Scanner && outgoing.opacity>0 && outgoing.opacity<1 && outgoing.shift<0,"old page fades and moves");
+    pageMotion.Start(BuiltinPageId::Prices,start+std::chrono::milliseconds(90));
+    Require(pageMotion.Sample(BuiltinPageId::Tasks).opacity==outgoing.opacity
+        && pageMotion.ShowingOutgoing(BuiltinPageId::Scanner),"rapid retarget preserves outgoing identity and opacity");
     pageMotion.Tick(start+std::chrono::milliseconds(290));
-    const auto incoming=pageMotion.Sample(MainPage::Tasks);
-    Require(incoming.page==MainPage::Tasks && incoming.opacity>0 && incoming.opacity<1 && incoming.shift>0,"new page enters after fade");
+    const auto incoming=pageMotion.Sample(BuiltinPageId::Tasks);
+    Require(incoming.page==BuiltinPageId::Tasks && incoming.opacity>0 && incoming.opacity<1 && incoming.shift>0,"new page enters after fade");
     pageMotion.Tick(start+std::chrono::milliseconds(500));
-    Require(!pageMotion.Active() && !pageMotion.ShowingOutgoing(MainPage::Scanner)
-        && pageMotion.Sample(MainPage::Tasks).opacity==1 && pageMotion.Sample(MainPage::Tasks).shift==0,"page transition releases outgoing and settles");
+    Require(!pageMotion.Active() && !pageMotion.ShowingOutgoing(BuiltinPageId::Scanner)
+        && pageMotion.Sample(BuiltinPageId::Tasks).opacity==1 && pageMotion.Sample(BuiltinPageId::Tasks).shift==0,"page transition releases outgoing and settles");
     Require(HitNavigationButton(D2D1::RectF(10,20,34,64),10,20)
         && !HitNavigationButton(D2D1::RectF(10,20,34,64),34,20)
         && !HitNavigationButton(D2D1::RectF(10,20,34,64),20,30,false),"navigation button shares bounds and disabled state");
@@ -423,18 +423,18 @@ int wmain(int argc, wchar_t** argv) try {
         ui.SetPriceDataSources(catalog, economy);
         ui.SetHideoutDataSources(std::filesystem::path(argv[1]).parent_path()/"data",catalog,economy);
         ui.SetTaskDataSources(std::filesystem::path(argv[1]).parent_path()/"data",catalog);
-        Sidebar sidebar;
-        sidebar.StartSelection(MainPage::Scanner,MainPage::Prices,height,theme);
+        Sidebar sidebar{ui.Registry()};
+        sidebar.StartSelection(BuiltinPageId::Scanner,BuiltinPageId::Prices,height,theme);
         Require(sidebar.Animating(),"sidebar selection starts a bounded transition");
         sidebar.Tick(0.09F);
-        const auto springTop=sidebar.SelectionRect(MainPage::Prices,height,theme).top;
-        Require(springTop>sidebar.ItemRect(MainPage::Prices,height,theme).top,"sidebar spring briefly overshoots its target");
-        sidebar.StartSelection(MainPage::Prices,MainPage::Map,height,theme);
-        Require(sidebar.SelectionRect(MainPage::Map,height,theme).top==springTop,"rapid sidebar retarget preserves current position");
+        const auto springTop=sidebar.SelectionRect(BuiltinPageId::Prices,height,theme).top;
+        Require(springTop>sidebar.ItemRect(BuiltinPageId::Prices,height,theme).top,"sidebar spring briefly overshoots its target");
+        sidebar.StartSelection(BuiltinPageId::Prices,BuiltinPageId::Map,height,theme);
+        Require(sidebar.SelectionRect(BuiltinPageId::Map,height,theme).top==springTop,"rapid sidebar retarget preserves current position");
         for(int i=0;i<30;++i)sidebar.Tick(0.016F);
         Require(!sidebar.Animating(),"rapid sidebar retarget settles without idle frame work");
-        Require(sidebar.SelectionRect(MainPage::Map,height,theme).top==sidebar.ItemRect(MainPage::Map,height,theme).top,"spring settles exactly at selected row");
-        const auto selectPage = [&](MainPage page) {
+        Require(sidebar.SelectionRect(BuiltinPageId::Map,height,theme).top==sidebar.ItemRect(BuiltinPageId::Map,height,theme).top,"spring settles exactly at selected row");
+        const auto selectPage = [&](PageId page) {
             const auto rect = sidebar.ItemRect(page, height, theme);
             Require(!click(rect.left + 30, (rect.top + rect.bottom) / 2), "page selection emits no GameMode change");
             Require(ui.ActivePage() == page, "page selection preserved");
@@ -442,7 +442,7 @@ int wmain(int argc, wchar_t** argv) try {
             for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
             ui.Paint();
         };
-        selectPage(MainPage::Settings);
+        selectPage(BuiltinPageId::Settings);
         const auto& locales = UiLocalization().AvailableLocales();
         std::size_t english = 0;
         while (english < locales.size() && locales[english].locale != "en-US") ++english;
@@ -450,12 +450,12 @@ int wmain(int argc, wchar_t** argv) try {
         Require(!click(theme.sidebarWidth + theme.contentPadding + 30, 175 + english * 42.0F),
             "language click emits no GameMode change");
         Require(UiLocalization().ActiveLocale() == "en-US", "Settings click switches locale immediately");
-        for (const auto& page : kPages) selectPage(page.id);
+        for (const auto& page : ui.Registry().Pages()) selectPage(page.id);
         Require(!click(theme.sidebarWidth + theme.contentPadding + 30, 175), "Chinese selection leaves game mode alone");
         Require(UiLocalization().ActiveLocale() == "zh-CN", "Settings switches back to Chinese");
-        selectPage(MainPage::Scanner);
-        const PageHost host;
-        selectPage(MainPage::Hideout);
+        selectPage(BuiltinPageId::Scanner);
+        const PageHost host{ui.Registry()};
+        selectPage(BuiltinPageId::Hideout);
         ui.Paint();
         Require(!click(theme.sidebarWidth+theme.contentPadding+150,150),
             "Hideout PvE selection never returns a Scanner mode change");
@@ -471,7 +471,7 @@ int wmain(int argc, wchar_t** argv) try {
             static_cast<int>(650*scale),-2400);
         for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16); if(!ui.AnimationTick()) break; }
         ui.Paint();
-        selectPage(MainPage::Prices);
+        selectPage(BuiltinPageId::Prices);
         const float width = client.right / scale;
         const float pagerRight = width - theme.contentPadding;
         const float pagerY = host.PriceListTop(width, theme) - 26;
@@ -480,7 +480,7 @@ int wmain(int argc, wchar_t** argv) try {
         Require(!click(pagerRight - 20, pagerY) && ui.PricePage() == 1,
             "header next button selects the next 30 items");
         Require(ui.AnimationActive(), "page selection animates through the existing list transition");
-        selectPage(MainPage::Scanner); selectPage(MainPage::Prices);
+        selectPage(BuiltinPageId::Scanner); selectPage(BuiltinPageId::Prices);
         Require(ui.PricePage() == 1, "navigation preserves the current Prices page");
         (void)ui.MouseWheel(static_cast<int>((pagerRight - 20) * scale),
             static_cast<int>(500 * scale), -24000);
@@ -538,26 +538,26 @@ int wmain(int argc, wchar_t** argv) try {
         Require(!click(cardX, cardY), "expanded second card is clickable in the first visual slot");
         for (int tick = 0; tick < 120 && ui.AnimationActive(); ++tick) { Sleep(16); if(!ui.AnimationTick()) break; }
         Require(!ui.AnimationActive(), "anchored card collapse settles");
-        selectPage(MainPage::Hideout);
+        selectPage(BuiltinPageId::Hideout);
         (void)ui.MouseWheel(static_cast<int>((theme.sidebarWidth+theme.contentPadding+200)*scale),
             static_cast<int>(650*scale),24000);
         for(int i=0;i<100 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
         ui.Paint();
         Require(!click(theme.sidebarWidth+theme.contentPadding+40,520),"item navigation emits no scanner mode change");
-        Require(ui.ActivePage()==MainPage::Prices && ui.AnimationActive(),"Hideout material opens Prices detail");
+        Require(ui.ActivePage()==BuiltinPageId::Prices && ui.AnimationActive(),"Hideout material opens Prices detail");
         ui.Paint();
         Require(ui.CanGoBack(),"cross-page item navigation exposes back button");
-        Require(!click(theme.sidebarWidth+24,42) && ui.ActivePage()==MainPage::Hideout
+        Require(!click(theme.sidebarWidth+24,42) && ui.ActivePage()==BuiltinPageId::Hideout
             && !ui.CanGoBack(),"back arrow restores source page and consumes return entry");
         for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
         ui.Paint();
         Require(!click(theme.sidebarWidth+theme.contentPadding+40,520)
-            && ui.ActivePage()==MainPage::Prices,"return preserves selected Hideout material and scroll");
-        Require(ui.GoBack() && ui.ActivePage()==MainPage::Hideout,"mouse back command returns to Hideout");
+            && ui.ActivePage()==BuiltinPageId::Prices,"return preserves selected Hideout material and scroll");
+        Require(ui.GoBack() && ui.ActivePage()==BuiltinPageId::Hideout,"mouse back command returns to Hideout");
         for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
         Require(!ui.GoBack(),"no return action without cross-page history");
         Require(!click(theme.sidebarWidth+theme.contentPadding+40,520),"repeat item navigation");
-        selectPage(MainPage::Scanner);
+        selectPage(BuiltinPageId::Scanner);
         Require(!ui.CanGoBack(),"explicit sidebar navigation clears contextual return");
         for (const float responsiveWidth : {880.0F, 1000.0F, 1280.0F, 1920.0F}) {
             const float right = responsiveWidth - theme.contentPadding;
@@ -579,7 +579,7 @@ int wmain(int argc, wchar_t** argv) try {
         click(rect.left + 30, rect.top + 10);
         Require(!click(rect.left + 30, rect.bottom + 4 + 32 + 10), "PvE selection survived locale and page switches");
         ui.Paint();
-        selectPage(MainPage::Map);ui.Paint();
+        selectPage(BuiltinPageId::Map);ui.Paint();
         const auto floor=ui.Map().Layout().stack.Plate(0);
         Require(!click(floor.anchor.x,floor.anchor.y-2),"map floor click emits no scanner mode change");
         for(int tick=0;tick<60&&ui.AnimationActive();++tick){Sleep(16);if(!ui.AnimationTick())break;}
@@ -602,25 +602,25 @@ int wmain(int argc, wchar_t** argv) try {
         ui.Paint();const auto layerRow=ui.Map().FilterList().Row(0);
         Require(!click(layerRow.left+12,layerRow.top+12)&&!ui.Map().Filters().grid,"native filter hit toggles grid");
         const auto mapId=ui.Map().MapId();
-        selectPage(MainPage::Scanner);selectPage(MainPage::Map);ui.Paint();
+        selectPage(BuiltinPageId::Scanner);selectPage(BuiltinPageId::Map);ui.Paint();
         Require(ui.Map().FloorId()==selectedFloor&&ui.Map().Viewport().Scale()==mapScale&&ui.Map().Search().Text()==mapQuery,
             "main navigation preserves selected Map floor, query and zoom");
         Require(ui.Map().MapId()==mapId&&!ui.Map().Filters().grid&&ui.Map().Panel()==MapFilterPanel::Layers,
             "main navigation preserves map identity, filter state and flyout");
-        for(const auto& info:kPages) {
+        for(const auto& info:ui.Registry().Pages()) {
             selectPage(info.id);
             Require(!ui.AnimationActive(),"main-page animation settles for every sidebar page");
         }
-        for(const auto page:{MainPage::Prices,MainPage::Tasks,MainPage::Hideout}) {
+        for(const auto page:{BuiltinPageId::Prices,BuiltinPageId::Tasks,BuiltinPageId::Hideout}) {
             const auto item=sidebar.ItemRect(page,height,theme);
             Require(!click(item.left+30,(item.top+item.bottom)/2),"rapid main-page selection emits no scanner mode change");
             Require(ui.ActivePage()==page && ui.AnimationActive(),"rapid selection retargets main-page animation");
             ui.Paint();
         }
         for(int i=0;i<60 && ui.AnimationActive();++i) { Sleep(16);if(!ui.AnimationTick()) break; }
-        Require(!ui.AnimationActive() && ui.ActivePage()==MainPage::Hideout,"rapid page transitions settle at final destination");
+        Require(!ui.AnimationActive() && ui.ActivePage()==BuiltinPageId::Hideout,"rapid page transitions settle at final destination");
         Require(ui.SetMapDataSources(std::filesystem::path(argv[1]).parent_path(),error),"native Map binds Interchange local data and images");
-        selectPage(MainPage::Map);ui.Paint();
+        selectPage(BuiltinPageId::Map);ui.Paint();
         Require(ui.Map().RealData()&&ui.Map().Points().size()==1634&&ui.Map().Search().Text().empty(),"native production Map replaces demo data and clears old catalog search");
         const auto realFloor=ui.Map().Layout().stack.Plate(1).anchor;
         Require(!click(realFloor.x,realFloor.y-2),"real floor selection preserves game mode");
@@ -628,9 +628,9 @@ int wmain(int argc, wchar_t** argv) try {
         ui.Paint();
         Require(ui.Map().FloorId()=="First_Floor"&&ui.Map().Selected(),"native production floor transition draws real image");
         const auto realScale=ui.Map().Viewport().Scale();
-        selectPage(MainPage::Prices);selectPage(MainPage::Map);ui.Paint();
+        selectPage(BuiltinPageId::Prices);selectPage(BuiltinPageId::Map);ui.Paint();
         Require(ui.Map().FloorId()=="First_Floor"&&ui.Map().Viewport().Scale()==realScale,"real map state persists across navigation");
-        selectPage(MainPage::Tasks);Require(!click(theme.sidebarWidth+theme.contentPadding+20,100),"focus Tasks for map jump");
+        selectPage(BuiltinPageId::Tasks);Require(!click(theme.sidebarWidth+theme.contentPadding+20,100),"focus Tasks for map jump");
         Require(ui.KeyDown(VK_ESCAPE,false),"clear prior Tasks query before map link search");for(const wchar_t c:std::wstring(L"探路者"))Require(ui.Char(c),"Pathfinder query accepts Chinese");
         ui.Paint();
         const std::string taskId="5ae449c386f7744bde357697";
@@ -643,9 +643,9 @@ int wmain(int argc, wchar_t** argv) try {
         }
         Require(objectiveRow->top>=274&&objectiveRow->top+12<height-24,"task map link is visible after scroll");
         const auto sourceScroll=ui.Tasks().Scroll();const auto sourceQuery=ui.Tasks().QueryText();
-        Require(!click(objectiveRow->left+40,objectiveRow->top+12)&&ui.ActivePage()==MainPage::Map&&ui.CanGoBack(),"native task objective click navigates to map with contextual back");
+        Require(!click(objectiveRow->left+40,objectiveRow->top+12)&&ui.ActivePage()==BuiltinPageId::Map&&ui.CanGoBack(),"native task objective click navigates to map with contextual back");
         Require(ui.Map().SelectedPoint()&&ui.Map().SelectedPoint()->category==MapPointCategory::Task,"task navigation reveals selected map target");
-        Require(ui.GoBack()&&ui.ActivePage()==MainPage::Tasks&&ui.Tasks().SelectedTask()==taskId
+        Require(ui.GoBack()&&ui.ActivePage()==BuiltinPageId::Tasks&&ui.Tasks().SelectedTask()==taskId
             &&ui.Tasks().QueryText()==sourceQuery&&ui.Tasks().Scroll()==sourceScroll,"contextual back restores task, query and exact detail scroll");
         noven::raid::RaidSession recorded;
         recorded.localSessionId="synthetic-ui-raid";recorded.eftRaidId="synthetic-eft";
@@ -657,7 +657,7 @@ int wmain(int argc, wchar_t** argv) try {
         linkedScan.stableItemId="66b5f22b78bbc0200425f904";linkedScan.canonicalName="Synthetic snapshot";
         linkedScan.gameMode=noven::data::GameMode::Pve;linkedScan.fleaPrice=70000;
         ui.SetRaidSessions({recorded},std::nullopt,false);ui.SetRecentScans({linkedScan});
-        selectPage(MainPage::RaidHistory);
+        selectPage(BuiltinPageId::RaidHistory);
         const float raidLeft=theme.sidebarWidth+theme.contentPadding;
         const float raidWidth=client.right/scale-theme.contentPadding-raidLeft;
         const float raidTop=raidWidth<720?278.0F:238.0F;
@@ -672,8 +672,8 @@ int wmain(int argc, wchar_t** argv) try {
         ui.Paint();
         const auto selected=ui.RaidHistory().SelectedId();const auto listScroll=ui.RaidHistory().ListScroll();const auto detailScroll=ui.RaidHistory().DetailScroll();
         const auto scanBounds=ui.RaidHistory().ScanBounds(linkedScan.scanId);Require(scanBounds.has_value(),"linked scan has shared visible hit geometry");
-        Require(!click(scanBounds->left+30,scanBounds->top+8)&&ui.ActivePage()==MainPage::Prices&&ui.CanGoBack(),"linked snapshot opens Prices by stable identity and source mode");
-        Require(ui.GoBack()&&ui.ActivePage()==MainPage::RaidHistory&&ui.RaidHistory().SelectedId()==selected
+        Require(!click(scanBounds->left+30,scanBounds->top+8)&&ui.ActivePage()==BuiltinPageId::Prices&&ui.CanGoBack(),"linked snapshot opens Prices by stable identity and source mode");
+        Require(ui.GoBack()&&ui.ActivePage()==BuiltinPageId::RaidHistory&&ui.RaidHistory().SelectedId()==selected
             &&ui.RaidHistory().ListScroll()==listScroll&&ui.RaidHistory().DetailScroll()==detailScroll,"contextual and side-back command preserve resident raid selection and both scroll positions");
         noven::events::EventRecord eventFixture;
         eventFixture.eventId="synthetic-ui-event-0";eventFixture.title="Fixture official event";
@@ -684,7 +684,7 @@ int wmain(int argc, wchar_t** argv) try {
         std::vector<noven::events::EventRecord> eventFixtures;
         for(int i=0;i<8;++i){auto copy=eventFixture;copy.eventId="synthetic-ui-event-"+std::to_string(i);eventFixtures.push_back(std::move(copy));}
         ui.SetEvents(eventFixtures,{noven::events::RefreshPhase::Ready,{},{}},100);
-        selectPage(MainPage::Events);
+        selectPage(BuiltinPageId::Events);
         Require(!click(raidLeft+20,100),"Events search focus");for(wchar_t c:std::wstring(L"fixture"))Require(ui.Char(c),"Events shared Unicode input");
         ui.Paint();Require(!click(raidLeft+raidWidth*.3F,150),"Events status tab does not emit game mode");
         for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}
@@ -697,15 +697,15 @@ int wmain(int argc, wchar_t** argv) try {
         for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
         const auto eventSelected=ui.Events().SelectedId();const auto eventListScroll=ui.Events().ListScroll(),eventDetailScroll=ui.Events().DetailScroll();
         const auto eventRows=ui.Events().Browser().Rows();
-        Require(!ui.OpenEventAssociation({EventAction::Kind::Map,"unresolved-map"})&&ui.ActivePage()==MainPage::Events,"unresolved map cannot produce a guessed jump");
+        Require(!ui.OpenEventAssociation({EventAction::Kind::Map,"unresolved-map"})&&ui.ActivePage()==BuiltinPageId::Events,"unresolved map cannot produce a guessed jump");
         for(const auto action:{EventAction{EventAction::Kind::Map,eventMapId},EventAction{EventAction::Kind::Task,taskId},EventAction{EventAction::Kind::Item,linkedScan.stableItemId}}) {
             Require(ui.OpenEventAssociation(action)&&ui.CanGoBack(),"Events association opens through shared contextual navigation");
             if(action.kind==EventAction::Kind::Item)Require(ui.PriceSearch().Text()!=std::wstring(action.id.begin(),action.id.end())&&ui.PriceTotal()==1,"exact item jump displays its name, not its storage identity");
-            if(action.kind==EventAction::Kind::Map)Require(ui.ActivePage()==MainPage::Map&&ui.Map().MapId()==eventMapId,"Events uses exact map identity");
-            if(action.kind==EventAction::Kind::Task)Require(ui.ActivePage()==MainPage::Tasks&&ui.Tasks().SelectedTask()==taskId
+            if(action.kind==EventAction::Kind::Map)Require(ui.ActivePage()==BuiltinPageId::Map&&ui.Map().MapId()==eventMapId,"Events uses exact map identity");
+            if(action.kind==EventAction::Kind::Task)Require(ui.ActivePage()==BuiltinPageId::Tasks&&ui.Tasks().SelectedTask()==taskId
                 &&ui.Tasks().SelectedTrader()==ui.Tasks().Catalog().Task("regular",taskId)->traderId,"Events uses exact task and trader identity");
-            if(action.kind==EventAction::Kind::Item)Require(ui.ActivePage()==MainPage::Prices&&ui.PriceExactId()==action.id,"Events uses exact item ID independently of display text");
-            Require(ui.GoBack()&&ui.ActivePage()==MainPage::Events,"contextual and side-back return to Events");
+            if(action.kind==EventAction::Kind::Item)Require(ui.ActivePage()==BuiltinPageId::Prices&&ui.PriceExactId()==action.id,"Events uses exact item ID independently of display text");
+            Require(ui.GoBack()&&ui.ActivePage()==BuiltinPageId::Events,"contextual and side-back return to Events");
             Require(ui.Events().SelectedId()==eventSelected&&ui.Events().Search().Text()==L"fixture"
                 &&ui.Events().Browser().Filter()==noven::events::EventStatus::Active,"Events selection/query/filter remain resident");
             Require(ui.Events().ListScroll()==eventListScroll&&ui.Events().DetailScroll()==eventDetailScroll,"Events preserves exact visible list/detail offsets");
@@ -715,11 +715,11 @@ int wmain(int argc, wchar_t** argv) try {
         ui.SetEvents(eventFixtures,{noven::events::RefreshPhase::Failed,"synthetic offline",{}},100);ui.Paint();
         Require(ui.Events().Browser().Rows()==eventRows&&ui.Events().RefreshText()==Tr(TextKey::EventCached),"failed refresh never clears valid visible event data");
         auto recentClick=linkedScan;recentClick.gameMode=noven::data::GameMode::Pvp;
-        ui.SetRecentScans({recentClick});selectPage(MainPage::RecentScans);
-        Require(!click(theme.sidebarWidth+theme.contentPadding+30,170)&&ui.ActivePage()==MainPage::Prices
+        ui.SetRecentScans({recentClick});selectPage(BuiltinPageId::RecentScans);
+        Require(!click(theme.sidebarWidth+theme.contentPadding+30,170)&&ui.ActivePage()==BuiltinPageId::Prices
             &&ui.PriceTotal()==1&&ui.CanGoBack(),"recent card opens exact item detail through contextual navigation");
-        Require(ui.GoBack()&&ui.ActivePage()==MainPage::RecentScans,"recent-card return keeps resident page");
-        selectPage(MainPage::Settings);
+        Require(ui.GoBack()&&ui.ActivePage()==BuiltinPageId::RecentScans,"recent-card return keeps resident page");
+        selectPage(BuiltinPageId::Settings);
         unsigned settingsCalls{};ui.SetPreferencesHandler([&](const auto& next){++settingsCalls;return next.scanKey!=VK_F8;});
         Require(!click(theme.sidebarWidth+theme.contentPadding+30,455)&&ui.RecordingShortcut(),"native shortcut control starts capture");
         Require(ui.KeyDown(VK_F6,true)&&!ui.RecordingShortcut()&&ui.Preferences().scanKey==VK_F6
@@ -727,12 +727,26 @@ int wmain(int argc, wchar_t** argv) try {
         click(theme.sidebarWidth+theme.contentPadding+30,455);(void)ui.KeyDown(VK_F8,false);
         Require(ui.RecordingShortcut()&&ui.Preferences().scanKey==VK_F6,"failed shortcut application retains previous setting");
         Require(ui.KeyDown(VK_ESCAPE,false)&&!ui.RecordingShortcut(),"escape cancels shortcut capture");
-        unsigned manualScans{};ui.SetRaidScanHandler([&]{++manualScans;return true;});selectPage(MainPage::RaidHistory);
+        unsigned manualScans{};ui.SetRaidScanHandler([&]{++manualScans;return true;});selectPage(BuiltinPageId::RaidHistory);
         click(width-theme.contentPadding-50,110);Require(manualScans==1,"manual raid scan stays behind service callback");
         Require(ui.RaidScanPending()&&ui.RaidScanLabel()==Tr("raid.scan_pending"),"manual request shows immediate pending feedback");
         click(width-theme.contentPadding-50,110);Require(manualScans==1,"pending scan blocks repeated requests");
         ui.SetRaidScanStatus(false,true,false);Require(ui.RaidScanLabel()==Tr("raid.scan_completed"),"unchanged history still shows scan completion");
         ui.SetRaidScanStatus(false,false,true);Require(ui.RaidScanLabel()==Tr("raid.scan_failed"),"scan failure is visible without clearing history");
+        const PageId futurePage{"plugin.com.example.loot-route"};
+        Require(ui.Registry().Register({futurePage,PageSection::Secondary,"nav.events","page.events.description",
+            PageIcon::GenericPlugin,-1,PageSource::Plugin,UiExtensionPolicy::Extensible}),"future page registers metadata without an enum or executable code");
+        const auto futureLayout=sidebar.Layout(height,theme);
+        const auto* futureRow=futureLayout.Find(futurePage);
+        Require(futureRow&&futureRow->visible,"registered future page appears in native sidebar geometry");
+        const float futureX=(futureRow->rect.left+futureRow->rect.right)*.5F;
+        const float futureY=(futureRow->rect.top+futureRow->rect.bottom)*.5F;
+        Require(sidebar.HitTest(futureX,futureY,height,theme)==futurePage,"future row hit test returns exact stable identity");
+        Require(!click(futureX,futureY)&&ui.ActivePage()==futurePage,"native navigation accepts future namespaced identity");
+        for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
+        Require(!ui.AnimationActive(),"future page transition becomes idle");
+        Require(ui.Registry().Unregister(futurePage)&&ui.ActivePage()==BuiltinPageId::Scanner,"removed active metadata safely falls back to scanner");
+        Require(!sidebar.Layout(height,theme).Find(futurePage),"layout cache invalidates when registry changes");
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

@@ -1,5 +1,5 @@
 #include "data/GameMode.h"
-#include "ui/MainPage.h"
+#include "ui/NavigationState.h"
 #include "ui/PageHost.h"
 #include "ui/PageComponents.h"
 #include "ui/Sidebar.h"
@@ -35,30 +35,31 @@ int main() {
     Require(portrait.left == 36 && portrait.right == 76
         && portrait.top == 19 && portrait.bottom == 99,
         "portrait image is centered without stretching");
-    noven::ui::NavigationState navigation;
-    Require(navigation.Active() == noven::ui::MainPage::Scanner,
+    auto registry=noven::ui::MakeBuiltinPageRegistry();
+    noven::ui::NavigationState navigation{registry};
+    Require(navigation.Active() == noven::ui::BuiltinPageId::Scanner,
             "Scanner is the default page");
-    Require(noven::ui::kPages.size() == 10, "all ten pages are registered");
+    Require(registry.Pages().size() == 10, "all ten pages are registered");
 
-    noven::ui::Sidebar sidebar;
+    noven::ui::Sidebar sidebar{registry};
     noven::ui::UiTheme theme;
-    for (const auto& page : noven::ui::kPages) {
+    for (const auto& page : registry.Pages()) {
         const auto rect = sidebar.ItemRect(page.id, 760.0F, theme);
         Require(sidebar.HitTest((rect.left + rect.right) / 2.0F,
                                 (rect.top + rect.bottom) / 2.0F,
                                 760.0F, theme) == page.id,
                 "each visible navigation row maps to its stable page ID");
     }
-    const auto short_settings = sidebar.ItemRect(noven::ui::MainPage::Settings,
+    const auto short_settings = sidebar.ItemRect(noven::ui::BuiltinPageId::Settings,
                                                   760.0F, theme);
-    const auto tall_settings = sidebar.ItemRect(noven::ui::MainPage::Settings,
+    const auto tall_settings = sidebar.ItemRect(noven::ui::BuiltinPageId::Settings,
                                                  940.0F, theme);
     Require(tall_settings.top - short_settings.top == 180.0F,
             "Settings remains anchored to the sidebar bottom during resize");
     Require(!sidebar.HitTest(theme.sidebarWidth + 1.0F, 210.0F, 760.0F, theme),
             "page content cannot hit-test as a sidebar item");
 
-    noven::ui::PageHost pages;
+    noven::ui::PageHost pages{registry};
     const float recent_left = theme.sidebarWidth + theme.contentPadding;
     for (std::size_t index = 0; index < noven::data::AllGameModes().size(); ++index) {
         Require(pages.RecentTabAt(recent_left + 50.0F + 100.0F * index,
@@ -155,16 +156,29 @@ int main() {
                                 theme), "outside mode menu does not select a mode");
 
     noven::data::GameMode mode = noven::data::GameMode::Pve;
-    for (const auto& page : noven::ui::kPages) {
+    for (const auto& page : registry.Pages()) {
         Require(navigation.Select(page.id) && navigation.Active() == page.id,
                 "registered page can become active");
         Require(mode == noven::data::GameMode::Pve,
                 "navigation does not alter the selected game mode");
     }
-    Require(noven::ui::FindPage(static_cast<noven::ui::MainPage>(999)) == nullptr,
+    Require(!registry.Find(noven::ui::PageId{"unknown.page"}),
             "unknown page has no metadata");
-    Require(!navigation.Select(static_cast<noven::ui::MainPage>(999))
-                && navigation.Active() == noven::ui::MainPage::Settings,
+    Require(!navigation.Select(noven::ui::PageId{"unknown.page"})
+                && navigation.Active() == noven::ui::BuiltinPageId::Settings,
             "unknown page cannot replace the active page");
+    const noven::ui::PageId future{"plugin.com.example.loot-route"};
+    Require(registry.Register({future,noven::ui::PageSection::Secondary,"nav.events","desc.events",
+        noven::ui::PageIcon::GenericPlugin,-1,noven::ui::PageSource::Plugin}),"future page needs no enum");
+    Require(navigation.Select(future)&&navigation.Active()==future,"future identity selectable");
+    const auto descriptor=*registry.Find(future);
+    Require(registry.Unregister(future)&&navigation.Active()==noven::ui::BuiltinPageId::Scanner,"removed active falls back safely");
+    auto reordered=descriptor;reordered.order=100;
+    Require(registry.Register(reordered)&&navigation.Select(future),"reordered registration");
+    for(int index=0;index<100;++index) {
+        Require(navigation.Select(noven::ui::BuiltinPageId::Map)&&navigation.Select(future),"rapid switching");
+        registry.Register({noven::ui::PageId{"plugin.test.growth-"+std::to_string(index)},noven::ui::PageSection::Secondary,"nav.events"});
+        Require(navigation.Active()==future,"registry growth/reordering preserves active ID");
+    }
     std::cout << "Main navigation state tests passed\n";
 }

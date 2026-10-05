@@ -44,12 +44,12 @@ bool MainWindowUi::Initialize(HWND window, std::wstring& error) {
 }
 
 void MainWindowUi::EventClockTick(){
-    if(navigation_.Active()!=MainPage::Events||!IsWindowVisible(window_)||IsIconic(window_))return;
+    if(navigation_.Active()!=BuiltinPageId::Events||!IsWindowVisible(window_)||IsIconic(window_))return;
     const auto now=std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     if(events_.ClockTick(now))Invalidate();
 }
 bool MainWindowUi::OpenEventAssociation(const EventAction& action) {
-    if(navigation_.Active()!=MainPage::Events)return false;
+    if(navigation_.Active()!=BuiltinPageId::Events)return false;
     const auto* event=events_.Browser().Find(events_.SelectedId());if(!event)return false;
     const auto associations=events_.Browser().Associations(*event);
     const auto kind=action.kind==EventAction::Kind::Map?events::EntityKind::Map:action.kind==EventAction::Kind::Task?events::EntityKind::Task:events::EntityKind::Item;
@@ -60,21 +60,21 @@ bool MainWindowUi::OpenEventAssociation(const EventAction& action) {
     const auto mode=event->modes==std::vector{events::EventMode::PvE}?data::GameMode::Pve:data::GameMode::Pvp;
     if(action.kind==EventAction::Kind::Item) {
         if(!event_items_||!event_items_->FindById(action.id))return false;
-        OpenPriceItem(action.id,mode);return navigation_.Active()==MainPage::Prices;
+        OpenPriceItem(action.id,mode);return navigation_.Active()==BuiltinPageId::Prices;
     }
     if(action.kind==EventAction::Kind::Task) {
         if(!tasks_.OpenTask(action.id,mode))return false;
-        return_pages_.push_back(MainPage::Events);SelectPage(MainPage::Tasks);return true;
+        return_pages_.push_back(BuiltinPageId::Events);SelectPage(BuiltinPageId::Tasks);return true;
     }
     if(!map_.Catalog(mode).Map(action.id))return false;
     map_.SetMode(mode);map_.SelectMap(action.id);map_.Overview();
-    return_pages_.push_back(MainPage::Events);SelectPage(MainPage::Map);return true;
+    return_pages_.push_back(BuiltinPageId::Events);SelectPage(BuiltinPageId::Map);return true;
 }
 void MainWindowUi::MapClockTick(){
     // 时钟刷新与 60Hz 动画分离，只重绘当前地图页。
     // Clock refresh is separate from 60Hz animation and repaints only the active Map page.
     if(!IsWindowVisible(window_)||IsIconic(window_))return;
-    if(navigation_.Active()==MainPage::Map&&map_.ClockTick(MapUtcMilliseconds()))Invalidate();
+    if(navigation_.Active()==BuiltinPageId::Map&&map_.ClockTick(MapUtcMilliseconds()))Invalidate();
 }
 
 void MainWindowUi::SetPriceDataSources(const data::ItemCatalog& catalog,
@@ -100,7 +100,7 @@ void MainWindowUi::OpenPriceItem(const std::string& id,data::GameMode mode) {
     RefreshPriceRows();
     price_details_.id=id; price_details_.open=true; price_details_.Retarget(true,0);
     return_pages_.push_back(navigation_.Active());
-    SelectPage(MainPage::Prices);
+    SelectPage(BuiltinPageId::Prices);
     RequestPriceHistory();RequestVisiblePriceImages();Invalidate();
 }
 bool MainWindowUi::OnBackButton(int x,int y) const noexcept {
@@ -108,7 +108,7 @@ bool MainWindowUi::OnBackButton(int x,int y) const noexcept {
     return HitNavigationButton(D2D1::RectF(theme_.sidebarWidth+8,26,theme_.sidebarWidth+40,58),dx,dy,CanGoBack());
 }
 bool MainWindowUi::GoBack() {
-    if(navigation_.Active()==MainPage::Tasks&&tasks_.GoBackTask()){
+    if(navigation_.Active()==BuiltinPageId::Tasks&&tasks_.GoBackTask()){
         CancelScrollDrag();Invalidate();return true;
     }
     if(return_pages_.empty()) return false;
@@ -118,19 +118,19 @@ bool MainWindowUi::GoBack() {
     back_hovered_=back_pressed_=false;price_search_.Blur();
     CancelScrollDrag();Invalidate();return true;
 }
-bool MainWindowUi::SelectPage(MainPage page) {
-    if(page==navigation_.Active()) return false;
+bool MainWindowUi::SelectPage(PageId page) {
+    if(page==navigation_.Active()||!registry_.Contains(page)) return false;
     sidebar_.StartSelection(navigation_.Active(),page,DipHeight(),theme_);
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
-    if (page != MainPage::Prices) price_page_input_.Blur();
-    if(page!=MainPage::Settings)preferences_.Blur();
-    if(page!=MainPage::Scanner){mode_menu_open_=false;mode_menu_progress_=0;}
-    if(page!=MainPage::RaidHistory)raid_history_.Blur();
-    if(page!=MainPage::Events)events_.Blur();
-    if(page==MainPage::Events){EventClockTick();SetTimer(window_,EventClockTimerId,60000,nullptr);}else KillTimer(window_,EventClockTimerId);
-    if(page==MainPage::Map)SetTimer(window_,MapClockTimerId,250,nullptr);else KillTimer(window_,MapClockTimerId);
-    if(page==MainPage::Tasks)tasks_.Activate();
+    if (page != BuiltinPageId::Prices) price_page_input_.Blur();
+    if(page!=BuiltinPageId::Settings)preferences_.Blur();
+    if(page!=BuiltinPageId::Scanner){mode_menu_open_=false;mode_menu_progress_=0;}
+    if(page!=BuiltinPageId::RaidHistory)raid_history_.Blur();
+    if(page!=BuiltinPageId::Events)events_.Blur();
+    if(page==BuiltinPageId::Events){EventClockTick();SetTimer(window_,EventClockTimerId,60000,nullptr);}else KillTimer(window_,EventClockTimerId);
+    if(page==BuiltinPageId::Map)SetTimer(window_,MapClockTimerId,250,nullptr);else KillTimer(window_,MapClockTimerId);
+    if(page==BuiltinPageId::Tasks)tasks_.Activate();
     Invalidate();return true;
 }
 void MainWindowUi::RefreshPriceRows(bool animateSearch, bool resetPage) {
@@ -222,8 +222,8 @@ void MainWindowUi::RefreshPriceRows(bool animateSearch, bool resetPage) {
 }
 
 void MainWindowUi::RequestVisibleHideoutImages() {
-    const bool visiblePage=navigation_.Active()==MainPage::Hideout
-        || page_transition_.ShowingOutgoing(MainPage::Hideout);
+    const bool visiblePage=navigation_.Active()==BuiltinPageId::Hideout
+        || page_transition_.ShowingOutgoing(BuiltinPageId::Hideout);
     const auto visible=visiblePage ? hideout_.VisibleImages() : std::vector<std::string>{};
     const std::unordered_set<std::string> next(visible.begin(),visible.end());
     for (const auto& id : hideout_image_ids_) {
@@ -237,8 +237,8 @@ void MainWindowUi::RequestVisibleHideoutImages() {
 }
 
 void MainWindowUi::RequestVisibleTaskImages() {
-    const bool visiblePage=navigation_.Active()==MainPage::Tasks
-        || page_transition_.ShowingOutgoing(MainPage::Tasks);
+    const bool visiblePage=navigation_.Active()==BuiltinPageId::Tasks
+        || page_transition_.ShowingOutgoing(BuiltinPageId::Tasks);
     const auto visible=visiblePage?tasks_.VisibleImages():std::vector<std::string>{};
     const std::unordered_set<std::string> next(visible.begin(),visible.end());
     for(const auto& id:task_image_ids_)if(!next.contains(id)){
@@ -283,18 +283,18 @@ bool MainWindowUi::KeyDown(WPARAM key, bool control) {
             |((GetKeyState(VK_SHIFT)&0x8000)?MOD_SHIFT:0)|((GetKeyState(VK_LWIN)&0x8000||GetKeyState(VK_RWIN)&0x8000)?MOD_WIN:0);
         preferences_.Key(static_cast<UINT>(key),modifiers);Invalidate();return true;
     }
-    if(navigation_.Active()==MainPage::Events){const bool handled=events_.Key(key,control);if(handled)Invalidate();return handled;}
-    if(navigation_.Active()==MainPage::RaidHistory) {const bool handled=raid_history_.Key(key,control);if(handled)Invalidate();return handled;}
-    if (navigation_.Active()==MainPage::Map) {
+    if(navigation_.Active()==BuiltinPageId::Events){const bool handled=events_.Key(key,control);if(handled)Invalidate();return handled;}
+    if(navigation_.Active()==BuiltinPageId::RaidHistory) {const bool handled=raid_history_.Key(key,control);if(handled)Invalidate();return handled;}
+    if (navigation_.Active()==BuiltinPageId::Map) {
         const bool handled=map_.Key(key,control); if(handled) Invalidate(); return handled;
     }
-    if (navigation_.Active()==MainPage::Hideout) {
+    if (navigation_.Active()==BuiltinPageId::Hideout) {
         const bool handled=hideout_.Key(key,control); if (handled) Invalidate(); return handled;
     }
-    if (navigation_.Active()==MainPage::Tasks) {
+    if (navigation_.Active()==BuiltinPageId::Tasks) {
         const bool handled=tasks_.Key(key,control); if (handled) Invalidate(); return handled;
     }
-    if (navigation_.Active() != MainPage::Prices) return false;
+    if (navigation_.Active() != BuiltinPageId::Prices) return false;
     if (price_page_input_.Focused()) {
         if (key == VK_RETURN) {
             const auto page = PricePageFromInput(price_page_input_.Text(), price_total_);
@@ -318,18 +318,18 @@ bool MainWindowUi::KeyDown(WPARAM key, bool control) {
 }
 
 bool MainWindowUi::Char(wchar_t character) {
-    if(navigation_.Active()==MainPage::Events){const bool handled=events_.Char(character);if(handled)Invalidate();return handled;}
-    if(navigation_.Active()==MainPage::RaidHistory) {const bool handled=raid_history_.Char(character);if(handled)Invalidate();return handled;}
-    if (navigation_.Active()==MainPage::Map) {
+    if(navigation_.Active()==BuiltinPageId::Events){const bool handled=events_.Char(character);if(handled)Invalidate();return handled;}
+    if(navigation_.Active()==BuiltinPageId::RaidHistory) {const bool handled=raid_history_.Char(character);if(handled)Invalidate();return handled;}
+    if (navigation_.Active()==BuiltinPageId::Map) {
         const bool handled=map_.Char(character); if(handled) Invalidate(); return handled;
     }
-    if (navigation_.Active()==MainPage::Hideout) {
+    if (navigation_.Active()==BuiltinPageId::Hideout) {
         const bool handled=hideout_.Char(character); if (handled) Invalidate(); return handled;
     }
-    if (navigation_.Active()==MainPage::Tasks) {
+    if (navigation_.Active()==BuiltinPageId::Tasks) {
         const bool handled=tasks_.Char(character); if (handled) Invalidate(); return handled;
     }
-    if (navigation_.Active() != MainPage::Prices) return false;
+    if (navigation_.Active() != BuiltinPageId::Prices) return false;
     if (price_page_input_.Focused()) {
         if (character >= L'0' && character <= L'9') {
             (void)price_page_input_.HandleChar(character); Invalidate();
@@ -445,7 +445,7 @@ void MainWindowUi::DrawLanguageSettings(const UiCanvas& canvas, float width, flo
 }
 
 std::optional<std::size_t> MainWindowUi::LanguageAt(int x, int y) const {
-    if (navigation_.Active() != MainPage::Settings) return std::nullopt;
+    if (navigation_.Active() != BuiltinPageId::Settings) return std::nullopt;
     RECT client{}; GetClientRect(window_, &client);
     const float left = theme_.sidebarWidth + theme_.contentPadding;
     const float right = (std::min)(client.right / Scale() - theme_.contentPadding, left + 620);
@@ -527,10 +527,10 @@ void MainWindowUi::Paint() {
         hideout_.Prepare(size.width,size.height,theme_);
         tasks_.Prepare(size.width,size.height,theme_);
         map_.Prepare(size.width,size.height,theme_);
-        if(navigation_.Active()==MainPage::RaidHistory||page_transition_.ShowingOutgoing(MainPage::RaidHistory))raid_history_.Prepare(size.width,size.height,theme_);
-        if(navigation_.Active()==MainPage::RaidHistory)for(const auto& id:raid_history_.VisibleImages())image_cache_.Request(id);
-        if(navigation_.Active()==MainPage::Events||page_transition_.ShowingOutgoing(MainPage::Events))events_.Prepare(size.width,size.height,theme_,write_factory_.Get(),body_format_.Get(),label_format_.Get());
-        if(navigation_.Active()==MainPage::Events)for(const auto& id:events_.VisibleImages())image_cache_.Request(id);
+        if(navigation_.Active()==BuiltinPageId::RaidHistory||page_transition_.ShowingOutgoing(BuiltinPageId::RaidHistory))raid_history_.Prepare(size.width,size.height,theme_);
+        if(navigation_.Active()==BuiltinPageId::RaidHistory)for(const auto& id:raid_history_.VisibleImages())image_cache_.Request(id);
+        if(navigation_.Active()==BuiltinPageId::Events||page_transition_.ShowingOutgoing(BuiltinPageId::Events))events_.Prepare(size.width,size.height,theme_,write_factory_.Get(),body_format_.Get(),label_format_.Get());
+        if(navigation_.Active()==BuiltinPageId::Events)for(const auto& id:events_.VisibleImages())image_cache_.Request(id);
         RequestVisibleHideoutImages();
         RequestVisibleTaskImages();
         UiCanvas canvas{*render_target_.Get(), *brush_.Get(), *title_format_.Get(),
@@ -543,13 +543,15 @@ void MainWindowUi::Paint() {
         render_target_->PushAxisAlignedClip(
             D2D1::RectF(theme_.sidebarWidth, 0, size.width, size.height),
             D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-        const auto drawPage=[&](MainPage page) {
+        // 注册表负责身份和元数据；具体内置页仍由原有成员分派，避免改写业务与上下文状态。
+        // The registry owns identity/metadata; concrete built-in dispatch remains transitional and preserves resident state.
+        const auto drawPage=[&](PageId page) {
         canvas.inputWindow = page == navigation_.Active() ? window_ : nullptr;
-        if (page==MainPage::Hideout) hideout_.Draw(canvas,theme_,item_bitmaps_);
-        else if (page==MainPage::Tasks) tasks_.Draw(canvas,theme_,item_bitmaps_);
-        else if (page==MainPage::Map) map_.Draw(canvas,theme_);
-        else if (page==MainPage::RaidHistory)raid_history_.Draw(canvas,theme_,item_bitmaps_);
-        else if (page==MainPage::Events)events_.Draw(canvas,theme_,item_bitmaps_);
+        if (page==BuiltinPageId::Hideout) hideout_.Draw(canvas,theme_,item_bitmaps_);
+        else if (page==BuiltinPageId::Tasks) tasks_.Draw(canvas,theme_,item_bitmaps_);
+        else if (page==BuiltinPageId::Map) map_.Draw(canvas,theme_);
+        else if (page==BuiltinPageId::RaidHistory)raid_history_.Draw(canvas,theme_,item_bitmaps_);
+        else if (page==BuiltinPageId::Events)events_.Draw(canvas,theme_,item_bitmaps_);
         else pages_.Draw(canvas, theme_, size.width, size.height,
                     page, scanner_, mode_menu_open_,
                     mode_hovered_, hovered_mode_, recent_, recent_filter_,
@@ -561,8 +563,8 @@ void MainWindowUi::Paint() {
                     (std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::steady_clock::now().time_since_epoch()).count() / 500) % 2 == 0,
                     price_rows_, item_bitmaps_, price_page_, price_total_, &price_page_input_,mode_menu_progress_);
-        if (page == MainPage::Settings) DrawLanguageSettings(canvas, size.width, size.height);
-        if(page==MainPage::RaidHistory) {
+        if (page == BuiltinPageId::Settings) DrawLanguageSettings(canvas, size.width, size.height);
+        if(page==BuiltinPageId::RaidHistory) {
             raid_scan_button_=raid_history_.ScanButtonBounds();
             DrawTextButton(canvas,theme_,raid_scan_button_,RaidScanLabel(),false,raid_scan_pressed_);
         }
@@ -605,7 +607,7 @@ void MainWindowUi::Resize(UINT width, UINT height) {
             PageHost::RecentFilteredCount(recent_, recent_filter_)));
     price_scroll_ = (std::min)(price_scroll_, PageHost::PriceMaxScroll(DipHeight(), price_rows_.size(), DipWidth(), theme_, PriceDetailsScrollExtra()));
     price_scroll_target_ = (std::min)(price_scroll_target_, PageHost::PriceMaxScroll(DipHeight(), price_rows_.size(), DipWidth(), theme_, PriceDetailsScrollExtra()));
-    if (navigation_.Active() == MainPage::Prices) RequestVisiblePriceImages();
+    if (navigation_.Active() == BuiltinPageId::Prices) RequestVisiblePriceImages();
     Invalidate();
 }
 
@@ -632,7 +634,7 @@ float MainWindowUi::DipWidth() const noexcept {
 std::optional<RecentScrollbar> MainWindowUi::Scrollbar() const noexcept {
     // 过渡滑块仅作视觉插值，落定后才使用目标列表的拖动映射。
     // The transitioning thumb is visual only; enable target-list dragging once settled.
-    if (navigation_.Active() != MainPage::RecentScans
+    if (navigation_.Active() != BuiltinPageId::RecentScans
         || recent_transition_.progress < 1.0F) return std::nullopt;
     RECT client{};
     GetClientRect(window_, &client);
@@ -642,7 +644,7 @@ std::optional<RecentScrollbar> MainWindowUi::Scrollbar() const noexcept {
 }
 
 std::optional<RecentScrollbar> MainWindowUi::PriceScrollbar() const noexcept {
-    if (navigation_.Active() != MainPage::Prices || price_transition_.progress < 1.0F
+    if (navigation_.Active() != BuiltinPageId::Prices || price_transition_.progress < 1.0F
         || price_search_transition_.progress < 1.0F)
         return std::nullopt;
     RECT client{}; GetClientRect(window_, &client);
@@ -651,7 +653,7 @@ std::optional<RecentScrollbar> MainWindowUi::PriceScrollbar() const noexcept {
 }
 
 std::optional<int> MainWindowUi::PricePagerAt(int x, int y) const {
-    if (navigation_.Active() != MainPage::Prices || price_dropdown_
+    if (navigation_.Active() != BuiltinPageId::Prices || price_dropdown_
         || price_transition_.progress < 1) return {};
     const float left = theme_.sidebarWidth + theme_.contentPadding;
     const float right = DipWidth() - theme_.contentPadding;
@@ -674,7 +676,7 @@ void MainWindowUi::SelectPricePage(std::size_t page) {
 }
 
 std::optional<std::size_t> MainWindowUi::PriceCardAt(int x, int y) const {
-    if (navigation_.Active() != MainPage::Prices || price_dropdown_
+    if (navigation_.Active() != BuiltinPageId::Prices || price_dropdown_
         || price_search_transition_.progress < 1 || price_transition_.progress < 1) return std::nullopt;
     const float dx = x / Scale(), dy = y / Scale();
     float top = PageHost::PriceListTop(DipWidth(), theme_) - price_scroll_;
@@ -689,7 +691,7 @@ std::optional<std::size_t> MainWindowUi::PriceCardAt(int x, int y) const {
 }
 
 std::optional<int> MainWindowUi::PriceHistoryRangeAt(int x, int y) const {
-    if (navigation_.Active() != MainPage::Prices || !price_details_.open
+    if (navigation_.Active() != BuiltinPageId::Prices || !price_details_.open
         || price_dropdown_ || price_details_.extent < kPriceDetailsHeight - 1) return std::nullopt;
     const float dx = x / Scale(), dy = y / Scale();
     if (dy < PageHost::PriceListTop(DipWidth(), theme_) || dy >= DipHeight() - 22) return std::nullopt;
@@ -732,7 +734,7 @@ void MainWindowUi::PriceHistoryReady() {
 
 void MainWindowUi::UpdateHistoryHover() {
     const auto clear = [&] { price_details_.hoverIndex.reset(); };
-    if (navigation_.Active() != MainPage::Prices || !price_details_.open
+    if (navigation_.Active() != BuiltinPageId::Prices || !price_details_.open
         || !price_details_.pointer || price_dropdown_) { clear(); return; }
     if (price_details_.chartProgress < 1) { clear(); return; }
     const auto row = std::find_if(price_rows_.begin(), price_rows_.end(), [&](const auto& item) {
@@ -753,7 +755,7 @@ void MainWindowUi::UpdateHistoryHover() {
 }
 
 bool MainWindowUi::OnPriceSearch(int x, int y) const noexcept {
-    if (navigation_.Active() != MainPage::Prices) return false;
+    if (navigation_.Active() != BuiltinPageId::Prices) return false;
     RECT client{}; GetClientRect(window_, &client);
     const float left = theme_.sidebarWidth + theme_.contentPadding;
     const float right = static_cast<float>(client.right) / Scale() - theme_.contentPadding;
@@ -762,7 +764,7 @@ bool MainWindowUi::OnPriceSearch(int x, int y) const noexcept {
 }
 
 std::optional<PriceToolbarControl> MainWindowUi::PriceControlAt(int x, int y) const noexcept {
-    if (navigation_.Active() != MainPage::Prices) return std::nullopt;
+    if (navigation_.Active() != BuiltinPageId::Prices) return std::nullopt;
     RECT client{};
     GetClientRect(window_, &client);
     return pages_.PriceControlAt(static_cast<float>(x) / Scale(),
@@ -770,13 +772,13 @@ std::optional<PriceToolbarControl> MainWindowUi::PriceControlAt(int x, int y) co
         price_dropdown_closing_ || price_dropdown_progress_ < 0.8F ? std::nullopt : price_dropdown_);
 }
 
-std::optional<MainPage> MainWindowUi::HitTest(int x, int y) const noexcept {
+std::optional<PageId> MainWindowUi::HitTest(int x, int y) const noexcept {
     return sidebar_.HitTest(static_cast<float>(x) / Scale(),
                             static_cast<float>(y) / Scale(), DipHeight(), theme_);
 }
 
 bool MainWindowUi::OnModeSelector(int x, int y) const noexcept {
-    if (navigation_.Active() != MainPage::Scanner) return false;
+    if (navigation_.Active() != BuiltinPageId::Scanner) return false;
     const auto rect = pages_.ModeSelectorRect(theme_);
     const float dip_x = static_cast<float>(x) / Scale();
     const float dip_y = static_cast<float>(y) / Scale();
@@ -785,7 +787,7 @@ bool MainWindowUi::OnModeSelector(int x, int y) const noexcept {
 }
 
 std::optional<data::GameMode> MainWindowUi::ModeOptionAt(int x, int y) const noexcept {
-    if (!mode_menu_open_ || navigation_.Active() != MainPage::Scanner)
+    if (!mode_menu_open_ || navigation_.Active() != BuiltinPageId::Scanner)
         return std::nullopt;
     return pages_.ModeOptionAt(static_cast<float>(x) / Scale(),
                                static_cast<float>(y) / Scale(), theme_);
@@ -796,14 +798,14 @@ void MainWindowUi::Invalidate() const {
 }
 
 void MainWindowUi::MouseMove(int x, int y) {
-    if(navigation_.Active()==MainPage::Map&&map_.MouseMove(x/Scale(),y/Scale()))Invalidate();
-    if(navigation_.Active()==MainPage::RaidHistory&&raid_history_.MouseMove(x/Scale(),y/Scale()))Invalidate();
-    if(navigation_.Active()==MainPage::Events&&events_.MouseMove(x/Scale(),y/Scale()))Invalidate();
+    if(navigation_.Active()==BuiltinPageId::Map&&map_.MouseMove(x/Scale(),y/Scale()))Invalidate();
+    if(navigation_.Active()==BuiltinPageId::RaidHistory&&raid_history_.MouseMove(x/Scale(),y/Scale()))Invalidate();
+    if(navigation_.Active()==BuiltinPageId::Events&&events_.MouseMove(x/Scale(),y/Scale()))Invalidate();
     const bool back=OnBackButton(x,y);
     if(back!=back_hovered_) { back_hovered_=back;Invalidate(); }
-    if (navigation_.Active()==MainPage::Hideout) { hideout_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
-    if (navigation_.Active()==MainPage::Tasks) { tasks_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
-    if (navigation_.Active() == MainPage::Prices && price_details_.open) {
+    if (navigation_.Active()==BuiltinPageId::Hideout) { hideout_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
+    if (navigation_.Active()==BuiltinPageId::Tasks) { tasks_.MouseMove(x/Scale(),y/Scale()); Invalidate(); }
+    if (navigation_.Active() == BuiltinPageId::Prices && price_details_.open) {
         price_details_.pointer.reset();
         const float dy = y / Scale();
         if (!price_dropdown_ && dy >= PageHost::PriceListTop(DipWidth(), theme_) && dy < DipHeight() - 22)
@@ -834,11 +836,11 @@ void MainWindowUi::MouseMove(int x, int y) {
     const auto next = HitTest(x, y);
     const bool mode_hovered = OnModeSelector(x, y);
     const auto hovered_mode = ModeOptionAt(x, y);
-    const auto recent_tab = navigation_.Active() == MainPage::RecentScans
+    const auto recent_tab = navigation_.Active() == BuiltinPageId::RecentScans
         ? pages_.RecentTabAt(static_cast<float>(x) / Scale(),
                              static_cast<float>(y) / Scale(), theme_)
         : std::nullopt;
-    const auto price_tab = navigation_.Active() == MainPage::Prices
+    const auto price_tab = navigation_.Active() == BuiltinPageId::Prices
         ? pages_.PriceTabAt(static_cast<float>(x) / Scale(),
                              static_cast<float>(y) / Scale(), theme_)
         : std::nullopt;
@@ -883,13 +885,13 @@ void MainWindowUi::MouseDown(int x, int y) {
     if(page_transition_.Active() && x/Scale()>=theme_.sidebarWidth) {
         page_content_press_blocked_=true;return;
     }
-    raid_scan_pressed_=navigation_.Active()==MainPage::RaidHistory&&HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale());
+    raid_scan_pressed_=navigation_.Active()==BuiltinPageId::RaidHistory&&HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale());
     if(raid_scan_pressed_){if(raid_scan_pending_)raid_scan_pressed_=false;Invalidate();return;}
-    if(navigation_.Active()==MainPage::Settings&&preferences_.Down(x/Scale(),y/Scale())){Invalidate();return;}
+    if(navigation_.Active()==BuiltinPageId::Settings&&preferences_.Down(x/Scale(),y/Scale())){Invalidate();return;}
     pressed_price_card_.reset();
     pressed_history_range_.reset();
     if (HitNavigationButton(attribution_button_, x / Scale(), y / Scale(),
-            navigation_.Active() == MainPage::Settings)) {
+            navigation_.Active() == BuiltinPageId::Settings)) {
         attribution_pressed_ = true;
         pressed_language_.reset();
         pressed_.reset();
@@ -899,17 +901,17 @@ void MainWindowUi::MouseDown(int x, int y) {
     }
     pressed_language_ = LanguageAt(x, y);
     CancelScrollDrag();
-    if (navigation_.Active()==MainPage::Hideout) {
+    if (navigation_.Active()==BuiltinPageId::Hideout) {
         hideout_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
     }
-    if(navigation_.Active()==MainPage::RaidHistory&&x/Scale()>=theme_.sidebarWidth) {
+    if(navigation_.Active()==BuiltinPageId::RaidHistory&&x/Scale()>=theme_.sidebarWidth) {
         raid_history_.MouseDown(x/Scale(),y/Scale());SetFocus(window_);Invalidate();
     }
-    if(navigation_.Active()==MainPage::Events&&x/Scale()>=theme_.sidebarWidth){events_.MouseDown(x/Scale(),y/Scale());SetFocus(window_);Invalidate();}
-    if (navigation_.Active()==MainPage::Tasks) {
+    if(navigation_.Active()==BuiltinPageId::Events&&x/Scale()>=theme_.sidebarWidth){events_.MouseDown(x/Scale(),y/Scale());SetFocus(window_);Invalidate();}
+    if (navigation_.Active()==BuiltinPageId::Tasks) {
         tasks_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
     }
-    if (navigation_.Active()==MainPage::Map) {
+    if (navigation_.Active()==BuiltinPageId::Map) {
         map_.MouseDown(x/Scale(),y/Scale()); SetFocus(window_); Invalidate();
     }
     if (const auto bar = Scrollbar()) {
@@ -945,11 +947,11 @@ void MainWindowUi::MouseDown(int x, int y) {
     pressed_ = HitTest(x, y);
     mode_pressed_ = OnModeSelector(x, y);
     pressed_mode_ = ModeOptionAt(x, y);
-    pressed_recent_tab_ = navigation_.Active() == MainPage::RecentScans
+    pressed_recent_tab_ = navigation_.Active() == BuiltinPageId::RecentScans
         ? pages_.RecentTabAt(static_cast<float>(x) / Scale(),
                              static_cast<float>(y) / Scale(), theme_)
         : std::nullopt;
-    pressed_price_tab_ = navigation_.Active() == MainPage::Prices
+    pressed_price_tab_ = navigation_.Active() == BuiltinPageId::Prices
         ? pages_.PriceTabAt(static_cast<float>(x) / Scale(),
                              static_cast<float>(y) / Scale(), theme_)
         : std::nullopt;
@@ -962,7 +964,7 @@ void MainWindowUi::MouseDown(int x, int y) {
         price_search_.Focus();
         SetFocus(window_);
         Invalidate();
-    } else if (navigation_.Active() == MainPage::Prices) {
+    } else if (navigation_.Active() == BuiltinPageId::Prices) {
         price_search_.Blur();
     }
     if (pressed_ || mode_pressed_ || pressed_mode_ || pressed_recent_tab_
@@ -974,38 +976,38 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
         raid_scan_pressed_=false;
         if(HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale())){
             if(raid_scan_&&raid_scan_())SetRaidScanStatus(true,false,false);
-            else {SetRaidScanStatus(false,false,true);return_pages_.push_back(MainPage::RaidHistory);SelectPage(MainPage::Settings);}
+            else {SetRaidScanStatus(false,false,true);return_pages_.push_back(BuiltinPageId::RaidHistory);SelectPage(BuiltinPageId::Settings);}
         }
         Invalidate();return {};
     }
-    if(navigation_.Active()==MainPage::Settings&&preferences_.Up(window_,x/Scale(),y/Scale())){Invalidate();return {};}
+    if(navigation_.Active()==BuiltinPageId::Settings&&preferences_.Up(window_,x/Scale(),y/Scale())){Invalidate();return {};}
     if(page_content_press_blocked_) { page_content_press_blocked_=false;return std::nullopt; }
     if(back_pressed_) {
         back_pressed_=false;
         if(OnBackButton(x,y)) GoBack();
         Invalidate();return std::nullopt;
     }
-    if (navigation_.Active()==MainPage::Hideout) {
+    if (navigation_.Active()==BuiltinPageId::Hideout) {
         if(const auto item=hideout_.MouseUp(x/Scale(),y/Scale())) {
             OpenPriceItem(*item,hideout_.Mode()); return std::nullopt;
         }
     }
-    if (navigation_.Active()==MainPage::Tasks) {
+    if (navigation_.Active()==BuiltinPageId::Tasks) {
         if(const auto action=tasks_.MouseUp(x/Scale(),y/Scale())) {
             if(action->destination==TasksPage::Action::Destination::Prices)OpenPriceItem(action->id,tasks_.Mode());
             else {
                 map_.SetMode(action->mode);
                 if(map_.OpenInteraction(action->id)){
-                    return_pages_.push_back(MainPage::Tasks);SelectPage(MainPage::Map);CancelScrollDrag();Invalidate();}
+                    return_pages_.push_back(BuiltinPageId::Tasks);SelectPage(BuiltinPageId::Map);CancelScrollDrag();Invalidate();}
             }
             return std::nullopt;
         }
     }
-    if(navigation_.Active()==MainPage::RaidHistory) {
+    if(navigation_.Active()==BuiltinPageId::RaidHistory) {
         if(const auto scan=raid_history_.MouseUp(x/Scale(),y/Scale())) {OpenPriceItem(scan->stableItemId,scan->gameMode);return std::nullopt;}
         Invalidate();
     }
-    if(navigation_.Active()==MainPage::Events){
+    if(navigation_.Active()==BuiltinPageId::Events){
         if(const auto action=events_.MouseUp(x/Scale(),y/Scale())) {
             if(action->kind==EventAction::Kind::Refresh){if(event_refresh_)event_refresh_();}
             else if(action->kind==EventAction::Kind::Source){if(events::SafeEventSourceUrl(action->id))ShellExecuteW(window_,L"open",EventWide(action->id).c_str(),nullptr,nullptr,SW_SHOWNORMAL);}
@@ -1013,7 +1015,7 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
         }
         Invalidate();
     }
-    if (navigation_.Active()==MainPage::Map) {
+    if (navigation_.Active()==BuiltinPageId::Map) {
         const auto mode=map_.Mode();map_.MouseUp(x/Scale(),y/Scale());
         if(mode!=map_.Mode())tasks_.SetMode(map_.Mode());
         Invalidate();
@@ -1021,7 +1023,7 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     if (attribution_pressed_) {
         attribution_pressed_ = false;
         if (HitNavigationButton(attribution_button_, x / Scale(), y / Scale(),
-                navigation_.Active() == MainPage::Settings)) {
+                navigation_.Active() == BuiltinPageId::Settings)) {
             // 只打开安装目录中的本地通知，不使用工作目录或网络地址。
             // Open only the local installed notice, never a working-directory or network URL.
             wchar_t executable[32768]{};
@@ -1063,11 +1065,11 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     const bool page_changed = pressed_.has_value() && pressed_ == released
         && navigation_.Active() != *pressed_ && SelectPage(*pressed_);
     const auto released_mode = ModeOptionAt(x, y);
-    const auto released_recent_tab = navigation_.Active() == MainPage::RecentScans
+    const auto released_recent_tab = navigation_.Active() == BuiltinPageId::RecentScans
         ? pages_.RecentTabAt(static_cast<float>(x) / Scale(),
                              static_cast<float>(y) / Scale(), theme_)
         : std::nullopt;
-    const auto released_price_tab = navigation_.Active() == MainPage::Prices
+    const auto released_price_tab = navigation_.Active() == BuiltinPageId::Prices
         ? pages_.PriceTabAt(static_cast<float>(x) / Scale(),
                              static_cast<float>(y) / Scale(), theme_)
         : std::nullopt;
@@ -1233,7 +1235,7 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
 }
 
 std::optional<std::size_t> MainWindowUi::RecentCardAt(int x,int y) const {
-    if(navigation_.Active()!=MainPage::RecentScans||recent_transition_.progress<1)return {};
+    if(navigation_.Active()!=BuiltinPageId::RecentScans||recent_transition_.progress<1)return {};
     const float left=theme_.sidebarWidth+theme_.contentPadding;
     const float right=(std::min)(DipWidth()-theme_.contentPadding,left+760.0F);
     const float dx=x/Scale(),dy=y/Scale();
@@ -1281,13 +1283,13 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
 }
 
 bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
-    if(navigation_.Active()==MainPage::RaidHistory) {const bool handled=raid_history_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
-    if(navigation_.Active()==MainPage::Events){const bool handled=events_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
-    if(navigation_.Active()==MainPage::Map){const bool handled=map_.Wheel(delta,x/Scale(),y/Scale(),control);
+    if(navigation_.Active()==BuiltinPageId::RaidHistory) {const bool handled=raid_history_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
+    if(navigation_.Active()==BuiltinPageId::Events){const bool handled=events_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
+    if(navigation_.Active()==BuiltinPageId::Map){const bool handled=map_.Wheel(delta,x/Scale(),y/Scale(),control);
         if(handled)Invalidate();return handled;}
-    if (navigation_.Active()==MainPage::Hideout && x/Scale()>=theme_.sidebarWidth) return hideout_.Wheel(delta,x/Scale(),y/Scale());
-    if (navigation_.Active()==MainPage::Tasks && x/Scale()>=theme_.sidebarWidth) return tasks_.Wheel(delta,x/Scale(),y/Scale());
-    if (navigation_.Active() == MainPage::Settings && x / Scale() >= theme_.sidebarWidth) {
+    if (navigation_.Active()==BuiltinPageId::Hideout && x/Scale()>=theme_.sidebarWidth) return hideout_.Wheel(delta,x/Scale(),y/Scale());
+    if (navigation_.Active()==BuiltinPageId::Tasks && x/Scale()>=theme_.sidebarWidth) return tasks_.Wheel(delta,x/Scale(),y/Scale());
+    if (navigation_.Active() == BuiltinPageId::Settings && x / Scale() >= theme_.sidebarWidth) {
         const float maximum = (std::max)(0.0F,
             static_cast<float>(UiLocalization().AvailableLocales().size()) * 42 - (DipHeight() - 178));
         language_scroll_ = std::clamp(language_scroll_ - static_cast<float>(delta) / WHEEL_DELTA * 42,
@@ -1297,7 +1299,7 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
     }
     if (recent_scroll_grab_ || price_scroll_grab_) return false;
     if (static_cast<float>(x) / Scale() < theme_.sidebarWidth || y < 0) return false;
-    if (navigation_.Active() == MainPage::Prices) {
+    if (navigation_.Active() == BuiltinPageId::Prices) {
         const float maximum = PageHost::PriceMaxScroll(DipHeight(), price_rows_.size(), DipWidth(), theme_, PriceDetailsScrollExtra());
         price_scroll_target_ = std::clamp(price_scroll_target_
             - static_cast<float>(delta) / WHEEL_DELTA * 66.0F, 0.0F, maximum);
@@ -1307,7 +1309,7 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
         RequestVisiblePriceImages();
         return price_scroll_ != price_scroll_target_;
     }
-    if (navigation_.Active() != MainPage::RecentScans) return false;
+    if (navigation_.Active() != BuiltinPageId::RecentScans) return false;
     const float maximum = PageHost::RecentMaxScroll(DipHeight(),
         PageHost::RecentFilteredCount(recent_, recent_filter_));
     recent_scroll_target_ = std::clamp(recent_scroll_target_
@@ -1319,13 +1321,13 @@ bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
 }
 
 bool MainWindowUi::AnimationActive() const noexcept {
-    if(navigation_.Active()==MainPage::Scanner&&mode_menu_progress_!=(mode_menu_open_?1.0F:0.0F))return true;
+    if(navigation_.Active()==BuiltinPageId::Scanner&&mode_menu_progress_!=(mode_menu_open_?1.0F:0.0F))return true;
     if(sidebar_.Animating())return true;
-    if(navigation_.Active()==MainPage::Events&&events_.Animating())return true;
-    const bool mapVisible=navigation_.Active()==MainPage::Map||page_transition_.ShowingOutgoing(MainPage::Map);
-    const bool tasksVisible=navigation_.Active()==MainPage::Tasks
-        || page_transition_.ShowingOutgoing(MainPage::Tasks);
-    return (navigation_.Active()==MainPage::RaidHistory&&raid_history_.Animating()) || page_transition_.Active() || hideout_.Animating() || (tasksVisible&&tasks_.Animating()) || (mapVisible&&map_.Animating()) || recent_transition_.progress < 1.0F
+    if(navigation_.Active()==BuiltinPageId::Events&&events_.Animating())return true;
+    const bool mapVisible=navigation_.Active()==BuiltinPageId::Map||page_transition_.ShowingOutgoing(BuiltinPageId::Map);
+    const bool tasksVisible=navigation_.Active()==BuiltinPageId::Tasks
+        || page_transition_.ShowingOutgoing(BuiltinPageId::Tasks);
+    return (navigation_.Active()==BuiltinPageId::RaidHistory&&raid_history_.Animating()) || page_transition_.Active() || hideout_.Animating() || (tasksVisible&&tasks_.Animating()) || (mapVisible&&map_.Animating()) || recent_transition_.progress < 1.0F
         || price_transition_.progress < 1.0F
         || price_search_transition_.progress < 1.0F
         || price_details_.tabProgress < 1 || price_details_.chartProgress < 1
@@ -1339,9 +1341,9 @@ bool MainWindowUi::AnimationActive() const noexcept {
 
 bool MainWindowUi::AnimationTick() {
     const auto now = std::chrono::steady_clock::now();
-    const bool outgoingMap=page_transition_.ShowingOutgoing(MainPage::Map);
+    const bool outgoingMap=page_transition_.ShowingOutgoing(BuiltinPageId::Map);
     page_transition_.Tick(now);
-    if(outgoingMap&&!page_transition_.ShowingOutgoing(MainPage::Map)&&navigation_.Active()!=MainPage::Map)map_.ReleaseDetailImages();
+    if(outgoingMap&&!page_transition_.ShowingOutgoing(BuiltinPageId::Map)&&navigation_.Active()!=BuiltinPageId::Map)map_.ReleaseDetailImages();
     if (price_search_transition_.progress < 1) {
         price_search_transition_.progress = std::clamp(
             std::chrono::duration<float>(now - price_search_started_).count() / price_search_duration_, 0.0F, 1.0F);
@@ -1352,12 +1354,12 @@ bool MainWindowUi::AnimationTick() {
         : std::chrono::duration<float>(now - recent_scroll_tick_).count();
     recent_scroll_tick_ = now;
     sidebar_.Tick(std::clamp(elapsed,0.0F,0.05F));
-    if(navigation_.Active()==MainPage::Scanner)mode_menu_progress_=AdvanceDropdownTransition(mode_menu_progress_,!mode_menu_open_,std::clamp(elapsed,0.0F,0.05F));
+    if(navigation_.Active()==BuiltinPageId::Scanner)mode_menu_progress_=AdvanceDropdownTransition(mode_menu_progress_,!mode_menu_open_,std::clamp(elapsed,0.0F,0.05F));
     hideout_.Tick(elapsed);
-    if(navigation_.Active()==MainPage::RaidHistory)raid_history_.Tick(elapsed);
-    if(navigation_.Active()==MainPage::Events)events_.Tick(elapsed);
-    if(navigation_.Active()==MainPage::Map||page_transition_.ShowingOutgoing(MainPage::Map))map_.Tick(elapsed);
-    if (navigation_.Active()==MainPage::Tasks || page_transition_.ShowingOutgoing(MainPage::Tasks))
+    if(navigation_.Active()==BuiltinPageId::RaidHistory)raid_history_.Tick(elapsed);
+    if(navigation_.Active()==BuiltinPageId::Events)events_.Tick(elapsed);
+    if(navigation_.Active()==BuiltinPageId::Map||page_transition_.ShowingOutgoing(BuiltinPageId::Map))map_.Tick(elapsed);
+    if (navigation_.Active()==BuiltinPageId::Tasks || page_transition_.ShowingOutgoing(BuiltinPageId::Tasks))
         tasks_.Tick(elapsed);
     const float remaining = recent_scroll_target_ - recent_scroll_;
     if (std::abs(remaining) < 0.75F) {
@@ -1422,7 +1424,7 @@ bool MainWindowUi::AnimationTick() {
     if (price_details_.hoverIndex)
         *price_details_.hoverIndex = AdvanceHistoryHover(*price_details_.hoverIndex,
             price_details_.hoverTarget, elapsed);
-    if (navigation_.Active() == MainPage::Prices) RequestVisiblePriceImages();
+    if (navigation_.Active() == BuiltinPageId::Prices) RequestVisiblePriceImages();
     if (!AnimationActive()) { recent_scroll_tick_ = {}; price_scroll_tick_ = {}; }
     Invalidate();
     return AnimationActive();
