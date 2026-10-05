@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <memory>
 #include <thread>
+#include <atomic>
+#include <map>
 
 namespace noven::capture {
 class DxgiDesktopDuplicationBackend;
@@ -50,7 +52,7 @@ namespace noven::raid {
 class LocalRaidService;
 }
 namespace noven::events {class EventService;class WinHttpEventClient;class OfficialEventSource;class WikiEventSource;}
-namespace noven::plugins {class PluginDiscovery;class PluginRuntimeManager;}
+namespace noven::plugins {class PluginDiscovery;class PluginRuntimeManager;class PluginRuntimeController;}
 
 namespace noven {
 
@@ -74,6 +76,7 @@ private:
     static constexpr UINT kMapAssetsMessage = WM_APP + 5;
     static constexpr UINT kRaidHistoryMessage = WM_APP + 6;
     static constexpr UINT kEventsMessage = WM_APP + 7;
+    static constexpr UINT kPluginRuntimeMessage = WM_APP + 8;
     static constexpr UINT kDebugMouseTimerId = 2;
     static constexpr UINT kDebugMouseCheckMilliseconds = 50;
     static constexpr UINT kRecentAnimationTimerId = 3;
@@ -101,6 +104,7 @@ private:
     void StartMapAssetUpdate();
     void PublishEvents();
     void RefreshPlugins();
+    void PublishPluginRuntime();
     bool RegisterWindowClass(HINSTANCE instance) const;
     HWND CreateMainWindow(HINSTANCE instance) const;
 
@@ -119,6 +123,10 @@ private:
     std::unique_ptr<ui::MainWindowUi> main_ui_;
     std::unique_ptr<plugins::PluginDiscovery> plugin_discovery_;
     std::unique_ptr<plugins::PluginRuntimeManager> plugin_runtime_;
+    std::unique_ptr<plugins::PluginRuntimeController> plugin_controller_;
+    std::shared_ptr<std::atomic_bool> plugin_notification_pending_{std::make_shared<std::atomic_bool>(false)};
+    std::map<std::string,std::pair<std::uint64_t,std::string>> plugin_logs_;
+    bool plugin_state_warning_{};
     std::unique_ptr<data::RecentScanStore> recent_scan_store_;
     std::uint64_t recent_scan_id_base_{};
     HANDLE recent_animation_timer_{};

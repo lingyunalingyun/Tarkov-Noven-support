@@ -21,5 +21,6 @@ private:
     std::filesystem::path statePath_;
     PluginStateStore state_;
     bool startupDone_{};
+    bool savePending_{};
 };
 }

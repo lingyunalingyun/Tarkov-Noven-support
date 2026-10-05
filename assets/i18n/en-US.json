@@ -18,7 +18,7 @@
   "plugins.runtime_error": "Runtime diagnostic",
   "plugins.consent_title": "Enable unverified local plugin?",
   "plugins.consent_warning": "This executes third-party native code. PluginHost isolates processes/crashes, but is not an OS security sandbox; plugins can still call Windows APIs as your user. Enable only code you trust. Grant the requested permissions below and enable?",
-  "plugins.state_error": "Cannot save plugin state; no new consent was executed.",
+  "plugins.state_error": "Cannot save plugin state: new enable requests do not execute; stopped state may not persist to the next launch. Check data-directory write access.",
   "plugins.enable_failed": "Plugin could not start. Check its manifest, DLL file and consent.",
   "plugins.refresh": "Refresh",
   "plugins.discovered": "Local plugin · Discovered",

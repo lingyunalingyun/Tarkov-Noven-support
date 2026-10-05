@@ -10,31 +10,33 @@ const PluginRecord* PluginRuntimeController::Find(std::string_view id) const {
 }
 ControlResult PluginRuntimeController::Enable(std::string_view id,const std::function<bool(const PluginManifest&)>& confirm) {
     discovery_.Refresh();Reconcile();
-    const auto* record=Find(id);
-    if(!record||record->manifest->manifestVersion!=2||!record->manifest->runtime||!SupportedPermissions(*record->manifest))return ControlResult::Rejected;
+    const auto* found=Find(id);
+    if(!found||found->manifest->manifestVersion!=2||!found->manifest->runtime||!SupportedPermissions(*found->manifest))return ControlResult::Rejected;
+    const auto record=*found;
     if(const auto session=runtime_.Snapshot(id);session&&!Terminal(session->state))return ControlResult::Rejected;
-    auto file=NativeFile::Open(discovery_.Root(),record->directory,record->manifest->runtime->entry);
-    if(!file.file)return ControlResult::Rejected;
+    std::optional<NativeFile> file;
+    try{file=NativeFile::Open(discovery_.Root(),record.directory,record.manifest->runtime->entry);}
+    catch(const std::exception&){return ControlResult::Rejected;}
     // 持有文件锁覆盖确认窗口；用户只确认当前已校验的清单，不能在确认中替换 DLL。
     // Retain path locks across consent; approval applies to the validated manifest/DLL, not a replacement.
-    if(!confirm||!confirm(*record->manifest))return ControlResult::ConsentDeclined;
+    if(!confirm||!confirm(*record.manifest))return ControlResult::ConsentDeclined;
     auto candidate=state_;
-    if(!candidate.Consent(*record->manifest))return ControlResult::Rejected;
+    if(!candidate.Consent(*record.manifest))return ControlResult::Rejected;
     if(!candidate.Save(statePath_))return ControlResult::StateFailure;
     state_=std::move(candidate);
-    if(runtime_.StartNative(*record,state_))return ControlResult::Success;
-    state_.Disable(id);return state_.Save(statePath_)?ControlResult::StartFailure:ControlResult::StateFailure;
+    if(runtime_.StartNative(record,state_))return ControlResult::Success;
+    state_.Disable(id);savePending_=!state_.Save(statePath_);return savePending_?ControlResult::StateFailure:ControlResult::StartFailure;
 }
 ControlResult PluginRuntimeController::Disable(std::string_view id) {
     runtime_.Stop(id);state_.Disable(id);
-    return state_.Save(statePath_)?ControlResult::Success:ControlResult::StateFailure;
+    savePending_=!state_.Save(statePath_);return savePending_?ControlResult::StateFailure:ControlResult::Success;
 }
 void PluginRuntimeController::StartEnabled() {
     if(startupDone_)return;startupDone_=true;
     for(const auto& record:discovery_.Snapshot().records){
         if(!record.manifest||!state_.Intent(record.manifest->id).enabled)continue;
         if(record.state!=PluginState::Valid||!state_.Authorized(*record.manifest)||!runtime_.StartNative(record,state_)){
-            state_.Disable(record.manifest->id);state_.Save(statePath_);
+            state_.Disable(record.manifest->id);savePending_=!state_.Save(statePath_);
         }
     }
 }
@@ -48,6 +50,7 @@ bool PluginRuntimeController::Reconcile() {
             runtime_.Stop(session.pluginId);state_.Disable(session.pluginId);changed=true;
         }
     }
-    return !changed||state_.Save(statePath_);
+    if(changed||savePending_)savePending_=!state_.Save(statePath_);
+    return !savePending_;
 }
 }

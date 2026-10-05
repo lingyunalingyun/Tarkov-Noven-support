@@ -29,6 +29,7 @@
 #include "raid/RaidScanAssociation.h"
 #include "plugins/PluginDiscovery.h"
 #include "plugins/PluginRuntimeManager.h"
+#include "plugins/PluginRuntimeController.h"
 #include "events/OfficialEventSource.h"
 #include "events/WikiEventSource.h"
 #include "events/EventService.h"
@@ -217,6 +218,7 @@ App::App()
       recent_scan_store_(std::make_unique<data::RecentScanStore>()) {}
 
 App::~App() {
+    plugin_controller_.reset();plugin_runtime_.reset();
     if (event_service_) event_service_->Stop();
     if (local_raid_service_) local_raid_service_->Stop();
     map_asset_worker_.request_stop();
@@ -293,11 +295,30 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->SetPreferences(preferences_);
     main_ui_->SetPreferencesHandler([this](const auto& next){return ApplyPreferences(next);});
     plugin_discovery_=std::make_unique<plugins::PluginDiscovery>(ExecutableDirectory());
-    // Phase 2 只持有空闲管理器；发现、刷新、权限声明均不能启动进程。
-    // Phase 2 owns an idle manager only; discovery, refresh and permission declarations cannot launch processes.
+    // 新插件默认禁用；仅独立的授权控制器可启动 V2，发现和刷新不启动会话。
+    // New plugins default disabled; only the consent controller starts V2, never discovery/refresh.
     plugin_runtime_=std::make_unique<plugins::PluginRuntimeManager>();
+    plugin_controller_=std::make_unique<plugins::PluginRuntimeController>(*plugin_discovery_,*plugin_runtime_,ExecutableDirectory()/L"data"/L"plugin-state.json");
+    plugin_runtime_->SetChangeHandler([window=window_,pending=plugin_notification_pending_]{
+        if(!pending->exchange(true)&&!PostMessageW(window,kPluginRuntimeMessage,0,0))pending->store(false);
+    });
     RefreshPlugins();
     main_ui_->SetPluginRefreshHandler([this]{RefreshPlugins();});
+    main_ui_->SetPluginControlHandler([this](const ui::PluginControlAction& action){
+        const auto result=action.enable?plugin_controller_->Enable(action.id,[this](const plugins::PluginManifest& manifest){
+            std::wstring text=ui::Tr("plugins.consent_warning")+L"\n\n"+Utf8ToWide(manifest.name)+L"\n"+Utf8ToWide(manifest.id)
+                +L"\n"+ui::Tr("plugins.version")+L": "+Utf8ToWide(manifest.version)+L"\n"+ui::Tr("plugins.author")+L": "+Utf8ToWide(manifest.author)
+                +L"\n\n"+ui::Tr("plugins.permissions");
+            if(manifest.requestedPermissions.empty())text+=L"\n"+ui::Tr("plugins.no_permissions");
+            for(const auto& permission:manifest.requestedPermissions)text+=L"\n• "+Utf8ToWide(permission)+L" · "+ui::Tr("plugins.supported");
+            return MessageBoxW(window_,text.c_str(),ui::Tr("plugins.consent_title").c_str(),MB_YESNO|MB_ICONWARNING|MB_DEFBUTTON2)==IDYES;
+        }):plugin_controller_->Disable(action.id);
+        main_ui_->SetPlugins(plugin_discovery_->Snapshot());PublishPluginRuntime();
+        if(result!=plugins::ControlResult::Success&&result!=plugins::ControlResult::ConsentDeclined)
+            MessageBoxW(window_,ui::Tr(result==plugins::ControlResult::StateFailure?"plugins.state_error":"plugins.enable_failed").c_str(),ui::Tr("nav.plugins").c_str(),MB_OK|MB_ICONWARNING);
+    });
+    main_ui_->SetPluginActionHandler([this](const ui::PluginOwnedPage& page,std::string_view action){plugin_runtime_->Action(page.pluginId,page.generation,page.page.localId,action);});
+    plugin_controller_->StartEnabled();PublishPluginRuntime();
     if (!recent_scan_store_->Load(ExecutableDirectory() / L"data" / L"recent-scans.json",
                                   history_error)) {
         common::DebugLog(L"[recent-scans] load warning: " + history_error);
@@ -712,7 +733,22 @@ void App::PublishEvents() {
 void App::RefreshPlugins() {
     // 启动一次、手动刷新一次；只把元数据快照交给 UI，不向 PageRegistry 注册清单页面。
     // Startup/manual discovery only; publish metadata snapshots, never register manifest pages in PageRegistry.
-    if(plugin_discovery_)main_ui_->SetPlugins(plugin_discovery_->Refresh());
+    if(plugin_controller_)main_ui_->SetPlugins(plugin_controller_->Refresh());
+    else if(plugin_discovery_)main_ui_->SetPlugins(plugin_discovery_->Refresh());
+    PublishPluginRuntime();
+}
+void App::PublishPluginRuntime() {
+    if(!plugin_runtime_||!main_ui_)return;
+    if(plugin_controller_&&!plugin_controller_->Reconcile()&&!plugin_state_warning_){
+        plugin_state_warning_=true;common::DebugLog(L"[plugins] "+ui::Tr("plugins.state_error"));
+        MessageBoxW(window_,ui::Tr("plugins.state_error").c_str(),ui::Tr("nav.plugins").c_str(),MB_OK|MB_ICONWARNING);
+    }
+    const auto snapshots=plugin_runtime_->Snapshots();main_ui_->SetPluginRuntime(snapshots);
+    for(const auto& session:snapshots)if(!session.lastLog.empty()){
+        const auto value=std::pair{session.generation,session.lastLog};
+        if(plugin_logs_[session.pluginId]!=value){plugin_logs_[session.pluginId]=value;common::DebugLog(L"[plugin "+Utf8ToWide(session.pluginId)+L"] "+Utf8ToWide(session.lastLog));}
+    }
+    EnsureRecentAnimationTimer();
 }
 
 void App::OnScanCompletionMessage(LPARAM completion_pointer) {
@@ -845,6 +881,8 @@ LRESULT CALLBACK App::WindowProc(
 
     if (app != nullptr) {
         switch (message) {
+        case kPluginRuntimeMessage:
+            app->plugin_notification_pending_->store(false);app->PublishPluginRuntime();return 0;
         case kEventsMessage:
             app->PublishEvents();app->EnsureRecentAnimationTimer();return 0;
         case kRaidHistoryMessage:
@@ -995,6 +1033,9 @@ LRESULT CALLBACK App::WindowProc(
             }
             break;
         case WM_CLOSE:
+            // 先收束线程与自有 Job，再销毁通知目标；普通退出保留已授权运行意图。
+            // Join owned workers/Jobs before destroying the notification target; normal exit preserves approved intent.
+            app->plugin_controller_.reset();app->plugin_runtime_.reset();
             DestroyWindow(window);
             return 0;
         case WM_NCDESTROY:

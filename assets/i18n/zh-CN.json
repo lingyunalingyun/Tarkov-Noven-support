@@ -18,7 +18,7 @@
   "plugins.runtime_error": "运行诊断",
   "plugins.consent_title": "启用未验证的本地插件？",
   "plugins.consent_warning": "此操作将执行第三方原生代码。PluginHost 仅隔离进程与崩溃，不是 OS 安全沙箱；插件仍能以你的用户身份调用 Windows API。仅启用你信任的代码。是否授权以下请求权限并启用？",
-  "plugins.state_error": "无法保存插件状态；未执行新的授权。",
+  "plugins.state_error": "无法保存插件状态：新的启用不会执行；停止后的状态可能无法保留到下次启动。请检查数据目录写入权限。",
   "plugins.enable_failed": "插件无法启动：请检查清单、DLL 文件及授权。",
   "plugins.refresh": "刷新",
   "plugins.discovered": "本地插件 · 已发现",

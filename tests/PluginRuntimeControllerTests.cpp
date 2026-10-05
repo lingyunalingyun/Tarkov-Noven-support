@@ -20,6 +20,9 @@ int wmain(int argc,wchar_t** argv) try {
         PluginRuntimeManager runtime(temp.path);PluginRuntimeController controller(discovery,runtime,path);
         controller.StartEnabled();controller.Refresh();Check(runtime.SessionCount()==0,"discovery/startup/refresh cannot enable a new plugin");
         Check(controller.Enable("com.example.consent",[](const auto&){return false;})==ControlResult::ConsentDeclined&&runtime.SessionCount()==0,"explicit denial executes nothing");
+        std::filesystem::rename(directory/"plugin.dll",directory/"missing.dll");
+        Check(controller.Enable("com.example.consent",[](const auto&){return true;})==ControlResult::Rejected&&runtime.SessionCount()==0,"missing DLL is diagnostic, not an exception or execution");
+        std::filesystem::rename(directory/"missing.dll",directory/"plugin.dll");
         Manifest(directory,1);bool asked=false;Check(controller.Enable("com.example.consent",[&](const auto&){asked=true;return true;})==ControlResult::Rejected&&!asked,"V1 unknown runtime never executes");
         Manifest(directory,2,"[\"network.http\"]");Check(controller.Enable("com.example.consent",[](const auto&){return true;})==ControlResult::Rejected,"unsupported permission blocks consent");
         Manifest(directory);Check(controller.Enable("com.example.consent",[](const auto&){return true;})==ControlResult::Success&&runtime.WaitFor("com.example.consent",HostState::Running,10000),"approval enables after persisted consent");
@@ -46,6 +49,7 @@ int wmain(int argc,wchar_t** argv) try {
         PluginRuntimeManager runtime(temp.path);PluginRuntimeController controller(discovery,runtime,path);controller.StartEnabled();Check(runtime.SessionCount()==0,"corrupt state fails closed");
         std::filesystem::create_directory(temp.path/"blocked");PluginRuntimeController failed(discovery,runtime,temp.path/"blocked");
         Check(failed.Enable("com.example.consent",[](const auto&){return true;})==ControlResult::StateFailure&&runtime.SessionCount()==0,"save failure cannot execute");
+        Check(failed.Disable("com.example.consent")==ControlResult::StateFailure&&!failed.Reconcile(),"disable persistence failure remains visible until repaired");
     }
     Check(GetModuleHandleW(L"plugin.dll")==nullptr,"owner never loads DLL");
     std::cout<<"Plugin consent/startup/refresh/crash state PASS\n";return 0;
