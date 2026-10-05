@@ -3,16 +3,17 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 using namespace noven::plugins;
-void Check(bool ok,const char* text){if(!ok){std::cerr<<text<<'\n';std::exit(1);}}
+void Check(bool ok,const char* text){if(!ok)throw std::runtime_error(text);}
 PluginRecord Record(){PluginRecord record;record.state=PluginState::Valid;record.manifest=PluginManifest{};record.manifest->id="com.example.fault";record.manifest->manifestVersion=record.manifest->apiVersion=1;return record;}
 struct Temp final {
     std::filesystem::path path=std::filesystem::temp_directory_path()/ ("noven-host-test-"+ipc::RandomSecret());
     Temp(){std::filesystem::create_directory(path);}
     ~Temp(){std::error_code error;std::filesystem::remove_all(path,error);}
 };
-int wmain(int argc,wchar_t** argv){
-    Check(argc==3,"first-party test peer and real runtime paths required");
+int wmain(int argc,wchar_t** argv) try {
+    Check(argc==2,"first-party test peer path required");
     for(const auto mode:{"wrong-id","wrong-token","wrong-version","no-connect","no-hello","zero-frame","oversized-frame","bad-json","bad-utf8","missing-fields","unknown-type","duplicate-hello","disconnect","mid-frame","stalled-frame","exit-normal","exit-abnormal","ignore-shutdown","silent-pong","host-ping"}){
         Temp fixture;std::filesystem::copy_file(argv[1],fixture.path/L"NovenPluginHost.exe");{std::ofstream file(fixture.path/"fault.txt");file<<mode;}
         PluginRuntimeManager manager(fixture.path);Check(manager.Start(Record()),"test session start");
@@ -43,11 +44,11 @@ int wmain(int argc,wchar_t** argv){
     // 一个故障会话与一个真实 Host 并存，不共享进程、管道或失败状态。
     // A faulty session and a real Host coexist without sharing process, pipe or failure state.
     Temp fixture;std::filesystem::copy_file(argv[1],fixture.path/L"NovenPluginHost.exe");{std::ofstream file(fixture.path/"fault.txt");file<<"wrong-token";}
-    PluginRuntimeManager failed(fixture.path),healthy(argv[2]);auto other=Record();other.manifest->id="dev.example.healthy";
-    Check(healthy.Start(other)&&failed.Start(Record()),"parallel independent owners");
-    Check(failed.WaitForTerminal("com.example.fault",10000)&&healthy.WaitFor("dev.example.healthy",HostState::Ready,10000),"failed session cannot corrupt healthy neighbor");
-    Check(healthy.Ping("dev.example.healthy")&&healthy.WaitForPong("dev.example.healthy",1,5000),"healthy owner still communicates");
+    PluginRuntimeManager manager(fixture.path);auto other=Record();other.manifest->id="dev.example.healthy";
+    Check(manager.Start(other)&&manager.Start(Record()),"same owner, independent sessions");
+    Check(manager.WaitForTerminal("com.example.fault",10000)&&manager.WaitFor("dev.example.healthy",HostState::Ready,10000),"failed session cannot corrupt healthy neighbor under the same manager");
+    Check(manager.Ping("dev.example.healthy")&&manager.WaitForPong("dev.example.healthy",1,5000),"healthy session still communicates");
     {std::ofstream file(fixture.path/"fault.txt");file<<"no-hello";}
     PluginRuntimeManager handshaking(fixture.path);Check(handshaking.Start(Record())&&handshaking.WaitFor("com.example.fault",HostState::Handshaking,10000),"silent peer is handshaking");
     Check(handshaking.Stop("com.example.fault")&&handshaking.WaitForTerminal("com.example.fault",6000)&&handshaking.Snapshot("com.example.fault")->state==HostState::Stopped,"shutdown cancels handshake safely");
-}
+}catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

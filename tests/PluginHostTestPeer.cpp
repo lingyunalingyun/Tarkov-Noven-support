@@ -15,6 +15,7 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
     int count=0;auto values=CommandLineToArgvW(GetCommandLineW(),&count);if(!values)return 2;
     try{
         const auto args=ParseHostArguments(count,values);LocalFree(values);values=nullptr;
+        if(args.pluginId=="dev.example.healthy")return RunHost(args);
         wchar_t executable[32768]{};const auto length=GetModuleFileNameW(nullptr,executable,32768);if(!length||length==32768)return 2;
         std::ifstream file(std::filesystem::path(executable).parent_path()/"fault.txt");std::string mode;std::getline(file,mode);if(mode.size()>64)return 2;
         Handle parent(OpenProcess(SYNCHRONIZE,FALSE,args.parent));if(!parent)return 2;

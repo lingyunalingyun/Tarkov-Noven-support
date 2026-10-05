@@ -44,6 +44,11 @@ int wmain(int argc,wchar_t** argv){
         PluginRuntimeManager manager(directory/L"not-present");Check(manager.Start(Record("com.example.missing")),"async missing host start");
         Check(manager.WaitForTerminal("com.example.missing",6000)&&manager.Snapshot("com.example.missing")->error==HostError::Startup,"CreateProcess failure is bounded diagnostic");
     }
+    {
+        PluginRuntimeManager bounded(directory/L"not-present");
+        for(int i=0;i<16;++i)Check(bounded.Start(Record("com.example.bound"+std::to_string(i))),"bounded retained sessions");
+        Check(!bounded.Start(Record("com.example.overflow"))&&bounded.SessionCount()==16,"session count cannot grow unbounded");
+    }
     DWORD child=0;
     {PluginRuntimeManager manager(directory);manager.Start(Record("com.example.cleanup"));Check(manager.WaitFor("com.example.cleanup",HostState::Ready,10000),"cleanup session ready");child=manager.Snapshot("com.example.cleanup")->processId;}
     ipc::Handle process(OpenProcess(SYNCHRONIZE,FALSE,child));Check(!process||WaitForSingleObject(process.Get(),2000)==WAIT_OBJECT_0,"destruction leaves no orphan");

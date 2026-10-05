@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <shellapi.h>
+#include <aclapi.h>
 using namespace noven::plugins::ipc;
 void Check(bool ok,const char* text){if(!ok){std::cerr<<text<<'\n';std::exit(1);}}
 int wmain(int argc,wchar_t** argv){
@@ -13,6 +14,11 @@ int wmain(int argc,wchar_t** argv){
     }
     for(int scenario=0;scenario<6;++scenario){
         auto job=CreateHostJob();const auto pipeName=PipeName(RandomSecret());auto pipe=CreateServer(pipeName);
+        PACL acl=nullptr;PSECURITY_DESCRIPTOR descriptor=nullptr;void* rawAce=nullptr;
+        Check(GetSecurityInfo(pipe.Get(),SE_KERNEL_OBJECT,DACL_SECURITY_INFORMATION,nullptr,nullptr,&acl,nullptr,&descriptor)==ERROR_SUCCESS,"pipe security descriptor");
+        Check(acl&&acl->AceCount==1&&GetAce(acl,0,&rawAce),"one explicit allow ACE, no Everyone defaults");
+        const auto ace=static_cast<const ACCESS_ALLOWED_ACE*>(rawAce);auto sid=const_cast<DWORD*>(&ace->SidStart);
+        Check(ace->Header.AceType==ACCESS_ALLOWED_ACE_TYPE&&IsValidSid(sid)&&*GetSidSubAuthorityCount(sid)==3&&*GetSidSubAuthority(sid,0)==SECURITY_LOGON_IDS_RID,"pipe access restricted to a logon SID");LocalFree(descriptor);
         auto process=LaunchHost(executable,job.Get(),pipeName,"com.example.test",token);
         Check(ConnectServer(pipe.Get(),After(5000),nullptr,process.process.Get())==IoResult::Complete,"host connects");
         ULONG peer=0;Check(GetNamedPipeClientProcessId(pipe.Get(),&peer)&&peer==process.id,"exact created peer PID");
