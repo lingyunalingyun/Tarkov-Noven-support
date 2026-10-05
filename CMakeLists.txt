@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(NovenTarkovSupport
     VERSION 0.1.0
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 if(NOT WIN32)
@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_library(NovenPluginTransport STATIC src/plugins/PluginProtocol.cpp src/plugins/PluginPipe.cpp src/plugins/PluginManifest.cpp)
+add_library(NovenPluginTransport STATIC src/plugins/PluginProtocol.cpp src/plugins/PluginPipe.cpp src/plugins/PluginManifest.cpp src/plugins/PluginUiDocument.cpp)
 target_include_directories(NovenPluginTransport PUBLIC src)
 target_compile_definitions(NovenPluginTransport PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
 target_link_libraries(NovenPluginTransport PUBLIC bcrypt advapi32)
@@ -639,6 +639,19 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME plugin_protocol COMMAND NovenPluginProtocolTests)
     add_executable(NovenPluginHostTests tests/PluginHostTests.cpp)
+    add_executable(NovenPluginUiDocumentTests tests/PluginUiDocumentTests.cpp)
+    add_executable(NovenPluginAbiHeaderTests tests/PluginAbiHeaderTests.c)
+    target_include_directories(NovenPluginAbiHeaderTests PRIVATE sdk)
+    set_target_properties(NovenPluginAbiHeaderTests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+    if(MSVC)
+        target_compile_options(NovenPluginAbiHeaderTests PRIVATE /W4 /utf-8)
+    endif()
+    add_test(NAME plugin_abi_header COMMAND NovenPluginAbiHeaderTests)
+    target_link_libraries(NovenPluginUiDocumentTests PRIVATE NovenPluginTransport)
+    if(MSVC)
+        target_compile_options(NovenPluginUiDocumentTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME plugin_ui_document COMMAND NovenPluginUiDocumentTests)
     target_link_libraries(NovenPluginHostTests PRIVATE NovenPluginTransport shell32)
     add_dependencies(NovenPluginHostTests NovenPluginHost)
     if(MSVC)
