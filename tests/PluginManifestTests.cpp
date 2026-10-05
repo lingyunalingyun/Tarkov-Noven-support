@@ -36,5 +36,29 @@ int main(){
     auto utf8=Manifest();utf8.insert(utf8.find("Loot"),1,static_cast<char>(0xff));Check(ParseManifest(utf8).state==PluginState::InvalidManifest,"invalid UTF-8");
     Check(ParseManifest(Manifest("a.b","1.0.0",",\"description\":\"\\uD800\"")).state==PluginState::InvalidManifest,"unpaired surrogate");
     Check(ParseManifest(Manifest("a.b","1.0.0",",\"entry\":\"evil.exe\",\"command\":\"ignored\"")).state==PluginState::Valid,"unknown executable-looking data creates no entry contract");
+    // 精确测试每个公开上限，避免只因重复字段/其他格式错误而碰巧拒绝超长值。
+    // Exercise exact public limits so unrelated JSON failures cannot accidentally satisfy rejection tests.
+    for(const auto& [field,limit]:std::vector<std::pair<std::string,std::size_t>>{{"name",256},{"description",4096},{"author",256},{"homepage",2048},{"source",2048},{"license",128}}) {
+        for(const std::size_t extra:{0,1}) {
+            std::string value(limit+extra,'x');if(field=="homepage"||field=="source")value.replace(0,8,"https://");
+            auto text=Manifest();const auto member=noven::raid::json::Quote(field)+":"+noven::raid::json::Quote(value);
+            if(field=="name")text.replace(text.find("\"name\":\"Loot Route\""),19,member);
+            else {text.pop_back();text+=","+member+"}";}
+            Check((ParseManifest(text).state==PluginState::Valid)==(extra==0),"exact text byte boundary");
+        }
+    }
+    Check(ParseManifest(Manifest("a."+std::string(126,'x'),"1.0.0+"+std::string(122,'x'))).state==PluginState::Valid,"exact ID and version lengths");
+    Check(!ValidSemanticVersion("1.0.0+"+std::string(123,'x')),"version beyond byte boundary");
+    const auto permission="future."+std::string(121,'x');
+    Check(ParseManifest(Manifest("a.b","1.0.0",",\"permissions\":["+noven::raid::json::Quote(permission)+"]")).state==PluginState::Valid,"exact permission length");
+    std::string atCapacity=",\"permissions\":[";
+    for(int i=0;i<64;++i){if(i)atCapacity+=',';atCapacity+=noven::raid::json::Quote("future.permission"+std::to_string(i));}atCapacity+=']';
+    const auto capacityResult=ParseManifest(Manifest("a.b","1.0.0",atCapacity));
+    Check(capacityResult.manifest&&capacityResult.manifest->requestedPermissions.size()==64,"exact unique permissions capacity");
+    auto exact=Manifest();exact.resize(MaximumManifestBytes,' ');
+    Check(ParseManifest(exact).state==PluginState::Valid,"exact file capacity valid JSON");exact+=' ';
+    Check(ParseManifest(exact).state==PluginState::InvalidManifest,"one byte over file capacity");
+    for(const auto field:{"description","author","homepage","source","license","permissions"})
+        Check(ParseManifest(Manifest("a.b","1.0.0",",\""+std::string(field)+"\":false")).state==PluginState::InvalidManifest,"optional field wrong type");
     std::cout<<"Manifest v1 validation PASS\n";
 }

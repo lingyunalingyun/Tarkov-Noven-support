@@ -50,5 +50,17 @@ int main() try {
     TemporaryDirectory limited;PluginDiscovery bounded{limited.path};
     for(int i=0;i<129;++i)std::filesystem::create_directories(bounded.Root()/std::to_string(i));
     Check(bounded.Refresh().records.empty()&&!bounded.Snapshot().diagnostics.empty(),"capacity failure explicit, no arbitrary partial winner");
+    TemporaryDirectory compatibility;PluginDiscovery versions{compatibility.path};
+    auto future=valid;future.replace(future.find("\"apiVersion\":1"),14,"\"apiVersion\":2");
+    Write(versions.Root()/L"supported",valid);Write(versions.Root()/L"future",future);
+    snapshot=versions.Refresh();
+    Check(snapshot.records.size()==2&&snapshot.records[0].state==PluginState::DuplicateId&&snapshot.records[1].state==PluginState::DuplicateId,"API incompatibility cannot hide a duplicate ID");
+    std::filesystem::remove(versions.Root()/L"supported"/L"manifest.json");snapshot=versions.Refresh();
+    Check(snapshot.records[0].state==PluginState::IncompatibleApi&&snapshot.records[0].manifest->apiVersion==2,"refresh restores incompatible API metadata after conflict removal");
+    Write(versions.Root()/L"schema",R"({"manifestVersion":2})");snapshot=versions.Refresh();
+    Check(snapshot.records[1].state==PluginState::IncompatibleManifest,"future schema visible without reinterpretation");
+    TemporaryDirectory entries;PluginDiscovery entryBound{entries.path};std::filesystem::create_directory(entryBound.Root());
+    for(int i=0;i<1025;++i)std::ofstream(entryBound.Root()/std::to_string(i))<<"not executed";
+    Check(entryBound.Refresh().records.empty()&&!entryBound.Snapshot().diagnostics.empty(),"root entry capacity includes files without inspecting or executing them");
     std::cout<<"Read-only plugin discovery PASS\n";
 } catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
