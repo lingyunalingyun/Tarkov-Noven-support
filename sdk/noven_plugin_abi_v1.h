@@ -61,8 +61,10 @@ typedef uint32_t (NOVEN_CALL *NovenGetAbiVersionFn)(void);
 typedef int32_t (NOVEN_CALL *NovenInitializeFn)(const NovenHostApiV1*, NovenPluginInstanceV1*);
 /* Host 初始化 instance.struct_size/abi_version；插件验证并填写其余成员，成功返回 NOVEN_OK。
  * Host initializes instance.struct_size/abi_version; plugin validates/fills remaining members, returns NOVEN_OK. */
+#ifndef NOVEN_PLUGIN_OMIT_EXPORT_DECLARATIONS
 NOVEN_EXPORT uint32_t NOVEN_CALL NovenPlugin_GetAbiVersion(void);
 NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_Initialize(const NovenHostApiV1*, NovenPluginInstanceV1*);
+#endif
 #ifdef __cplusplus
 }
 #endif

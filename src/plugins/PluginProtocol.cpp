@@ -1,12 +1,13 @@
 #include "plugins/PluginProtocol.h"
 #include "plugins/PluginManifest.h"
+#include "plugins/PluginUiDocument.h"
 #include "raid/RaidJson.h"
 #include <array>
 #include <stdexcept>
 
 namespace noven::plugins::ipc {
 namespace {
-constexpr std::array<std::string_view,7> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError"};
+constexpr std::array<std::string_view,14> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log"};
 [[noreturn]] void Invalid(){throw std::runtime_error("plugin protocol violation");}
 bool IsHandshake(MessageType type){return type==MessageType::Hello||type==MessageType::HelloAck;}
 }
@@ -27,9 +28,30 @@ Message ParseMessage(std::string_view payload){
         message.pluginId=object.At("pluginId").String();message.session=object.At("session").String();
         if(!ValidPluginId(message.pluginId)||!ValidSecret(message.session))Invalid();
     }
-    // 协议 v1 只接受定义的字段；错误信息固定，不回显会话密钥或不可信文本。
-    // V1 accepts only defined fields; errors are fixed, never echoing secrets or untrusted text.
-    if(object.object.size()!=(IsHandshake(message.type)?4u:1u))Invalid();
+    std::size_t fields=IsHandshake(message.type)?4u:1u;
+    switch(message.type) {
+    case MessageType::LoadPlugin:
+        if(object.At("manifestVersion").Int()!=2||object.At("apiVersion").Int()!=1||object.At("abiVersion").Int()!=1)Invalid();
+        message.directory=object.At("directory").String();message.entry=object.At("entry").String();message.pagePermission=object.At("pagePermission").Bool();
+        if(!ValidUiText(message.directory,8192)||!ValidRuntimeEntry(message.entry))Invalid();fields=7;break;
+    case MessageType::LoadPluginResult:case MessageType::UiActionResult:
+        message.result=object.At("result").Int();if(message.result<0||message.result>6)Invalid();fields=2;break;
+    case MessageType::UiRegisterPage:
+        message.pageId=object.At("pageId").String();message.title=object.At("title").String();
+        if(!ValidLocalId(message.pageId)||!ValidUiText(message.title,256))Invalid();fields=3;break;
+    case MessageType::UiPublishPage:
+        message.pageId=object.At("pageId").String();message.document=object.At("document").String();
+        if(!ValidLocalId(message.pageId))Invalid();ParseUiDocument(message.document);fields=3;break;
+    case MessageType::UiAction:
+        message.pageId=object.At("pageId").String();message.actionId=object.At("actionId").String();
+        if(!ValidLocalId(message.pageId)||!ValidLocalId(message.actionId))Invalid();fields=3;break;
+    case MessageType::Log:
+        message.text=object.At("text").String();if(!ValidUiText(message.text,1024))Invalid();fields=2;break;
+    default:break;
+    }
+    // 旧消息的精确 schema 不变；扩展也不能携带身份伪装/全局目标/命令。
+    // Old message schemas stay exact; extensions cannot carry spoofed identities/global targets/commands.
+    if(object.object.size()!=fields)Invalid();
     return message;
 }
 std::string Serialize(const Message& message){
@@ -39,7 +61,17 @@ std::string Serialize(const Message& message){
         if(!ValidPluginId(message.pluginId)||!ValidSecret(message.session))Invalid();
         text+=",\"protocolVersion\":"+std::to_string(message.protocolVersion)+",\"pluginId\":"+raid::json::Quote(message.pluginId)+",\"session\":"+raid::json::Quote(message.session);
     }
-    return text+"}";
+    switch(message.type) {
+    case MessageType::LoadPlugin:
+        text+=",\"manifestVersion\":2,\"apiVersion\":1,\"abiVersion\":1,\"directory\":"+raid::json::Quote(message.directory)+",\"entry\":"+raid::json::Quote(message.entry)+",\"pagePermission\":"+(message.pagePermission?"true":"false");break;
+    case MessageType::LoadPluginResult:case MessageType::UiActionResult:text+=",\"result\":"+std::to_string(message.result);break;
+    case MessageType::UiRegisterPage:text+=",\"pageId\":"+raid::json::Quote(message.pageId)+",\"title\":"+raid::json::Quote(message.title);break;
+    case MessageType::UiPublishPage:text+=",\"pageId\":"+raid::json::Quote(message.pageId)+",\"document\":"+raid::json::Quote(message.document);break;
+    case MessageType::UiAction:text+=",\"pageId\":"+raid::json::Quote(message.pageId)+",\"actionId\":"+raid::json::Quote(message.actionId);break;
+    case MessageType::Log:text+=",\"text\":"+raid::json::Quote(message.text);break;
+    default:break;
+    }
+    text+='}';ParseMessage(text);return text;
 }
 bool MatchesSession(const Message& message,std::string_view pluginId,std::string_view secret){
     if(!IsHandshake(message.type)||message.protocolVersion!=TransportProtocolVersion||message.pluginId!=pluginId||message.session.size()!=secret.size())return false;

@@ -28,5 +28,18 @@ int main(){
     for(const auto bad:{"{","[]",R"({"type":"unknown"})",R"({"type":"hello"})",R"({"type":1})",R"({"type":"ping","method":"execute"})",R"({"type":"hello","protocolVersion":"1","pluginId":"a.b","session":"x"})"})Reject([&]{ParseMessage(bad);});
     Reject([]{ParseMessage(std::string("{\"type\":\"ping")+static_cast<char>(0xff)+"\"}");});
     Check(!ValidSecret(std::string(64,'z'))&&!ValidSecret("secret"),"strict token format");
+    Message load{MessageType::LoadPlugin};load.directory="C:\\Noven\\plugins\\com.example.test";load.entry="plugin.dll";load.pagePermission=true;
+    const auto loaded=ParseMessage(Serialize(load));Check(loaded.entry==load.entry&&loaded.directory==load.directory&&loaded.pagePermission,"explicit v2 runtime request");
+    Message page{MessageType::UiRegisterPage};page.pageId="dashboard";page.title="Example";
+    Check(ParseMessage(Serialize(page)).title==page.title,"local page registration");
+    page.type=MessageType::UiPublishPage;page.document=R"({"schemaVersion":1,"blocks":[{"type":"button","id":"refresh","label":"Refresh"}]})";
+    Check(ParseMessage(Serialize(page)).document==page.document,"declarative document round trip");
+    Message action{MessageType::UiAction};action.pageId="dashboard";action.actionId="refresh";
+    Check(ParseMessage(Serialize(action)).actionId=="refresh","bounded local action");
+    for(const auto type:{MessageType::LoadPluginResult,MessageType::UiActionResult}){Message reply{type};reply.result=6;Check(ParseMessage(Serialize(reply)).result==6,"bounded result codes");}
+    Message log{MessageType::Log};log.text="Scoped log";Check(ParseMessage(Serialize(log)).text==log.text,"log carries no spoofed plugin identity");
+    for(const auto bad:{R"({"type":"uiRegisterPage","pageId":"builtin.plugins","title":"Spoof"})",R"({"type":"uiAction","pageId":"dashboard","actionId":"../x"})",R"({"type":"log","text":"x","pluginId":"com.other.test"})",R"({"type":"loadPluginResult","result":7})",R"({"type":"loadPlugin","manifestVersion":1,"apiVersion":1,"abiVersion":1,"directory":"C:\\x","entry":"plugin.dll","pagePermission":true})"})Reject([&]{ParseMessage(bad);});
+    load.entry="../plugin.dll";Reject([&]{Serialize(load);});
+    page.document=R"({"schemaVersion":1,"blocks":[{"type":"html","text":"x"}]})";Reject([&]{Serialize(page);});
     std::cout<<"Bounded plugin protocol PASS\n";
 }

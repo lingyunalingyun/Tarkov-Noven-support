@@ -46,6 +46,38 @@ Host signing/integrity, trust review and OS sandboxing are outside this phase.
 
 ## 消息与生命周期 / Messages and lifecycle
 
+### Phase 3 Host 扩展 / Phase 3 Host extensions
+
+传输版本仍为 1；以下消息只属于显式启用的 Manifest V2 会话。V1 未知字段不产生加载请求。
+Transport remains v1; runtime messages belong only to explicitly enabled V2 sessions. V1 unknown fields never produce a load request.
+
+```json
+{"type":"loadPlugin","manifestVersion":2,"apiVersion":1,"abiVersion":1,"directory":"<validated absolute plugin directory>","entry":"plugin.dll","pagePermission":true}
+{"type":"loadPluginResult","result":0}
+{"type":"uiRegisterPage","pageId":"dashboard","title":"Example"}
+{"type":"uiPublishPage","pageId":"dashboard","document":"<UI Document v1 JSON>"}
+{"type":"uiAction","pageId":"dashboard","actionId":"refresh"}
+{"type":"uiActionResult","result":0}
+{"type":"log","text":"Example initialized"}
+```
+
+加载结果：0 成功，1 路径不安全/文件无效，2 系统加载失败，3 缺少导出，4 ABI 不兼容，5 实例不合法，6 初始化失败。
+动作结果仅使用 0 成功 / 6 失败。字段精确匹配，不支持任意命令或远程方法。
+Load results: 0 success, 1 unsafe/invalid file, 2 loader failure, 3 missing export, 4 incompatible ABI, 5 invalid instance, 6 initialization failure.
+Actions use 0 success / 6 failure. Schemas match exactly, with no arbitrary commands or methods.
+
+pageId 和 actionId 都是有界局部身份，不能包含点或选择内置页面；全局身份由 Noven 构造。
+日志每秒最多 16 条、每条最多 1024 字节；页面最多 8 个，文档最多 24 KiB / 64 块，每秒最多 32 次发布。
+权限同时由 Noven 会话边界和 Host API 校验；消息不携带可由插件伪装的全局插件身份。
+Page/action IDs are bounded local identities without dots or built-in selectors; Noven constructs global identities.
+Logging is capped at 16 messages/second and 1024 bytes each. Pages are capped at 8; documents at 24 KiB/64 blocks and 32 publications/second.
+Session and Host API boundaries both enforce permission; messages cannot spoof a global plugin identity.
+
+只有 Host 加载插件 DLL，使用绝对路径及 DLL_LOAD_DIR / SYSTEM32 搜索策略，不依赖 CWD 或 PATH。
+进程隔离仍不是 OS 沙箱。此扩展不提供网络、产品数据或内置 UI 修改 API。
+Only Host loads DLLs, using absolute paths with DLL_LOAD_DIR / SYSTEM32, never CWD/PATH search.
+Process isolation is still not an OS sandbox. These extensions expose no network/product data/built-in UI modification APIs.
+
 除握手外，每条消息仅包含 `type`：ping、pong、shutdown、shutdownAck、protocolError。
 Ready 后重复 hello/helloAck、未请求的 pong 或其他非法消息会收束会话。无任意方法调用。
 握手期间允许 shutdown 并返回 shutdownAck；关闭交错的 ping/pong 不能伪装关闭确认。

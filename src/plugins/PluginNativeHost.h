@@ -1,0 +1,35 @@
+#pragma once
+#include "plugins/PluginNativePath.h"
+#include "plugins/PluginUiDocument.h"
+#include "noven_plugin_abi_v1.h"
+#include <map>
+
+namespace noven::plugins {
+// 本编译单元只链接进 Host，绝不链接到 Noven 主程序；进程边界不是 OS 沙箱。
+// Linked into Host only, never the main application; process isolation is not an OS sandbox.
+class NativePluginHost final {
+public:
+    explicit NativePluginHost(std::filesystem::path executableDirectory):root_(std::move(executableDirectory)/L"plugins"){}
+    ~NativePluginHost();
+    bool Message(const ipc::Message& message,ipc::Channel& channel,HANDLE parent);
+    void Shutdown();
+private:
+    static int32_t NOVEN_CALL Log(void*,NovenUtf8V1);
+    static int32_t NOVEN_CALL Register(void*,NovenUtf8V1,NovenUtf8V1);
+    static int32_t NOVEN_CALL Publish(void*,NovenUtf8V1,NovenUtf8V1);
+    int32_t Send(ipc::Message message);
+    int Load(const ipc::Message& message);
+    std::filesystem::path root_;
+    std::optional<NativeFile> file_;
+    HMODULE library_{};
+    ipc::Channel* channel_{};
+    HANDLE parent_{};
+    DWORD thread_{GetCurrentThreadId()};
+    NovenHostApiV1 host_{sizeof(NovenHostApiV1),NOVEN_PLUGIN_API_VERSION,this,&Log,&Register,&Publish};
+    NovenPluginInstanceV1 instance_{};
+    bool attempted_{},initialized_{},pagePermission_{},accepting_{};
+    std::map<std::string,UiDocument,std::less<>> pages_;
+    std::chrono::steady_clock::time_point burst_{std::chrono::steady_clock::now()};
+    unsigned logs_{},updates_{};
+};
+}

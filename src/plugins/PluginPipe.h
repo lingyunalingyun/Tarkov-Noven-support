@@ -47,5 +47,9 @@ private:
     std::string payload_;
     Deadline frameDeadline_{Deadline::max()};
 };
-int RunHost(const HostArguments& arguments);
+struct HostCallbacks final {
+    std::function<bool(const Message&,Channel&,HANDLE)> message;
+    std::function<void()> shutdown;
+};
+int RunHost(const HostArguments& arguments,const HostCallbacks& callbacks={});
 }

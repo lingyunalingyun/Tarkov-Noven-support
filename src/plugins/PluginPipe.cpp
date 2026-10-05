@@ -142,7 +142,7 @@ IoResult Channel::Write(const Message& message,Deadline deadline,HANDLE peer){
     }
     return IoResult::Complete;
 }
-int RunHost(const HostArguments& arguments){
+int RunHost(const HostArguments& arguments,const HostCallbacks& callbacks){
     try{
         Handle parent(OpenProcess(SYNCHRONIZE,FALSE,arguments.parent));if(!parent)return 2;
         auto pipe=ConnectClient(arguments.pipe,arguments.parent);Channel channel(pipe.Get());
@@ -157,7 +157,8 @@ int RunHost(const HostArguments& arguments){
         for(;;){
             if(channel.Read(incoming,Deadline::max(),nullptr,parent.Get())!=IoResult::Complete)return 2;
             if(incoming.type==MessageType::Ping){if(channel.Write({MessageType::Pong},After(2000),parent.Get())!=IoResult::Complete)return 2;}
-            else if(incoming.type==MessageType::Shutdown)return channel.Write({MessageType::ShutdownAck},After(2000),parent.Get())==IoResult::Complete?0:2;
+            else if(incoming.type==MessageType::Shutdown){if(callbacks.shutdown)callbacks.shutdown();return channel.Write({MessageType::ShutdownAck},After(2000),parent.Get())==IoResult::Complete?0:2;}
+            else if(callbacks.message&&callbacks.message(incoming,channel,parent.Get()))continue;
             else {channel.Write({MessageType::ProtocolError},After(1000),parent.Get());return 3;}
         }
     }catch(const std::exception&){return 3;}
