@@ -1,4 +1,5 @@
 #include "ui/Sidebar.h"
+#include "ui/PageTitle.h"
 #include "ui/localization/LocalizationService.h"
 
 #include <algorithm>
@@ -99,7 +100,7 @@ void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
         if (!selected && (is_hovered || pressed == page.id))canvas.Round(rect,8.0F,theme.hover);
         const D2D1_COLOR_F color = selected ? theme.primaryText : theme.secondaryText;
         DrawIcon(canvas, page.icon, rect.left + 14, rect.top + 11, color);
-        canvas.Text(Tr(page.titleKey), canvas.label,
+        canvas.Text(PageTitle(page), canvas.label,
                     D2D1::RectF(rect.left + 45, rect.top + 5,
                                 rect.right - 9, rect.bottom), color);
     }

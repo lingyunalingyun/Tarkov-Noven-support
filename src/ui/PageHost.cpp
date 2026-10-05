@@ -1,4 +1,5 @@
 #include "ui/PageHost.h"
+#include "ui/PageTitle.h"
 #include "ui/PageComponents.h"
 #include "ui/SearchBox.h"
 #include "ui/Dropdown.h"
@@ -333,7 +334,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
 
     // 所有页面共用紧凑标题行；内容与可选标签栏保持各自的布局。
     // All pages share a compact title row; content and optional tabs keep their own layout.
-    DrawPageHeader(canvas, theme, x, right, Tr(page->titleKey));
+    DrawPageHeader(canvas, theme, x, right, PageTitle(*page));
     if (active == BuiltinPageId::Settings) return;
 
     if (active == BuiltinPageId::RecentScans) {
@@ -559,7 +560,7 @@ void PageHost::Draw(const UiCanvas& canvas, const UiTheme& theme, float width,
                      theme.cornerRadius, theme.surface);
         canvas.Circle(D2D1::Point2F(x + 39, 136), 14, theme.selected);
         canvas.Circle(D2D1::Point2F(x + 39, 136), 5, theme.accent);
-        canvas.Text(Tr(page->titleKey), canvas.label,
+        canvas.Text(PageTitle(*page), canvas.label,
                     D2D1::RectF(x + 70, 112, card_right - 20, 148), theme.primaryText);
         canvas.Text(Tr(page->descriptionKey), canvas.body,
                     D2D1::RectF(x + 24, 170, card_right - 24, 227), theme.secondaryText);

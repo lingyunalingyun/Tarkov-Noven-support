@@ -5,10 +5,6 @@
 #include <set>
 
 namespace noven::ui {
-inline std::wstring PluginWide(std::string_view value){
-    if(value.empty())return {};const auto count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,value.data(),static_cast<int>(value.size()),nullptr,0);
-    if(!count)return {};std::wstring text(count,L'\0');MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,value.data(),static_cast<int>(value.size()),text.data(),count);return text;
-}
 struct PluginOwnedPage final {std::string pluginId;std::uint64_t generation{};plugins::RuntimePage page;};
 // 只从认证会话快照产生页面；插件只能给局部身份，不能提供全局身份或保护策略。
 // Pages originate only from authenticated snapshots; plugins supply local IDs, never global identity/protection policy.

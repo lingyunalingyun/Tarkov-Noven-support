@@ -65,6 +65,7 @@ add_executable(NovenTarkovSupport WIN32
     src/plugins/PluginManifest.cpp
     src/plugins/PluginDiscovery.cpp
     src/ui/PluginsPage.cpp
+    src/ui/PluginPageView.cpp
     src/events/EventCatalog.cpp
     src/events/EventBrowser.cpp
     src/events/EventCache.cpp
@@ -673,6 +674,12 @@ if(BUILD_TESTING)
         target_compile_options(NovenPluginPagesTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME plugin_pages COMMAND NovenPluginPagesTests)
+    add_executable(NovenPluginPageViewTests tests/PluginPageViewTests.cpp src/ui/PluginPageView.cpp src/ui/localization/LocalizationService.cpp)
+    target_link_libraries(NovenPluginPageViewTests PRIVATE NovenPluginRuntime d2d1 dwrite)
+    if(MSVC)
+        target_compile_options(NovenPluginPageViewTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME plugin_page_view COMMAND NovenPluginPageViewTests)
     add_executable(NovenPluginUiDocumentTests tests/PluginUiDocumentTests.cpp)
     add_executable(NovenPluginAbiHeaderTests tests/PluginAbiHeaderTests.c)
     target_include_directories(NovenPluginAbiHeaderTests PRIVATE sdk)
