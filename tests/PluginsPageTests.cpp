@@ -27,6 +27,14 @@ int wmain(int argc,wchar_t** argv) try {
         Check(page.ContentBounds().left>page.ListBounds().right&&page.SearchBounds().bottom<page.ContentBounds().top,"plugin button list and selected detail have separate geometry below search");
         const auto choose=[&](std::size_t index){const auto row=page.RowBounds(index);page.Down(row.left+5,(row.top+row.bottom)/2);page.Up(row.left+5,(row.top+row.bottom)/2);};
         Check(page.SelectedPlugin()&&page.SelectedPlugin()->directory==L"plugins/local","first plugin selected by default");
+        const auto category=page.CategoryBounds();
+        Check(category.top>page.SearchBounds().bottom&&category.bottom<page.ContentBounds().top&&category.right<=page.ContentBounds().right,"category row fits between tabs/search and plugin panels");
+        const auto openCategory=[&]{page.Down(category.left+5,category.top+5);page.Up(category.left+5,category.top+5);page.Tick(.3F);};
+        openCategory();Check(page.CategoryOpen(),"shared category dropdown opens");
+        const auto all=DropdownLayout{category}.Option(0);page.Down(all.left+5,all.top+5);page.Up(all.left+5,all.top+5);page.Tick(.2F);
+        Check(!page.CategoryOpen()&&page.Rows().size()==4&&page.Snapshot().records.size()==4&&page.SelectedPlugin()->directory==L"plugins/local"&&!page.TakeControlAction(),"All category does not change discovery, selection or runtime intent");
+        openCategory();choose(1);page.Tick(.2F);Check(!page.CategoryOpen()&&page.SelectedPlugin()->directory==L"plugins/local","outside click dismisses category without clicking through to plugin list");
+        openCategory();Check(page.Key(VK_ESCAPE,false),"Escape dismisses category");page.Tick(.2F);Check(!page.CategoryOpen(),"category close animation settles");
         choose(1);Check(page.SelectedPlugin()->directory==L"plugins/broken"&&page.SelectedPlugin()->status==Tr("plugins.invalid"),"broken manifest has an independently selectable detail");
         choose(2);Check(page.SelectedPlugin()->directory==L"plugins/incompatible","same ID in different directories cannot select another record");
         page.SetSnapshot(snapshot);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.SelectedPlugin()->directory==L"plugins/incompatible","refresh preserves directory selection");
@@ -42,8 +50,9 @@ int wmain(int argc,wchar_t** argv) try {
         page.SetSearch({});page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());choose(3);
         Check(page.SelectedPlugin()->status==Tr("plugins.conflict"),"duplicate record exposes its own conflict detail");
         page.SelectTab(PluginCenterTab::Marketplace);Check(!page.SelectedPlugin(),"marketplace cannot expose locally selected metadata as remote catalog");
+        openCategory();Check(page.CategoryOpen()&&!page.SelectedPlugin()&&!page.TakeControlAction(),"marketplace category is offline and cannot expose local runtime actions");
         const auto offlineRow=page.RowBounds(0);page.Down(offlineRow.left+5,offlineRow.top+5);page.Up(offlineRow.left+5,offlineRow.top+5);
-        page.SelectTab(PluginCenterTab::MyPlugins);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.SelectedPlugin()->directory==L"plugins/conflict","tab return preserves plugin selection and offline clicks cannot change it");
+        page.SelectTab(PluginCenterTab::MyPlugins);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(!page.CategoryOpen()&&page.SelectedPlugin()->directory==L"plugins/conflict","tab return closes category and preserves plugin selection; offline clicks cannot change it");
         choose(0);
         Check(page.Rows()[0].body.find(L"ui.page.register")!=std::wstring::npos&&page.Rows()[0].body.find(Tr("plugins.permissions"))!=std::wstring::npos,"requested permissions explicitly not grants");
         Check(page.Rows()[1].status==Tr("plugins.invalid")&&page.Rows()[1].body.find(Tr("plugins.diag.json"))!=std::wstring::npos,"localized invalid diagnostic");

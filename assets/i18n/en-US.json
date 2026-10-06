@@ -23,6 +23,7 @@
   "plugins.refresh": "Refresh",
   "plugins.search": "Search local plugins...",
   "plugins.all": "All Plugins",
+  "plugins.category": "Category",
   "plugins.no_matches": "No local plugins match this search.",
   "plugins.discovered": "Local plugin · Discovered",
   "plugins.invalid": "Invalid manifest",

@@ -23,6 +23,7 @@
   "plugins.refresh": "刷新",
   "plugins.search": "搜索本地插件……",
   "plugins.all": "所有插件",
+  "plugins.category": "分类",
   "plugins.no_matches": "没有符合搜索条件的本地插件。",
   "plugins.discovered": "本地插件 · 已发现",
   "plugins.invalid": "清单无效",
