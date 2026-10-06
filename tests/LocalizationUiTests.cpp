@@ -774,7 +774,7 @@ int wmain(int argc, wchar_t** argv) try {
         pluginSession.pages.push_back({"dashboard","Plugin dashboard",noven::plugins::ParseUiDocument(R"({"schemaVersion":1,"blocks":[{"type":"text","text":"Hello"},{"type":"button","id":"refresh","label":"Refresh"}]})")});
         const PageId livePage{"plugin.com.example.live.dashboard"};std::size_t actions=0;
         ui.SetPluginActionHandler([&](const auto& owner,std::string_view action){Require(owner.pluginId==pluginSession.pluginId&&owner.generation==7&&owner.page.localId=="dashboard"&&action=="refresh","action retains authenticated scope");++actions;});
-        ui.SetPluginRuntime({pluginSession});const auto liveRect=sidebar.ItemRect(livePage,height,theme);
+        ui.SetPluginRuntime({pluginSession});const auto liveRect=ui.SidebarGeometry().Find(livePage)->rect;
         Require(!click(liveRect.left+20,(liveRect.top+liveRect.bottom)*.5F)&&ui.ActivePage()==livePage,"running plugin page joins native navigation");
         for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
         const auto liveButton=ui.PluginView(livePage)->ActionBounds("refresh");Require(liveButton.has_value(),"document rendered by Noven");

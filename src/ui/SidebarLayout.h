@@ -8,18 +8,20 @@ namespace noven::ui {
 struct SidebarRow final {PageDescriptor page;D2D1_RECT_F rect;bool visible{};};
 struct SidebarLayout final {
     std::vector<SidebarRow> rows;
+    D2D1_RECT_F navigationViewport{};
+    float scroll{},maximum{},contentHeight{};
     std::optional<D2D1_RECT_F> primaryLabel,secondaryLabel,secondaryDivider,bottomDivider;
     const SidebarRow* Find(const PageId& id) const {
         for(const auto& row:rows)if(row.page.id==id)return &row;
         return nullptr;
     }
     std::optional<PageId> HitTest(float x,float y) const {
-        for(const auto& row:rows)if(row.visible&&x>=row.rect.left&&x<row.rect.right
+        for(const auto& row:rows)if(row.visible&&(row.page.section==PageSection::Bottom||(y>=navigationViewport.top&&y<navigationViewport.bottom))&&x>=row.rect.left&&x<row.rect.right
             &&y>=row.rect.top&&y<row.rect.bottom)return row.page.id;
         return {};
     }
 };
-inline SidebarLayout BuildSidebarLayout(const PageRegistry& registry,float height,const UiTheme& theme) {
+inline SidebarLayout BuildSidebarLayout(const PageRegistry& registry,float height,const UiTheme& theme,float scroll=0) {
     SidebarLayout layout;
     height=std::isfinite(height)?(std::max)(0.0F,height):0;
     const float width=std::isfinite(theme.sidebarWidth)?(std::max)(64.0F,theme.sidebarWidth):64;
@@ -33,6 +35,7 @@ inline SidebarLayout BuildSidebarLayout(const PageRegistry& registry,float heigh
     const bool pluginRows=std::any_of(pages.begin(),pages.end(),[](const auto& page){return page.source==PageSource::Plugin;});
     const float gap=pluginRows?9.0F:bottomCount>1?11.0F:14.0F;
     const float contentBottom=bottomCount?(std::max)(0.0F,bottomTop-gap):height;
+    layout.navigationViewport=D2D1::RectF(0,(std::min)(160.0F,contentBottom),width,contentBottom);
     const auto ordinary=pages.size()-static_cast<std::size_t>(bottomCount);
     float ordinaryStep=step,sectionGap=38;
     if(pluginRows&&ordinary>1){
@@ -44,8 +47,8 @@ inline SidebarLayout BuildSidebarLayout(const PageRegistry& registry,float heigh
     }
     float top=186,bottom=bottomTop;
     bool primary{},secondary{};
-    // 普通尺寸保持原有 43 DIP 行距和分区间隔；小高度裁掉不完整行，底部区不被覆盖。
-    // Preserve accepted 43-DIP rhythm at normal size; clip incomplete rows instead of overlapping bottom pages.
+    // 所有普通行属于可滚动区域；底部管理行独立锚定，裁切和命中使用同一视口。
+    // Ordinary rows share a scrollable viewport; bottom management stays anchored with shared draw/hit clipping.
     for(const auto& page:pages) {
         if(page.section==PageSection::Bottom) {
             const auto rect=D2D1::RectF(12,(std::min)(height,bottom),width-12,(std::min)(height,bottom+rowHeight));
@@ -60,12 +63,17 @@ inline SidebarLayout BuildSidebarLayout(const PageRegistry& registry,float heigh
             layout.secondaryDivider=D2D1::RectF(22,top-25,width-22,top-24);
             layout.secondaryLabel=D2D1::RectF(22,top-21,width-31,top-2);
         }
-        layout.rows.push_back({page,D2D1::RectF(12,top,width-12,top+rowHeight),top+rowHeight<=contentBottom});
+        layout.rows.push_back({page,D2D1::RectF(12,top,width-12,top+rowHeight),false});
         top+=ordinaryStep;
     }
     if(bottomCount)layout.bottomDivider=D2D1::RectF(22,contentBottom,width-22,contentBottom+1);
-    if(layout.primaryLabel&&layout.primaryLabel->bottom>contentBottom)layout.primaryLabel.reset();
-    if(layout.secondaryLabel&&layout.secondaryLabel->bottom>contentBottom){layout.secondaryLabel.reset();layout.secondaryDivider.reset();}
+    const float end=ordinary?top-ordinaryStep+rowHeight:layout.navigationViewport.top;
+    layout.maximum=(std::max)(0.0F,end-contentBottom);
+    layout.scroll=std::clamp(std::isfinite(scroll)?scroll:0.0F,0.0F,layout.maximum);
+    layout.contentHeight=(std::max)(0.0F,end-layout.navigationViewport.top);
+    for(auto& row:layout.rows)if(row.page.section!=PageSection::Bottom){row.rect.top-=layout.scroll;row.rect.bottom-=layout.scroll;
+        row.visible=layout.navigationViewport.bottom>layout.navigationViewport.top&&row.rect.bottom>layout.navigationViewport.top&&row.rect.top<layout.navigationViewport.bottom;}
+    for(auto* label:{&layout.primaryLabel,&layout.secondaryLabel,&layout.secondaryDivider})if(*label){(*label)->top-=layout.scroll;(*label)->bottom-=layout.scroll;}
     return layout;
 }
 }

@@ -180,5 +180,15 @@ int main() {
         registry.Register({noven::ui::PageId{"plugin.test.growth-"+std::to_string(index)},noven::ui::PageSection::Secondary,"nav.events"});
         Require(navigation.Active()==future,"registry growth/reordering preserves active ID");
     }
+    sidebar.EnsureVisible(future,500,theme);
+    const auto reached=sidebar.Layout(500,theme).Find(future);Require(reached&&reached->visible&&reached->rect.bottom<=sidebar.Layout(500,theme).navigationViewport.bottom,"selection reveals overflow page");
+    const auto bottom=sidebar.ItemRect(noven::ui::BuiltinPageId::Settings,500,theme);
+    Require(sidebar.Wheel(120,30,250,500,theme),"middle region wheel input");
+    Require(sidebar.ItemRect(noven::ui::BuiltinPageId::Settings,500,theme).top==bottom.top,"wheel never moves protected management");
+    const auto sidebarBar=sidebar.Bar(500,theme);Require(sidebarBar.has_value(),"overflow exposes native scrollbar");
+    Require(sidebar.Down(sidebarBar->thumb.left+2,sidebarBar->thumb.top+2,500,theme)&&sidebar.Move(250,sidebarBar->track.bottom,500,theme)&&sidebar.EndDrag(),"thumb drag uses shared geometry");
+    Require(std::abs(sidebar.Layout(500,theme).scroll-sidebar.Layout(500,theme).maximum)<.01F,"drag reaches final runtime row");
+    sidebar.Layout(900,theme);Require(sidebar.Layout(900,theme).scroll<=sidebar.Layout(900,theme).maximum,"resize clamps offset");
+    Require(registry.Unregister(future)&&!sidebar.Layout(900,theme).Find(future),"mutation rebuilds geometry and removes stale target");
     std::cout << "Main navigation state tests passed\n";
 }

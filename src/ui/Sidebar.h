@@ -5,6 +5,7 @@
 #include "ui/SidebarLayout.h"
 #include "ui/Theme.h"
 #include "ui/TabBar.h"
+#include "ui/Scrollbar.h"
 
 #include <optional>
 #include <algorithm>
@@ -15,6 +16,12 @@ class Sidebar final {
 public:
     explicit Sidebar(const PageRegistry& registry):registry_(registry){}
     const SidebarLayout& Layout(float height,const UiTheme& theme) const;
+    bool Wheel(int delta,float x,float y,float height,const UiTheme& theme);
+    bool Down(float x,float y,float height,const UiTheme& theme);
+    bool Move(float x,float y,float height,const UiTheme& theme);
+    bool EndDrag(){const bool handled=grab_.has_value();grab_.reset();return handled;}
+    void EnsureVisible(PageId page,float height,const UiTheme& theme);
+    std::optional<ScrollbarGeometry> Bar(float height,const UiTheme& theme) const;
     void StartSelection(PageId from,PageId to,float height,const UiTheme& theme) {
         if(!Animating())top_=ItemRect(from,height,theme).top;
         from_=top_;target_=ItemRect(to,height,theme).top;progress_=0;
@@ -40,10 +47,13 @@ public:
               PageId active, std::optional<PageId> hovered,
               std::optional<PageId> pressed) const;
 private:
+    void SetScroll(float scroll,float height,const UiTheme& theme);
     const PageRegistry& registry_;
     mutable SidebarLayout layout_;
     mutable std::uint64_t revision_{static_cast<std::uint64_t>(-1)};
     mutable float height_{-1},width_{-1},rowHeight_{-1};
+    mutable float scroll_{};
+    std::optional<float> grab_;
     float top_{-1},from_{},target_{},progress_{1};
 };
 

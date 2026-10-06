@@ -25,9 +25,22 @@ int main(){
         const auto compact=BuildSidebarLayout(registry,height,theme);
         for(const auto& row:compact.rows) {
             Check(std::isfinite(row.rect.top)&&row.rect.bottom>=row.rect.top&&row.rect.right>=row.rect.left,"bounded small-height geometry");
-            if(row.visible){Check(compact.HitTest(30,(row.rect.top+row.rect.bottom)/2)==row.page.id,"small-height exact hits");
-                if(row.page.section!=PageSection::Bottom)Check(row.rect.bottom<=compact.Find(BuiltinPageId::Plugins)->rect.top-11,"visible rows never overlap bottom section");}
+            if(row.visible){const float top=row.page.section==PageSection::Bottom?row.rect.top:(std::max)(row.rect.top,compact.navigationViewport.top);
+                const float bottom=row.page.section==PageSection::Bottom?row.rect.bottom:(std::min)(row.rect.bottom,compact.navigationViewport.bottom);
+                Check(compact.HitTest(30,(top+bottom)/2)==row.page.id,"small-height exact clipped hits");}
         }
+    }
+    for(int i=0;i<24;++i)Check(registry.Register({PageId{"plugin.com.example.test.page-"+std::to_string(i)},PageSection::Secondary,"","",PageIcon::GenericPlugin,1000,PageSource::Plugin,UiExtensionPolicy::Extensible,"Hello Plugin"}),"runtime growth");
+    for(float height:{360.0F,700.0F,900.0F}){
+        const auto start=BuildSidebarLayout(registry,height,theme);Check(start.maximum>0,"overflow has bounded scroll range");
+        for(const auto& page:registry.Pages())if(page.source==PageSource::Plugin){const auto row=start.Find(page.id);
+            const auto scrolled=BuildSidebarLayout(registry,height,theme,row->rect.bottom-start.navigationViewport.bottom);
+            const auto reached=scrolled.Find(page.id);Check(reached->visible&&reached->rect.top>=scrolled.navigationViewport.top&&reached->rect.bottom<=scrolled.navigationViewport.bottom,"every plugin is reachable");
+            Check(scrolled.HitTest(30,(reached->rect.top+reached->rect.bottom)/2)==page.id,"scroll draw geometry is exact hit geometry");
+            for(const auto id:{BuiltinPageId::Plugins,BuiltinPageId::Settings})Check(scrolled.Find(id)->rect.top==start.Find(id)->rect.top,"management anchors never scroll");
+        }
+        const auto end=BuildSidebarLayout(registry,height,theme,start.maximum);
+        Check(!end.HitTest(30,159)&&!end.HitTest(30,end.navigationViewport.bottom+2),"clipped content has no invisible clickable rows");
     }
     std::cout<<"Registry-driven sidebar geometry PASS\n";
 }

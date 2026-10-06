@@ -34,6 +34,7 @@ class MainWindowUi final {
 public:
     PageRegistry& Registry() noexcept {return registry_;}
     const PageRegistry& Registry() const noexcept {return registry_;}
+    const SidebarLayout& SidebarGeometry() const {return sidebar_.Layout(DipHeight(),theme_);}
     void SetPlugins(plugins::PluginSnapshot snapshot){plugins_.SetSnapshot(std::move(snapshot));Invalidate();}
     void SetPluginRefreshHandler(std::function<void()> handler){plugin_refresh_=std::move(handler);}
     const PluginsPage& Plugins() const noexcept {return plugins_;}
@@ -56,7 +57,7 @@ public:
     void MouseMove(int x, int y);
     void MouseLeave();
     void MouseDown(int x, int y);
-    void CancelScrollDrag() noexcept { recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); raid_history_.CancelDrag(); events_.CancelDrag(); plugins_.CancelDrag();for(auto& [id,view]:plugin_views_)view.Cancel(); }
+    void CancelScrollDrag() noexcept { sidebar_.EndDrag();recent_scroll_grab_.reset(); price_scroll_grab_.reset(); hideout_.CancelDrag(); tasks_.CancelDrag(); map_.CancelDrag(); raid_history_.CancelDrag(); events_.CancelDrag(); plugins_.CancelDrag();for(auto& [id,view]:plugin_views_)view.Cancel(); }
     void SetEvents(std::vector<events::EventRecord> records,events::EventRefreshState state,std::optional<events::Timestamp> refreshed) {
         events_.SetSnapshot(std::move(records),std::move(state),refreshed);Invalidate();
     }

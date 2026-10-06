@@ -48,10 +48,28 @@ void DrawIcon(const UiCanvas& canvas, PageIcon icon, float x, float y,
 
 const SidebarLayout& Sidebar::Layout(float height,const UiTheme& theme) const {
     if(revision_!=registry_.Revision()||height_!=height||width_!=theme.sidebarWidth||rowHeight_!=theme.navigationHeight) {
-        layout_=BuildSidebarLayout(registry_,height,theme);revision_=registry_.Revision();
+        layout_=BuildSidebarLayout(registry_,height,theme,scroll_);scroll_=layout_.scroll;revision_=registry_.Revision();
         height_=height;width_=theme.sidebarWidth;rowHeight_=theme.navigationHeight;
     }
     return layout_;
+}
+std::optional<ScrollbarGeometry> Sidebar::Bar(float height,const UiTheme& theme) const {
+    const auto& layout=Layout(height,theme);auto track=layout.navigationViewport;track.left=theme.sidebarWidth-12;track.right=theme.sidebarWidth;
+    return MakeScrollbar(track,layout.contentHeight,layout.scroll);
+}
+void Sidebar::SetScroll(float scroll,float height,const UiTheme& theme){const auto& layout=Layout(height,theme);scroll_=std::clamp(scroll,0.0F,layout.maximum);revision_=static_cast<std::uint64_t>(-1);progress_=1;}
+bool Sidebar::Wheel(int delta,float x,float y,float height,const UiTheme& theme){const auto& layout=Layout(height,theme);
+    if(x<0||x>=theme.sidebarWidth||y<layout.navigationViewport.top||y>=layout.navigationViewport.bottom)return false;
+    const float before=scroll_;SetScroll(scroll_-static_cast<float>(delta)/WHEEL_DELTA*66,height,theme);return before!=scroll_;
+}
+bool Sidebar::Down(float x,float y,float height,const UiTheme& theme){if(const auto bar=Bar(height,theme);bar&&x>=bar->track.left&&x<bar->track.right&&y>=bar->track.top&&y<bar->track.bottom){
+    if(y>=bar->thumb.top&&y<bar->thumb.bottom)grab_=y-bar->thumb.top;
+    else{SetScroll(bar->OffsetFromThumbTop(y-(bar->thumb.bottom-bar->thumb.top)/2),height,theme);grab_=(bar->thumb.bottom-bar->thumb.top)/2;}return true;}return false;
+}
+bool Sidebar::Move(float,float y,float height,const UiTheme& theme){if(!grab_)return false;if(const auto bar=Bar(height,theme))SetScroll(bar->OffsetFromThumbTop(y-*grab_),height,theme);return true;}
+void Sidebar::EnsureVisible(PageId page,float height,const UiTheme& theme){const auto& layout=Layout(height,theme);const auto* row=layout.Find(page);if(!row||row->page.section==PageSection::Bottom)return;
+    if(row->rect.bottom>layout.navigationViewport.bottom)SetScroll(scroll_+row->rect.bottom-layout.navigationViewport.bottom,height,theme);
+    else if(row->rect.top<layout.navigationViewport.top)SetScroll(scroll_+row->rect.top-layout.navigationViewport.top,height,theme);
 }
 D2D1_RECT_F Sidebar::ItemRect(PageId page,float height,const UiTheme& theme) const noexcept {
     const auto* row=Layout(height,theme).Find(page);
@@ -80,19 +98,24 @@ void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
     canvas.Text(Tr(TextKey::LocalUse), canvas.smallFormat, D2D1::RectF(70, 127, 215, 147), theme.secondaryText);
 
     const auto& layout=Layout(height,theme);
+    canvas.target.PushAxisAlignedClip(layout.navigationViewport,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(layout.primaryLabel)canvas.Text(Tr(TextKey::Primary),canvas.smallFormat,*layout.primaryLabel,theme.secondaryText);
     if(layout.secondaryDivider)canvas.Fill(*layout.secondaryDivider,theme.divider);
     if(layout.secondaryLabel)canvas.Text(Tr(TextKey::More),canvas.smallFormat,*layout.secondaryLabel,theme.secondaryText);
+    canvas.target.PopAxisAlignedClip();
     if(layout.bottomDivider)canvas.Fill(*layout.bottomDivider,theme.divider);
 
     const auto* selectedRow=layout.Find(active);
     if(selectedRow&&selectedRow->visible) {
+    canvas.target.PushAxisAlignedClip(selectedRow->page.section==PageSection::Bottom?D2D1::RectF(0,layout.bottomDivider?layout.bottomDivider->top:height,theme.sidebarWidth,height):layout.navigationViewport,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     const auto selection=SelectionRect(active,height,theme);
     canvas.Round(selection,8.0F,theme.selected);
     canvas.Round(D2D1::RectF(selection.left,selection.top+9,selection.left+3,selection.bottom-9),1.5F,theme.accent);
+    canvas.target.PopAxisAlignedClip();
     }
     for (const auto& row : layout.rows) {
         if(!row.visible)continue;
+        canvas.target.PushAxisAlignedClip(row.page.section==PageSection::Bottom?D2D1::RectF(0,row.rect.top,theme.sidebarWidth,row.rect.bottom):layout.navigationViewport,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
         const auto& page=row.page;
         const D2D1_RECT_F rect = row.rect;
         const bool selected = page.id == active;
@@ -103,7 +126,9 @@ void Sidebar::Draw(const UiCanvas& canvas, const UiTheme& theme, float height,
         canvas.Text(PageTitle(page), canvas.label,
                     D2D1::RectF(rect.left + 45, rect.top + 5,
                                 rect.right - 9, rect.bottom), color);
+        canvas.target.PopAxisAlignedClip();
     }
+    DrawScrollbar(canvas,theme,{Bar(height,theme),1});
 }
 
 } // namespace noven::ui

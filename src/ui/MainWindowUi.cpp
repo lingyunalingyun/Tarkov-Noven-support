@@ -120,9 +120,15 @@ bool MainWindowUi::GoBack() {
 }
 void MainWindowUi::SetPluginRuntime(const std::vector<plugins::HostSnapshot>& snapshots) {
     const auto active=navigation_.Active();const auto outgoing=page_transition_.Sample(active).page;
+    std::vector<PageId> known;for(const auto& page:registry_.Pages())known.push_back(page.id);
+    const auto revision=registry_.Revision();
     plugin_pages_.Sync(snapshots);plugins_.SetRuntime(snapshots);
     for(auto it=plugin_views_.begin();it!=plugin_views_.end();)if(!plugin_pages_.Find(it->first))it=plugin_views_.erase(it);else ++it;
     for(const auto& descriptor:registry_.Pages())if(const auto* page=plugin_pages_.Find(descriptor.id))plugin_views_[descriptor.id].SetPage(*page);
+    if(registry_.Revision()!=revision){
+        sidebar_.EndDrag();sidebar_.Tick(1);pressed_.reset();hovered_.reset();
+        for(const auto& page:registry_.Pages())if(page.source==PageSource::Plugin&&std::find(known.begin(),known.end(),page.id)==known.end())sidebar_.EnsureVisible(page.id,DipHeight(),theme_);
+    }
     // 停止/崩溃必须撤销旧页面及输入，不允许过渡帧或返回栈继续引用失效身份。
     // Stop/crash revokes pages/input; neither transition frames nor the return stack may retain dead identities.
     if(!registry_.Contains(active)){navigation_.Select(BuiltinPageId::Plugins);CancelScrollDrag();}
@@ -131,6 +137,7 @@ void MainWindowUi::SetPluginRuntime(const std::vector<plugins::HostSnapshot>& sn
 }
 bool MainWindowUi::SelectPage(PageId page) {
     if(page==navigation_.Active()||!registry_.Contains(page)) return false;
+    sidebar_.EnsureVisible(page,DipHeight(),theme_);
     sidebar_.StartSelection(navigation_.Active(),page,DipHeight(),theme_);
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
@@ -613,6 +620,7 @@ void MainWindowUi::Paint() {
 
 void MainWindowUi::Resize(UINT width, UINT height) {
     CancelScrollDrag();
+    sidebar_.Tick(1);sidebar_.EnsureVisible(navigation_.Active(),DipHeight(),theme_);
     if (render_target_ != nullptr && width != 0 && height != 0) {
         if (render_target_->Resize(D2D1::SizeU(width, height)) == D2DERR_RECREATE_TARGET) {
             brush_.Reset();
@@ -818,6 +826,7 @@ void MainWindowUi::Invalidate() const {
 }
 
 void MainWindowUi::MouseMove(int x, int y) {
+    if(sidebar_.Move(x/Scale(),y/Scale(),DipHeight(),theme_)){pressed_.reset();hovered_.reset();Invalidate();return;}
     if(auto* view=ActivePluginView();view&&view->Move(x/Scale(),y/Scale()))Invalidate();
     if(navigation_.Active()==BuiltinPageId::Plugins&&plugins_.Move(x/Scale(),y/Scale()))Invalidate();
     if(navigation_.Active()==BuiltinPageId::Map&&map_.MouseMove(x/Scale(),y/Scale()))Invalidate();
@@ -902,6 +911,7 @@ void MainWindowUi::MouseLeave() {
 }
 
 void MainWindowUi::MouseDown(int x, int y) {
+    if(sidebar_.Down(x/Scale(),y/Scale(),DipHeight(),theme_)){pressed_.reset();hovered_.reset();SetFocus(window_);Invalidate();return;}
     attribution_pressed_ = false;
     page_content_press_blocked_=false;
     back_pressed_=OnBackButton(x,y);
@@ -998,6 +1008,7 @@ void MainWindowUi::MouseDown(int x, int y) {
 }
 
 std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
+    if(sidebar_.EndDrag()){pressed_.reset();hovered_.reset();Invalidate();return {};}
     if(raid_scan_pressed_) {
         raid_scan_pressed_=false;
         if(HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale())){
@@ -1318,6 +1329,7 @@ void MainWindowUi::SetRecentScans(std::vector<data::RecentScanEntry> entries) {
 }
 
 bool MainWindowUi::MouseWheel(int x, int y, int delta, bool control) {
+    if(x/Scale()<theme_.sidebarWidth){const bool handled=sidebar_.Wheel(delta,x/Scale(),y/Scale(),DipHeight(),theme_);if(handled){pressed_.reset();hovered_.reset();Invalidate();}return handled;}
     if(auto* view=ActivePluginView()){const bool handled=view->Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::Plugins){const bool handled=plugins_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::RaidHistory) {const bool handled=raid_history_.Wheel(delta,x/Scale(),y/Scale());if(handled)Invalidate();return handled;}
