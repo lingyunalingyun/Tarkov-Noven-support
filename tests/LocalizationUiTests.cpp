@@ -720,13 +720,25 @@ int wmain(int argc, wchar_t** argv) try {
             &&ui.PriceTotal()==1&&ui.CanGoBack(),"recent card opens exact item detail through contextual navigation");
         Require(ui.GoBack()&&ui.ActivePage()==BuiltinPageId::RecentScans,"recent-card return keeps resident page");
         selectPage(BuiltinPageId::Settings);
+        // 固定测试线程的键盘状态，避免真实桌面修饰键影响合成输入；不改变系统输入。
+        // Own the test thread's keyboard state so desktop modifiers cannot alter synthetic input.
+        BYTE savedKeyboard[256]{}, testKeyboard[256]{};
+        Require(GetKeyboardState(savedKeyboard)&&SetKeyboardState(testKeyboard),"shortcut fixture owns thread keyboard state");
         unsigned settingsCalls{};ui.SetPreferencesHandler([&](const auto& next){++settingsCalls;return next.scanKey!=VK_F8;});
         Require(!click(theme.sidebarWidth+theme.contentPadding+30,455)&&ui.RecordingShortcut(),"native shortcut control starts capture");
         Require(ui.KeyDown(VK_F6,true)&&!ui.RecordingShortcut()&&ui.Preferences().scanKey==VK_F6
             &&ui.Preferences().scanModifiers==MOD_CONTROL&&settingsCalls==1,"shortcut capture passes modifiers through app boundary");
+        testKeyboard[VK_SHIFT]=0x80;
+        Require(SetKeyboardState(testKeyboard),"shortcut fixture sets synthetic shift");
+        click(theme.sidebarWidth+theme.contentPadding+30,455);(void)ui.KeyDown(VK_F6,true);
+        Require(!ui.RecordingShortcut()&&ui.Preferences().scanModifiers==(MOD_CONTROL|MOD_SHIFT)&&settingsCalls==2,
+            "shortcut capture reads explicit thread modifier state");
+        testKeyboard[VK_SHIFT]=0;
+        Require(SetKeyboardState(testKeyboard),"shortcut fixture clears synthetic shift");
         click(theme.sidebarWidth+theme.contentPadding+30,455);(void)ui.KeyDown(VK_F8,false);
         Require(ui.RecordingShortcut()&&ui.Preferences().scanKey==VK_F6,"failed shortcut application retains previous setting");
         Require(ui.KeyDown(VK_ESCAPE,false)&&!ui.RecordingShortcut(),"escape cancels shortcut capture");
+        Require(SetKeyboardState(savedKeyboard),"shortcut fixture restores thread keyboard state");
         unsigned manualScans{};ui.SetRaidScanHandler([&]{++manualScans;return true;});selectPage(BuiltinPageId::RaidHistory);
         click(width-theme.contentPadding-50,110);Require(manualScans==1,"manual raid scan stays behind service callback");
         Require(ui.RaidScanPending()&&ui.RaidScanLabel()==Tr("raid.scan_pending"),"manual request shows immediate pending feedback");
