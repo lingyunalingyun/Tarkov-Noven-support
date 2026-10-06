@@ -778,11 +778,27 @@ int wmain(int argc, wchar_t** argv) try {
         Require(!click(liveRect.left+20,(liveRect.top+liveRect.bottom)*.5F)&&ui.ActivePage()==livePage,"running plugin page joins native navigation");
         for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
         const auto liveButton=ui.PluginView(livePage)->ActionBounds("refresh");Require(liveButton.has_value(),"document rendered by Noven");
+        Require(ui.PluginView(livePage)->TextInsideBlocks(),"native shared text formats keep plugin content inside rendered blocks");
         Require(!click(liveButton->left+10,liveButton->top+10)&&actions==1,"native button sends scoped plugin action");
         ui.MouseDown(static_cast<int>((liveButton->left+10)*scale),static_cast<int>((liveButton->top+10)*scale));
         pluginSession.state=noven::plugins::HostState::Crashed;pluginSession.pages.clear();ui.SetPluginRuntime({pluginSession});
         (void)ui.MouseUp(static_cast<int>((liveButton->left+10)*scale),static_cast<int>((liveButton->top+10)*scale));
         Require(ui.ActivePage()==BuiltinPageId::Plugins&&!ui.PluginView(livePage)&&!ui.Registry().Contains(livePage)&&actions==1,"crash revokes active page and stale press, falls back to protected Plugins");ui.Paint();
+        Require(!ui.SidebarGeometry().Find(livePage),"crash removes stale sidebar geometry");
+        pluginSession.state=noven::plugins::HostState::Running;
+        for(int i=0;i<24;++i)pluginSession.pages.push_back({"page-"+std::to_string(i),"Hello Plugin "+std::to_string(i),{}});
+        const auto pluginsAnchor=ui.SidebarGeometry().Find(BuiltinPageId::Plugins)->rect.top;
+        const auto settingsAnchor=ui.SidebarGeometry().Find(BuiltinPageId::Settings)->rect.top;
+        ui.SetPluginRuntime({pluginSession});
+        const auto geometry=ui.SidebarGeometry();Require(geometry.maximum>0,"native runtime page growth creates scroll range");
+        const auto reached=std::find_if(geometry.rows.rbegin(),geometry.rows.rend(),[](const auto& row){return row.page.source==PageSource::Plugin;});
+        Require(reached!=geometry.rows.rend()&&reached->visible&&reached->rect.bottom<=geometry.navigationViewport.bottom,"runtime insertion automatically reveals a plugin row");
+        Require(geometry.Find(BuiltinPageId::Plugins)->rect.top==pluginsAnchor&&geometry.Find(BuiltinPageId::Settings)->rect.top==settingsAnchor,"native runtime growth preserves bottom anchors");
+        const auto reachedId=reached->page.id;
+        Require(!click(reached->rect.left+20,(reached->rect.top+reached->rect.bottom)/2)&&ui.ActivePage()==reachedId,"scrolled native hit test selects exact plugin identity");
+        Require(ui.MouseWheel(static_cast<int>(30*scale),static_cast<int>(250*scale),120,false)&&ui.ActivePage()==reachedId,"sidebar wheel does not change selection or route to page content");
+        pluginSession.state=noven::plugins::HostState::Stopping;ui.SetPluginRuntime({pluginSession});
+        Require(ui.ActivePage()==BuiltinPageId::Plugins&&!ui.SidebarGeometry().Find(reachedId)&&actions==1,"Disable/Stopping removes overflow rows and safely exits active plugin page");ui.Paint();
     }
     DestroyWindow(window);
     std::cout << "Native localization interaction tests passed (hidden window, not visual acceptance)\n";

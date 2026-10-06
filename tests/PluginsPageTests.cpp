@@ -28,6 +28,15 @@ int wmain(int argc,wchar_t** argv) try {
         page.SetSearch(L"AUTHOR");page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows().size()==3&&page.Snapshot().records.size()==4,"case insensitive local author search never mutates discovery");
         page.SetSearch(L"missing");page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows().empty()&&!page.EmptyText().empty(),"local no-results state");
         page.SetSearch({});page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());
+        Check(!page.ControlBounds(manifest.manifest->id)&&!page.Rows()[0].enable&&!page.Rows()[0].disable&&page.Rows()[0].body.find(Tr("plugins.metadata_only"))!=std::wstring::npos,"V1 visibly remains metadata-only and non-runnable");
+        const auto search=page.SearchBounds();page.Down(search.left+10,search.top+10);page.Up(search.left+10,search.top+10);
+        Check(page.Char(L'L')&&page.Char(L'O')&&page.Char(L'O')&&page.Char(L'T'),"native search input accepts local query");
+        page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows().size()==3,"name search is case insensitive");
+        page.SelectTab(PluginCenterTab::Marketplace);Check(!page.Char(L'X'),"offline marketplace search cannot request or mutate data");
+        page.SelectTab(PluginCenterTab::MyPlugins);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows().size()==3,"tab return preserves local search");
+        page.SetSearch({});page.SelectFilter(PluginFilter::Incompatible);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows().size()==1&&page.Rows()[0].incompatible,"incompatible filter retains complete metadata");
+        page.SelectTab(PluginCenterTab::Marketplace);page.SelectTab(PluginCenterTab::MyPlugins);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows().size()==1,"tab return preserves internal filter");
+        page.SelectFilter(PluginFilter::All);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());
         Check(page.Rows()[0].body.find(L"ui.page.register")!=std::wstring::npos&&page.Rows()[0].body.find(Tr("plugins.permissions"))!=std::wstring::npos,"requested permissions explicitly not grants");
         Check(page.Rows()[1].status==Tr("plugins.invalid")&&page.Rows()[1].body.find(Tr("plugins.diag.json"))!=std::wstring::npos,"localized invalid diagnostic");
         Check(page.Rows()[2].status==Tr("plugins.incompatible_api")&&page.Rows()[3].status==Tr("plugins.conflict"),"API incompatibility and duplicate presentation");

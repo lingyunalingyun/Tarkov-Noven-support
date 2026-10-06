@@ -19,6 +19,7 @@ public:
     void Tick(float elapsed);
     bool Animating() const {return std::abs(scroll_-target_)>.01F;}
     std::optional<D2D1_RECT_F> ActionBounds(std::string_view id) const;
+    bool TextInsideBlocks() const;
 private:
     struct Block {plugins::BlockType type;std::wstring text;std::string action;float top{},height{};Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;};
     D2D1_RECT_F Bounds(const Block& block) const;

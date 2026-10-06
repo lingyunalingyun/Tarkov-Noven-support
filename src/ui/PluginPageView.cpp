@@ -21,7 +21,11 @@ void PluginPageView::Prepare(float width,float height,const UiTheme& theme,IDWri
             if(value.type!=plugins::BlockType::Separator&&value.type!=plugins::BlockType::Button&&factory){
                 auto* format=value.type==plugins::BlockType::Heading?label:body;
                 if(format&&SUCCEEDED(factory->CreateTextLayout(block.text.data(),static_cast<UINT32>(block.text.size()),format,available,100000,&block.layout))){
+                    // 共享格式可能垂直居中；测量后顶对齐并收缩，保证正文位于声明式块内。
+                    // Shared formats may center vertically; top-align and fit measured text inside its declarative block.
+                    block.layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);block.layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
                     block.layout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);DWRITE_TEXT_METRICS metrics{};if(SUCCEEDED(block.layout->GetMetrics(&metrics)))block.height=(std::max)(28.0F,metrics.height);
+                    block.layout->SetMaxHeight(block.height);
                 }
             }
             content_+=block.height+14;blocks_.push_back(std::move(block));
@@ -31,6 +35,7 @@ void PluginPageView::Prepare(float width,float height,const UiTheme& theme,IDWri
     const float maximum=(std::max)(0.0F,content_-(viewport_.bottom-viewport_.top));scroll_=std::clamp(scroll_,0.0F,maximum);target_=std::clamp(target_,0.0F,maximum);
 }
 D2D1_RECT_F PluginPageView::Bounds(const Block& block) const {const float top=viewport_.top+block.top-scroll_;return D2D1::RectF(viewport_.left+16,top,viewport_.right-40,top+block.height);}
+bool PluginPageView::TextInsideBlocks() const {for(const auto& block:blocks_)if(block.layout){DWRITE_TEXT_METRICS metrics{};if(FAILED(block.layout->GetMetrics(&metrics))||metrics.top<0||metrics.top+metrics.height>block.height+1)return false;}return true;}
 std::optional<ScrollbarGeometry> PluginPageView::Bar() const {return MakeScrollbar(D2D1::RectF(viewport_.right-12,viewport_.top,viewport_.right,viewport_.bottom),content_,scroll_);}
 void PluginPageView::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     DrawPageHeader(canvas,theme,viewport_.left,viewport_.right,PluginWide(page_.page.title));
