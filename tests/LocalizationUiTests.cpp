@@ -762,6 +762,10 @@ int wmain(int argc, wchar_t** argv) try {
         Require(pluginRefreshes==0,"capture loss cancels pending Plugins refresh press");
         Require(!click(pluginRefresh.left+20,pluginRefresh.top+15)&&pluginRefreshes==1,"native refresh requests discovery through App callback only");
         ui.Paint();Require(ui.Plugins().Rows().size()==2,"native refresh replaces displayed plugin snapshot");
+        const auto invalidPluginRow=ui.Plugins().RowBounds(1);
+        Require(!click(invalidPluginRow.left+10,(invalidPluginRow.top+invalidPluginRow.bottom)/2)
+            &&ui.Plugins().SelectedPlugin()&&ui.Plugins().SelectedPlugin()->directory==L"plugins/invalid",
+            "native plugin button selects matching detail without changing registry or runtime");
         Require(ui.Registry().Pages().size()==registeredCount&&!ui.Registry().Contains(PageId{"plugin.com.example.loot-route.main"}),"requested registration permission cannot change main navigation");
         for(const auto page:{BuiltinPageId::Prices,BuiltinPageId::Plugins,BuiltinPageId::Scanner,BuiltinPageId::Plugins}) {
             const auto row=sidebar.ItemRect(page,height,theme);Require(!click(row.left+30,(row.top+row.bottom)*.5F)&&ui.ActivePage()==page,"rapid Plugins navigation keeps stable identity");ui.Paint();

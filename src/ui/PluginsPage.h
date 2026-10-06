@@ -8,9 +8,8 @@
 #include <utility>
 
 namespace noven::ui {
-struct PluginPresentation final {std::wstring title,body,status;std::string id;bool enable{},disable{},error{},incompatible{};};
+struct PluginPresentation final {std::wstring title,body,status;std::string id;std::filesystem::path directory;bool enable{},disable{},error{},incompatible{};};
 enum class PluginCenterTab {Marketplace,MyPlugins};
-enum class PluginFilter {All,Running,Disabled,Error,Incompatible};
 struct PluginControlAction final {std::string id;bool enable{};};
 std::wstring HostStateText(plugins::HostState state);
 std::vector<PluginPresentation> PresentPlugins(const plugins::PluginSnapshot& snapshot);
@@ -29,13 +28,14 @@ public:
     std::optional<PluginControlAction> TakeControlAction(){return std::exchange(controlAction_,{});}
     PluginCenterTab Tab() const noexcept {return tab_;}
     void SelectTab(PluginCenterTab tab);
-    void SelectFilter(PluginFilter filter){filter_=filter;dirty_=true;scroll_=target_=0;CancelDrag();}
-    void SetSearch(std::wstring text){search_.SetText(std::move(text));dirty_=true;scroll_=target_=0;CancelDrag();}
+    void SetSearch(std::wstring text){search_.SetText(std::move(text));dirty_=true;scroll_=target_=listScroll_=listTarget_=0;CancelDrag();}
     bool Key(WPARAM key,bool control);
     bool Char(wchar_t character);
     D2D1_RECT_F SearchBounds() const noexcept {return searchBounds_;}
     D2D1_RECT_F ContentBounds() const noexcept {return viewport_;}
-    D2D1_RECT_F FilterBounds(PluginFilter filter) const;
+    D2D1_RECT_F ListBounds() const noexcept {return listViewport_;}
+    D2D1_RECT_F RowBounds(std::size_t index) const;
+    const PluginPresentation* SelectedPlugin() const;
     bool TextInsideCards() const;
     std::wstring MarketplaceText() const;
     std::optional<D2D1_RECT_F> ControlBounds(std::string_view id) const;
@@ -49,15 +49,19 @@ public:
     bool Move(float x,float y);
     bool Leave(){const bool changed=hovered_||hoveredTab_.has_value();hovered_=false;hoveredTab_.reset();return changed;}
     bool Wheel(int delta,float x,float y);
-    void CancelDrag() noexcept {pressed_=false;grab_.reset();pressedTab_.reset();pressedControl_.reset();pressedFilter_.reset();}
-    void Blur(){search_.Blur();scroll_=target_;tabProgress_=1;underline_=tab_==PluginCenterTab::Marketplace?0.0F:1.0F;CancelDrag();Leave();}
-    bool Animating() const noexcept {return std::abs(scroll_-target_)>.01F||tabProgress_<1;}
+    void CancelDrag() noexcept {pressed_=false;grab_.reset();listGrab_.reset();pressedTab_.reset();pressedControl_.reset();pressedRow_.reset();}
+    void Blur(){search_.Blur();scroll_=target_;listScroll_=listTarget_;tabProgress_=1;underline_=tab_==PluginCenterTab::Marketplace?0.0F:1.0F;CancelDrag();Leave();}
+    bool Animating() const noexcept {return std::abs(scroll_-target_)>.01F||std::abs(listScroll_-listTarget_)>.01F||tabProgress_<1;}
     void Tick(float elapsed);
     D2D1_RECT_F RefreshBounds() const noexcept {return refresh_;}
     float Scroll() const noexcept {return scroll_;}
 private:
-    struct Card {Microsoft::WRL::ComPtr<IDWriteTextLayout> title,body;float top{},height{},titleHeight{};};
+    struct Card {Microsoft::WRL::ComPtr<IDWriteTextLayout> title,body;float height{},titleHeight{};};
     std::optional<ScrollbarGeometry> Bar() const;
+    std::optional<ScrollbarGeometry> ListBar() const;
+    std::optional<std::size_t> SelectedIndex() const;
+    std::optional<std::size_t> RowAt(float x,float y) const;
+    void SelectRow(std::size_t index);
     TabBarLayout TabLayout() const {return {panel_.left,95,135,(std::min)(150.0F,(std::max)(40.0F,(searchBounds_.left-panel_.left-16)/2)),23};}
     std::array<TabBarItem<PluginCenterTab>,2> Tabs() const;
     std::optional<std::size_t> ControlAt(float x,float y) const;
@@ -66,10 +70,14 @@ private:
     std::vector<Card> cards_;
     std::string locale_;
     float width_{-1},content_{},scroll_{},target_{};
-    D2D1_RECT_F viewport_{},refresh_{},panel_{},searchBounds_{};
+    D2D1_RECT_F viewport_{},refresh_{},panel_{},searchBounds_{},listViewport_{};
     SearchBox search_;
-    PluginFilter filter_{PluginFilter::All};
-    std::optional<PluginFilter> pressedFilter_;
+    // 使用目录保持选择，重复 ID 和损坏清单也必须可以独立查看。
+    // Directory identity keeps duplicate IDs and broken manifests independently selectable.
+    std::filesystem::path selectedDirectory_;
+    std::optional<std::size_t> pressedRow_;
+    float listScroll_{},listTarget_{};
+    std::optional<float> listGrab_;
     bool dirty_{true},pressed_{},hovered_{};
     std::optional<float> grab_;
     std::vector<plugins::HostSnapshot> runtime_;
