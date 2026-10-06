@@ -183,6 +183,8 @@ int main() {
     sidebar.EnsureVisible(future,500,theme);
     const auto reached=sidebar.Layout(500,theme).Find(future);Require(reached&&reached->visible&&reached->rect.bottom<=sidebar.Layout(500,theme).navigationViewport.bottom,"selection reveals overflow page");
     const auto bottom=sidebar.ItemRect(noven::ui::BuiltinPageId::Settings,500,theme);
+    sidebar.StartSelection(noven::ui::BuiltinPageId::Settings,future,500,theme);
+    Require(!sidebar.Wheel(-120,30,250,500,theme)&&sidebar.Animating(),"wheel at boundary preserves active selection animation");
     Require(sidebar.Wheel(120,30,250,500,theme),"middle region wheel input");
     Require(sidebar.ItemRect(noven::ui::BuiltinPageId::Settings,500,theme).top==bottom.top,"wheel never moves protected management");
     const auto sidebarBar=sidebar.Bar(500,theme);Require(sidebarBar.has_value(),"overflow exposes native scrollbar");

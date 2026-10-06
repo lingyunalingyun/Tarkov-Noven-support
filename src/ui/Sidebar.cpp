@@ -60,7 +60,8 @@ std::optional<ScrollbarGeometry> Sidebar::Bar(float height,const UiTheme& theme)
 void Sidebar::SetScroll(float scroll,float height,const UiTheme& theme){const auto& layout=Layout(height,theme);scroll_=std::clamp(scroll,0.0F,layout.maximum);revision_=static_cast<std::uint64_t>(-1);progress_=1;}
 bool Sidebar::Wheel(int delta,float x,float y,float height,const UiTheme& theme){const auto& layout=Layout(height,theme);
     if(x<0||x>=theme.sidebarWidth||y<layout.navigationViewport.top||y>=layout.navigationViewport.bottom)return false;
-    const float before=scroll_;SetScroll(scroll_-static_cast<float>(delta)/WHEEL_DELTA*66,height,theme);return before!=scroll_;
+    const float next=std::clamp(scroll_-static_cast<float>(delta)/WHEEL_DELTA*66,0.0F,layout.maximum);if(next==scroll_)return false;
+    SetScroll(next,height,theme);return true;
 }
 bool Sidebar::Down(float x,float y,float height,const UiTheme& theme){if(const auto bar=Bar(height,theme);bar&&x>=bar->track.left&&x<bar->track.right&&y>=bar->track.top&&y<bar->track.bottom){
     if(y>=bar->thumb.top&&y<bar->thumb.bottom)grab_=y-bar->thumb.top;
