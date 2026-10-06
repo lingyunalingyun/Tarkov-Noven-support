@@ -291,6 +291,7 @@ void MainWindowUi::RequestVisiblePriceImages() {
 }
 
 bool MainWindowUi::KeyDown(WPARAM key, bool control) {
+    if(navigation_.Active()==BuiltinPageId::Plugins){const bool handled=plugins_.Key(key,control);if(handled)Invalidate();return handled;}
     if(preferences_.Recording()) {
         const UINT modifiers=(control?MOD_CONTROL:0)|((GetKeyState(VK_MENU)&0x8000)?MOD_ALT:0)
             |((GetKeyState(VK_SHIFT)&0x8000)?MOD_SHIFT:0)|((GetKeyState(VK_LWIN)&0x8000||GetKeyState(VK_RWIN)&0x8000)?MOD_WIN:0);
@@ -331,6 +332,7 @@ bool MainWindowUi::KeyDown(WPARAM key, bool control) {
 }
 
 bool MainWindowUi::Char(wchar_t character) {
+    if(navigation_.Active()==BuiltinPageId::Plugins){const bool handled=plugins_.Char(character);if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::Events){const bool handled=events_.Char(character);if(handled)Invalidate();return handled;}
     if(navigation_.Active()==BuiltinPageId::RaidHistory) {const bool handled=raid_history_.Char(character);if(handled)Invalidate();return handled;}
     if (navigation_.Active()==BuiltinPageId::Map) {
@@ -907,7 +909,7 @@ void MainWindowUi::MouseDown(int x, int y) {
     if(page_transition_.Active() && x/Scale()>=theme_.sidebarWidth) {
         page_content_press_blocked_=true;return;
     }
-    if(navigation_.Active()==BuiltinPageId::Plugins&&x/Scale()>=theme_.sidebarWidth){plugins_.Down(x/Scale(),y/Scale());Invalidate();return;}
+    if(navigation_.Active()==BuiltinPageId::Plugins&&x/Scale()>=theme_.sidebarWidth){plugins_.Down(x/Scale(),y/Scale());SetFocus(window_);Invalidate();return;}
     if(auto* view=ActivePluginView();view&&x/Scale()>=theme_.sidebarWidth){view->Down(x/Scale(),y/Scale());Invalidate();return;}
     raid_scan_pressed_=navigation_.Active()==BuiltinPageId::RaidHistory&&HitNavigationButton(raid_scan_button_,x/Scale(),y/Scale());
     if(raid_scan_pressed_){if(raid_scan_pending_)raid_scan_pressed_=false;Invalidate();return;}

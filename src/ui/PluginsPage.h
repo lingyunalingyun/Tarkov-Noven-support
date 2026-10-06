@@ -4,11 +4,13 @@
 #include "plugins/PluginDiscovery.h"
 #include "plugins/PluginRuntimeManager.h"
 #include "ui/TabBar.h"
+#include "ui/SearchBox.h"
 #include <utility>
 
 namespace noven::ui {
-struct PluginPresentation final {std::wstring title,body,status;std::string id;bool enable{},disable{};};
+struct PluginPresentation final {std::wstring title,body,status;std::string id;bool enable{},disable{},error{},incompatible{};};
 enum class PluginCenterTab {Marketplace,MyPlugins};
+enum class PluginFilter {All,Running,Disabled,Error,Incompatible};
 struct PluginControlAction final {std::string id;bool enable{};};
 std::wstring HostStateText(plugins::HostState state);
 std::vector<PluginPresentation> PresentPlugins(const plugins::PluginSnapshot& snapshot);
@@ -27,6 +29,14 @@ public:
     std::optional<PluginControlAction> TakeControlAction(){return std::exchange(controlAction_,{});}
     PluginCenterTab Tab() const noexcept {return tab_;}
     void SelectTab(PluginCenterTab tab);
+    void SelectFilter(PluginFilter filter){filter_=filter;dirty_=true;scroll_=target_=0;CancelDrag();}
+    void SetSearch(std::wstring text){search_.SetText(std::move(text));dirty_=true;scroll_=target_=0;CancelDrag();}
+    bool Key(WPARAM key,bool control);
+    bool Char(wchar_t character);
+    D2D1_RECT_F SearchBounds() const noexcept {return searchBounds_;}
+    D2D1_RECT_F ContentBounds() const noexcept {return viewport_;}
+    D2D1_RECT_F FilterBounds(PluginFilter filter) const;
+    bool TextInsideCards() const;
     std::wstring MarketplaceText() const;
     std::optional<D2D1_RECT_F> ControlBounds(std::string_view id) const;
     const plugins::PluginSnapshot& Snapshot() const noexcept {return snapshot_;}
@@ -39,8 +49,8 @@ public:
     bool Move(float x,float y);
     bool Leave(){const bool changed=hovered_||hoveredTab_.has_value();hovered_=false;hoveredTab_.reset();return changed;}
     bool Wheel(int delta,float x,float y);
-    void CancelDrag() noexcept {pressed_=false;grab_.reset();pressedTab_.reset();pressedControl_.reset();}
-    void Blur(){scroll_=target_;tabProgress_=1;underline_=tab_==PluginCenterTab::Marketplace?0.0F:1.0F;CancelDrag();Leave();}
+    void CancelDrag() noexcept {pressed_=false;grab_.reset();pressedTab_.reset();pressedControl_.reset();pressedFilter_.reset();}
+    void Blur(){search_.Blur();scroll_=target_;tabProgress_=1;underline_=tab_==PluginCenterTab::Marketplace?0.0F:1.0F;CancelDrag();Leave();}
     bool Animating() const noexcept {return std::abs(scroll_-target_)>.01F||tabProgress_<1;}
     void Tick(float elapsed);
     D2D1_RECT_F RefreshBounds() const noexcept {return refresh_;}
@@ -48,7 +58,7 @@ public:
 private:
     struct Card {Microsoft::WRL::ComPtr<IDWriteTextLayout> title,body;float top{},height{},titleHeight{};};
     std::optional<ScrollbarGeometry> Bar() const;
-    TabBarLayout TabLayout() const {return {viewport_.left,95,135,(std::min)(150.0F,(std::max)(40.0F,(refresh_.left-viewport_.left-16)/2)),23};}
+    TabBarLayout TabLayout() const {return {panel_.left,95,135,(std::min)(150.0F,(std::max)(40.0F,(searchBounds_.left-panel_.left-16)/2)),23};}
     std::array<TabBarItem<PluginCenterTab>,2> Tabs() const;
     std::optional<std::size_t> ControlAt(float x,float y) const;
     plugins::PluginSnapshot snapshot_;
@@ -56,7 +66,10 @@ private:
     std::vector<Card> cards_;
     std::string locale_;
     float width_{-1},content_{},scroll_{},target_{};
-    D2D1_RECT_F viewport_{},refresh_{};
+    D2D1_RECT_F viewport_{},refresh_{},panel_{},searchBounds_{};
+    SearchBox search_;
+    PluginFilter filter_{PluginFilter::All};
+    std::optional<PluginFilter> pressedFilter_;
     bool dirty_{true},pressed_{},hovered_{};
     std::optional<float> grab_;
     std::vector<plugins::HostSnapshot> runtime_;
