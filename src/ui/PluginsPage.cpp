@@ -50,7 +50,7 @@ std::optional<std::size_t> PluginsPage::SelectedIndex() const {for(std::size_t i
 const PluginPresentation* PluginsPage::SelectedPlugin() const {const auto index=SelectedIndex();return tab_==PluginCenterTab::MyPlugins&&index?&rows_[*index]:nullptr;}
 void PluginsPage::SelectRow(std::size_t index) {
     if(index>=rows_.size()||rows_[index].directory==selectedDirectory_)return;
-    selectedDirectory_=rows_[index].directory;scroll_=target_=0;content_=cards_[index].height+12;CancelDrag();controlAction_.reset();
+    selectedDirectory_=rows_[index].directory;scroll_=target_=0;content_=cards_[index].height+12;UpdateDetailBounds();CancelDrag();controlAction_.reset();
 }
 std::optional<std::size_t> PluginsPage::RowAt(float x,float y) const {
     if(tab_!=PluginCenterTab::MyPlugins||!HitNavigationButton(listViewport_,x,y))return {};
@@ -92,7 +92,13 @@ std::wstring PluginsPage::EmptyText() const {
     return snapshot_.records.empty()?Tr("plugins.empty"):Tr("plugins.no_matches");
 }
 std::optional<ScrollbarGeometry> PluginsPage::Bar() const {
-    return MakeScrollbar(D2D1::RectF(viewport_.right-12,viewport_.top,viewport_.right,viewport_.bottom),content_,scroll_);
+    return MakeScrollbar(D2D1::RectF(detailViewport_.right-12,detailViewport_.top,detailViewport_.right,detailViewport_.bottom),content_,scroll_);
+}
+void PluginsPage::UpdateDetailBounds() {
+    // 操作区不参与正文滚动；正文、滚动条和点击检测共用扣除底栏后的边界。
+    // Actions stay outside scrolling content; text, scrollbar and hit tests share the footer-excluding viewport.
+    detailViewport_=viewport_;
+    if(const auto selected=SelectedIndex();selected&&ControlBounds(rows_[*selected].id))detailViewport_.bottom=viewport_.bottom-64;
 }
 std::optional<ScrollbarGeometry> PluginsPage::ListBar() const {
     return MakeScrollbar(D2D1::RectF(listViewport_.right-12,listViewport_.top,listViewport_.right,listViewport_.bottom),static_cast<float>(rows_.size())*56,listScroll_);
@@ -133,14 +139,15 @@ void PluginsPage::Prepare(float width,float height,const UiTheme& theme,IDWriteF
                 const float measured=SUCCEEDED(output->GetMetrics(&metrics))?(std::max)(24.0F,metrics.height):24.0F;output->SetMaxHeight(measured);return measured;
             };
             card.titleHeight=layout(row.title,label,card.title);const float bodyHeight=layout(row.body,body,card.body);
-            card.height=24+card.titleHeight+30+bodyHeight+18+(row.enable||row.disable?54.0F:0.0F);cards_.push_back(std::move(card));
+            card.height=24+card.titleHeight+30+bodyHeight+18;cards_.push_back(std::move(card));
         }
         if(!SelectedIndex()) {selectedDirectory_=rows_.empty()?std::filesystem::path{}:rows_.front().directory;scroll_=target_=0;}
     }
     const auto selected=SelectedIndex();content_=selected?cards_[*selected].height+12:0;
+    UpdateDetailBounds();
     const float listMaximum=(std::max)(0.0F,static_cast<float>(rows_.size())*56-(listViewport_.bottom-listViewport_.top));
     listScroll_=std::clamp(listScroll_,0.0F,listMaximum);listTarget_=std::clamp(listTarget_,0.0F,listMaximum);
-    const float maximum=(std::max)(0.0F,content_-(viewport_.bottom-viewport_.top));scroll_=std::clamp(scroll_,0.0F,maximum);target_=std::clamp(target_,0.0F,maximum);
+    const float maximum=(std::max)(0.0F,content_-(detailViewport_.bottom-detailViewport_.top));scroll_=std::clamp(scroll_,0.0F,maximum);target_=std::clamp(target_,0.0F,maximum);
 }
 bool PluginsPage::TextInsideCards() const {for(const auto& card:cards_)for(auto* text:{card.title.Get(),card.body.Get()})if(text){DWRITE_TEXT_METRICS m{};if(FAILED(text->GetMetrics(&m))||m.top<0||m.top+m.height>text->GetMaxHeight()+1)return false;}return true;}
 void PluginsPage::DrawCategory(const UiCanvas& canvas,const UiTheme& theme) const {
@@ -168,7 +175,7 @@ void PluginsPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     if(tab_==PluginCenterTab::MyPlugins)DrawTextButton(canvas,theme,refresh_,Tr("plugins.refresh"),hovered_,pressed_);
     canvas.target.PopAxisAlignedClip();
     if(tab_==PluginCenterTab::Marketplace){canvas.Text(MarketplaceText(),canvas.body,D2D1::RectF(viewport_.left+16,viewport_.top+16,viewport_.right-16,viewport_.top+100),theme.secondaryText);DrawCategory(canvas,theme);return;}
-    canvas.target.PushAxisAlignedClip(viewport_,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    canvas.target.PushAxisAlignedClip(detailViewport_,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(rows_.empty())canvas.Text(EmptyText(),canvas.body,viewport_,theme.secondaryText);
     if(const auto selected=SelectedIndex()) {
         const auto index=*selected;const auto& card=cards_[index];const float top=viewport_.top-scroll_;
@@ -179,9 +186,17 @@ void PluginsPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.Text(rows_[index].status,canvas.smallFormat,D2D1::RectF(bounds.left+16,top+12+card.titleHeight,bounds.right-16,top+42+card.titleHeight),theme.accent);
         canvas.brush.SetColor(theme.secondaryText);
         if(card.body)canvas.target.DrawTextLayout(D2D1::Point2F(bounds.left+16,top+48+card.titleHeight),card.body.Get(),&canvas.brush,D2D1_DRAW_TEXT_OPTIONS_CLIP);
-        if(const auto button=ControlBounds(rows_[index].id))DrawTextButton(canvas,theme,*button,Tr(rows_[index].disable?"plugins.disable":"plugins.enable"),false,pressedControl_==index);
     }
-    canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(),1});DrawCategory(canvas,theme);
+    canvas.target.PopAxisAlignedClip();DrawScrollbar(canvas,theme,{Bar(),1});
+    if(const auto selected=SelectedIndex())if(const auto button=ControlBounds(rows_[*selected].id)){
+        canvas.target.PushAxisAlignedClip(viewport_,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        canvas.brush.SetColor(theme.divider);
+        canvas.target.DrawLine(D2D1::Point2F(viewport_.left+16,detailViewport_.bottom),D2D1::Point2F(viewport_.right-16,detailViewport_.bottom),&canvas.brush,1);
+        auto buttonTheme=theme;buttonTheme.surface=theme.selected;
+        DrawTextButton(canvas,buttonTheme,*button,Tr(rows_[*selected].disable?"plugins.disable":"plugins.enable"),hoveredControl_==selected,pressedControl_==selected);
+        canvas.target.PopAxisAlignedClip();
+    }
+    DrawCategory(canvas,theme);
 }
 void PluginsPage::Down(float x,float y) {
     if(categoryOpen_||HitTestDropdownRect(category_.header,x,y)){CancelDrag();search_.Blur();categoryPress_=D2D1::Point2F(x,y);return;}
@@ -207,7 +222,8 @@ bool PluginsPage::Up(float x,float y) {
 }
 std::optional<D2D1_RECT_F> PluginsPage::ControlBounds(std::string_view id) const {
     if(tab_!=PluginCenterTab::MyPlugins)return {};if(const auto selected=SelectedIndex();selected&&rows_[*selected].id==id&&(rows_[*selected].enable||rows_[*selected].disable)){
-        const float bottom=viewport_.top+cards_[*selected].height-scroll_-14;return D2D1::RectF(viewport_.left+16,bottom-38,viewport_.left+128,bottom);
+        if(viewport_.bottom-viewport_.top<64||viewport_.right-viewport_.left<160)return {};
+        return D2D1::RectF(viewport_.right-144,viewport_.bottom-50,viewport_.right-16,viewport_.bottom-12);
     }return {};
 }
 std::optional<std::size_t> PluginsPage::ControlAt(float x,float y) const {
@@ -216,7 +232,7 @@ std::optional<std::size_t> PluginsPage::ControlAt(float x,float y) const {
 }
 bool PluginsPage::Move(float x,float y) {
     if(categoryOpen_)return false;
-    const auto tab=HitTestTabBar(Tabs(),TabLayout(),x,y);const bool changed=tab!=hoveredTab_;hoveredTab_=tab;
+    const auto tab=HitTestTabBar(Tabs(),TabLayout(),x,y);const auto control=ControlAt(x,y);const bool changed=tab!=hoveredTab_||control!=hoveredControl_;hoveredTab_=tab;hoveredControl_=control;
     if(grab_)if(const auto bar=Bar()){target_=scroll_=bar->OffsetFromThumbTop(y-*grab_);return true;}
     if(listGrab_)if(const auto bar=ListBar()){listTarget_=listScroll_=bar->OffsetFromThumbTop(y-*listGrab_);return true;}
     const bool hover=tab_==PluginCenterTab::MyPlugins&&HitNavigationButton(refresh_,x,y);if(hover==hovered_)return changed;hovered_=hover;return true;
@@ -225,8 +241,8 @@ bool PluginsPage::Wheel(int delta,float x,float y) {
     if(categoryOpen_)return false;
     if(tab_!=PluginCenterTab::MyPlugins||grab_||listGrab_)return false;
     if(HitNavigationButton(listViewport_,x,y)){listTarget_=std::clamp(listTarget_-static_cast<float>(delta)/WHEEL_DELTA*66,0.0F,(std::max)(0.0F,static_cast<float>(rows_.size())*56-(listViewport_.bottom-listViewport_.top)));return Animating();}
-    if(!HitNavigationButton(viewport_,x,y))return false;
-    target_=std::clamp(target_-static_cast<float>(delta)/WHEEL_DELTA*66,0.0F,(std::max)(0.0F,content_-(viewport_.bottom-viewport_.top)));return Animating();
+    if(!HitNavigationButton(detailViewport_,x,y))return false;
+    target_=std::clamp(target_-static_cast<float>(delta)/WHEEL_DELTA*66,0.0F,(std::max)(0.0F,content_-(detailViewport_.bottom-detailViewport_.top)));return Animating();
 }
 void PluginsPage::Tick(float elapsed) {
     if(categoryOpen_){categoryProgress_=AdvanceDropdownTransition(categoryProgress_,categoryClosing_,(std::max)(0.0F,elapsed));if(categoryClosing_&&categoryProgress_==0)categoryOpen_=false;}

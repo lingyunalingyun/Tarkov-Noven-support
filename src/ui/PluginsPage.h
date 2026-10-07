@@ -34,6 +34,7 @@ public:
     bool Char(wchar_t character);
     D2D1_RECT_F SearchBounds() const noexcept {return searchBounds_;}
     D2D1_RECT_F ContentBounds() const noexcept {return viewport_;}
+    D2D1_RECT_F DetailBounds() const noexcept {return detailViewport_;}
     D2D1_RECT_F ListBounds() const noexcept {return listViewport_;}
     D2D1_RECT_F CategoryBounds() const noexcept {return category_.header;}
     bool CategoryOpen() const noexcept {return categoryOpen_;}
@@ -50,7 +51,7 @@ public:
     void Down(float x,float y);
     bool Up(float x,float y);
     bool Move(float x,float y);
-    bool Leave(){const bool changed=hovered_||hoveredTab_.has_value();hovered_=false;hoveredTab_.reset();return changed;}
+    bool Leave(){const bool changed=hovered_||hoveredTab_.has_value()||hoveredControl_.has_value();hovered_=false;hoveredTab_.reset();hoveredControl_.reset();return changed;}
     bool Wheel(int delta,float x,float y);
     void CancelDrag() noexcept {pressed_=false;grab_.reset();listGrab_.reset();pressedTab_.reset();pressedControl_.reset();pressedRow_.reset();categoryPress_.reset();}
     void Blur(){search_.Blur();scroll_=target_;listScroll_=listTarget_;tabProgress_=1;underline_=tab_==PluginCenterTab::Marketplace?0.0F:1.0F;categoryOpen_=false;CancelDrag();Leave();}
@@ -65,6 +66,7 @@ private:
     std::optional<std::size_t> SelectedIndex() const;
     std::optional<std::size_t> RowAt(float x,float y) const;
     void SelectRow(std::size_t index);
+    void UpdateDetailBounds();
     void DrawCategory(const UiCanvas& canvas,const UiTheme& theme) const;
     TabBarLayout TabLayout() const {return {panel_.left,95,135,(std::min)(150.0F,(std::max)(40.0F,(searchBounds_.left-panel_.left-16)/2)),23};}
     std::array<TabBarItem<PluginCenterTab>,2> Tabs() const;
@@ -74,7 +76,7 @@ private:
     std::vector<Card> cards_;
     std::string locale_;
     float width_{-1},content_{},scroll_{},target_{};
-    D2D1_RECT_F viewport_{},refresh_{},panel_{},searchBounds_{},listViewport_{};
+    D2D1_RECT_F viewport_{},detailViewport_{},refresh_{},panel_{},searchBounds_{},listViewport_{};
     SearchBox search_;
     // 清单尚无分类字段；分类栏仅提供全部，不从名称或权限推测分类。
     // Manifests have no category field yet; offer All without inferring categories from names or permissions.
@@ -94,7 +96,7 @@ private:
     PluginCenterTab tab_{PluginCenterTab::MyPlugins},outgoingTab_{PluginCenterTab::MyPlugins};
     float tabProgress_{1},underlineFrom_{1},underline_{1};
     std::optional<PluginCenterTab> pressedTab_,hoveredTab_;
-    std::optional<std::size_t> pressedControl_;
+    std::optional<std::size_t> pressedControl_,hoveredControl_;
     std::optional<PluginControlAction> controlAction_;
     std::wstring marketplaceLabel_,myLabel_;
 };

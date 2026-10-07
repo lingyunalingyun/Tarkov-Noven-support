@@ -79,7 +79,20 @@ int wmain(int argc,wchar_t** argv) try {
         // 按钮只产生第一方请求，不代表授权或进程创建。
         // Buttons emit first-party requests, never consent or process creation themselves.
         page.Down(enable->left+5,enable->top+5);page.Up(enable->left+5,enable->top+5);const auto request=page.TakeControlAction();Check(request&&request->enable&&request->id==native.manifest->id,"enable requires paired explicit user action");
+        auto longNative=runtimeSnapshot;longNative.records[0].manifest->description=std::string(4000,'x');page.SetSnapshot(longNative);page.Prepare(900,750,theme,factory.Get(),format.Get(),format.Get());
+        const auto pinned=page.ControlBounds(native.manifest->id);const auto detail=page.DetailBounds();const auto panel=page.ContentBounds();
+        Check(pinned&&pinned->top>=detail.bottom&&pinned->bottom==panel.bottom-12&&pinned->right<=panel.right,"Enable is bottom anchored in a separate visible action area at minimum window size");
+        page.Wheel(-12000,detail.left+20,detail.top+20);for(int i=0;i<200&&page.Animating();++i)page.Tick(.016F);
+        const auto afterScroll=page.ControlBounds(native.manifest->id);
+        Check(page.Scroll()>0&&afterScroll&&afterScroll->top==pinned->top&&afterScroll->bottom==pinned->bottom,"long metadata scroll cannot move or cover Enable");
+        Check(!page.Wheel(-120,pinned->left+5,pinned->top+5),"action area does not scroll detail");
+        page.Down(pinned->left+5,pinned->top+5);page.Up(pinned->left+5,pinned->top+5);const auto pinnedRequest=page.TakeControlAction();
+        Check(pinnedRequest&&pinnedRequest->enable&&pinnedRequest->id==native.manifest->id,"pinned Enable hit test remains usable after scrolling");
+        page.Prepare(1280,900,theme,factory.Get(),format.Get(),format.Get());const auto resized=page.ControlBounds(native.manifest->id);
+        Check(resized&&resized->bottom==page.ContentBounds().bottom-12&&resized->top>=page.DetailBounds().bottom,"action area follows resized panel without overlapping text");
         HostSnapshot host;host.pluginId=native.manifest->id;host.state=HostState::Running;page.SetRuntime({host});page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(page.Rows()[0].disable&&!page.Rows()[0].enable&&page.Rows()[0].status==Tr("plugins.running"),"running state offers disable only");
+        const auto pinnedDisable=page.ControlBounds(host.pluginId);Check(pinnedDisable&&pinnedDisable->bottom==page.ContentBounds().bottom-12&&pinnedDisable->top>=page.DetailBounds().bottom,"Running Disable uses the same fixed footer");
+        page.Down(pinnedDisable->left+5,pinnedDisable->top+5);page.Up(pinnedDisable->left+5,pinnedDisable->top+5);const auto disableRequest=page.TakeControlAction();Check(disableRequest&&!disableRequest->enable,"pinned Disable emits only the matching explicit disable request");
         Check(page.SelectedPlugin()->status==Tr("plugins.running")&&page.Snapshot().records.size()==1,"runtime updates keep selected detail without discovery mutation");
         const auto disable=page.ControlBounds(host.pluginId);page.Down(disable->left+5,disable->top+5);host.state=HostState::Crashed;page.SetRuntime({host});page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());page.Up(disable->left+5,disable->top+5);Check(!page.TakeControlAction(),"state change cannot reinterpret a pending Disable press as Enable");
         runtimeSnapshot.records[0].manifest->requestedPermissions.push_back("network.http");page.SetSnapshot(runtimeSnapshot);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(!page.ControlBounds(native.manifest->id)&&page.Rows()[0].body.find(Tr("plugins.unsupported"))!=std::wstring::npos,"unsupported requests cannot be granted or enabled");
