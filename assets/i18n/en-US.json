@@ -1,4 +1,6 @@
 {
+  "dialog.ok": "OK",
+  "dialog.cancel": "Cancel",
   "nav.plugins": "Plugins",
   "plugins.notice": "Local plugins are unverified. Enabled native code runs in PluginHost, which is not an OS security sandbox.",
   "plugins.marketplace": "Marketplace",

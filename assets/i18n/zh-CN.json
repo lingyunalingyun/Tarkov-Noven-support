@@ -1,4 +1,6 @@
 {
+  "dialog.ok": "确定",
+  "dialog.cancel": "取消",
   "nav.plugins": "插件",
   "plugins.notice": "本地插件未经验证。启用后原生代码在 PluginHost 执行；它不是 OS 安全沙箱。",
   "plugins.marketplace": "插件市场",

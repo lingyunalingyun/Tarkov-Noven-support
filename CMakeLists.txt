@@ -74,6 +74,7 @@ add_executable(NovenTarkovSupport WIN32
     src/plugins/PluginManifest.cpp
     src/plugins/PluginDiscovery.cpp
     src/ui/PluginsPage.cpp
+    src/ui/MessageDialog.cpp
     src/ui/PluginPageView.cpp
     src/events/EventCatalog.cpp
     src/events/EventBrowser.cpp
@@ -183,6 +184,7 @@ target_link_libraries(NovenTarkovSupport PRIVATE
     d2d1
     dwrite
     dwmapi
+    comctl32
     windowsapp
     winhttp
     windowscodecs
@@ -244,6 +246,14 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenMessageDialogTests tests/MessageDialogTests.cpp src/ui/MessageDialog.cpp)
+    target_include_directories(NovenMessageDialogTests PRIVATE src)
+    target_compile_definitions(NovenMessageDialogTests PRIVATE UNICODE _UNICODE NOMINMAX _WIN32_WINNT=0x0A00)
+    if(MSVC)
+        target_compile_options(NovenMessageDialogTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    target_link_libraries(NovenMessageDialogTests PRIVATE user32 gdi32 dwmapi comctl32)
+    add_test(NAME message_dialog COMMAND NovenMessageDialogTests)
     add_executable(NovenAppSettingsTests tests/AppSettingsTests.cpp)
     target_include_directories(NovenAppSettingsTests PRIVATE src)
     target_compile_definitions(NovenAppSettingsTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
