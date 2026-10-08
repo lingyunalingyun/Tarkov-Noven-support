@@ -29,16 +29,16 @@ Entry is a direct-child filename, at most 128 UTF-8 bytes, ending in lowercase `
 新插件默认 Disabled；发现和 Refresh 不启动新会话。受保护的 `builtin.plugins` 内含 Marketplace / My Plugins；市场只显示未连接状态，无网络、假目录、安装或下载。V1 不提供运行按钮。
 New plugins default Disabled; discovery/Refresh never start new sessions. Protected `builtin.plugins` contains Marketplace / My Plugins. Marketplace is an offline empty state, without networking, fake catalogs, installation or downloads. V1 has no runtime control.
 
-Enable 必须明确确认插件身份、版本、作者、请求权限及原生代码/非沙箱警告。当前唯一支持的权限是 `ui.page.register`；未声明/未授予即拒绝页面 API。日志无需此权限；其他请求（包括 `ui.decorate`、产品数据、网络与存储）不支持且阻止启用。
-Enable requires explicit confirmation of identity/version/author, requested permissions and native-code/non-sandbox warnings. Only `ui.page.register` is supported; undeclared/ungranted page API calls are denied. Logging needs no page grant. Other requests, including decoration/product data/network/storage, are unsupported and block Enable.
+Enable 必须明确确认插件身份、版本、作者、请求权限及原生代码/非沙箱警告。支持 `ui.page.register`、`catalog.items.read`、`catalog.tasks.read`、`catalog.maps.read`；每项 API 需对应权限已声明/已授权。日志无需额外权限；其他请求（包括 `ui.decorate`、Events/Raid/Scanner、网络与存储）仍不支持且阻止启用。
+Enable requires explicit confirmation of identity/version/author, requested permissions and native-code/non-sandbox warnings. Supported permissions are `ui.page.register`, `catalog.items.read`, `catalog.tasks.read`, `catalog.maps.read`; each API requires its own declared/granted permission. Logging needs no extra grant. Other requests, including decoration, Events/Raid/Scanner, network and storage, remain unsupported and block Enable.
 
 授权与运行意图单独保存在 `<exe>/data/plugin-state.json`，有界解析、原子替换、损坏时默认禁用；不包含清单、代码、会话密钥或管道名。权限增加撤销旧授权；权限减少不增加特权。已保存且仍有效的授权可在下次启动恢复；崩溃/失败会禁用，不无限重启。禁用先撤销 UI/输入，再有界关闭 Host；普通应用退出保留授权意图。
 Intent/grants live separately in bounded, atomically replaced `<exe>/data/plugin-state.json`, fail-closed on corruption, without manifests/code/session secrets/pipe names. Permission expansion revokes consent; removal adds no privilege. Valid saved intent may resume next launch. Faults disable intent without restart loops. Disable revokes UI/input before bounded Host shutdown; normal app exit preserves approved intent.
 
 ## C ABI
 
-公共头文件：[sdk/noven_plugin_abi_v1.h](sdk/noven_plugin_abi_v1.h)。四个独立版本：Manifest V1/V2、transportProtocolVersion=1、apiVersion=1、nativePluginAbiVersion=1。不要混用。
-Public header: [sdk/noven_plugin_abi_v1.h](sdk/noven_plugin_abi_v1.h). Manifest, transport, API and native ABI versions are independent.
+公共头文件：[sdk/noven_plugin_abi_v1.h](sdk/noven_plugin_abi_v1.h)。五个独立版本：Manifest V1/V2、transportProtocolVersion=1、apiVersion=1、nativePluginAbiVersion=1、catalogSchemaVersion=1。不要混用。
+Public header: [sdk/noven_plugin_abi_v1.h](sdk/noven_plugin_abi_v1.h). Manifest, transport, API, native ABI and catalog schema versions are independent.
 
 固定导出：`NovenPlugin_GetAbiVersion()` 和 `NovenPlugin_Initialize(host, instance)`；使用 C ABI / `__cdecl`、固定宽度整数、显式 `struct_size`、UTF-8 切片，无 STL/COM/HWND/D2D/Core 对象。
 Fixed exports use C ABI / `__cdecl`, fixed-width integers, explicit sizes and UTF-8 slices, with no STL/COM/HWND/D2D/core objects.
@@ -104,8 +104,8 @@ Extension tables carry struct_size/schema_version. `request_data(context, const 
 异步 `on_data_result` 使用基础 instance.context，接收 struct_size、status（0..6）、request_id 和 payload_utf8；JSON 切片只在回调期间有效，插件需保留则复制。回调串行且有父进程截止时间；停止/崩溃取消未完成请求，不保证取消结果回调。
 Asynchronous `on_data_result` uses base instance.context and receives struct_size, status (0..6), request_id and payload_utf8. JSON slices last only during the callback; plugins must copy retained data. Callbacks are serialized and parent-deadline bounded. Stop/crash cancels pending requests without promising a cancellation callback.
 
-目录投影是只读副本，不含经济价格、扫描、对局、日志、游戏进程或隐藏状态。以下为核心服务契约；在异步桥接集成前不对运行插件开放。PluginHost 仍不是 OS 沙箱。
-Catalog projections are read-only copies without economy prices, scans, raids, logs, game processes or hidden state. The following is the core-service contract; runtime access requires the asynchronous bridge. PluginHost remains not an OS sandbox.
+目录投影是只读副本，不含经济价格、扫描、对局、日志、游戏进程或隐藏状态。仅有效 V2 且显式授权的认证会话可使用异步目录桥接。PluginHost 仍不是 OS 沙箱。
+Catalog projections are read-only copies without economy prices, scans, raids, logs, game processes or hidden state. Only valid V2 explicitly consented authenticated sessions use the asynchronous catalog bridge. PluginHost remains not an OS sandbox.
 
 三个种类为 `items`、`tasks`、`maps`，分别需要同名 `catalog.<kind>.read` 权限已声明、已授权且当前授权仍有效。操作为 `list` 或 `get`；身份不依赖翻译。任务与地图 v1 使用 regular 静态结构，避免同 ID 的模式变体；不受玩家当前模式影响。
 Kinds `items`, `tasks`, `maps` each require their exact `catalog.<kind>.read` permission, declared and granted with still-valid consent. Operations are `list` and `get`; identity never depends on translation. Tasks/maps v1 use regular static structure, avoiding same-ID mode variants and dependence on selected game mode.

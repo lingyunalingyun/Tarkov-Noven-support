@@ -13,6 +13,7 @@ struct PluginPresentation final {std::wstring title,body,status;std::string id;s
 enum class PluginCenterTab {Marketplace,MyPlugins};
 struct PluginControlAction final {std::string id;bool enable{};};
 std::wstring HostStateText(plugins::HostState state);
+std::wstring PluginPermissionText(std::string_view permission,bool supported);
 std::vector<PluginPresentation> PresentPlugins(const plugins::PluginSnapshot& snapshot);
 std::wstring PluginStateText(plugins::PluginState state);
 // 保护页面只产生显式启用/禁用请求；确认与授权由 Noven 拥有，市场不接网络。

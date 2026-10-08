@@ -311,7 +311,7 @@ int App::Run(HINSTANCE instance, int show_command) {
                 +L"\n"+ui::Tr("plugins.version")+L": "+Utf8ToWide(manifest.version)+L"\n"+ui::Tr("plugins.author")+L": "+Utf8ToWide(manifest.author)
                 +L"\n\n"+ui::Tr("plugins.permissions");
             if(manifest.requestedPermissions.empty())text+=L"\n"+ui::Tr("plugins.no_permissions");
-            for(const auto& permission:manifest.requestedPermissions)text+=L"\n• "+Utf8ToWide(permission)+L" · "+ui::Tr("plugins.supported");
+            for(const auto& permission:manifest.requestedPermissions)text+=L"\n"+ui::PluginPermissionText(permission,plugins::SupportedPermission(permission));
             return ui::ShowMessageDialog(window_,ui::Tr("plugins.consent_title"),text,ui::MessageKind::Warning,
                 ui::Tr("plugins.enable"),ui::Tr("dialog.cancel"));
         }):plugin_controller_->Disable(action.id);
@@ -321,7 +321,6 @@ int App::Run(HINSTANCE instance, int show_command) {
                 ui::MessageKind::Warning,ui::Tr("dialog.ok"));
     });
     main_ui_->SetPluginActionHandler([this](const ui::PluginOwnedPage& page,std::string_view action){plugin_runtime_->Action(page.pluginId,page.generation,page.page.localId,action);});
-    plugin_controller_->StartEnabled();PublishPluginRuntime();
     if (!recent_scan_store_->Load(ExecutableDirectory() / L"data" / L"recent-scans.json",
                                   history_error)) {
         common::DebugLog(L"[recent-scans] load warning: " + history_error);
@@ -414,6 +413,11 @@ int App::Run(HINSTANCE instance, int show_command) {
     if(!main_ui_->SetMapDataSources(executable_directory / L"assets",map_error)){
         common::DebugLog(L"[map] reference unavailable: "+map_error);
     }
+    // 目录加载后再启动已授权插件；只复制静态投影，不让工作线程接触 UI 目录对象。
+    // Start consented plugins only after catalogs load; copy static projections without worker access to UI catalog objects.
+    plugin_runtime_->SetCatalogService(std::make_shared<plugins::CatalogPluginService>(item_catalog_->Items(),
+        main_ui_->Tasks().Catalog().Tasks(),main_ui_->Map().Catalog(data::GameMode::Pvp).Maps(),ui::UiLocalization().ActiveLocale()));
+    plugin_controller_->StartEnabled();PublishPluginRuntime();
     StartMapAssetUpdate();
 
     data_refresh_service_->Start(executable_directory / L"data" / L"economy-cache");
@@ -978,8 +982,10 @@ LRESULT CALLBACK App::WindowProc(
             const auto previous_locale = ui::UiLocalization().ActiveLocale();
             const auto mode = app->main_ui_->MouseUp(
                 GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
-            if (previous_locale != ui::UiLocalization().ActiveLocale() && app->overlay_window_->Visible())
-                InvalidateRect(app->overlay_window_->Handle(), nullptr, FALSE);
+            if (previous_locale != ui::UiLocalization().ActiveLocale()) {
+                app->plugin_runtime_->SetCatalogLocale(ui::UiLocalization().ActiveLocale());
+                if(app->overlay_window_->Visible())InvalidateRect(app->overlay_window_->Handle(), nullptr, FALSE);
+            }
             if (GetCapture() == window) ReleaseCapture();
             if (mode) app->OnModeChanged(*mode);
             app->EnsureRecentAnimationTimer();

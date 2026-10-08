@@ -38,6 +38,11 @@ std::wstring HostStateText(plugins::HostState state){
     default:return Tr("plugins.disabled");
     }
 }
+std::wstring PluginPermissionText(std::string_view permission,bool supported){
+    auto text=(supported?L"✓ ":L"✗ ")+Wide(permission);
+    if(plugins::SupportedPermission(permission))text+=L" · "+Tr("plugins.permission."+std::string(permission));
+    return text+L" · "+Tr(supported?"plugins.supported":"plugins.unsupported");
+}
 std::wstring PluginsPage::MarketplaceText() const {return Tr("plugins.marketplace_offline");}
 std::array<TabBarItem<PluginCenterTab>,2> PluginsPage::Tabs() const {return {{{PluginCenterTab::Marketplace,marketplaceLabel_},{PluginCenterTab::MyPlugins,myLabel_}}};}
 void PluginsPage::SelectTab(PluginCenterTab tab){
@@ -74,7 +79,7 @@ std::vector<PluginPresentation> PresentPlugins(const plugins::PluginSnapshot& sn
             line("plugins.homepage",manifest.homepage);line("plugins.source",manifest.source);line("plugins.license",manifest.license);
             row.body+=Tr("plugins.permissions")+L"\n";
             if(manifest.requestedPermissions.empty())row.body+=Tr("plugins.no_permissions")+L"\n";
-            for(const auto& permission:manifest.requestedPermissions)row.body+=L"• "+Wide(permission)+L" · "+Tr(manifest.manifestVersion==2&&permission=="ui.page.register"?"plugins.supported":"plugins.unsupported")+L"\n";
+            for(const auto& permission:manifest.requestedPermissions)row.body+=PluginPermissionText(permission,manifest.manifestVersion==2&&plugins::SupportedPermission(permission))+L"\n";
             row.body+=Tr(manifest.manifestVersion==1?"plugins.metadata_only":"plugins.native_unverified");
             if(manifest.manifestVersion==2){
                 row.body+=L"\n"+Tr("plugins.notice");
