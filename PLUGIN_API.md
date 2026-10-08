@@ -93,6 +93,17 @@ Phase 3 has no product/game APIs, built-in UI modification, online marketplace, 
 
 ## Catalog projection v1
 
+### Optional native ABI extension
+
+基础 `NovenHostApiV1`/`NovenPluginInstanceV1` 的字段、x64 尺寸 40/32 字节与 ABI/API 版本 1 不变；旧样例验证精确尺寸，因此不直接追加基础表。新插件可选导出 `NovenPlugin_InitializeCatalogV1`，在基础 Initialize 成功后接收独立 `NovenCatalogHostApiV1` 并填写 `NovenCatalogInstanceV1.on_data_result`。没有此导出的旧 Hello 二进制按原路径运行，不需要目录权限。
+Base `NovenHostApiV1`/`NovenPluginInstanceV1` fields, x64 sizes 40/32 bytes and ABI/API version 1 remain unchanged. Older samples check exact sizes, so base tables are not appended. New plugins optionally export `NovenPlugin_InitializeCatalogV1`, receiving a separate `NovenCatalogHostApiV1` after base Initialize succeeds and filling `NovenCatalogInstanceV1.on_data_result`. Existing Hello binaries lacking that export follow the original path and need no catalog grants.
+
+扩展表有独立 struct_size/schema_version。`request_data(context, const NovenDataRequestV1*)` 只在 Host 回调线程调用并复制入队，立即返回 NOVEN_OK 或参数/权限/额度/状态错误，不做 IPC 等待。请求成员为 struct_size、catalog_kind（1/2/3）、request_id、operation（1=list/2=get）、offset、limit、stable_id_utf8。Host 在回调返回后才发送请求。
+Extension tables carry struct_size/schema_version. `request_data(context, const NovenDataRequestV1*)` copies/enqueues on the Host callback thread and immediately returns NOVEN_OK or argument/permission/limit/state errors without IPC waits. Request fields are struct_size, catalog_kind (1/2/3), request_id, operation (1=list/2=get), offset, limit, stable_id_utf8. Host sends only after callbacks return.
+
+异步 `on_data_result` 使用基础 instance.context，接收 struct_size、status（0..6）、request_id 和 payload_utf8；JSON 切片只在回调期间有效，插件需保留则复制。回调串行且有父进程截止时间；停止/崩溃取消未完成请求，不保证取消结果回调。
+Asynchronous `on_data_result` uses base instance.context and receives struct_size, status (0..6), request_id and payload_utf8. JSON slices last only during the callback; plugins must copy retained data. Callbacks are serialized and parent-deadline bounded. Stop/crash cancels pending requests without promising a cancellation callback.
+
 目录投影是只读副本，不含经济价格、扫描、对局、日志、游戏进程或隐藏状态。以下为核心服务契约；在异步桥接集成前不对运行插件开放。PluginHost 仍不是 OS 沙箱。
 Catalog projections are read-only copies without economy prices, scans, raids, logs, game processes or hidden state. The following is the core-service contract; runtime access requires the asynchronous bridge. PluginHost remains not an OS sandbox.
 

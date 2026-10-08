@@ -59,6 +59,59 @@ typedef struct NovenPluginInstanceV1 {
 
 typedef uint32_t (NOVEN_CALL *NovenGetAbiVersionFn)(void);
 typedef int32_t (NOVEN_CALL *NovenInitializeFn)(const NovenHostApiV1*, NovenPluginInstanceV1*);
+/* 保持 Phase 3 的两个基础表尺寸不变；目录 API 使用可选独立扩展导出。
+ * Preserve both Phase 3 base-table sizes; catalog API uses an optional separate extension export.
+ * manifest/API/native ABI/transport 仍各自为原版本，目录 schema 独立为 1。
+ * Manifest/API/native ABI/transport retain their versions; catalog schema is independently 1. */
+#define NOVEN_CATALOG_SCHEMA_VERSION 1u
+#define NOVEN_CATALOG_ITEMS 1u
+#define NOVEN_CATALOG_TASKS 2u
+#define NOVEN_CATALOG_MAPS 3u
+#define NOVEN_DATA_LIST 1u
+#define NOVEN_DATA_GET 2u
+#define NOVEN_DATA_OK 0u
+#define NOVEN_DATA_PERMISSION_DENIED 1u
+#define NOVEN_DATA_NOT_FOUND 2u
+#define NOVEN_DATA_INVALID_REQUEST 3u
+#define NOVEN_DATA_UNAVAILABLE 4u
+#define NOVEN_DATA_TOO_LARGE 5u
+#define NOVEN_DATA_LIMITED 6u
+typedef struct NovenDataRequestV1 {
+    uint32_t struct_size;
+    uint32_t catalog_kind;
+    uint64_t request_id;
+    uint32_t operation;
+    uint32_t offset;
+    uint32_t limit;
+    NovenUtf8V1 stable_id_utf8;
+} NovenDataRequestV1;
+typedef struct NovenDataResultV1 {
+    uint32_t struct_size;
+    uint32_t status;
+    uint64_t request_id;
+    NovenUtf8V1 payload_utf8;
+} NovenDataResultV1;
+/* 仅回调线程可入队，立即返回，不在插件回调里做跨进程等待；Host 复制请求。
+ * Callback-thread enqueue only, returning immediately without IPC waits; Host copies the request.
+ * 成功入队后异步返回；关闭/崩溃可取消。结果切片仅在回调期间有效，插件要保留需复制。
+ * Accepted requests complete asynchronously or cancel on stop/crash. Result slices are borrowed for the callback only.
+ * 所有结果回调串行，context 为基础 instance.context；不引入第二份生命周期所有权。
+ * Results are serialized callbacks using base instance.context; no second lifecycle ownership. */
+typedef struct NovenCatalogHostApiV1 {
+    uint32_t struct_size;
+    uint32_t schema_version;
+    void* context;
+    int32_t (NOVEN_CALL *request_data)(void*, const NovenDataRequestV1*);
+} NovenCatalogHostApiV1;
+typedef struct NovenCatalogInstanceV1 {
+    uint32_t struct_size;
+    uint32_t schema_version;
+    void (NOVEN_CALL *on_data_result)(void*, const NovenDataResultV1*);
+} NovenCatalogInstanceV1;
+typedef int32_t (NOVEN_CALL *NovenInitializeCatalogFn)(const NovenCatalogHostApiV1*, NovenCatalogInstanceV1*);
+#if defined(NOVEN_PLUGIN_CATALOG_IMPLEMENTATION)
+NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeCatalogV1(const NovenCatalogHostApiV1*, NovenCatalogInstanceV1*);
+#endif
 /* Host 初始化 instance.struct_size/abi_version；插件验证并填写其余成员，成功返回 NOVEN_OK。
  * Host initializes instance.struct_size/abi_version; plugin validates/fills remaining members, returns NOVEN_OK. */
 #ifndef NOVEN_PLUGIN_OMIT_EXPORT_DECLARATIONS

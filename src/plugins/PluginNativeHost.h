@@ -3,6 +3,7 @@
 #include "plugins/PluginUiDocument.h"
 #include "noven_plugin_abi_v1.h"
 #include <map>
+#include <deque>
 
 namespace noven::plugins {
 // 本编译单元只链接进 Host，绝不链接到 Noven 主程序；进程边界不是 OS 沙箱。
@@ -17,6 +18,8 @@ private:
     static int32_t NOVEN_CALL Log(void*,NovenUtf8V1);
     static int32_t NOVEN_CALL Register(void*,NovenUtf8V1,NovenUtf8V1);
     static int32_t NOVEN_CALL Publish(void*,NovenUtf8V1,NovenUtf8V1);
+    static int32_t NOVEN_CALL RequestData(void*,const NovenDataRequestV1*);
+    bool FlushData();
     int32_t Send(ipc::Message message);
     int Load(const ipc::Message& message);
     std::filesystem::path root_;
@@ -27,6 +30,12 @@ private:
     DWORD thread_{GetCurrentThreadId()};
     NovenHostApiV1 host_{sizeof(NovenHostApiV1),NOVEN_PLUGIN_API_VERSION,this,&Log,&Register,&Publish};
     NovenPluginInstanceV1 instance_{};
+    NovenCatalogHostApiV1 catalogHost_{sizeof(NovenCatalogHostApiV1),NOVEN_CATALOG_SCHEMA_VERSION,this,&RequestData};
+    NovenCatalogInstanceV1 catalogInstance_{};
+    DataRequestBudget dataBudget_;
+    std::deque<DataRequest> dataQueue_;
+    bool catalogConfigured_{};
+    unsigned catalogMask_{};
     bool attempted_{},initialized_{},pagePermission_{},accepting_{};
     std::map<std::string,UiDocument,std::less<>> pages_;
     std::chrono::steady_clock::time_point burst_{std::chrono::steady_clock::now()};
