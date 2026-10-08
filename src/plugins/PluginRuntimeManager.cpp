@@ -130,7 +130,7 @@ void Run(Session& session,const std::filesystem::path& host){
                 {std::lock_guard lock(session.mutex);if(session.stopping){session.dataBudget.Complete(incoming.dataRequest.requestId);continue;}}
                 Require(channel.Write(reply,After(2000),process.process.Get()),HostError::DataTimeout,session);
                 session.dataAcks.emplace(incoming.dataRequest.requestId,After(3000));
-                {std::lock_guard lock(session.mutex);session.snapshot.pendingData=session.dataAcks.size();}session.Notify();continue;
+                {std::lock_guard lock(session.mutex);if(!session.stopping)session.snapshot.pendingData=session.dataAcks.size();}session.Notify();continue;
             }
             if(incoming.type==MessageType::DataResultAck&&session.load){
                 if(!session.dataAcks.erase(incoming.dataResult.requestId)||!session.dataBudget.Complete(incoming.dataResult.requestId))throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
