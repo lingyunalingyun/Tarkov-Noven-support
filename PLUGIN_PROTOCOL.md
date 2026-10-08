@@ -94,3 +94,16 @@ No polling/restart loops/detached threads; at most 16 retained identities per ma
 Windows 行为参考：[Named pipe security](https://learn.microsoft.com/en-us/windows/win32/ipc/named-pipe-security-and-access-rights)、
 [Job objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)、
 [CancelIoEx](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelioex)。
+
+## Catalog message extension (transport v1)
+
+旧消息 schema 和传输版本保持不变。目录通道不接受插件身份字段；所有请求/结果归属于认证会话。以下 JSON 都使用既有 length-prefixed UTF-8 帧。
+Existing message schemas and transport version remain unchanged. Catalog messages cannot supply a plugin identity; requests/results belong to their authenticated session. All use existing length-prefixed UTF-8 frames.
+
+- Core -> Host: `{"type":"catalogAccess","mask":7}`，仅加载前配置；位 1/2/4 为 Items/Tasks/Maps，Core 每次请求仍独立验证声明/授权。Configuration only before load; bits 1/2/4 are Items/Tasks/Maps, independently reauthorized by Core per request.
+- Host -> Core: `{"type":"dataRequest","requestId":1,"catalog":"items","operation":"list","stableId":"","offset":0,"limit":32}`。get 使用稳定 ID、offset/limit=0。Get uses a stable ID and zero offset/limit.
+- Core -> Host: `{"type":"dataResult","requestId":1,"status":0,"payload":"<catalog JSON>"}`。状态数值依次 0..6：ok/permissionDenied/notFound/invalidRequest/unavailable/tooLarge/limited，内部 schemaVersion/requestId/status 必须一致。Status codes 0..6 match the names in that order; embedded schema/request/status must agree.
+- Host -> Core: `{"type":"dataResultAck","requestId":1}`。插件结果回调返回后发送，防止回调挂起占据会话。Sent after the result callback returns, bounding hung plugin callbacks.
+
+请求/结果字段数、UTF-8、整数范围、目录/操作及响应 JSON 都严格验证；请求 ID 为 1..INT64_MAX，JSON 响应最多 24 KiB、帧仍最多 64 KiB。详见 [Catalog schema](PLUGIN_API.md#catalog-projection-v1)。
+Exact fields, UTF-8, integer bounds, kinds/operations and result JSON are validated. Request IDs are 1..INT64_MAX, JSON results max 24 KiB and frames still max 64 KiB. See the catalog schema.

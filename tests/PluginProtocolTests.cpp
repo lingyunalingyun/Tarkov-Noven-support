@@ -42,4 +42,31 @@ int main(){
     load.entry="../plugin.dll";Reject([&]{Serialize(load);});
     page.document=R"({"schemaVersion":1,"blocks":[{"type":"html","text":"x"}]})";Reject([&]{Serialize(page);});
     std::cout<<"Bounded plugin protocol PASS\n";
+    Message access{MessageType::CatalogAccess};access.catalogMask=7;
+    Check(ParseMessage(Serialize(access)).catalogMask==7,"catalog grant configuration");
+    access.catalogMask=8;Reject([&]{Serialize(access);});
+    Message request{MessageType::DataRequest};request.dataRequest.requestId=99;
+    for(const auto kind:{noven::plugins::CatalogKind::Items,noven::plugins::CatalogKind::Tasks,noven::plugins::CatalogKind::Maps}){
+        request.dataRequest.catalog=kind;request.dataRequest.operation=noven::plugins::DataOperation::List;request.dataRequest.limit=32;
+        Check(ParseMessage(Serialize(request)).dataRequest.catalog==kind,"list data request round-trip");
+        request.dataRequest.operation=noven::plugins::DataOperation::Get;request.dataRequest.limit=0;request.dataRequest.stableId="stable_id";
+        Check(ParseMessage(Serialize(request)).dataRequest.stableId=="stable_id","get exact stable identity");
+        request.dataRequest.stableId.clear();
+    }
+    Message result{MessageType::DataResult};result.dataResult.requestId=99;
+    result.dataResult.payload=R"({"schemaVersion":1,"requestId":99,"catalog":"items","operation":"list","status":"ok","records":[],"record":null,"offset":0,"limit":32,"total":0,"nextOffset":0,"hasMore":false})";
+    Check(ParseMessage(Serialize(result)).dataResult.payload==result.dataResult.payload,"catalog JSON copy round-trip");
+    auto badResult=result;badResult.dataResult.requestId=98;Reject([&]{Serialize(badResult);});
+    badResult=result;badResult.dataResult.status=noven::plugins::DataStatus::PermissionDenied;Reject([&]{Serialize(badResult);});
+    badResult=result;badResult.dataResult.payload="{";Reject([&]{Serialize(badResult);});
+    badResult=result;badResult.dataResult.payload=std::string(noven::plugins::MaximumCatalogPayloadBytes+1,'x');Reject([&]{Serialize(badResult);});
+    Message ack{MessageType::DataResultAck};ack.dataResult.requestId=99;
+    Check(ParseMessage(Serialize(ack)).dataResult.requestId==99,"callback completion acknowledgment");
+    ack.dataResult.requestId=0;Reject([&]{Serialize(ack);});
+    for(const auto bad:{R"({"type":"dataRequest","requestId":1,"catalog":"raids","operation":"list","stableId":"","offset":0,"limit":32})",R"({"type":"dataRequest","requestId":1,"catalog":"items","operation":"write","stableId":"","offset":0,"limit":32})",R"({"type":"dataRequest","requestId":1,"catalog":"items","operation":"list","stableId":"","offset":4294967295,"limit":32})",R"({"type":"dataRequest","requestId":1,"catalog":"items","operation":"list","stableId":"","offset":0,"limit":0})",R"({"type":"dataResultAck","requestId":1,"pluginId":"com.other.test"})"})Reject([&]{ParseMessage(bad);});
+    result.dataResult.payload.insert(result.dataResult.payload.find("[]")+1,"{\"displayName\":\""+std::string(11000,'\\')+"\"}");
+    Check(Serialize(result).size()<MaximumFrameBytes,"escaped result fits existing transport");
+    const auto dataFrame=Frame(Serialize(result));FrameDecoder dataDecoder;unsigned dataCount=0;
+    for(const auto byte:dataFrame)dataDecoder.Feed(std::span(&byte,1),[&](auto payload){ParseMessage(payload);++dataCount;});
+    Check(dataCount==1&&dataDecoder.Complete(),"catalog frame split at every byte");
 }

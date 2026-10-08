@@ -4,12 +4,35 @@
 #include "raid/RaidJson.h"
 #include <array>
 #include <stdexcept>
+#include <limits>
 
 namespace noven::plugins::ipc {
 namespace {
-constexpr std::array<std::string_view,14> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log"};
+constexpr std::array<std::string_view,18> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log","catalogAccess","dataRequest","dataResult","dataResultAck"};
 [[noreturn]] void Invalid(){throw std::runtime_error("plugin protocol violation");}
 bool IsHandshake(MessageType type){return type==MessageType::Hello||type==MessageType::HelloAck;}
+std::uint32_t Unsigned(const raid::json::Value& value){
+    const auto number=value.Int();if(number<0||number>(std::numeric_limits<std::uint32_t>::max)())Invalid();
+    return static_cast<std::uint32_t>(number);
+}
+std::uint64_t RequestId(const raid::json::Value& value){const auto id=value.Int();if(id<=0)Invalid();return static_cast<std::uint64_t>(id);}
+CatalogKind Kind(std::string_view name){
+    for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps})if(CatalogName(kind)==name)return kind;
+    Invalid();
+}
+DataOperation Operation(std::string_view name){if(name=="list")return DataOperation::List;if(name=="get")return DataOperation::Get;Invalid();}
+void ValidateResult(const plugins::DataResult& result){
+    if(result.payload.empty()||result.payload.size()>MaximumCatalogPayloadBytes||DataStatusName(result.status).empty())Invalid();
+    const auto payload=raid::json::Parser(result.payload).Parse();
+    if(payload.object.size()!=12||payload.At("schemaVersion").Int()!=CatalogSchemaVersion
+        ||RequestId(payload.At("requestId"))!=result.requestId||payload.At("status").String()!=DataStatusName(result.status))Invalid();
+    Kind(payload.At("catalog").String());Operation(payload.At("operation").String());
+    if(payload.At("records").Array().size()>MaximumCatalogRecords)Invalid();
+    const auto type=payload.At("record").type;
+    if(type!=raid::json::Value::Type::Null&&type!=raid::json::Value::Type::Object)Invalid();
+    for(const auto key:{"offset","limit","total","nextOffset"})Unsigned(payload.At(key));
+    payload.At("hasMore").Bool();
+}
 }
 bool ValidSecret(std::string_view value){
     if(value.size()!=64)return false;
@@ -30,6 +53,21 @@ Message ParseMessage(std::string_view payload){
     }
     std::size_t fields=IsHandshake(message.type)?4u:1u;
     switch(message.type) {
+    case MessageType::CatalogAccess:
+        message.catalogMask=Unsigned(object.At("mask"));if(message.catalogMask>7)Invalid();fields=2;break;
+    case MessageType::DataRequest: {
+        auto& request=message.dataRequest;request.requestId=RequestId(object.At("requestId"));
+        request.catalog=Kind(object.At("catalog").String());request.operation=Operation(object.At("operation").String());
+        request.stableId=object.At("stableId").String();request.offset=Unsigned(object.At("offset"));request.limit=Unsigned(object.At("limit"));
+        if(!ValidDataRequest(request))Invalid();fields=7;break;
+    }
+    case MessageType::DataResult: {
+        auto& result=message.dataResult;result.requestId=RequestId(object.At("requestId"));
+        const auto status=object.At("status").Int();if(status<0||status>6)Invalid();result.status=static_cast<DataStatus>(status);
+        result.payload=object.At("payload").String();ValidateResult(result);fields=4;break;
+    }
+    case MessageType::DataResultAck:
+        message.dataResult.requestId=RequestId(object.At("requestId"));fields=2;break;
     case MessageType::LoadPlugin:
         if(object.At("manifestVersion").Int()!=2||object.At("apiVersion").Int()!=1||object.At("abiVersion").Int()!=1)Invalid();
         message.directory=object.At("directory").String();message.entry=object.At("entry").String();message.pagePermission=object.At("pagePermission").Bool();
@@ -62,6 +100,15 @@ std::string Serialize(const Message& message){
         text+=",\"protocolVersion\":"+std::to_string(message.protocolVersion)+",\"pluginId\":"+raid::json::Quote(message.pluginId)+",\"session\":"+raid::json::Quote(message.session);
     }
     switch(message.type) {
+    case MessageType::CatalogAccess:text+=",\"mask\":"+std::to_string(message.catalogMask);break;
+    case MessageType::DataRequest: {
+        const auto& request=message.dataRequest;
+        text+=",\"requestId\":"+std::to_string(request.requestId)+",\"catalog\":"+raid::json::Quote(CatalogName(request.catalog))
+            +",\"operation\":"+raid::json::Quote(request.operation==DataOperation::List?"list":"get")+",\"stableId\":"+raid::json::Quote(request.stableId)
+            +",\"offset\":"+std::to_string(request.offset)+",\"limit\":"+std::to_string(request.limit);break;
+    }
+    case MessageType::DataResult:text+=",\"requestId\":"+std::to_string(message.dataResult.requestId)+",\"status\":"+std::to_string(static_cast<int>(message.dataResult.status))+",\"payload\":"+raid::json::Quote(message.dataResult.payload);break;
+    case MessageType::DataResultAck:text+=",\"requestId\":"+std::to_string(message.dataResult.requestId);break;
     case MessageType::LoadPlugin:
         text+=",\"manifestVersion\":2,\"apiVersion\":1,\"abiVersion\":1,\"directory\":"+raid::json::Quote(message.directory)+",\"entry\":"+raid::json::Quote(message.entry)+",\"pagePermission\":"+(message.pagePermission?"true":"false");break;
     case MessageType::LoadPluginResult:case MessageType::UiActionResult:text+=",\"result\":"+std::to_string(message.result);break;
