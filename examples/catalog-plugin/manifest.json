@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 2,
+  "id": "com.example.noven-catalog",
+  "name": "Catalog Demo",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "author": "Noven example",
+  "description": "Read-only Items, Tasks and Maps. Asynchronous list/get requests; no game or network access.",
+  "permissions": ["catalog.items.read", "catalog.tasks.read", "catalog.maps.read", "ui.page.register"],
+  "runtime": {"kind": "native-dll", "entry": "noven-catalog.dll"}
+}

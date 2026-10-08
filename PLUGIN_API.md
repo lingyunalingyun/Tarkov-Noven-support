@@ -127,3 +127,14 @@ Request IDs: 1..INT64_MAX. Lists default to 32, allow 1..64, have empty stable I
 
 响应 JSON 限制 24 KiB，给传输转义保留 64 KiB 帧余量；大页会缩小，以 nextOffset/hasMore 继续，单条超限返回 tooLarge。每个会话最多 16 未完成请求，Host 每秒最多 16 个；未完成 ID 不得重复，停止清空请求。
 Response JSON is bounded to 24 KiB, preserving room for escaped transport within 64 KiB frames. Large pages shrink and continue through nextOffset/hasMore; a single oversized record returns tooLarge. Each session admits at most 16 outstanding requests, with 16/second at the Host. Outstanding IDs cannot repeat; stop clears pending requests.
+
+### Catalog Demo
+
+独立纯 C 样例在 [examples/catalog-plugin](examples/catalog-plugin)，配置 `-DNOVEN_BUILD_PLUGIN_EXAMPLES=ON` 后构建 `NovenCatalogPlugin`。将 `noven-catalog.dll` 和该目录 manifest.json 放到 `<exe>/plugins/com.example.noven-catalog/`，不提交运行目录或二进制。新发现样例默认禁用；需明确授权三种目录读取和页面权限才能执行。
+The separate C example builds as `NovenCatalogPlugin` with `-DNOVEN_BUILD_PLUGIN_EXAMPLES=ON`. Copy `noven-catalog.dll` and its manifest into `<exe>/plugins/com.example.noven-catalog/`, never committing runtime files/binaries. Newly discovered examples default Disabled and require explicit consent for the three catalog reads and page registration.
+
+Catalog Demo 页面有 Items/Tasks/Maps 三个按钮；每次异步请求最多 4 条，再用第一条的稳定 ID 发起 get，显示有界 JSON 预览。按钮不读取价格或游戏状态。此样例的 ID 提取仅针对 Noven 固定投影；通用插件应采用真正的 JSON 解析器。Disable 移除页面、清空待处理请求并收束 Host。
+The page has Items/Tasks/Maps buttons. Each requests at most four records asynchronously, then gets the first stable ID and displays a bounded JSON preview. It reads no prices/game state. Its ID extraction targets only Noven's fixed projection; general plugins should use a real JSON parser. Disable removes the page, invalidates pending requests and closes the Host.
+
+结果回调返回后 Host 才发送 dataResultAck，父进程等待最多 3 秒，防止插件挂起结果回调。核心另有每秒 32 次防洪保护（容纳发送方秒边界），仍最多 16 未确认结果；恶意重复、洪泛或未知 ACK 终止该会话，不影响其他插件。已经进入插件的回调不能被追溯取消，停止后不再接受新交互/结果。
+Host sends dataResultAck only after the result callback returns; the parent bounds that wait to three seconds. Core additionally guards 32 requests/second to accommodate sender window boundaries, still with at most 16 unacknowledged results. Malicious duplicate/flood/unknown ACK ends only that session. Already-entered callbacks cannot be retroactively cancelled; stopped sessions accept no new interaction/results.
