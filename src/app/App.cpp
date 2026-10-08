@@ -25,6 +25,7 @@
 #include "scanner/ScanTrigger.h"
 #include "scanner/TooltipHeuristic.h"
 #include "ui/MainWindowUi.h"
+#include "ui/MessageDialog.h"
 #include "raid/LocalRaidService.h"
 #include "raid/RaidScanAssociation.h"
 #include "plugins/PluginDiscovery.h"
@@ -261,7 +262,7 @@ int App::Run(HINSTANCE instance, int show_command) {
     std::wstring locale_error;
     if (!ui::UiLocalization().DiscoverLocales(ExecutableDirectory() / L"assets" / L"i18n", locale_error)) {
         common::DebugLog(locale_error);
-        MessageBoxW(nullptr, locale_error.c_str(), L"Noven - Localization", MB_OK | MB_ICONERROR);
+        (void)ui::ShowMessageDialog(nullptr,L"Noven - Localization",locale_error,ui::MessageKind::Error,L"OK");
         return 1;
     }
     for (const auto& warning : ui::UiLocalization().Warnings()) common::DebugLog(L"[i18n] " + warning);
@@ -311,11 +312,13 @@ int App::Run(HINSTANCE instance, int show_command) {
                 +L"\n\n"+ui::Tr("plugins.permissions");
             if(manifest.requestedPermissions.empty())text+=L"\n"+ui::Tr("plugins.no_permissions");
             for(const auto& permission:manifest.requestedPermissions)text+=L"\n• "+Utf8ToWide(permission)+L" · "+ui::Tr("plugins.supported");
-            return MessageBoxW(window_,text.c_str(),ui::Tr("plugins.consent_title").c_str(),MB_YESNO|MB_ICONWARNING|MB_DEFBUTTON2)==IDYES;
+            return ui::ShowMessageDialog(window_,ui::Tr("plugins.consent_title"),text,ui::MessageKind::Warning,
+                ui::Tr("plugins.enable"),ui::Tr("dialog.cancel"));
         }):plugin_controller_->Disable(action.id);
         main_ui_->SetPlugins(plugin_discovery_->Snapshot());PublishPluginRuntime();
         if(result!=plugins::ControlResult::Success&&result!=plugins::ControlResult::ConsentDeclined)
-            MessageBoxW(window_,ui::Tr(result==plugins::ControlResult::StateFailure?"plugins.state_error":"plugins.enable_failed").c_str(),ui::Tr("nav.plugins").c_str(),MB_OK|MB_ICONWARNING);
+            (void)ui::ShowMessageDialog(window_,ui::Tr("nav.plugins"),ui::Tr(result==plugins::ControlResult::StateFailure?"plugins.state_error":"plugins.enable_failed"),
+                ui::MessageKind::Warning,ui::Tr("dialog.ok"));
     });
     main_ui_->SetPluginActionHandler([this](const ui::PluginOwnedPage& page,std::string_view action){plugin_runtime_->Action(page.pluginId,page.generation,page.page.localId,action);});
     plugin_controller_->StartEnabled();PublishPluginRuntime();
@@ -741,7 +744,7 @@ void App::PublishPluginRuntime() {
     if(!plugin_runtime_||!main_ui_)return;
     if(plugin_controller_&&!plugin_controller_->Reconcile()&&!plugin_state_warning_){
         plugin_state_warning_=true;common::DebugLog(L"[plugins] "+ui::Tr("plugins.state_error"));
-        MessageBoxW(window_,ui::Tr("plugins.state_error").c_str(),ui::Tr("nav.plugins").c_str(),MB_OK|MB_ICONWARNING);
+        (void)ui::ShowMessageDialog(window_,ui::Tr("nav.plugins"),ui::Tr("plugins.state_error"),ui::MessageKind::Warning,ui::Tr("dialog.ok"));
     }
     const auto snapshots=plugin_runtime_->Snapshots();main_ui_->SetPluginRuntime(snapshots);
     for(const auto& session:snapshots)if(!session.lastLog.empty()){

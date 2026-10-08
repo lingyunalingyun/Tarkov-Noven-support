@@ -9,7 +9,11 @@ int mode{}, failures{}, ticks{};
 bool inspected{};
 void Check(bool value,const char* label) { if(!value){std::cerr<<label<<'\n';++failures;} }
 void CALLBACK Inspect(HWND,UINT,UINT_PTR timer,DWORD) {
-    const auto dialog=FindWindowW(L"#32770",L"Noven dialog test");
+    HWND dialog{};
+    EnumThreadWindows(GetCurrentThreadId(),[](HWND candidate,LPARAM result)->BOOL {
+        if(GetWindow(candidate,GW_OWNER)!=owner)return TRUE;
+        *reinterpret_cast<HWND*>(result)=candidate;return FALSE;
+    },reinterpret_cast<LPARAM>(&dialog));
     if(!dialog) { if(++ticks>100)ExitProcess(2);return; }
     KillTimer(nullptr,timer);inspected=true;
     Check(!IsWindowEnabled(owner),"owner is disabled during modal message");
