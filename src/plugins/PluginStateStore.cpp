@@ -5,8 +5,11 @@
 
 namespace noven::plugins {
 namespace {constexpr std::size_t MaximumStateBytes=256*1024;}
+bool SupportedPermission(std::string_view permission){
+    return permission=="ui.page.register"||permission=="catalog.items.read"||permission=="catalog.tasks.read"||permission=="catalog.maps.read";
+}
 bool SupportedPermissions(const PluginManifest& manifest) {
-    return std::all_of(manifest.requestedPermissions.begin(),manifest.requestedPermissions.end(),[](const auto& permission){return permission=="ui.page.register";});
+    return std::all_of(manifest.requestedPermissions.begin(),manifest.requestedPermissions.end(),SupportedPermission);
 }
 PluginIntent PluginStateStore::Intent(std::string_view id) const {
     const auto found=intents_.find(id);return found==intents_.end()?PluginIntent{}:found->second;
@@ -40,8 +43,12 @@ PluginStateStore PluginStateStore::Decode(std::string_view text) {
         const auto& entries=root.At("plugins").Array();if(entries.size()>128)throw std::runtime_error("plugin state capacity");
         for(const auto& entry:entries) {
             const auto id=entry.At("id").String();PluginIntent intent;intent.enabled=entry.At("enabled").Bool();
-            if(!ValidPluginId(id)||entry.object.size()!=3||entry.At("grantedPermissions").Array().size()>1)throw std::runtime_error("plugin state entry");
-            for(const auto& permission:entry.At("grantedPermissions").Array()){if(permission.String()!="ui.page.register")throw std::runtime_error("unsupported saved grant");intent.grantedPermissions.push_back(permission.String());}
+            if(!ValidPluginId(id)||entry.object.size()!=3||entry.At("grantedPermissions").Array().size()>4)throw std::runtime_error("plugin state entry");
+            for(const auto& value:entry.At("grantedPermissions").Array()){
+                const auto& permission=value.String();
+                if(!SupportedPermission(permission)||std::find(intent.grantedPermissions.begin(),intent.grantedPermissions.end(),permission)!=intent.grantedPermissions.end())throw std::runtime_error("unsupported/duplicate saved grant");
+                intent.grantedPermissions.push_back(permission);
+            }
             if(!result.intents_.emplace(id,std::move(intent)).second)throw std::runtime_error("duplicate plugin intent");
         }
     }catch(const std::exception&){result.intents_.clear();result.corrupt_=true;}

@@ -2,13 +2,14 @@
 #include "plugins/PluginDiscovery.h"
 #include "plugins/PluginStateStore.h"
 #include "plugins/PluginUiDocument.h"
+#include "plugins/CatalogPluginService.h"
 #include <chrono>
 #include <functional>
 #include <memory>
 
 namespace noven::plugins {
 enum class HostState { Stopped,Starting,Connecting,Handshaking,Ready,Stopping,Exited,Crashed,ProtocolError,Loading,Running };
-enum class HostError { None,Startup,ConnectionTimeout,HandshakeTimeout,PeerMismatch,HandshakeMismatch,InvalidProtocol,Disconnected,PingTimeout,ShutdownTimeout,FrameTimeout,LoadFailed,LoadTimeout,ActionTimeout };
+enum class HostError { None,Startup,ConnectionTimeout,HandshakeTimeout,PeerMismatch,HandshakeMismatch,InvalidProtocol,Disconnected,PingTimeout,ShutdownTimeout,FrameTimeout,LoadFailed,LoadTimeout,ActionTimeout,DataTimeout };
 struct RuntimePage final {std::string localId,title;UiDocument document;};
 struct HostSnapshot final {
     std::string pluginId;
@@ -22,6 +23,8 @@ struct HostSnapshot final {
     std::int64_t loadResult{};
     std::vector<RuntimePage> pages;
     std::string lastLog;
+    std::uint64_t dataResults{};
+    std::size_t pendingData{};
 };
 bool Terminal(HostState state);
 // 会话所有权留在 Noven；发现不启动会话，独立进程不是 OS 安全沙箱。
@@ -43,6 +46,8 @@ public:
     // 在启动前设置无阻塞通知（例如 PostMessage）；不传原生句柄给插件。
     // Set a nonblocking notification before starting (e.g. PostMessage); no native handles go to plugins.
     void SetChangeHandler(std::function<void()> handler);
+    void SetCatalogService(std::shared_ptr<CatalogPluginService> service);
+    void SetCatalogLocale(std::string_view locale);
     std::vector<HostSnapshot> Snapshots() const;
     bool Ping(std::string_view pluginId);
     bool Stop(std::string_view pluginId);

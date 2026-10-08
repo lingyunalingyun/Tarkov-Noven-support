@@ -27,12 +27,16 @@ struct Session final {
     std::optional<NativeFile> nativeFile;
     bool awaitingAction{};
     std::function<void()> notify;
+    std::shared_ptr<CatalogPluginService> catalog;
+    CatalogGrants catalogGrants;
+    DataRequestBudget dataBudget{32};
+    std::map<std::uint64_t,Deadline> dataAcks;
     // 最后声明，先 join 后释放事件、锁和快照；没有 detached 线程。
     // Declared last so it joins before events/mutex/snapshot are destroyed; no detached threads.
     std::jthread worker;
     void Notify(){changed.notify_all();if(notify)notify();}
     void Publish(HostState state,HostError error=HostError::None){
-        {std::lock_guard lock(mutex);snapshot.state=state;snapshot.error=error;if(Terminal(state))snapshot.pages.clear();}Notify();
+        {std::lock_guard lock(mutex);snapshot.state=state;snapshot.error=error;if(Terminal(state)){snapshot.pages.clear();snapshot.pendingData=0;}}Notify();
     }
 };
 bool AcceptNative(Session& session,const Message& message,unsigned& logs,unsigned& updates,Deadline& burst){
@@ -77,19 +81,25 @@ void Run(Session& session,const std::filesystem::path& host){
         if(incoming.type!=MessageType::Hello||!MatchesSession(incoming,session.snapshot.pluginId,secret))throw Failure{HostState::ProtocolError,HostError::HandshakeMismatch};
         incoming.type=MessageType::HelloAck;Require(channel.Write(incoming,After(2000),process.process.Get()),HostError::HandshakeTimeout,session);
         Deadline pongDeadline=Deadline::max(),actionDeadline=Deadline::max(),loadDeadline=Deadline::max(),burst=After(1000);unsigned logs=0,updates=0;
-        if(session.load){session.Publish(HostState::Loading);Require(channel.Write(*session.load,After(2000),process.process.Get()),HostError::LoadTimeout,session);loadDeadline=After(5000);}
+        if(session.load){
+            session.Publish(HostState::Loading);Message access{MessageType::CatalogAccess};
+            for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps})if(session.catalogGrants.Allows(kind))access.catalogMask|=1u<<(static_cast<unsigned>(kind)-1);
+            if(access.catalogMask)Require(channel.Write(access,After(2000),process.process.Get()),HostError::LoadTimeout,session);
+            Require(channel.Write(*session.load,After(2000),process.process.Get()),HostError::LoadTimeout,session);loadDeadline=After(5000);
+        }
         else session.Publish(HostState::Ready);
         for(;;){
             bool stop=false,ping=false;std::optional<Message> action;
             {std::lock_guard lock(session.mutex);stop=session.stopping;ping=std::exchange(session.ping,false);action=std::move(session.action);session.action.reset();ResetEvent(session.wake.Get());}
             if(stop){
+                session.dataAcks.clear();session.dataBudget.Clear();
                 session.Publish(HostState::Stopping);const auto deadline=After(2000);
                 auto result=channel.Write({MessageType::Shutdown},deadline,process.process.Get());
                 if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 // 在停止之前排队的 pong/ping 不得误判为关闭确认。
                 // Queued pong/ping before stopping must not be mistaken for shutdown acknowledgement.
                 while(result==IoResult::Complete&&(incoming.type==MessageType::Pong||incoming.type==MessageType::Ping
-                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult)))){
+                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult||incoming.type==MessageType::DataRequest||incoming.type==MessageType::DataResultAck)))){
                     if(incoming.type==MessageType::Ping)result=channel.Write({MessageType::Pong},deadline,process.process.Get());
                     if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 }
@@ -100,14 +110,32 @@ void Run(Session& session,const std::filesystem::path& host){
             }
             if(ping){Require(channel.Write({MessageType::Ping},After(2000),process.process.Get()),HostError::PingTimeout,session);pongDeadline=After(3000);}
             if(action){Require(channel.Write(*action,After(2000),process.process.Get()),HostError::ActionTimeout,session);actionDeadline=After(3000);}
-            const auto deadline=std::min({pongDeadline,loadDeadline,actionDeadline});
+            auto dataDeadline=Deadline::max();for(const auto& [id,deadline]:session.dataAcks)dataDeadline=std::min(dataDeadline,deadline);
+            const auto deadline=std::min({pongDeadline,loadDeadline,actionDeadline,dataDeadline});
             const auto result=channel.Read(incoming,deadline,session.wake.Get(),process.process.Get());
             if(result==IoResult::Interrupted)continue;
             if(result==IoResult::Disconnected){
                 if(WaitForSingleObject(process.process.Get(),100)==WAIT_OBJECT_0){DWORD code{};GetExitCodeProcess(process.process.Get(),&code);finalState=code==0?HostState::Exited:HostState::Crashed;finalError=code==0?HostError::None:HostError::Disconnected;break;}
                 throw Failure{HostState::Crashed,HostError::Disconnected};
             }
-            Require(result,deadline==loadDeadline&&loadDeadline!=Deadline::max()?HostError::LoadTimeout:deadline==actionDeadline&&actionDeadline!=Deadline::max()?HostError::ActionTimeout:pongDeadline==Deadline::max()?HostError::FrameTimeout:HostError::PingTimeout,session);
+            Require(result,dataDeadline!=Deadline::max()&&deadline==dataDeadline?HostError::DataTimeout:deadline==loadDeadline&&loadDeadline!=Deadline::max()?HostError::LoadTimeout:deadline==actionDeadline&&actionDeadline!=Deadline::max()?HostError::ActionTimeout:pongDeadline==Deadline::max()?HostError::FrameTimeout:HostError::PingTimeout,session);
+            if(incoming.type==MessageType::DataRequest&&session.load&&loadDeadline==Deadline::max()){
+                {std::lock_guard lock(session.mutex);if(session.stopping)continue;}
+                // 授权来自当前认证会话，不信任 Host 位掩码；原生插件能破坏 Host 内存但不能借用别的会话。
+                // Authorize from the authenticated session, not Host mask; native code cannot borrow another session's grants.
+                if(session.dataBudget.Begin(incoming.dataRequest.requestId)!=RequestAdmission::Accepted)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+                Message reply{MessageType::DataResult};
+                reply.dataResult=session.catalog?session.catalog->Query(incoming.dataRequest,session.catalogGrants)
+                    :CatalogPluginService::Error(incoming.dataRequest,session.catalogGrants.Allows(incoming.dataRequest.catalog)?DataStatus::Unavailable:DataStatus::PermissionDenied);
+                {std::lock_guard lock(session.mutex);if(session.stopping){session.dataBudget.Complete(incoming.dataRequest.requestId);continue;}}
+                Require(channel.Write(reply,After(2000),process.process.Get()),HostError::DataTimeout,session);
+                session.dataAcks.emplace(incoming.dataRequest.requestId,After(3000));
+                {std::lock_guard lock(session.mutex);session.snapshot.pendingData=session.dataAcks.size();}session.Notify();continue;
+            }
+            if(incoming.type==MessageType::DataResultAck&&session.load){
+                if(!session.dataAcks.erase(incoming.dataResult.requestId)||!session.dataBudget.Complete(incoming.dataResult.requestId))throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+                {std::lock_guard lock(session.mutex);if(!session.stopping){++session.snapshot.dataResults;session.snapshot.pendingData=session.dataAcks.size();}}session.Notify();continue;
+            }
             if(AcceptNative(session,incoming,logs,updates,burst))continue;
             if(incoming.type==MessageType::LoadPluginResult&&session.load&&loadDeadline!=Deadline::max()){
                 {std::lock_guard lock(session.mutex);session.snapshot.loadResult=incoming.result;}
@@ -130,7 +158,7 @@ void Run(Session& session,const std::filesystem::path& host){
     // Publish terminal state only after child/handle cleanup; failures do not affect other sessions or auto-restart.
     pipe.Reset();job.Reset();
     if(process.process&&WaitForSingleObject(process.process.Get(),2000)!=WAIT_OBJECT_0){TerminateProcess(process.process.Get(),1);WaitForSingleObject(process.process.Get(),2000);finalState=HostState::Crashed;finalError=HostError::ShutdownTimeout;}
-    process.process.Reset();session.nativeFile.reset();session.Publish(finalState,finalError);
+    process.process.Reset();session.nativeFile.reset();session.dataAcks.clear();session.dataBudget.Clear();session.Publish(finalState,finalError);
 }
 }
 struct PluginRuntimeManager::Impl final {
@@ -138,6 +166,7 @@ struct PluginRuntimeManager::Impl final {
     std::filesystem::path host;
     mutable std::mutex mutex;
     std::function<void()> notify;
+    std::shared_ptr<CatalogPluginService> catalog;
     std::uint64_t nextGeneration{};
     std::map<std::string,std::shared_ptr<Session>,std::less<>> sessions;
     std::shared_ptr<Session> Find(std::string_view id) const {const auto found=sessions.find(id);return found==sessions.end()?nullptr:found->second;}
@@ -171,12 +200,14 @@ bool PluginRuntimeManager::Ping(std::string_view id){
 }
 bool PluginRuntimeManager::Stop(std::string_view id){
     std::shared_ptr<Session> session;{std::lock_guard lock(impl_->mutex);session=impl_->Find(id);}if(!session)return false;
-    {std::lock_guard stateLock(session->mutex);if(Terminal(session->snapshot.state))return false;session->stopping=true;session->snapshot.pages.clear();SetEvent(session->wake.Get());}session->Notify();return true;
+    {std::lock_guard stateLock(session->mutex);if(Terminal(session->snapshot.state))return false;session->stopping=true;session->snapshot.pages.clear();session->snapshot.pendingData=0;SetEvent(session->wake.Get());}session->Notify();return true;
 }
 std::optional<HostSnapshot> PluginRuntimeManager::Snapshot(std::string_view id) const {
     std::lock_guard lock(impl_->mutex);auto session=impl_->Find(id);if(!session)return std::nullopt;std::lock_guard stateLock(session->mutex);return session->snapshot;
 }
 void PluginRuntimeManager::SetChangeHandler(std::function<void()> handler){std::lock_guard lock(impl_->mutex);impl_->notify=std::move(handler);}
+void PluginRuntimeManager::SetCatalogService(std::shared_ptr<CatalogPluginService> service){std::lock_guard lock(impl_->mutex);impl_->catalog=std::move(service);}
+void PluginRuntimeManager::SetCatalogLocale(std::string_view locale){std::lock_guard lock(impl_->mutex);if(impl_->catalog)impl_->catalog->SetLocale(locale);}
 std::vector<HostSnapshot> PluginRuntimeManager::Snapshots() const {
     std::vector<HostSnapshot> result;std::lock_guard lock(impl_->mutex);
     for(const auto& [id,session]:impl_->sessions){std::lock_guard stateLock(session->mutex);result.push_back(session->snapshot);}return result;
@@ -193,6 +224,7 @@ bool PluginRuntimeManager::StartNative(const PluginRecord& record,const PluginSt
     if(impl_->sessions.size()>=16)return false;
     auto session=std::make_shared<Session>();if(!session->wake)return false;
     session->notify=impl_->notify;session->nativeFile=std::move(file);session->snapshot.pluginId=id;session->snapshot.state=HostState::Starting;
+    session->catalog=impl_->catalog;session->catalogGrants={true,record.manifest->requestedPermissions,grants.Intent(id).grantedPermissions};
     session->snapshot.generation=++impl_->nextGeneration;session->snapshot.startedAt=std::chrono::steady_clock::now();
     Message load{MessageType::LoadPlugin};const auto directory=std::filesystem::absolute(record.directory).u8string();load.directory.assign(directory.begin(),directory.end());load.entry=record.manifest->runtime->entry;
     load.pagePermission=std::find(record.manifest->requestedPermissions.begin(),record.manifest->requestedPermissions.end(),"ui.page.register")!=record.manifest->requestedPermissions.end();session->load=std::move(load);

@@ -4,6 +4,7 @@
 #include <map>
 
 namespace noven::plugins {
+bool SupportedPermission(std::string_view permission);
 bool SupportedPermissions(const PluginManifest& manifest);
 struct PluginIntent final {bool enabled{};std::vector<std::string> grantedPermissions;};
 // Noven 自有数据，不从插件文件恢复授权；permissions 集合包含关系就是确定性授权指纹。

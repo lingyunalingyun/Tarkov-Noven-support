@@ -16,6 +16,11 @@ int main() try {
     auto less=manifest;less.requestedPermissions.clear();Check(store.Authorized(less),"permission removal requires no new privilege");
     store.Disable(manifest.id);Check(!store.Authorized(manifest)&&store.Save(path)&&!PluginStateStore::Load(path).Intent(manifest.id).enabled,"disable/crash persists without restart loop");
     Check(store.Consent(less)&&store.Authorized(less)&&!store.Authorized(manifest),"permission expansion invalidates earlier empty consent");
+    auto catalog=manifest;catalog.requestedPermissions={"ui.page.register","catalog.items.read","catalog.tasks.read","catalog.maps.read"};
+    Check(SupportedPermissions(catalog)&&!store.Authorized(catalog),"newly supported catalogs still require re-consent");
+    Check(store.Consent(catalog)&&store.Save(path)&&PluginStateStore::Load(path).Authorized(catalog),"four scoped grants persist");
+    auto foreignCatalog=catalog;foreignCatalog.id="com.example.other";Check(!store.Authorized(foreignCatalog),"another ID cannot reuse catalog grants");
+    for(const auto permission:{"catalog.events.read","raid.history.read","raid.active.read","scan.events.subscribe","scan.history.read","storage.plugin","network.http","ui.decorate","raw_logs.read","capture_frame.read","filesystem.arbitrary","process.access"})Check(!SupportedPermission(permission),"other product/runtime permissions remain unsupported");
     auto unsupported=manifest;unsupported.requestedPermissions.push_back("network.http");Check(!SupportedPermissions(unsupported)&&!store.Consent(unsupported)&&!store.Authorized(unsupported),"unsupported permissions never granted/enabled");
     auto foreign=manifest;foreign.id="com.example.other";Check(!store.Authorized(foreign),"grant scoped to exact identity");
     auto v1=manifest;v1.manifestVersion=1;v1.runtime.reset();Check(!store.Consent(v1)&&!store.Authorized(v1),"V1 cannot acquire runtime consent");

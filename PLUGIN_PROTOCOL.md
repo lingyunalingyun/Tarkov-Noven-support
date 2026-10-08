@@ -107,3 +107,9 @@ Existing message schemas and transport version remain unchanged. Catalog message
 
 请求/结果字段数、UTF-8、整数范围、目录/操作及响应 JSON 都严格验证；请求 ID 为 1..INT64_MAX，JSON 响应最多 24 KiB、帧仍最多 64 KiB。详见 [Catalog schema](PLUGIN_API.md#catalog-projection-v1)。
 Exact fields, UTF-8, integer bounds, kinds/operations and result JSON are validated. Request IDs are 1..INT64_MAX, JSON results max 24 KiB and frames still max 64 KiB. See the catalog schema.
+
+Core 仅在认证会话 Running 后处理目录请求，逐次检查会话冻结的声明及有效授权副本，结果在所属会话工作线程发送。Host 入队限 16/秒、16 未完成；Core 接收窗口限 32/秒（容纳相邻发送窗口），仍最多 16 未确认结果。重复/洪泛协议请求关闭所属会话；正常 API 调用立即返回状态/额度错误。
+Core handles catalog requests only after authenticated Running and checks the session's copied declaration/valid grants per request, returning on that session worker. Host permits 16/second and 16 outstanding; Core allows 32/second to tolerate adjacent sender windows, still max 16 unacknowledged results. Duplicate/flooded protocol requests close their session; normal API calls immediately return state/limit errors.
+
+每个结果回调确认期限为 3 秒；挂起/崩溃仅收束所属 Host。Stop 撤销待处理状态，不再发送新的结果，排空旧目录消息直到 shutdownAck；新一代会话不复用旧管道、请求或授权。UI 不做跨进程等待；没有目录轮询线程。
+Each result callback has a 3 s acknowledgement deadline; hangs/crashes terminate only its Host. Stop invalidates pending state, sends no new results and drains old catalog messages until shutdownAck. Replacement generations never reuse pipes, requests or grants. UI never waits on cross-process data; no catalog polling thread exists.
