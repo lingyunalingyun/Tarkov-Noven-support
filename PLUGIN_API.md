@@ -90,3 +90,29 @@ Copy built `noven-hello.dll` and sample manifest into the executable-relative pl
 
 Phase 3 不提供产品数据、游戏访问、内置 UI 修改、网络市场、Muse/GitHub、签名或热重载。插件中心左侧为插件按钮列表，右侧仅展示选中插件的详情；启用/禁用操作固定在详情底栏，正文与滚动条不进入操作区。搜索只过滤本地列表，不改变授权或运行状态。市场保持离线空列表。侧栏普通导航区可滚动，新注册的插件页面会显露，Plugins/Settings 管理区保持底部锚定。保存失败会阻止新启用并提示关闭状态可能无法持久化。
 Phase 3 has no product/game APIs, built-in UI modification, online marketplace, Muse/GitHub, signatures or hot reload. Plugin Center shows plugin buttons on the left and only the selected plugin's detail on the right; Enable/Disable stay in a fixed detail footer excluded from text and scrollbar bounds. Search filters the local list without changing grants/runtime state. Marketplace remains an offline empty list. Ordinary sidebar navigation scrolls and reveals newly registered plugin pages while Plugins/Settings stay bottom anchored. Save failure blocks new Enable and warns stopped state may not persist.
+
+## Catalog projection v1
+
+目录投影是只读副本，不含经济价格、扫描、对局、日志、游戏进程或隐藏状态。以下为核心服务契约；在异步桥接集成前不对运行插件开放。PluginHost 仍不是 OS 沙箱。
+Catalog projections are read-only copies without economy prices, scans, raids, logs, game processes or hidden state. The following is the core-service contract; runtime access requires the asynchronous bridge. PluginHost remains not an OS sandbox.
+
+三个种类为 `items`、`tasks`、`maps`，分别需要同名 `catalog.<kind>.read` 权限已声明、已授权且当前授权仍有效。操作为 `list` 或 `get`；身份不依赖翻译。任务与地图 v1 使用 regular 静态结构，避免同 ID 的模式变体；不受玩家当前模式影响。
+Kinds `items`, `tasks`, `maps` each require their exact `catalog.<kind>.read` permission, declared and granted with still-valid consent. Operations are `list` and `get`; identity never depends on translation. Tasks/maps v1 use regular static structure, avoiding same-ID mode variants and dependence on selected game mode.
+
+响应字段：`schemaVersion: 1`, `requestId`, `catalog`, `operation`, `status`, `records`（list 数组）, `record`（get 对象，否则 null）, `offset`, `limit`, `total`, `nextOffset`, `hasMore`。错误不泄漏目录总数。状态为 `ok`, `permissionDenied`, `notFound`, `invalidRequest`, `unavailable`, `tooLarge`, `limited`。
+Response fields: `schemaVersion: 1`, `requestId`, `catalog`, `operation`, `status`, `records` (list array), `record` (get object, otherwise null), `offset`, `limit`, `total`, `nextOffset`, `hasMore`. Errors do not disclose catalog counts. Statuses: `ok`, `permissionDenied`, `notFound`, `invalidRequest`, `unavailable`, `tooLarge`, `limited`.
+
+公开记录使用实际目录值；共同字段为 `nameZh`, `nameEn`, `displayName`（当前 Noven 语言及现有目录回退）。
+Public records use actual catalog values, with common `nameZh`, `nameEn`, `displayName` (current Noven locale and existing catalog fallback).
+
+| Kind | Additional fields |
+| --- | --- |
+| items | `stableItemId`, `width`, `height`, `caliber`, `types` |
+| tasks | `stableTaskId`, `dataset: "regular"`, `traderId`, `location` (localized), `faction`, `minimumLevel`, `experience`, `kappaRequired`, `lightkeeperRequired` |
+| maps | `stableMapId`, `dataset: "regular"`, `players`, `raidDuration` (minutes), `author` |
+
+请求 ID 范围 1..INT64_MAX。list 默认 32、允许 1..64，稳定 ID 为空，offset 为 uint32 且 offset+limit 不溢出；get 的 offset/limit 均为 0，稳定 ID 为 1..128 ASCII 字节（字母、数字、下划线、连字符）。按稳定 ID 排序，越界 offset 返回空页。未加载目录返回 unavailable。
+Request IDs: 1..INT64_MAX. Lists default to 32, allow 1..64, have empty stable ID and uint32 offset without offset+limit overflow. Gets use zero offset/limit and 1..128 ASCII ID bytes (letters, digits, underscore, hyphen). Sorting is by stable ID; offsets beyond the end return an empty page. Unloaded catalogs return unavailable.
+
+响应 JSON 限制 24 KiB，给传输转义保留 64 KiB 帧余量；大页会缩小，以 nextOffset/hasMore 继续，单条超限返回 tooLarge。每个会话最多 16 未完成请求，Host 每秒最多 16 个；未完成 ID 不得重复，停止清空请求。
+Response JSON is bounded to 24 KiB, preserving room for escaped transport within 64 KiB frames. Large pages shrink and continue through nextOffset/hasMore; a single oversized record returns tooLarge. Each session admits at most 16 outstanding requests, with 16/second at the Host. Outstanding IDs cannot repeat; stop clears pending requests.
