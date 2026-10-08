@@ -23,6 +23,11 @@ int wmain(int argc,wchar_t** argv) try {
         const auto deadline=ipc::After(5000);
         while(std::chrono::steady_clock::now()<deadline){const auto state=runtime.Snapshot(id);if(state&&predicate(*state))return true;WaitForSingleObject(changed.Get(),100);}return false;
     };
+    PluginRecord healthy;healthy.directory=temp.path/"plugins"/"com.example.healthy";healthy.state=PluginState::Valid;healthy.manifest=PluginManifest{};
+    healthy.manifest->id="com.example.healthy";healthy.manifest->manifestVersion=2;healthy.manifest->apiVersion=1;
+    healthy.manifest->runtime=NativeRuntime{"native-dll","plugin.dll"};healthy.manifest->requestedPermissions={"catalog.items.read","catalog.tasks.read","catalog.maps.read"};
+    std::filesystem::create_directories(healthy.directory);std::filesystem::copy_file(argv[2],healthy.directory/"plugin.dll");
+    Check(grants.Consent(*healthy.manifest)&&runtime.StartNative(healthy,grants)&&runtime.WaitFor(healthy.manifest->id,HostState::Running,10000),"healthy neighboring catalog Host");
     for(int mode=0;mode<10;++mode){
         PluginRecord record;record.directory=temp.path/"plugins"/("com.example.mode"+std::to_string(mode));record.state=PluginState::Valid;record.manifest=PluginManifest{};
         auto& manifest=*record.manifest;manifest.id=record.directory.filename().string();manifest.manifestVersion=2;manifest.apiVersion=1;manifest.runtime=NativeRuntime{"native-dll","plugin.dll"};
@@ -44,6 +49,14 @@ int wmain(int argc,wchar_t** argv) try {
             Check(runtime.Stop(manifest.id)&&runtime.WaitForTerminal(manifest.id,6000)&&runtime.Snapshot(manifest.id)->shutdownAcknowledged,"clean shutdown after result callbacks");
         }
         Check(GetModuleHandleW(L"plugin.dll")==nullptr,"no plugin DLL in core owner");
+        Check(runtime.Ping(healthy.manifest->id)&&runtime.WaitForPong(healthy.manifest->id,static_cast<unsigned>(mode+1),5000),"failed catalog session never corrupts neighboring Host");
     }
+    PluginRecord cancel=healthy;cancel.directory=temp.path/"plugins"/"com.example.cancel";cancel.manifest->id="com.example.cancel";
+    std::filesystem::create_directories(cancel.directory);std::filesystem::copy_file(argv[5],cancel.directory/"plugin.dll");
+    Check(grants.Consent(*cancel.manifest)&&runtime.StartNative(cancel,grants)&&runtime.WaitFor(cancel.manifest->id,HostState::Running,10000),"start bounded hanging callback fixture");
+    Check(wait(cancel.manifest->id,[](const auto& state){return state.pendingData>0;}),"result outstanding before Disable");
+    Check(runtime.Stop(cancel.manifest->id)&&runtime.Snapshot(cancel.manifest->id)->pendingData==0,"Disable immediately invalidates outstanding requests");
+    Check(runtime.WaitForTerminal(cancel.manifest->id,6000)&&runtime.Snapshot(cancel.manifest->id)->pendingData==0&&runtime.Snapshot(cancel.manifest->id)->dataResults==0,"hung callback is terminated without late delivery");
+    Check(runtime.Stop(healthy.manifest->id)&&runtime.WaitForTerminal(healthy.manifest->id,6000),"neighbor cleanup");
     std::cout<<"Catalog extension bounds/denial/callback crash and hang PASS\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

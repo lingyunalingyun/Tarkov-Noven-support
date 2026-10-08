@@ -41,6 +41,36 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
         if(mode=="mid-frame"||mode=="stalled-frame")Raw(pipe.Get(),{100,0,0,0,'{'});
         if(mode=="stalled-frame"){WaitForSingleObject(parent.Get(),INFINITE);return 0;}
         if(mode=="disconnect"||mode=="mid-frame"){pipe.Reset();WaitForSingleObject(parent.Get(),INFINITE);return 0;}
+        if(mode.starts_with("catalog-")){
+            if(channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
+            if(incoming.type==MessageType::CatalogAccess&&channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
+            if(incoming.type!=MessageType::LoadPlugin)return 71;
+            // 故障对端模拟加载成功，仅测试父端授权；不加载任何 DLL。
+            // Fault peer simulates load success to test parent authorization without loading a DLL.
+            if(channel.Write({MessageType::LoadPluginResult},After(2000))!=IoResult::Complete)return 71;
+            Message request{MessageType::DataRequest};request.dataRequest.requestId=1;request.dataRequest.limit=1;
+            if(mode=="catalog-spoof")Raw(pipe.Get(),Frame("{\"type\":\"dataRequest\",\"requestId\":1,\"catalog\":\"items\",\"operation\":\"list\",\"stableId\":\"\",\"offset\":0,\"limit\":1,\"pluginId\":\"dev.example.healthy\"}"));
+            else if(mode=="catalog-ack"){
+                Message ack{MessageType::DataResultAck};ack.dataResult.requestId=99;channel.Write(ack,After(2000));
+            }
+            else if(mode=="catalog-overflow"){
+                // 读取响应但不 ACK，避免先命中管道缓冲超时而非未完成请求上限。
+                // Drain replies without ACKs so the test hits outstanding bounds, not pipe-buffer timeout.
+                for(unsigned id=1;id<=17;++id){
+                    request.dataRequest.requestId=id;if(channel.Write(request,After(2000))!=IoResult::Complete)break;
+                    if(id<=16&&(channel.Read(incoming,After(2000))!=IoResult::Complete||incoming.type!=MessageType::DataResult))return 71;
+                }
+            }else{
+                if(channel.Write(request,After(2000))!=IoResult::Complete||channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
+                if(incoming.type!=MessageType::DataResult)return 71;
+                if(mode=="catalog-denied"&&(incoming.dataResult.status!=noven::plugins::DataStatus::PermissionDenied||incoming.dataResult.payload.find("\"total\":0")==std::string::npos))return 71;
+                if(mode=="catalog-duplicate")channel.Write(request,After(2000));
+                else if(mode=="catalog-denied"){
+                    Message ack{MessageType::DataResultAck};ack.dataResult.requestId=1;channel.Write(ack,After(2000));
+                }
+            }
+            if(mode!="catalog-denied"){WaitForSingleObject(parent.Get(),INFINITE);return 0;}
+        }
         if(mode=="host-ping"){
             if(channel.Write({MessageType::Ping},After(2000))!=IoResult::Complete||channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
             while(incoming.type==MessageType::Ping){
