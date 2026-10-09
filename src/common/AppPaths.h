@@ -15,6 +15,13 @@ struct AppPaths final {
     static AppPaths Current();
     std::filesystem::path Data() const {return userRoot/L"data";}
     std::filesystem::path Plugins() const {return userRoot/L"plugins";}
+    // 官方可再生成资源与下载缓存不属于插件或用户历史，也不写入安装目录。
+    // Official reproducible resources/cache are separate from plugins/history and installed program files.
+    std::filesystem::path Resources() const {return userRoot/L"resources";}
+    std::filesystem::path ResourceManifests() const {return Resources()/L"manifests";}
+    std::filesystem::path ResourceMaps() const {return Resources()/L"maps";}
+    std::filesystem::path ResourceStaging() const {return Resources()/L"staging";}
+    std::filesystem::path DownloadCache() const {return userRoot/L"downloads"/L"cache";}
     std::filesystem::path Assets() const {return programRoot/L"assets";}
     std::filesystem::path Diagnostics() const {return mode==PathMode::Development?programRoot/L"debug-captures":userRoot/L"logs";}
 };
