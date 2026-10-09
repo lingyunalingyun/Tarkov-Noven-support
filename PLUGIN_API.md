@@ -95,6 +95,9 @@ Phase 3 has no product/game APIs, built-in UI modification, online marketplace, 
 
 ### Phase 5: completed history and existing event snapshots
 
+第一方纯 C 样例 [examples/history-plugin](examples/history-plugin) 使用相同可选 ABI 扩展。配置 `NOVEN_BUILD_PLUGIN_EXAMPLES=ON`，构建 `NovenHistoryPlugin`，将生成的 `noven-history.dll` 与该 manifest 放入 `<exe>/plugins/com.example.noven-history/`。默认 Disabled；明确同意三项权限后显示 History Demo 页面，Load Raids/Load Events 异步 list 并自动 get 第一个精确 ID；空快照显示空列表。Disable 移除页面与 Host。仅查询 Noven 已有数据，不联网或读取任意文件。
+The first-party C example uses the same optional ABI extension. Configure `NOVEN_BUILD_PLUGIN_EXAMPLES=ON`, build `NovenHistoryPlugin`, and copy `noven-history.dll` plus its manifest to `<exe>/plugins/com.example.noven-history/`. It defaults Disabled. Explicit consent to its three permissions adds History Demo; Load Raids/Load Events asynchronously list then get the first exact ID, or display an empty list. Disable removes its page/Host. It queries only existing Noven data, without network or arbitrary files.
+
 复用相同异步请求、结果和 schemaVersion=1：新增 kind `raidHistory`（原生值 4，权限 `raid.history.read`）与 `events`（值 5，权限 `catalog.events.read`）。基础 ABI/API/transport 版本、字段顺序与旧目录协议保持不变。
 Reuse the same asynchronous requests/results and schemaVersion=1: `raidHistory` (native value 4, permission `raid.history.read`) and `events` (5, permission `catalog.events.read`). Base ABI/API/transport versions, field ordering and old catalogs remain unchanged.
 
@@ -117,14 +120,14 @@ Reuse 1..64 records/default 32, 24 KiB JSON, 64 KiB frames, 16 outstanding reque
 基础 `NovenHostApiV1`/`NovenPluginInstanceV1` 的字段、x64 尺寸 40/32 字节与 ABI/API 版本 1 不变；旧样例验证精确尺寸，因此不直接追加基础表。新插件可选导出 `NovenPlugin_InitializeCatalogV1`，在基础 Initialize 成功后接收独立 `NovenCatalogHostApiV1` 并填写 `NovenCatalogInstanceV1.on_data_result`。没有此导出的旧 Hello 二进制按原路径运行，不需要目录权限。
 Base `NovenHostApiV1`/`NovenPluginInstanceV1` fields, x64 sizes 40/32 bytes and ABI/API version 1 remain unchanged. Older samples check exact sizes, so base tables are not appended. New plugins optionally export `NovenPlugin_InitializeCatalogV1`, receiving a separate `NovenCatalogHostApiV1` after base Initialize succeeds and filling `NovenCatalogInstanceV1.on_data_result`. Existing Hello binaries lacking that export follow the original path and need no catalog grants.
 
-扩展表有独立 struct_size/schema_version。`request_data(context, const NovenDataRequestV1*)` 只在 Host 回调线程调用并复制入队，立即返回 NOVEN_OK 或参数/权限/额度/状态错误，不做 IPC 等待。请求成员为 struct_size、catalog_kind（1/2/3）、request_id、operation（1=list/2=get）、offset、limit、stable_id_utf8。Host 在回调返回后才发送请求。
-Extension tables carry struct_size/schema_version. `request_data(context, const NovenDataRequestV1*)` copies/enqueues on the Host callback thread and immediately returns NOVEN_OK or argument/permission/limit/state errors without IPC waits. Request fields are struct_size, catalog_kind (1/2/3), request_id, operation (1=list/2=get), offset, limit, stable_id_utf8. Host sends only after callbacks return.
+扩展表有独立 struct_size/schema_version。`request_data(context, const NovenDataRequestV1*)` 只在 Host 回调线程调用并复制入队，立即返回 NOVEN_OK 或参数/权限/额度/状态错误，不做 IPC 等待。请求成员为 struct_size、catalog_kind（1/2/3/4/5）、request_id、operation（1=list/2=get）、offset、limit、stable_id_utf8。Host 在回调返回后才发送请求。
+Extension tables carry struct_size/schema_version. `request_data(context, const NovenDataRequestV1*)` copies/enqueues on the Host callback thread and immediately returns NOVEN_OK or argument/permission/limit/state errors without IPC waits. Request fields are struct_size, catalog_kind (1/2/3/4/5), request_id, operation (1=list/2=get), offset, limit, stable_id_utf8. Host sends only after callbacks return.
 
 异步 `on_data_result` 使用基础 instance.context，接收 struct_size、status（0..6）、request_id 和 payload_utf8；JSON 切片只在回调期间有效，插件需保留则复制。回调串行且有父进程截止时间；停止/崩溃取消未完成请求，不保证取消结果回调。
 Asynchronous `on_data_result` uses base instance.context and receives struct_size, status (0..6), request_id and payload_utf8. JSON slices last only during the callback; plugins must copy retained data. Callbacks are serialized and parent-deadline bounded. Stop/crash cancels pending requests without promising a cancellation callback.
 
-目录投影是只读副本，不含经济价格、扫描、对局、日志、游戏进程或隐藏状态。仅有效 V2 且显式授权的认证会话可使用异步目录桥接。PluginHost 仍不是 OS 沙箱。
-Catalog projections are read-only copies without economy prices, scans, raids, logs, game processes or hidden state. Only valid V2 explicitly consented authenticated sessions use the asynchronous catalog bridge. PluginHost remains not an OS sandbox.
+静态目录投影是只读副本，不含经济价格、扫描、日志、游戏进程或隐藏状态；Phase 5 独立增加完成历史快照。仅有效 V2 且显式授权的认证会话可使用异步目录桥接。PluginHost 仍不是 OS 沙箱。
+Static catalog projections are read-only copies without economy prices, scans, logs, game processes or hidden state; Phase 5 separately adds completed history snapshots. Only valid V2 explicitly consented authenticated sessions use the asynchronous catalog bridge. PluginHost remains not an OS sandbox.
 
 三个种类为 `items`、`tasks`、`maps`，分别需要同名 `catalog.<kind>.read` 权限已声明、已授权且当前授权仍有效。操作为 `list` 或 `get`；身份不依赖翻译。任务与地图 v1 使用 regular 静态结构，避免同 ID 的模式变体；不受玩家当前模式影响。
 Kinds `items`, `tasks`, `maps` each require their exact `catalog.<kind>.read` permission, declared and granted with still-valid consent. Operations are `list` and `get`; identity never depends on translation. Tasks/maps v1 use regular static structure, avoiding same-ID mode variants and dependence on selected game mode.

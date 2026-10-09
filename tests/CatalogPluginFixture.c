@@ -6,6 +6,13 @@
 #ifndef NOVEN_CATALOG_FIXTURE_MODE
 #define NOVEN_CATALOG_FIXTURE_MODE 0
 #endif
+#ifdef NOVEN_HISTORY_FIXTURE
+#define FIRST_KIND NOVEN_DATA_RAID_HISTORY
+#define LAST_KIND NOVEN_CATALOG_EVENTS
+#else
+#define FIRST_KIND NOVEN_CATALOG_ITEMS
+#define LAST_KIND NOVEN_CATALOG_MAPS
+#endif
 #if NOVEN_CATALOG_FIXTURE_MODE==3 || NOVEN_CATALOG_FIXTURE_MODE==4
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -38,10 +45,10 @@ static void NOVEN_CALL Result(void* context,const NovenDataResultV1* result){
     if(context!=&completed||result->struct_size!=sizeof(*result)||result->status!=NOVEN_DATA_OK||!result->payload_utf8.length)return;
     ++completed;
     host_api->log(host_api->context,Text("Catalog callback"));
-    if(result->request_id<=3&&NOVEN_CATALOG_FIXTURE_MODE!=7){
+    if(result->request_id>=FIRST_KIND&&result->request_id<=LAST_KIND&&NOVEN_CATALOG_FIXTURE_MODE!=7){
         request.struct_size=sizeof(request);request.catalog_kind=(uint32_t)result->request_id;
         request.request_id=result->request_id+100;request.operation=NOVEN_DATA_GET;
-        request.stable_id_utf8=Text(request.catalog_kind==NOVEN_CATALOG_ITEMS?"item_1":request.catalog_kind==NOVEN_CATALOG_TASKS?"task_1":"interchange");
+        request.stable_id_utf8=Text(request.catalog_kind==NOVEN_CATALOG_ITEMS?"item_1":request.catalog_kind==NOVEN_CATALOG_TASKS?"task_1":request.catalog_kind==NOVEN_CATALOG_MAPS?"interchange":request.catalog_kind==NOVEN_DATA_RAID_HISTORY?"raid-exact_1":"community-wiki:26936:Exact.%20");
         catalog_api->request_data(catalog_api->context,&request);
     }
 #endif
@@ -66,21 +73,21 @@ NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeCatalogV1(const NovenCatal
     request.struct_size=sizeof(request);
 #endif
 #if NOVEN_CATALOG_FIXTURE_MODE==7
-    request.catalog_kind=NOVEN_CATALOG_ITEMS;
+    request.catalog_kind=FIRST_KIND;
     for(kind=1;kind<=16;++kind){request.request_id=kind;if(host->request_data(host->context,&request)!=NOVEN_OK)return NOVEN_ERROR_STATE;}
     request.request_id=17;
     return host->request_data(host->context,&request)==NOVEN_ERROR_LIMIT?NOVEN_OK:NOVEN_ERROR_STATE;
 #else
-    for(kind=1;kind<=3;++kind){
+    for(kind=FIRST_KIND;kind<=LAST_KIND;++kind){
         request.catalog_kind=kind;request.request_id=kind;
-        if(NOVEN_CATALOG_FIXTURE_MODE==1||(NOVEN_CATALOG_FIXTURE_MODE==2&&kind!=NOVEN_CATALOG_ITEMS)){
+        if(NOVEN_CATALOG_FIXTURE_MODE==1||(NOVEN_CATALOG_FIXTURE_MODE==2&&kind!=FIRST_KIND)){
             if(host->request_data(host->context,&request)!=NOVEN_ERROR_PERMISSION)return NOVEN_ERROR_STATE;
             continue;
         }
         if(host->request_data(host->context,&request)!=NOVEN_OK)return NOVEN_ERROR_STATE;
         if(host->request_data(host->context,&request)!=NOVEN_ERROR_STATE)return NOVEN_ERROR_STATE;
     }
-    request.request_id=4;request.limit=65;
+    request.request_id=LAST_KIND+1;request.limit=65;
     if(host->request_data(host->context,&request)!=NOVEN_ERROR_ARGUMENT)return NOVEN_ERROR_STATE;
     return NOVEN_OK;
 #endif

@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 2,
+  "id": "com.example.noven-history",
+  "name": "History Demo",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "author": "Noven example",
+  "description": "Read-only completed raids and existing events, asynchronous list/get. No active raid, raw logs or network access.",
+  "permissions": ["raid.history.read", "catalog.events.read", "ui.page.register"],
+  "runtime": {"kind": "native-dll", "entry": "noven-history.dll"}
+}

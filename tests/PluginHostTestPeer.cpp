@@ -49,6 +49,9 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
             // Fault peer simulates load success to test parent authorization without loading a DLL.
             if(channel.Write({MessageType::LoadPluginResult},After(2000))!=IoResult::Complete)return 71;
             Message request{MessageType::DataRequest};request.dataRequest.requestId=1;request.dataRequest.limit=1;
+            if(mode=="catalog-history-denied")request.dataRequest.catalog=noven::plugins::CatalogKind::RaidHistory;
+            if(mode=="catalog-events-denied")request.dataRequest.catalog=noven::plugins::CatalogKind::Events;
+            const bool denied=mode=="catalog-denied"||mode=="catalog-history-denied"||mode=="catalog-events-denied";
             if(mode=="catalog-spoof")Raw(pipe.Get(),Frame("{\"type\":\"dataRequest\",\"requestId\":1,\"catalog\":\"items\",\"operation\":\"list\",\"stableId\":\"\",\"offset\":0,\"limit\":1,\"pluginId\":\"dev.example.healthy\"}"));
             else if(mode=="catalog-ack"){
                 Message ack{MessageType::DataResultAck};ack.dataResult.requestId=99;channel.Write(ack,After(2000));
@@ -63,13 +66,13 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
             }else{
                 if(channel.Write(request,After(2000))!=IoResult::Complete||channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
                 if(incoming.type!=MessageType::DataResult)return 71;
-                if(mode=="catalog-denied"&&(incoming.dataResult.status!=noven::plugins::DataStatus::PermissionDenied||incoming.dataResult.payload.find("\"total\":0")==std::string::npos))return 71;
+                if(denied&&(incoming.dataResult.status!=noven::plugins::DataStatus::PermissionDenied||incoming.dataResult.payload.find("\"total\":0")==std::string::npos))return 71;
                 if(mode=="catalog-duplicate")channel.Write(request,After(2000));
-                else if(mode=="catalog-denied"){
+                else if(denied){
                     Message ack{MessageType::DataResultAck};ack.dataResult.requestId=1;channel.Write(ack,After(2000));
                 }
             }
-            if(mode!="catalog-denied"){WaitForSingleObject(parent.Get(),INFINITE);return 0;}
+            if(!denied){WaitForSingleObject(parent.Get(),INFINITE);return 0;}
         }
         if(mode=="host-ping"){
             if(channel.Write({MessageType::Ping},After(2000))!=IoResult::Complete||channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
