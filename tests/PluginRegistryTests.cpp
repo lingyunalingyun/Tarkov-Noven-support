@@ -10,9 +10,13 @@ int wmain(int argc,wchar_t** argv) try {
     Check(p.metadata.id=="com.example.registry-test"&&!p.metadata.runtime&&p.package&&p.package->size==1024,"stable ID, read-only package, executable unknown fields ignored");
     Check(Compatibility(p)==RegistryCompatibility::Compatible,"explicit API and permission compatibility");
     Check(ParsePluginRegistry(R"({"registryVersion":1,"plugins":[]})").plugins.empty(),"valid empty registry");
+    Check(ParsePluginRegistry(R"({"plugins":[{"current":{"apiVersion":1,"manifestVersion":1,"version":"1.0.0"},"source":"https://github.com/example/test","summary":"Minimal","author":"Author","name":"Minimal","id":"com.example.minimal","future":{"decimal":0.5}}],"registryVersion":1})").plugins.size()==1,"minimal nonempty entry, arbitrary order and unknown optional numbers");
     const auto edit=[&](const char* from,const char* to){auto text=fixture;const auto index=text.find(from);Check(index!=text.npos,"test replacement target");text.replace(index,std::string(from).size(),to);return text;};
     for(auto invalid:{edit("\"registryVersion\": 1","\"registryVersion\": 2"),edit("com.example.registry-test","builtin.fake"),edit("com.example.registry-test","plugin.fake"),edit("com.example.registry-test","Com.example.test"),edit("1.2.0-beta.1+fixture","01.2.3"),edit("network.http","bad permission"),edit("https://api.example.com","http://api.example.com"),edit("\"origins\": [\"https://api.example.com\"]","\"origins\": []")})Reject([&]{ParsePluginRegistry(invalid);});
     Reject([&]{ParsePluginRegistry("{");});Reject([&]{ParsePluginRegistry(std::string(MaximumRegistryBytes+1,' '));});
+    Reject([&]{ParsePluginRegistry(edit("\"registryVersion\": 1","\"registryVersion\": \"1\""));});
+    Reject([&]{ParsePluginRegistry(edit("Test author","\xc0\xaf"));});Reject([&]{ParsePluginRegistry(edit("\"author\":", "\"missingAuthor\":"));});
+    Reject([&]{ParsePluginRegistry(edit("0000000000000000000000000000000000000000000000000000000000000000","invalid-hash"));});
     const auto begin=fixture.find('{',fixture.find("\"plugins\"")),end=fixture.rfind('}');auto entry=fixture.substr(begin,fixture.rfind('}',end-1)-begin+1);
     Reject([&]{ParsePluginRegistry("{\"registryVersion\":1,\"plugins\":["+entry+","+entry+"]}");});
     std::string count="{\"registryVersion\":1,\"plugins\":[";for(unsigned i=0;i<MaximumRegistryPlugins+1;++i){if(i)count+=',';count+="{}";}count+="]}";Reject([&]{ParsePluginRegistry(count);});

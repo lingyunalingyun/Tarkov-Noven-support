@@ -43,6 +43,7 @@ Testing/
 /data/plugin-state.json*
 /data/plugin-storage/
 /data/marketplace-cache.json*
+/data/marketplace-review-cache.json*
 /data/item-images/
 /data/price-history/
 /data/map-assets/

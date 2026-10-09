@@ -61,3 +61,8 @@ Marketplace reuses native Plugin Center list/details, search and dropdowns. Sear
 
 本地匹配只按插件 ID，再按严格 SemVer 显示同版/旧版/更新本地版；重复/无效本地记录或 V1 元数据明确标注。blocked 记录仍可查看，警告也显示于匹配的本地详情，但不执行自动禁用或删除。
 Local matching uses plugin ID only, then strict SemVer for same/older/newer-local versions. Invalid/conflicting local records and V1 metadata are labeled explicitly. Blocked records remain browsable and warnings also appear in matching local details, without automatic disable/deletion.
+
+## Offline manual review
+
+尚无已确认公开 Registry 地址时，正常 Release 保持未配置。单独构建 `-DBUILD_TESTING=ON -DNOVEN_MARKETPLACE_REVIEW_FIXTURE=ON`，且不能同时配置生产 URL，可注入 tests/fixtures/plugin-registry-review.json。UI 始终标注“测试夹具 — 非生产目录”，使用独立 marketplace-review-cache.json，刷新仅重读此固定夹具。可暂时移走该夹具模拟失败并查看缓存，之后恢复；正常构建不含夹具路径/后端。此模式不代表真实远程 Marketplace 验收通过。
+Without a confirmed public Registry endpoint, normal Release remains unconfigured. A separate build with `-DBUILD_TESTING=ON -DNOVEN_MARKETPLACE_REVIEW_FIXTURE=ON` (incompatible with a production URL) injects tests/fixtures/plugin-registry-review.json. UI always labels TEST FIXTURE — not production, uses a separate marketplace-review-cache.json, and refresh only rereads that fixed fixture. Temporarily moving the fixture simulates failure/cached fallback; restore it afterwards. Production builds contain no fixture path/backend. This is not real remote Marketplace acceptance.

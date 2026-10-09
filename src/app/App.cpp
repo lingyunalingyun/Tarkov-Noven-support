@@ -42,6 +42,9 @@
 #include <windowsx.h>
 
 #include <filesystem>
+#ifdef NOVEN_MARKETPLACE_REVIEW_FIXTURE
+#include <fstream>
+#endif
 #include <chrono>
 #include <iomanip>
 #include <memory>
@@ -52,6 +55,18 @@
 namespace noven {
 
 namespace {
+#ifdef NOVEN_MARKETPLACE_REVIEW_FIXTURE
+// 仅显式测试构建提供夹具；正常产品没有后端切换参数或内置市场条目。
+// Explicit test builds alone provide fixtures; production has no backend-switch argument or embedded listings.
+struct MarketplaceReviewTransport final:plugins::IRegistryTransport {
+    std::string Fetch(std::stop_token stop) override {
+        const std::filesystem::path path{NOVEN_MARKETPLACE_REVIEW_FIXTURE};
+        const auto size=std::filesystem::file_size(path);if(stop.stop_requested()||size>plugins::MaximumRegistryBytes)throw std::runtime_error("review fixture bounds");
+        std::ifstream file(path,std::ios::binary);std::string text(static_cast<std::size_t>(size),'\0');
+        if(!file.read(text.data(),static_cast<std::streamsize>(text.size())))throw std::runtime_error("review fixture read");return text;
+    }
+};
+#endif
 
 constexpr int kCaptureHotkeyId = 1;
 constexpr hotkey::HotkeyDefinition kCaptureHotkey{
@@ -309,8 +324,13 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->SetPluginRefreshHandler([this]{RefreshPlugins();});
     // 市场工作线程只通知 UI 读取不可变快照，不接触本地插件执行或授权。
     // Marketplace worker only notifies UI to read an immutable snapshot, never local execution or grants.
+#ifdef NOVEN_MARKETPLACE_REVIEW_FIXTURE
+    marketplace_=std::make_unique<plugins::MarketplaceService>(ExecutableDirectory()/L"data"/L"marketplace-review-cache.json",
+        "review-fixture-v1",std::make_unique<MarketplaceReviewTransport>(),[window=window_]{PostMessageW(window,kMarketplaceMessage,0,0);},true);
+#else
     marketplace_=std::make_unique<plugins::MarketplaceService>(ExecutableDirectory()/L"data"/L"marketplace-cache.json",
         NOVEN_PLUGIN_REGISTRY_URL,plugins::MakeRegistryTransport(NOVEN_PLUGIN_REGISTRY_URL),[window=window_]{PostMessageW(window,kMarketplaceMessage,0,0);});
+#endif
     main_ui_->SetMarketplace(marketplace_->Snapshot());
     main_ui_->SetMarketplaceRefreshHandler([this](bool explicitRequest){if(marketplace_)marketplace_->Refresh(explicitRequest);});
     main_ui_->SetPluginControlHandler([this](const ui::PluginControlAction& action){

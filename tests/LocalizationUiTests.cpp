@@ -772,6 +772,17 @@ int wmain(int argc, wchar_t** argv) try {
         }
         for(int i=0;i<60&&ui.AnimationActive();++i){Sleep(16);(void)ui.AnimationTick();}ui.Paint();
         Require(!ui.AnimationActive()&&pluginRefreshes==1&&ui.Plugins().Rows().size()==2,"navigation neither polls discovery nor loses plugin snapshot");
+        auto marketRegistry=std::make_shared<noven::plugins::PluginRegistry>();noven::plugins::RegistryPlugin marketEntry;
+        marketEntry.metadata=localManifest;marketEntry.metadata.author="Registry author";marketEntry.metadata.source="https://github.com/example/fixture";
+        marketEntry.summary="Native Marketplace fixture";marketEntry.categories={"Fixture category"};marketRegistry->plugins.push_back(marketEntry);
+        auto marketSnapshot=std::make_shared<noven::plugins::MarketplaceSnapshot>();marketSnapshot->registry=marketRegistry;marketSnapshot->state=noven::plugins::MarketplaceState::Live;marketSnapshot->reviewFixture=true;
+        ui.SetMarketplace(marketSnapshot);unsigned marketRefreshes{};ui.SetMarketplaceRefreshHandler([&](bool){++marketRefreshes;});
+        const auto pluginLeft=theme.sidebarWidth+theme.contentPadding;
+        Require(!click(pluginLeft+40,110),"Marketplace tab switches without changing main page");ui.Paint();
+        Require(ui.Plugins().Tab()==PluginCenterTab::Marketplace&&ui.Plugins().Rows().size()==1&&ui.Plugins().TextInsideCards()&&marketRefreshes==1,"native Marketplace draws bounded Registry detail and emits one first-party entry refresh");
+        const auto marketRefresh=ui.Plugins().RefreshBounds();Require(!click(marketRefresh.left+10,marketRefresh.top+10)&&marketRefreshes==2&&pluginRefreshes==1,"Marketplace refresh never routes to local discovery");
+        Require(ui.Registry().Pages().size()==registeredCount,"remote metadata cannot mutate PageRegistry");
+        Require(!click(pluginLeft+190,110),"return to My Plugins");ui.Paint();Require(ui.Plugins().Tab()==PluginCenterTab::MyPlugins&&ui.Plugins().Rows().size()==2,"marketplace browsing preserves local plugin selection and snapshot");
         const PageId futurePage{"plugin.com.example.loot-route"};
         Require(ui.Registry().Register({futurePage,PageSection::Secondary,"nav.events","page.events.description",
             PageIcon::GenericPlugin,-1,PageSource::Plugin,UiExtensionPolicy::Extensible}),"future page registers metadata without an enum or executable code");

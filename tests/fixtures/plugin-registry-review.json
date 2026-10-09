@@ -1,0 +1,49 @@
+{
+  "registryVersion": 1,
+  "plugins": [
+    {
+      "id": "com.example.noven-hello",
+      "name": "Hello Plugin — TEST LISTING",
+      "author": "Noven example",
+      "summary": "Non-production fixture for stable-ID matching only.",
+      "description": "No package is downloaded. This test record does not enable the locally installed sample plugin.",
+      "source": "https://github.com/lingyunalingyun/Tarkov-Noven-support",
+      "license": "MIT",
+      "categories": ["Examples"],
+      "tags": ["test-only", "hello"],
+      "status": "unreviewed",
+      "current": {"version": "1.0.0", "manifestVersion": 2, "apiVersion": 1, "permissions": ["ui.page.register"]}
+    },
+    {
+      "id": "com.example.marketplace-test",
+      "name": "Marketplace Details — TEST LISTING",
+      "author": "Fixture author",
+      "summary": "Inspect origins, permissions and package metadata offline.",
+      "description": "Explicitly injected test metadata; never a production Registry entry. Search runs locally and browsing grants nothing.",
+      "source": "https://github.com/example/marketplace-test",
+      "homepage": "https://example.org",
+      "license": "MIT",
+      "categories": ["Utilities"],
+      "tags": ["test-only", "offline"],
+      "status": "reviewed",
+      "current": {
+        "version": "1.2.3", "manifestVersion": 2, "apiVersion": 1,
+        "permissions": ["network.http", "ui.page.register"],
+        "network": {"origins": ["https://api.example.com"]},
+        "sourceRef": "test-tag",
+        "releaseUrl": "https://github.com/example/marketplace-test/releases/tag/test-tag",
+        "package": {"url": "https://github.com/example/marketplace-test/releases/download/test-tag/test.zip", "asset": "test.zip", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "size": 1024}
+      }
+    },
+    {
+      "id": "com.example.blocked-test",
+      "name": "Blocked / Incompatible — TEST LISTING",
+      "author": "Fixture author",
+      "summary": "First-party warning demonstration; no destructive local action.",
+      "source": "https://github.com/example/blocked-test",
+      "categories": ["Utilities"],
+      "status": "blocked",
+      "current": {"version": "2.0.0", "manifestVersion": 2, "apiVersion": 2, "permissions": ["future.unsupported"]}
+    }
+  ]
+}
