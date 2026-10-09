@@ -49,5 +49,8 @@ int wmain(int argc,wchar_t** argv) try{
         MarketplaceService service(cache,"fixture",std::make_unique<Backend>(),notify,false,clock);Check(service.Snapshot()->state==MarketplaceState::Empty&&!service.Snapshot()->registry,"corrupt cache ignored");
     }
     {MarketplaceService service(cache,"",{},notify,false,clock);Check(service.Snapshot()->state==MarketplaceState::Unconfigured&&!service.Refresh(),"no production source invented");}
+    Check(ValidRegistryEndpoint("https://raw.githubusercontent.com/owner/repo/main/registry.json"),"explicit first-party Github raw endpoint");
+    for(const auto invalid:{"https://evil.test/owner/repo/main/registry.json","http://raw.githubusercontent.com/owner/repo/main/registry.json","https://raw.githubusercontent.com/owner/repo/main/plugin.zip","https://raw.githubusercontent.com/owner/repo/../registry.json","https://raw.githubusercontent.com/owner/repo/main/registry.json?q=x","https://raw.githubusercontent.com:444/owner/repo/main/registry.json"})Check(!ValidRegistryEndpoint(invalid),"reject arbitrary/package/redirect configuration");
+    Check(!MakeRegistryTransport(""),"production remains unconfigured without first-party endpoint");
     std::cout<<"Marketplace offline fetch/cache/failure/source binding/freshness PASS\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
