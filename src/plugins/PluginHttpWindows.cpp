@@ -37,7 +37,7 @@ struct WindowsHttp final:IPluginHttpBackend {
     std::vector<std::string> Resolve(std::string_view host,std::stop_token stop,ipc::Deadline deadline) override {
         std::vector<std::string> addresses;if(!started||stop.stop_requested()||std::chrono::steady_clock::now()>=deadline)return addresses;
         ADDRINFOEXW hints{};hints.ai_family=AF_UNSPEC;hints.ai_socktype=SOCK_STREAM;PADDRINFOEXW result{};
-        const auto remaining=std::chrono::duration_cast<std::chrono::milliseconds>(deadline-std::chrono::steady_clock::now()).count();
+        const auto remaining=std::chrono::duration_cast<std::chrono::milliseconds>(deadline-std::chrono::steady_clock::now()).count();if(remaining<=0)return addresses;
         timeval timeout{};timeout.tv_sec=static_cast<long>((std::min)(remaining,5000LL)/1000);timeout.tv_usec=static_cast<long>((std::min)(remaining,5000LL)%1000*1000);
         if(GetAddrInfoExW(Wide(host).c_str(),nullptr,NS_DNS,nullptr,&hints,&result,&timeout,nullptr,nullptr,nullptr)!=0)return addresses;
         struct Free final {PADDRINFOEXW value;~Free(){FreeAddrInfoExW(value);}} free{result};

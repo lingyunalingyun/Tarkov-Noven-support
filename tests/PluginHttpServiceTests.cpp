@@ -1,6 +1,7 @@
 #include "plugins/PluginHttpService.h"
 #include <iostream>
 #include <stdexcept>
+#include <fstream>
 using namespace noven::plugins;
 void Check(bool value,const char* label){if(!value)throw std::runtime_error(label);}
 struct Backend final:IPluginHttpBackend {
@@ -11,7 +12,16 @@ struct Backend final:IPluginHttpBackend {
         requests.push_back(input);if(replies.empty())return {input.requestId,HttpStatus::Ok,200,input.url,"result"};auto result=std::move(replies.front());replies.pop_front();return result;
     }
 };
-int main() try {
+int wmain(int argc,wchar_t** argv) try {
+    if(argc==2){
+        const auto read=[&](const char* path){std::ifstream file(std::filesystem::path(argv[1])/path,std::ios::binary);Check(file.good(),"architecture source readable");return std::string(std::istreambuf_iterator<char>(file),{});};
+        const auto windows=read("src/plugins/PluginHttpWindows.cpp");
+        for(const auto required:{"WINHTTP_ACCESS_TYPE_NO_PROXY","WINHTTP_FLAG_ASYNC","WINHTTP_DISABLE_REDIRECTS","WINHTTP_DISABLE_COOKIES","WINHTTP_DISABLE_AUTHENTICATION","HANDLE_CLOSING","Noven Plugin HTTP/1"})Check(windows.find(required)!=windows.npos,"privacy/cancellation backend guard");
+        for(const auto forbidden:{"SECURITY_FLAG_IGNORE","WINHTTP_OPTION_SECURITY_FLAGS","LocalSession","RecentScan","GetUserName","PluginStateStore","PluginStorageService"})Check(windows.find(forbidden)==windows.npos,"no insecure TLS or injected private data");
+        const auto sdk=read("sdk/noven_plugin_abi_v1.h");const auto http=sdk.substr(sdk.find("#define NOVEN_HTTP_SCHEMA_VERSION"),sdk.find("#ifndef NOVEN_PLUGIN_OMIT_EXPORT_DECLARATIONS")-sdk.find("#define NOVEN_HTTP_SCHEMA_VERSION"));
+        for(const auto forbidden:{"HWND","HANDLE","proxy","plugin_id","password","insecure","scan.trigger","filesystem.arbitrary"})Check(http.find(forbidden)==http.npos,"public HTTP API exposes no native/credential/game control");
+        const auto cmake=read("CMakeLists.txt");const auto core=cmake.substr(cmake.find("target_link_libraries(NovenTarkovSupport PRIVATE"),cmake.find("#",cmake.find("target_link_libraries(NovenTarkovSupport PRIVATE"))-cmake.find("target_link_libraries(NovenTarkovSupport PRIVATE"));Check(core.find("NovenPluginHttp")==core.npos,"managed HTTP implementation linked only to Host");
+    }
     const std::vector<std::string> grants{"https://api.example.com","https://example.org"};HttpRequest input{1,HttpMethod::Get,"https://api.example.com/items"};Backend backend;
     for(auto method:{HttpMethod::Get,HttpMethod::Head,HttpMethod::Post}){input.method=method;Check(ExecuteHttp(input,grants,backend,{},ipc::After(1000)).status==HttpStatus::Ok,"allowed methods");}
     Check(backend.requests[0].headers.empty()&&backend.requests[0].body.empty(),"no injected catalog/storage/scan/raid/account content");
@@ -26,6 +36,13 @@ int main() try {
     input.headers={{"Authorization","Bearer explicit"}};backend.replies.push_back({1,HttpStatus::Ok,302,"","",{{"location","https://example.org/final"}}});ExecuteHttp(input,grants,backend,{},ipc::After(1000));Check(backend.requests.back().headers.empty(),"cross-origin strips explicit authorization");
     for(auto name:{"Host","Connection","Content-Length","Transfer-Encoding","Proxy-Authorization","Proxy-Connection","Cookie","Set-Cookie"}){input.headers={{name,"x"}};Check(!ValidHttpRequest(input),"transport/cookie headers rejected");}
     input.headers={{"X-Test","value\r\nInjected: x"}};Check(!ValidHttpRequest(input),"header injection");input.headers.clear();input.body.resize(MaximumHttpBody+1);input.method=HttpMethod::Post;Check(!ValidHttpRequest(input),"body cap");input.body.clear();input.method=static_cast<HttpMethod>(4);Check(!ValidHttpRequest(input),"unsupported method");input.method=HttpMethod::Get;
+    input.headers={{"X-Test","one"},{"x-test","two"}};Check(!ValidHttpRequest(input),"case-insensitive duplicate header rejected");
+    input.headers.clear();for(unsigned i=0;i<17;++i)input.headers.push_back({"X-"+std::to_string(i),"value"});Check(!ValidHttpRequest(input),"header count cap");
+    input.headers={{"X-Test",std::string(1025,'x')}};Check(!ValidHttpRequest(input),"individual header cap");input.headers.clear();
+    for(unsigned i=0;i<5;++i)input.headers.push_back({"X-"+std::to_string(i),std::string(1000,'x')});Check(!ValidHttpRequest(input),"aggregate header budget");input.headers.clear();
+    input.method=HttpMethod::Post;input.body="explicit plugin content";backend.replies.push_back({1,HttpStatus::Ok,307,"","",{{"location","https://example.org/final"}}});Check(ExecuteHttp(input,grants,backend,{},ipc::After(1000)).status==HttpStatus::RedirectDenied,"POST body cannot silently cross origin");
+    backend.replies.push_back({1,HttpStatus::Ok,200,"","ok"});Check(ExecuteHttp(input,grants,backend,{},ipc::After(1000)).status==HttpStatus::Ok&&backend.requests.back().body=="explicit plugin content","only explicit body is sent");input.method=HttpMethod::Get;input.body.clear();
+    for(unsigned i=0;i<6;++i)backend.replies.push_back({1,HttpStatus::Ok,302,"","",{{"location","/hop-"+std::to_string(i)}}});Check(ExecuteHttp(input,grants,backend,{},ipc::After(1000)).status==HttpStatus::RedirectDenied,"five-hop cap");backend.replies.clear();
     backend.replies.push_back({1,HttpStatus::Ok,200,"",std::string(MaximumHttpBody+1,'x')});Check(ExecuteHttp(input,grants,backend,{},ipc::After(1000)).status==HttpStatus::TooLarge,"response cap");
     Check(ExecuteHttp(input,grants,backend,{},ipc::After(0)).status==HttpStatus::Timeout,"deadline");std::stop_source cancellation;cancellation.request_stop();Check(ExecuteHttp(input,grants,backend,cancellation.get_token(),ipc::After(1000)).status==HttpStatus::Cancelled,"cancel before execution");
     auto slow=std::make_unique<Backend>();slow->wait=true;PluginHttpService service(grants,std::move(slow));for(unsigned i=1;i<=8;++i){input.requestId=i;Check(service.Submit(input)==0,"eight bounded admissions");}Check(service.Submit(input)==-4,"duplicate scoped ID");input.requestId=9;Check(service.Submit(input)==-3,"outstanding cap");service.Stop();Check(!service.Pop()&&service.Submit(input)==-4,"stop discards late delivery");

@@ -5,7 +5,8 @@ using namespace noven::plugins;
 // Separate first-party test executable; production Host has no backend-switch argument/environment entry.
 struct OfflineBackend final:IPluginHttpBackend {
     std::vector<std::string> Resolve(std::string_view,std::stop_token,ipc::Deadline) override{return {"93.184.216.34"};}
-    HttpResult Exchange(const HttpRequest& request,const HttpUrl&,std::stop_token,ipc::Deadline) override {
+    HttpResult Exchange(const HttpRequest& request,const HttpUrl&,std::stop_token stop,ipc::Deadline deadline) override {
+        while(request.url.ends_with("/pending")&&!stop.stop_requested()&&std::chrono::steady_clock::now()<deadline)Sleep(5);
         return {request.requestId,HttpStatus::Ok,request.method==HttpMethod::Post?201u:200u,request.url,request.method==HttpMethod::Head?"":"offline result",{{"content-type","text/plain"}}};
     }
 };
