@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 2,
+  "id": "com.example.noven-scan",
+  "name": "Scan Demo",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "author": "Noven example",
+  "description": "Completed user-triggered scan results only. History and subscription; no scan trigger or capture access.",
+  "permissions": ["ui.page.register", "scan.history.read", "scan.events.subscribe"],
+  "runtime": {"kind": "native-dll", "entry": "noven-scan.dll"}
+}
