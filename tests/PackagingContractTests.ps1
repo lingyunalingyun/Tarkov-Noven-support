@@ -25,6 +25,17 @@ try {
     }
     Check ((Get-FileHash -LiteralPath (Join-Path $root 'licenses/onnxruntime/ThirdPartyNotices.txt')).Hash -eq '143764B952FDB1A7C69CE653BFBA74A7744D6A8A573BFB73E235FBA356C83DE3') 'Exact ONNX v1.30.0 notice'
     Check ((Get-FileHash -LiteralPath (Join-Path $root 'licenses/paddleocr/LICENSE-2.0.txt')).Hash -eq 'CFC7749B96F63BD31C3C42B5C471BF756814053E847C10F3EB003417BC523D30') 'Complete official Apache 2.0 license'
+    # 小型依赖闭包夹具，不复制全地图、不写真实 User Data。
+    # A small dependency-closure fixture, not all maps or real user data.
+    foreach ($file in @('assets/maps/sources/aa.png','assets/maps/test/floor.png','assets/maps/test/floor.tiles')) {
+        $path=Join-Path $root $file;New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null;[IO.File]::WriteAllText($path,'runtime fixture')
+    }
+    [IO.File]::WriteAllText((Join-Path $root 'assets/data/map_compositions.tsv'),"outputPath`tsourcePath`nmaps/test/floor.png`tmaps/sources/aa.png`n")
+    [IO.File]::WriteAllText((Join-Path $root 'assets/data/map_update_assets.tsv'),"relativePath`turl`tsha256`nmaps/sources/aa.png`thttps://assets.tarkov.dev/maps/test.png`t`n")
+    foreach ($table in @('map_floors.tsv','pve/map_floors.tsv')) {
+        $path=Join-Path $root "assets/data/$table";New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+        [IO.File]::WriteAllText($path,"mapId`tfloorId`tabstractPath`tsatellitePath`nmap1`tfloor`tmaps/test/floor.png`t`n")
+    }
     & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version
     $notice=Join-Path $root 'licenses/onnxruntime/ThirdPartyNotices.txt'
     Rename-Item -LiteralPath $notice -NewName 'notice.saved'
@@ -32,12 +43,18 @@ try {
     try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null } catch { $denied=$true }
     Check $denied 'Missing legal notice rejected'
     Rename-Item -LiteralPath (Join-Path $root 'licenses/onnxruntime/notice.saved') -NewName 'ThirdPartyNotices.txt'
-    foreach ($bad in @('demo.dll','extra.pdb','test.exe','CMakeCache.txt','plugins/test/manifest.json','data/settings.json','logs/run.log','assets/data/plugin-registry-review.json')) {
+    foreach ($bad in @('demo.dll','extra.pdb','test.exe','CMakeCache.txt','plugins/test/manifest.json','data/settings.json','logs/run.log','assets/data/plugin-registry-review.json','assets/maps/sources/unreferenced.png')) {
         $path=Join-Path $root $bad;New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null;[IO.File]::WriteAllText($path,'unexpected');$denied=$false
         try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null } catch { $denied=$true }
         Check $denied "Audit accepted $bad";Remove-Item -LiteralPath $path
         if ($bad -match '^(plugins|data|logs)/') { Remove-Item -LiteralPath (Join-Path $root $Matches[1]) -Recurse -Force }
         & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null
+    }
+    foreach ($file in @('assets/maps/sources/aa.png','assets/maps/test/floor.png','assets/maps/test/floor.tiles')) {
+        $path=Join-Path $root $file;Rename-Item -LiteralPath $path -NewName 'dependency.saved';$denied=$false
+        try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null } catch { $denied=$true }
+        Check $denied "Missing dependency rejected: $file"
+        Rename-Item -LiteralPath (Join-Path (Split-Path -Parent $path) 'dependency.saved') -NewName (Split-Path -Leaf $path)
     }
     Write-Output 'Packaging contract / metadata / artifact rejection PASS'
 } finally {
