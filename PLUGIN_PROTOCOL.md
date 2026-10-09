@@ -100,7 +100,7 @@ Windows 行为参考：[Named pipe security](https://learn.microsoft.com/en-us/w
 旧消息 schema 和传输版本保持不变。目录通道不接受插件身份字段；所有请求/结果归属于认证会话。以下 JSON 都使用既有 length-prefixed UTF-8 帧。
 Existing message schemas and transport version remain unchanged. Catalog messages cannot supply a plugin identity; requests/results belong to their authenticated session. All use existing length-prefixed UTF-8 frames.
 
-- Core -> Host: `{"type":"catalogAccess","mask":7}`，仅加载前配置；位 1/2/4 为 Items/Tasks/Maps，Core 每次请求仍独立验证声明/授权。Configuration only before load; bits 1/2/4 are Items/Tasks/Maps, independently reauthorized by Core per request.
+- Core -> Host: `{"type":"catalogAccess","mask":31}`，仅加载前配置；位 1/2/4/8/16 为 Items/Tasks/Maps/Raid History/Events，Core 每次请求仍独立验证声明/授权。Configuration only before load; bits 1/2/4/8/16 are Items/Tasks/Maps/Raid History/Events, independently reauthorized by Core per request. Phase 5 appends kinds `raidHistory`/`events` without changing transport v1 or existing message fields.
 - Host -> Core: `{"type":"dataRequest","requestId":1,"catalog":"items","operation":"list","stableId":"","offset":0,"limit":32}`。get 使用稳定 ID、offset/limit=0。Get uses a stable ID and zero offset/limit.
 - Core -> Host: `{"type":"dataResult","requestId":1,"status":0,"payload":"<catalog JSON>"}`。状态数值依次 0..6：ok/permissionDenied/notFound/invalidRequest/unavailable/tooLarge/limited，内部 schemaVersion/requestId/status 必须一致。Status codes 0..6 match the names in that order; embedded schema/request/status must agree.
 - Host -> Core: `{"type":"dataResultAck","requestId":1}`。插件结果回调返回后发送，防止回调挂起占据会话。Sent after the result callback returns, bounding hung plugin callbacks.

@@ -13,6 +13,8 @@
   "plugins.permission.catalog.items.read": "只读物品目录",
   "plugins.permission.catalog.tasks.read": "只读任务目录",
   "plugins.permission.catalog.maps.read": "只读地图目录",
+  "plugins.permission.raid.history.read": "只读已完成对局历史",
+  "plugins.permission.catalog.events.read": "只读活动目录",
   "plugins.unsupported": "不支持 · 不可授予",
   "plugins.enable": "启用",
   "plugins.disable": "禁用",

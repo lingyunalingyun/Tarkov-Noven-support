@@ -83,7 +83,7 @@ void Run(Session& session,const std::filesystem::path& host){
         Deadline pongDeadline=Deadline::max(),actionDeadline=Deadline::max(),loadDeadline=Deadline::max(),burst=After(1000);unsigned logs=0,updates=0;
         if(session.load){
             session.Publish(HostState::Loading);Message access{MessageType::CatalogAccess};
-            for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps})if(session.catalogGrants.Allows(kind))access.catalogMask|=1u<<(static_cast<unsigned>(kind)-1);
+            for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps,CatalogKind::RaidHistory,CatalogKind::Events})if(session.catalogGrants.Allows(kind))access.catalogMask|=1u<<(static_cast<unsigned>(kind)-1);
             if(access.catalogMask)Require(channel.Write(access,After(2000),process.process.Get()),HostError::LoadTimeout,session);
             Require(channel.Write(*session.load,After(2000),process.process.Get()),HostError::LoadTimeout,session);loadDeadline=After(5000);
         }
@@ -208,6 +208,14 @@ std::optional<HostSnapshot> PluginRuntimeManager::Snapshot(std::string_view id) 
 void PluginRuntimeManager::SetChangeHandler(std::function<void()> handler){std::lock_guard lock(impl_->mutex);impl_->notify=std::move(handler);}
 void PluginRuntimeManager::SetCatalogService(std::shared_ptr<CatalogPluginService> service){std::lock_guard lock(impl_->mutex);impl_->catalog=std::move(service);}
 void PluginRuntimeManager::SetCatalogLocale(std::string_view locale){std::lock_guard lock(impl_->mutex);if(impl_->catalog)impl_->catalog->SetLocale(locale);}
+void PluginRuntimeManager::PublishRaidHistory(std::span<const raid::RaidSession> completed){
+    std::shared_ptr<CatalogPluginService> service;{std::lock_guard lock(impl_->mutex);service=impl_->catalog;}
+    if(service)service->PublishRaidHistory(completed);
+}
+void PluginRuntimeManager::PublishEvents(std::span<const events::EventRecord> events){
+    std::shared_ptr<CatalogPluginService> service;{std::lock_guard lock(impl_->mutex);service=impl_->catalog;}
+    if(service)service->PublishEvents(events);
+}
 std::vector<HostSnapshot> PluginRuntimeManager::Snapshots() const {
     std::vector<HostSnapshot> result;std::lock_guard lock(impl_->mutex);
     for(const auto& [id,session]:impl_->sessions){std::lock_guard stateLock(session->mutex);result.push_back(session->snapshot);}return result;

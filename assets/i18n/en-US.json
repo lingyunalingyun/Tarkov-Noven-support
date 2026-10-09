@@ -13,6 +13,8 @@
   "plugins.permission.catalog.items.read": "Read item catalog",
   "plugins.permission.catalog.tasks.read": "Read task catalog",
   "plugins.permission.catalog.maps.read": "Read map catalog",
+  "plugins.permission.raid.history.read": "Read completed raid history",
+  "plugins.permission.catalog.events.read": "Read event catalog",
   "plugins.unsupported": "Unsupported · Cannot grant",
   "plugins.enable": "Enable",
   "plugins.disable": "Disable",

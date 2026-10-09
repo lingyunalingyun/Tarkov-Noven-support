@@ -67,6 +67,8 @@ typedef int32_t (NOVEN_CALL *NovenInitializeFn)(const NovenHostApiV1*, NovenPlug
 #define NOVEN_CATALOG_ITEMS 1u
 #define NOVEN_CATALOG_TASKS 2u
 #define NOVEN_CATALOG_MAPS 3u
+#define NOVEN_DATA_RAID_HISTORY 4u
+#define NOVEN_CATALOG_EVENTS 5u
 #define NOVEN_DATA_LIST 1u
 #define NOVEN_DATA_GET 2u
 #define NOVEN_DATA_OK 0u

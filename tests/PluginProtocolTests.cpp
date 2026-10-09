@@ -44,15 +44,20 @@ int main(){
     std::cout<<"Bounded plugin protocol PASS\n";
     Message access{MessageType::CatalogAccess};access.catalogMask=7;
     Check(ParseMessage(Serialize(access)).catalogMask==7,"catalog grant configuration");
-    access.catalogMask=8;Reject([&]{Serialize(access);});
+    access.catalogMask=31;Check(ParseMessage(Serialize(access)).catalogMask==31,"five isolated data permissions");
+    access.catalogMask=32;Reject([&]{Serialize(access);});
     Message request{MessageType::DataRequest};request.dataRequest.requestId=99;
-    for(const auto kind:{noven::plugins::CatalogKind::Items,noven::plugins::CatalogKind::Tasks,noven::plugins::CatalogKind::Maps}){
+    for(const auto kind:{noven::plugins::CatalogKind::Items,noven::plugins::CatalogKind::Tasks,noven::plugins::CatalogKind::Maps,noven::plugins::CatalogKind::RaidHistory,noven::plugins::CatalogKind::Events}){
         request.dataRequest.catalog=kind;request.dataRequest.operation=noven::plugins::DataOperation::List;request.dataRequest.limit=32;
         Check(ParseMessage(Serialize(request)).dataRequest.catalog==kind,"list data request round-trip");
         request.dataRequest.operation=noven::plugins::DataOperation::Get;request.dataRequest.limit=0;request.dataRequest.stableId="stable_id";
         Check(ParseMessage(Serialize(request)).dataRequest.stableId=="stable_id","get exact stable identity");
         request.dataRequest.stableId.clear();
     }
+    request.dataRequest.catalog=noven::plugins::CatalogKind::Events;
+    request.dataRequest.stableId="community-wiki:26936:"+std::string(240,'a');
+    Check(ParseMessage(Serialize(request)).dataRequest.stableId==request.dataRequest.stableId,"maximum event identity wire round trip");
+    request.dataRequest.stableId+='a';Reject([&]{Serialize(request);});
     Message result{MessageType::DataResult};result.dataResult.requestId=99;
     result.dataResult.payload=R"({"schemaVersion":1,"requestId":99,"catalog":"items","operation":"list","status":"ok","records":[],"record":null,"offset":0,"limit":32,"total":0,"nextOffset":0,"hasMore":false})";
     Check(ParseMessage(Serialize(result)).dataResult.payload==result.dataResult.payload,"catalog JSON copy round-trip");

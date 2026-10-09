@@ -48,6 +48,8 @@ public:
     void SetChangeHandler(std::function<void()> handler);
     void SetCatalogService(std::shared_ptr<CatalogPluginService> service);
     void SetCatalogLocale(std::string_view locale);
+    void PublishRaidHistory(std::span<const raid::RaidSession> completed);
+    void PublishEvents(std::span<const events::EventRecord> events);
     std::vector<HostSnapshot> Snapshots() const;
     bool Ping(std::string_view pluginId);
     bool Stop(std::string_view pluginId);

@@ -47,7 +47,7 @@ int32_t NOVEN_CALL NativePluginHost::RequestData(void* context,const NovenDataRe
     if(!input||input->struct_size<sizeof(NovenDataRequestV1))return NOVEN_ERROR_ARGUMENT;
     DataRequest request;request.requestId=input->request_id;request.catalog=static_cast<CatalogKind>(input->catalog_kind);
     request.operation=static_cast<DataOperation>(input->operation);request.offset=input->offset;request.limit=input->limit;
-    if(input->stable_id_utf8.length)request.stableId=Slice(input->stable_id_utf8,128);
+    if(input->stable_id_utf8.length)request.stableId=Slice(input->stable_id_utf8,MaximumDataIdBytes(request.catalog));
     if(!ValidDataRequest(request))return NOVEN_ERROR_ARGUMENT;
     if(!(self.catalogMask_&(1u<<(static_cast<unsigned>(request.catalog)-1))))return NOVEN_ERROR_PERMISSION;
     const auto admission=self.dataBudget_.Begin(request.requestId);

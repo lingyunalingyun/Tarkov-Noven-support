@@ -20,7 +20,11 @@ int main() try {
     Check(SupportedPermissions(catalog)&&!store.Authorized(catalog),"newly supported catalogs still require re-consent");
     Check(store.Consent(catalog)&&store.Save(path)&&PluginStateStore::Load(path).Authorized(catalog),"four scoped grants persist");
     auto foreignCatalog=catalog;foreignCatalog.id="com.example.other";Check(!store.Authorized(foreignCatalog),"another ID cannot reuse catalog grants");
-    for(const auto permission:{"catalog.events.read","raid.history.read","raid.active.read","scan.events.subscribe","scan.history.read","storage.plugin","network.http","ui.decorate","raw_logs.read","capture_frame.read","filesystem.arbitrary","process.access"})Check(!SupportedPermission(permission),"other product/runtime permissions remain unsupported");
+    auto history=catalog;history.requestedPermissions.push_back("raid.history.read");history.requestedPermissions.push_back("catalog.events.read");
+    Check(SupportedPermissions(history)&&!store.Authorized(history),"history/event expansion requires consent");
+    Check(store.Consent(history)&&store.Save(path)&&PluginStateStore::Load(path).Authorized(history),"six scoped grants persist");
+    auto foreignHistory=history;foreignHistory.id="com.example.other";Check(!store.Authorized(foreignHistory),"history/event grants cannot cross plugins");
+    for(const auto permission:{"raid.active.read","scan.events.subscribe","scan.history.read","storage.plugin","network.http","ui.decorate","raw_logs.read","capture_frame.read","filesystem.arbitrary","process.access"})Check(!SupportedPermission(permission),"other product/runtime permissions remain unsupported");
     auto unsupported=manifest;unsupported.requestedPermissions.push_back("network.http");Check(!SupportedPermissions(unsupported)&&!store.Consent(unsupported)&&!store.Authorized(unsupported),"unsupported permissions never granted/enabled");
     auto foreign=manifest;foreign.id="com.example.other";Check(!store.Authorized(foreign),"grant scoped to exact identity");
     auto v1=manifest;v1.manifestVersion=1;v1.runtime.reset();Check(!store.Consent(v1)&&!store.Authorized(v1),"V1 cannot acquire runtime consent");

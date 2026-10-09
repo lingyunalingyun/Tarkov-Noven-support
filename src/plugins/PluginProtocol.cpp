@@ -17,7 +17,7 @@ std::uint32_t Unsigned(const raid::json::Value& value){
 }
 std::uint64_t RequestId(const raid::json::Value& value){const auto id=value.Int();if(id<=0)Invalid();return static_cast<std::uint64_t>(id);}
 CatalogKind Kind(std::string_view name){
-    for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps})if(CatalogName(kind)==name)return kind;
+    for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps,CatalogKind::RaidHistory,CatalogKind::Events})if(CatalogName(kind)==name)return kind;
     Invalid();
 }
 DataOperation Operation(std::string_view name){if(name=="list")return DataOperation::List;if(name=="get")return DataOperation::Get;Invalid();}
@@ -54,7 +54,7 @@ Message ParseMessage(std::string_view payload){
     std::size_t fields=IsHandshake(message.type)?4u:1u;
     switch(message.type) {
     case MessageType::CatalogAccess:
-        message.catalogMask=Unsigned(object.At("mask"));if(message.catalogMask>7)Invalid();fields=2;break;
+        message.catalogMask=Unsigned(object.At("mask"));if(message.catalogMask>31)Invalid();fields=2;break;
     case MessageType::DataRequest: {
         auto& request=message.dataRequest;request.requestId=RequestId(object.At("requestId"));
         request.catalog=Kind(object.At("catalog").String());request.operation=Operation(object.At("operation").String());
