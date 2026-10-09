@@ -60,7 +60,7 @@ The controlled upgrade uses an isolated source copy with only its single CMake p
 | Floor preview PNG, icon PNG | `MapPage` / `LocalImage`, catalog `map_floors.tsv` | Direct display; keep all existing previews/icons and both PvP/PvE references. |
 | `.tiles` packs | `LocalImage` zoom rendering | Prebuilt full-resolution blocks; no source-tile regeneration needed to zoom. |
 | `maps/sources/*.png` referenced by `map_compositions.tsv` / `map_update_assets.tsv` | `MapAssetUpdater` → `MapAssetComposer` → `MapAssetStore` | Runtime update recomposition uses updated user-cache sources with installed sources as fallback. Keep this dependency closure. |
-| Interchange `composition_sources` | Composition recipes | Cropped derived inputs replace raw atlas tiles for these recipes; keep them. |
+| Interchange `composition_sources` | Composition recipes | Bounded derived SVG-overlay tiles supplement the selected satellite inputs; keep them. They do not replace all raw satellite sources. |
 | Raw source PNG referenced only by provenance/generator | `generate_all_images.py` build/reuse inputs; `all.manifest.json` ledger | Not a runtime display or recomposition input; exclude from install, preserve repository source and provenance. |
 | TSV/JSON, SOURCE/NOTICE/license records | Catalog, update recipes, attribution | Keep metadata and source attribution; a ledger reference alone does not make the raw input a runtime dependency. |
 
@@ -69,6 +69,9 @@ Initial display uses packaged previews/packs. Startup updates recompose affected
 
 安装选择从生产 TSV 的完整路径字段确定并排序/去重；CMake 缺失输入失败，payload 审计拒绝多余 source PNG、缺失重拼输入/预览/zoom pack。来源账本全部保留。字节相同的透明 PNG 仍保留逻辑路径，不改为硬链接/符号链接。
 Install selection is deterministic from whole production-TSV path fields. CMake fails on missing inputs; payload audit rejects surplus source PNGs and missing composition/preview/zoom dependencies. Provenance remains intact. Transparent duplicate tiles retain logical paths, without hardlinks/symlinks.
+
+当前资产快照中，未引用的 962 个源 PNG 包含 928 个 Interchange zoom-5 输入和 34 个已转换图标的原图。Interchange manifest 明确记录 zoom-5 缺失内部瓦片 `main/5/32/3.png`，实际选用 zoom-4；生成器保留已取得的高层输入及来源账本，但生产配方/更新表不引用它们。图标通过已生成的 `maps/icons/*.png` 读取，不读取 URL-hash 原图。未来重新生成若选用新输入，安装选择跟随实际生产表变化，不硬编码排除这 962 个路径。
+The current snapshot's 962 unused raw PNGs are 928 Interchange zoom-5 inputs and 34 originals of converted icons. The Interchange manifest records a missing interior zoom-5 tile (main/5/32/3.png) and selected zoom 4. The generator retains successful higher-level inputs/provenance, but production recipes/update tables do not use them. Icons load generated maps/icons files, not URL-hash originals. Future generation selects from actual production tables rather than hardcoding these 962 exclusions.
 
 逻辑分类仅用于资产审查：`core`（EXE/运行 DLL/许可）、`ocr`（两个模型/字典）、`catalog`（生成目录）、`localization`（语言）、`maps.<stableMapId>`（通过 MapCatalog floors/references 归属）、`maps.shared`（多地图共用源图/图标/来源账本）。别名使用已有稳定身份，可一文件多归属；不靠显示名猜身份。这不是更新清单或更新器。
 Logical review groups are core, OCR, catalog, localization, stable-map-ID components and shared map inputs/provenance. Alias ownership can be multi-valued and comes from existing catalog references, never display names. This is not an update manifest or updater.
