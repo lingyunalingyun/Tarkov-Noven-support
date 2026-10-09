@@ -31,6 +31,7 @@ struct CatalogGrants final {
     bool valid{};
     std::vector<std::string> declared,granted;
     bool Allows(CatalogKind kind) const;
+    bool AllowsPermission(std::string_view permission) const;
 };
 enum class RequestAdmission {Accepted,Duplicate,Limited};
 // 每个认证会话各自拥有队列与窗口；完成/停止释放 ID，不共享插件之间的请求。

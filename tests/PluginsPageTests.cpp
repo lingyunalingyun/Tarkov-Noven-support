@@ -76,7 +76,7 @@ int wmain(int argc,wchar_t** argv) try {
         page.SetSnapshot(runtimeSnapshot);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());
         Check(page.Rows()[0].status==Tr("plugins.disabled")&&page.Rows()[0].body.find(Tr("plugins.native_unverified"))!=std::wstring::npos,"V2 defaults disabled and unverified");
         const auto enable=page.ControlBounds(native.manifest->id);Check(enable&&page.Rows()[0].enable,"explicit enable request available");
-        auto catalogSnapshot=runtimeSnapshot;catalogSnapshot.records[0].manifest->requestedPermissions={"ui.page.register","catalog.items.read","catalog.tasks.read","catalog.maps.read","raid.history.read","catalog.events.read"};
+        auto catalogSnapshot=runtimeSnapshot;catalogSnapshot.records[0].manifest->requestedPermissions={"ui.page.register","catalog.items.read","catalog.tasks.read","catalog.maps.read","raid.history.read","catalog.events.read","scan.history.read","scan.events.subscribe"};
         const auto catalogRows=PresentPlugins(catalogSnapshot);
         Check(catalogRows[0].enable&&!catalogRows[0].incompatible,"catalog permissions supported but still explicit enable");
         for(const auto& permission:catalogSnapshot.records[0].manifest->requestedPermissions){

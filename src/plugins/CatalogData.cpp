@@ -21,7 +21,9 @@ bool ValidDataRequest(const DataRequest& request){
     return request.stableId.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")==std::string::npos;
 }
 bool CatalogGrants::Allows(CatalogKind kind) const {
-    const auto permission=CatalogPermission(kind);
+    return AllowsPermission(CatalogPermission(kind));
+}
+bool CatalogGrants::AllowsPermission(std::string_view permission) const {
     return valid&&!permission.empty()&&std::find(declared.begin(),declared.end(),permission)!=declared.end()
         &&std::find(granted.begin(),granted.end(),permission)!=granted.end();
 }

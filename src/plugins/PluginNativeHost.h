@@ -19,6 +19,9 @@ private:
     static int32_t NOVEN_CALL Register(void*,NovenUtf8V1,NovenUtf8V1);
     static int32_t NOVEN_CALL Publish(void*,NovenUtf8V1,NovenUtf8V1);
     static int32_t NOVEN_CALL RequestData(void*,const NovenDataRequestV1*);
+    static int32_t NOVEN_CALL Subscribe(void*);
+    static int32_t NOVEN_CALL Unsubscribe(void*);
+    int32_t SetSubscription(bool enabled);
     bool FlushData();
     int32_t Send(ipc::Message message);
     int Load(const ipc::Message& message);
@@ -32,6 +35,11 @@ private:
     NovenPluginInstanceV1 instance_{};
     NovenCatalogHostApiV1 catalogHost_{sizeof(NovenCatalogHostApiV1),NOVEN_CATALOG_SCHEMA_VERSION,this,&RequestData};
     NovenCatalogInstanceV1 catalogInstance_{};
+    NovenScanHostApiV1 scanHost_{sizeof(NovenScanHostApiV1),NOVEN_SCAN_SCHEMA_VERSION,this,&Subscribe,&Unsubscribe};
+    NovenScanInstanceV1 scanInstance_{};
+    std::optional<bool> scanCommand_;
+    bool scanConfigured_{},scanPermission_{},scanSubscribed_{},scanAwaiting_{};
+    std::uint64_t lastScanSequence_{};
     DataRequestBudget dataBudget_;
     std::deque<DataRequest> dataQueue_;
     bool catalogConfigured_{};

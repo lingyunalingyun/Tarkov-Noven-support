@@ -69,6 +69,7 @@ typedef int32_t (NOVEN_CALL *NovenInitializeFn)(const NovenHostApiV1*, NovenPlug
 #define NOVEN_CATALOG_MAPS 3u
 #define NOVEN_DATA_RAID_HISTORY 4u
 #define NOVEN_CATALOG_EVENTS 5u
+#define NOVEN_DATA_RECENT_SCANS 6u
 #define NOVEN_DATA_LIST 1u
 #define NOVEN_DATA_GET 2u
 #define NOVEN_DATA_OK 0u
@@ -111,6 +112,37 @@ typedef struct NovenCatalogInstanceV1 {
     void (NOVEN_CALL *on_data_result)(void*, const NovenDataResultV1*);
 } NovenCatalogInstanceV1;
 typedef int32_t (NOVEN_CALL *NovenInitializeCatalogFn)(const NovenCatalogHostApiV1*, NovenCatalogInstanceV1*);
+/* 独立可选扩展，不改变基础/目录 ABI 表。只提供完成通知，没有触发/捕获能力。
+ * Independent optional extension preserving base/catalog tables. Completed notifications only, no trigger/capture.
+ * 订阅调用仅入队；on_subscription_result 确认生效，之后开始通知，不回放历史。
+ * Subscription calls only enqueue; on_subscription_result confirms activation, with no historical replay.
+ * 回调串行使用基础 context，UTF-8 仅在回调期间有效；停止可能取消已排队事件。
+ * Serialized callbacks use base context; UTF-8 is borrowed for the callback; stop may cancel queued events. */
+#define NOVEN_SCAN_SCHEMA_VERSION 1u
+typedef struct NovenScanEventV1 {
+    uint32_t struct_size;
+    uint32_t schema_version;
+    uint64_t sequence;
+    uint32_t dropped_events;
+    NovenUtf8V1 record_utf8;
+} NovenScanEventV1;
+typedef struct NovenScanHostApiV1 {
+    uint32_t struct_size;
+    uint32_t schema_version;
+    void* context;
+    int32_t (NOVEN_CALL *subscribe)(void*);
+    int32_t (NOVEN_CALL *unsubscribe)(void*);
+} NovenScanHostApiV1;
+typedef struct NovenScanInstanceV1 {
+    uint32_t struct_size;
+    uint32_t schema_version;
+    void (NOVEN_CALL *on_subscription_result)(void*, uint32_t subscribed, int32_t status);
+    void (NOVEN_CALL *on_scan_event)(void*, const NovenScanEventV1*);
+} NovenScanInstanceV1;
+typedef int32_t (NOVEN_CALL *NovenInitializeScanFn)(const NovenScanHostApiV1*, NovenScanInstanceV1*);
+#if defined(NOVEN_PLUGIN_SCAN_IMPLEMENTATION)
+NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeScanV1(const NovenScanHostApiV1*, NovenScanInstanceV1*);
+#endif
 #if defined(NOVEN_PLUGIN_CATALOG_IMPLEMENTATION)
 NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeCatalogV1(const NovenCatalogHostApiV1*, NovenCatalogInstanceV1*);
 #endif

@@ -24,7 +24,11 @@ int main() try {
     Check(SupportedPermissions(history)&&!store.Authorized(history),"history/event expansion requires consent");
     Check(store.Consent(history)&&store.Save(path)&&PluginStateStore::Load(path).Authorized(history),"six scoped grants persist");
     auto foreignHistory=history;foreignHistory.id="com.example.other";Check(!store.Authorized(foreignHistory),"history/event grants cannot cross plugins");
-    for(const auto permission:{"raid.active.read","scan.events.subscribe","scan.history.read","storage.plugin","network.http","ui.decorate","raw_logs.read","capture_frame.read","filesystem.arbitrary","process.access"})Check(!SupportedPermission(permission),"other product/runtime permissions remain unsupported");
+    auto scans=history;scans.requestedPermissions.push_back("scan.history.read");scans.requestedPermissions.push_back("scan.events.subscribe");
+    Check(SupportedPermissions(scans)&&!store.Authorized(scans),"scan permission expansion requires re-consent");
+    Check(store.Consent(scans)&&store.Save(path)&&PluginStateStore::Load(path).Authorized(scans),"eight grants persist");
+    auto foreignScan=scans;foreignScan.id="com.example.other";Check(!store.Authorized(foreignScan),"scan grants scoped to identity");
+    for(const auto permission:{"raid.active.read","storage.plugin","network.http","ui.decorate","raw_logs.read","capture_frame.read","filesystem.arbitrary","process.access"})Check(!SupportedPermission(permission),"other product/runtime permissions remain unsupported");
     auto unsupported=manifest;unsupported.requestedPermissions.push_back("network.http");Check(!SupportedPermissions(unsupported)&&!store.Consent(unsupported)&&!store.Authorized(unsupported),"unsupported permissions never granted/enabled");
     auto foreign=manifest;foreign.id="com.example.other";Check(!store.Authorized(foreign),"grant scoped to exact identity");
     auto v1=manifest;v1.manifestVersion=1;v1.runtime.reset();Check(!store.Consent(v1)&&!store.Authorized(v1),"V1 cannot acquire runtime consent");

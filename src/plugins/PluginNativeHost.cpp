@@ -10,7 +10,7 @@ std::string_view Slice(NovenUtf8V1 text,std::size_t maximum) {
 NovenUtf8V1 Borrow(const std::string& text){return {text.data(),static_cast<std::uint32_t>(text.size())};}
 }
 NativePluginHost::~NativePluginHost(){Shutdown();if(library_)FreeLibrary(library_);}
-void NativePluginHost::Shutdown(){accepting_=false;dataQueue_.clear();dataBudget_.Clear();if(initialized_){initialized_=false;instance_.shutdown(instance_.context);}}
+void NativePluginHost::Shutdown(){accepting_=false;scanCommand_.reset();scanSubscribed_=scanAwaiting_=false;dataQueue_.clear();dataBudget_.Clear();if(initialized_){initialized_=false;instance_.shutdown(instance_.context);}}
 int32_t NativePluginHost::Send(ipc::Message message) {
     if(GetCurrentThreadId()!=thread_||!channel_)return NOVEN_ERROR_STATE;
     return channel_->Write(message,ipc::After(2000),parent_)==ipc::IoResult::Complete?NOVEN_OK:NOVEN_ERROR_TRANSPORT;
@@ -58,12 +58,25 @@ int32_t NOVEN_CALL NativePluginHost::RequestData(void* context,const NovenDataRe
 bool NativePluginHost::FlushData(){
     // 插件回调已返回才写 IPC；请求等待绝不阻塞插件回调或主 UI 线程。
     // Write IPC only after plugin callbacks return, never waiting inside callbacks or the main UI thread.
+    if(scanCommand_){
+        ipc::Message command{*scanCommand_?ipc::MessageType::ScanSubscribe:ipc::MessageType::ScanUnsubscribe};
+        scanCommand_.reset();if(Send(command)!=NOVEN_OK)return false;
+    }
     while(!dataQueue_.empty()){
         ipc::Message message{ipc::MessageType::DataRequest};message.dataRequest=std::move(dataQueue_.front());dataQueue_.pop_front();
         if(Send(std::move(message))!=NOVEN_OK)return false;
     }
     return true;
 }
+int32_t NativePluginHost::SetSubscription(bool enabled){
+    if(GetCurrentThreadId()!=thread_||!accepting_)return NOVEN_ERROR_STATE;
+    if(!scanPermission_)return NOVEN_ERROR_PERMISSION;
+    if(scanAwaiting_)return NOVEN_ERROR_STATE;
+    scanCommand_=enabled;scanAwaiting_=true;
+    if(!enabled)scanSubscribed_=false;return NOVEN_OK;
+}
+int32_t NOVEN_CALL NativePluginHost::Subscribe(void* context){return static_cast<NativePluginHost*>(context)->SetSubscription(true);}
+int32_t NOVEN_CALL NativePluginHost::Unsubscribe(void* context){return static_cast<NativePluginHost*>(context)->SetSubscription(false);}
 int NativePluginHost::Load(const ipc::Message& message) {
     if(attempted_)return 6;attempted_=true;pagePermission_=message.pagePermission;
     try{file_=NativeFile::Open(root_,std::filesystem::path(std::u8string(message.directory.begin(),message.directory.end())),message.entry);}catch(const std::exception&){return 1;}
@@ -84,10 +97,19 @@ int NativePluginHost::Load(const ipc::Message& message) {
         if(catalogInitialize(&catalogHost_,&catalogInstance_)!=NOVEN_OK)return 6;
         if(catalogInstance_.struct_size!=sizeof(catalogInstance_)||catalogInstance_.schema_version!=NOVEN_CATALOG_SCHEMA_VERSION||!catalogInstance_.on_data_result)return 5;
     }
+    const auto scanInitialize=reinterpret_cast<NovenInitializeScanFn>(GetProcAddress(library_,"NovenPlugin_InitializeScanV1"));
+    if(scanInitialize){
+        scanInstance_={sizeof(NovenScanInstanceV1),NOVEN_SCAN_SCHEMA_VERSION,nullptr,nullptr};
+        if(scanInitialize(&scanHost_,&scanInstance_)!=NOVEN_OK)return 6;
+        if(scanInstance_.struct_size<sizeof(scanInstance_)||scanInstance_.schema_version!=NOVEN_SCAN_SCHEMA_VERSION||!scanInstance_.on_subscription_result||!scanInstance_.on_scan_event)return 5;
+    }
     return 0;
 }
 bool NativePluginHost::Message(const ipc::Message& message,ipc::Channel& channel,HANDLE parent) {
     channel_=&channel;parent_=parent;
+    if(message.type==ipc::MessageType::ScanAccess){
+        if(attempted_||scanConfigured_)return false;scanConfigured_=true;scanPermission_=message.scanPermission;return true;
+    }
     if(message.type==ipc::MessageType::CatalogAccess){
         if(attempted_||catalogConfigured_)return false;
         catalogConfigured_=true;catalogMask_=message.catalogMask;return true;
@@ -103,6 +125,22 @@ bool NativePluginHost::Message(const ipc::Message& message,ipc::Channel& channel
         const NovenDataResultV1 result{sizeof(NovenDataResultV1),static_cast<std::uint32_t>(message.dataResult.status),message.dataResult.requestId,Borrow(message.dataResult.payload)};
         catalogInstance_.on_data_result(instance_.context,&result);
         ipc::Message ack{ipc::MessageType::DataResultAck};ack.dataResult.requestId=result.request_id;
+        return Send(ack)==NOVEN_OK&&FlushData();
+    }
+    if(message.type==ipc::MessageType::ScanSubscriptionResult){
+        if(!initialized_||!accepting_||!scanAwaiting_||!scanInstance_.on_subscription_result)return false;
+        scanAwaiting_=false;scanSubscribed_=message.subscribed;
+        scanInstance_.on_subscription_result(instance_.context,message.subscribed?1u:0u,message.result?NOVEN_ERROR_PERMISSION:NOVEN_OK);
+        return Send({ipc::MessageType::ScanSubscriptionAck})==NOVEN_OK&&FlushData();
+    }
+    if(message.type==ipc::MessageType::ScanEvent){
+        if(!initialized_||!accepting_||!scanInstance_.on_scan_event||message.sequence<=lastScanSequence_)return false;
+        lastScanSequence_=message.sequence;
+        if(scanSubscribed_){
+            const NovenScanEventV1 event{sizeof(NovenScanEventV1),NOVEN_SCAN_SCHEMA_VERSION,message.sequence,message.dropped,Borrow(message.text)};
+            scanInstance_.on_scan_event(instance_.context,&event);
+        }
+        ipc::Message ack{ipc::MessageType::ScanEventAck};ack.sequence=message.sequence;
         return Send(ack)==NOVEN_OK&&FlushData();
     }
     if(message.type==ipc::MessageType::UiAction) {

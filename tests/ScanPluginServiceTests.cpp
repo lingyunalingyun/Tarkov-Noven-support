@@ -33,5 +33,7 @@ int main() try {
     Check(queue.Pending()==32&&queue.Dropped()==8,"bounded drop oldest");for(unsigned i=9;i<=40;++i)Check(json::Parser(*queue.Pop()).Parse().At("scanId").String()==std::to_string(i),"remaining FIFO");
     queue.Push(record);queue.Subscribe(false);Check(!queue.Pending()&&!queue.Push(record),"unsubscribe teardown");
     Check(!ValidScanRecord("{}")&&!ValidScanRecord(ScanRecord(b).substr(1))&&!ValidScanRecord(std::string(8193,' ')),"malformed oversized projection");
+    auto oversized=b;oversized.canonicalName=std::string(4097,'a');service.PublishRecentScans(std::vector{oversized,b});request.offset=0;
+    value=json::Parser(service.Query(request,grants).payload).Parse();Check(value.At("total").Int()==1,"unsafe oversized persisted row omitted without suppressing valid neighbors");
     std::cout<<"Scan projection/history/queue PASS\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

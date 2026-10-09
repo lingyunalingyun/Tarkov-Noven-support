@@ -1,6 +1,7 @@
 #include "plugins/PluginProtocol.h"
 #include "plugins/PluginManifest.h"
 #include "plugins/PluginUiDocument.h"
+#include "plugins/PluginScanData.h"
 #include "raid/RaidJson.h"
 #include <array>
 #include <stdexcept>
@@ -8,7 +9,7 @@
 
 namespace noven::plugins::ipc {
 namespace {
-constexpr std::array<std::string_view,18> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log","catalogAccess","dataRequest","dataResult","dataResultAck"};
+constexpr std::array<std::string_view,25> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log","catalogAccess","dataRequest","dataResult","dataResultAck","scanAccess","scanSubscribe","scanUnsubscribe","scanSubscriptionResult","scanEvent","scanEventAck","scanSubscriptionAck"};
 [[noreturn]] void Invalid(){throw std::runtime_error("plugin protocol violation");}
 bool IsHandshake(MessageType type){return type==MessageType::Hello||type==MessageType::HelloAck;}
 std::uint32_t Unsigned(const raid::json::Value& value){
@@ -17,7 +18,7 @@ std::uint32_t Unsigned(const raid::json::Value& value){
 }
 std::uint64_t RequestId(const raid::json::Value& value){const auto id=value.Int();if(id<=0)Invalid();return static_cast<std::uint64_t>(id);}
 CatalogKind Kind(std::string_view name){
-    for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps,CatalogKind::RaidHistory,CatalogKind::Events})if(CatalogName(kind)==name)return kind;
+    for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps,CatalogKind::RaidHistory,CatalogKind::Events,CatalogKind::RecentScans})if(CatalogName(kind)==name)return kind;
     Invalid();
 }
 DataOperation Operation(std::string_view name){if(name=="list")return DataOperation::List;if(name=="get")return DataOperation::Get;Invalid();}
@@ -54,7 +55,18 @@ Message ParseMessage(std::string_view payload){
     std::size_t fields=IsHandshake(message.type)?4u:1u;
     switch(message.type) {
     case MessageType::CatalogAccess:
-        message.catalogMask=Unsigned(object.At("mask"));if(message.catalogMask>31)Invalid();fields=2;break;
+        message.catalogMask=Unsigned(object.At("mask"));if(message.catalogMask>63)Invalid();fields=2;break;
+    case MessageType::ScanAccess:
+        message.scanPermission=object.At("granted").Bool();fields=2;break;
+    case MessageType::ScanSubscriptionResult:
+        message.subscribed=object.At("subscribed").Bool();message.result=object.At("result").Int();
+        if(message.result<0||message.result>1||(message.result&&message.subscribed))Invalid();fields=3;break;
+    case MessageType::ScanEvent:
+        if(object.At("schemaVersion").Int()!=1||object.At("event").String()!="scan.completed")Invalid();
+        message.sequence=RequestId(object.At("sequence"));message.dropped=Unsigned(object.At("dropped"));
+        message.text=object.At("record").String();if(!ValidScanRecord(message.text))Invalid();fields=6;break;
+    case MessageType::ScanEventAck:
+        message.sequence=RequestId(object.At("sequence"));fields=2;break;
     case MessageType::DataRequest: {
         auto& request=message.dataRequest;request.requestId=RequestId(object.At("requestId"));
         request.catalog=Kind(object.At("catalog").String());request.operation=Operation(object.At("operation").String());
@@ -101,6 +113,10 @@ std::string Serialize(const Message& message){
     }
     switch(message.type) {
     case MessageType::CatalogAccess:text+=",\"mask\":"+std::to_string(message.catalogMask);break;
+    case MessageType::ScanAccess:text+=",\"granted\":"+std::string(message.scanPermission?"true":"false");break;
+    case MessageType::ScanSubscriptionResult:text+=",\"subscribed\":"+std::string(message.subscribed?"true":"false")+",\"result\":"+std::to_string(message.result);break;
+    case MessageType::ScanEvent:text+=",\"schemaVersion\":1,\"event\":\"scan.completed\",\"sequence\":"+std::to_string(message.sequence)+",\"dropped\":"+std::to_string(message.dropped)+",\"record\":"+raid::json::Quote(message.text);break;
+    case MessageType::ScanEventAck:text+=",\"sequence\":"+std::to_string(message.sequence);break;
     case MessageType::DataRequest: {
         const auto& request=message.dataRequest;
         text+=",\"requestId\":"+std::to_string(request.requestId)+",\"catalog\":"+raid::json::Quote(CatalogName(request.catalog))

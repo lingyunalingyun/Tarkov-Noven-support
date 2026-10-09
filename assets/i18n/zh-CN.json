@@ -15,6 +15,8 @@
   "plugins.permission.catalog.maps.read": "只读地图目录",
   "plugins.permission.raid.history.read": "只读已完成对局历史",
   "plugins.permission.catalog.events.read": "只读活动目录",
+  "plugins.permission.scan.history.read": "只读最近扫描历史",
+  "plugins.permission.scan.events.subscribe": "订阅扫描完成通知",
   "plugins.unsupported": "不支持 · 不可授予",
   "plugins.enable": "启用",
   "plugins.disable": "禁用",

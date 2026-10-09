@@ -15,6 +15,8 @@
   "plugins.permission.catalog.maps.read": "Read map catalog",
   "plugins.permission.raid.history.read": "Read completed raid history",
   "plugins.permission.catalog.events.read": "Read event catalog",
+  "plugins.permission.scan.history.read": "Read recent scan history",
+  "plugins.permission.scan.events.subscribe": "Subscribe to completed scan events",
   "plugins.unsupported": "Unsupported · Cannot grant",
   "plugins.enable": "Enable",
   "plugins.disable": "Disable",

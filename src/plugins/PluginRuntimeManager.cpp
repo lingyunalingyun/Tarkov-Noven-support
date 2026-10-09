@@ -31,12 +31,13 @@ struct Session final {
     CatalogGrants catalogGrants;
     DataRequestBudget dataBudget{32};
     std::map<std::uint64_t,Deadline> dataAcks;
+    ScanEventQueue scans;
     // 最后声明，先 join 后释放事件、锁和快照；没有 detached 线程。
     // Declared last so it joins before events/mutex/snapshot are destroyed; no detached threads.
     std::jthread worker;
     void Notify(){changed.notify_all();if(notify)notify();}
     void Publish(HostState state,HostError error=HostError::None){
-        {std::lock_guard lock(mutex);snapshot.state=state;snapshot.error=error;if(Terminal(state)){snapshot.pages.clear();snapshot.pendingData=0;}}Notify();
+        {std::lock_guard lock(mutex);snapshot.state=state;snapshot.error=error;if(Terminal(state)){scans.Subscribe(false);snapshot.scanSubscribed=false;snapshot.pages.clear();snapshot.pendingData=0;}}Notify();
     }
 };
 bool AcceptNative(Session& session,const Message& message,unsigned& logs,unsigned& updates,Deadline& burst){
@@ -80,11 +81,16 @@ void Run(Session& session,const std::filesystem::path& host){
         Require(channel.Read(incoming,After(5000),session.wake.Get(),process.process.Get()),HostError::HandshakeTimeout,session);
         if(incoming.type!=MessageType::Hello||!MatchesSession(incoming,session.snapshot.pluginId,secret))throw Failure{HostState::ProtocolError,HostError::HandshakeMismatch};
         incoming.type=MessageType::HelloAck;Require(channel.Write(incoming,After(2000),process.process.Get()),HostError::HandshakeTimeout,session);
-        Deadline pongDeadline=Deadline::max(),actionDeadline=Deadline::max(),loadDeadline=Deadline::max(),burst=After(1000);unsigned logs=0,updates=0;
+        Deadline pongDeadline=Deadline::max(),actionDeadline=Deadline::max(),loadDeadline=Deadline::max(),scanDeadline=Deadline::max(),burst=After(1000),subscriptionWindow=After(1000);unsigned logs=0,updates=0,subscriptions=0;
+        std::uint64_t scanSequence=0;bool scanAwaiting=false;Deadline subscriptionDeadline=Deadline::max();
         if(session.load){
             session.Publish(HostState::Loading);Message access{MessageType::CatalogAccess};
-            for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps,CatalogKind::RaidHistory,CatalogKind::Events})if(session.catalogGrants.Allows(kind))access.catalogMask|=1u<<(static_cast<unsigned>(kind)-1);
+            for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps,CatalogKind::RaidHistory,CatalogKind::Events,CatalogKind::RecentScans})if(session.catalogGrants.Allows(kind))access.catalogMask|=1u<<(static_cast<unsigned>(kind)-1);
             if(access.catalogMask)Require(channel.Write(access,After(2000),process.process.Get()),HostError::LoadTimeout,session);
+            if(session.catalogGrants.AllowsPermission("scan.events.subscribe")){
+                Message scanAccess{MessageType::ScanAccess};scanAccess.scanPermission=true;
+                Require(channel.Write(scanAccess,After(2000),process.process.Get()),HostError::LoadTimeout,session);
+            }
             Require(channel.Write(*session.load,After(2000),process.process.Get()),HostError::LoadTimeout,session);loadDeadline=After(5000);
         }
         else session.Publish(HostState::Ready);
@@ -92,6 +98,7 @@ void Run(Session& session,const std::filesystem::path& host){
             bool stop=false,ping=false;std::optional<Message> action;
             {std::lock_guard lock(session.mutex);stop=session.stopping;ping=std::exchange(session.ping,false);action=std::move(session.action);session.action.reset();ResetEvent(session.wake.Get());}
             if(stop){
+                session.scans.Subscribe(false);
                 session.dataAcks.clear();session.dataBudget.Clear();
                 session.Publish(HostState::Stopping);const auto deadline=After(2000);
                 auto result=channel.Write({MessageType::Shutdown},deadline,process.process.Get());
@@ -99,7 +106,7 @@ void Run(Session& session,const std::filesystem::path& host){
                 // 在停止之前排队的 pong/ping 不得误判为关闭确认。
                 // Queued pong/ping before stopping must not be mistaken for shutdown acknowledgement.
                 while(result==IoResult::Complete&&(incoming.type==MessageType::Pong||incoming.type==MessageType::Ping
-                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult||incoming.type==MessageType::DataRequest||incoming.type==MessageType::DataResultAck)))){
+                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult||incoming.type==MessageType::DataRequest||incoming.type==MessageType::DataResultAck||incoming.type==MessageType::ScanSubscribe||incoming.type==MessageType::ScanUnsubscribe||incoming.type==MessageType::ScanEventAck||incoming.type==MessageType::ScanSubscriptionAck)))){
                     if(incoming.type==MessageType::Ping)result=channel.Write({MessageType::Pong},deadline,process.process.Get());
                     if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 }
@@ -110,15 +117,38 @@ void Run(Session& session,const std::filesystem::path& host){
             }
             if(ping){Require(channel.Write({MessageType::Ping},After(2000),process.process.Get()),HostError::PingTimeout,session);pongDeadline=After(3000);}
             if(action){Require(channel.Write(*action,After(2000),process.process.Get()),HostError::ActionTimeout,session);actionDeadline=After(3000);}
+            if(!scanAwaiting&&loadDeadline==Deadline::max())if(auto record=session.scans.Pop()){
+                Message event{MessageType::ScanEvent};event.text=*record;event.sequence=++scanSequence;event.dropped=session.scans.Dropped();
+                Require(channel.Write(event,After(2000),process.process.Get()),HostError::DataTimeout,session);scanAwaiting=true;scanDeadline=After(3000);
+            }
             auto dataDeadline=Deadline::max();for(const auto& [id,deadline]:session.dataAcks)dataDeadline=std::min(dataDeadline,deadline);
-            const auto deadline=std::min({pongDeadline,loadDeadline,actionDeadline,dataDeadline});
+            const auto deadline=std::min({pongDeadline,loadDeadline,actionDeadline,dataDeadline,scanDeadline,subscriptionDeadline});
             const auto result=channel.Read(incoming,deadline,session.wake.Get(),process.process.Get());
             if(result==IoResult::Interrupted)continue;
             if(result==IoResult::Disconnected){
                 if(WaitForSingleObject(process.process.Get(),100)==WAIT_OBJECT_0){DWORD code{};GetExitCodeProcess(process.process.Get(),&code);finalState=code==0?HostState::Exited:HostState::Crashed;finalError=code==0?HostError::None:HostError::Disconnected;break;}
                 throw Failure{HostState::Crashed,HostError::Disconnected};
             }
-            Require(result,dataDeadline!=Deadline::max()&&deadline==dataDeadline?HostError::DataTimeout:deadline==loadDeadline&&loadDeadline!=Deadline::max()?HostError::LoadTimeout:deadline==actionDeadline&&actionDeadline!=Deadline::max()?HostError::ActionTimeout:pongDeadline==Deadline::max()?HostError::FrameTimeout:HostError::PingTimeout,session);
+            Require(result,(dataDeadline!=Deadline::max()&&deadline==dataDeadline)||(scanDeadline!=Deadline::max()&&deadline==scanDeadline)||(subscriptionDeadline!=Deadline::max()&&deadline==subscriptionDeadline)?HostError::DataTimeout:deadline==loadDeadline&&loadDeadline!=Deadline::max()?HostError::LoadTimeout:deadline==actionDeadline&&actionDeadline!=Deadline::max()?HostError::ActionTimeout:pongDeadline==Deadline::max()?HostError::FrameTimeout:HostError::PingTimeout,session);
+            if((incoming.type==MessageType::ScanSubscribe||incoming.type==MessageType::ScanUnsubscribe)&&session.load&&loadDeadline==Deadline::max()){
+                if(std::chrono::steady_clock::now()>=subscriptionWindow){subscriptions=0;subscriptionWindow=After(1000);}
+                if(++subscriptions>32||subscriptionDeadline!=Deadline::max())throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+                const bool allowed=session.catalogGrants.AllowsPermission("scan.events.subscribe");
+                Message reply{MessageType::ScanSubscriptionResult};reply.result=allowed?0:1;reply.subscribed=allowed&&incoming.type==MessageType::ScanSubscribe;
+                {std::lock_guard lock(session.mutex);if(session.stopping)continue;session.scans.Subscribe(reply.subscribed);session.snapshot.scanSubscribed=reply.subscribed;}
+                if(!reply.subscribed){scanAwaiting=false;scanDeadline=Deadline::max();}
+                Require(channel.Write(reply,After(2000),process.process.Get()),HostError::DataTimeout,session);subscriptionDeadline=After(3000);session.Notify();continue;
+            }
+            if(incoming.type==MessageType::ScanSubscriptionAck&&session.load){
+                if(subscriptionDeadline==Deadline::max())throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+                subscriptionDeadline=Deadline::max();continue;
+            }
+            if(incoming.type==MessageType::ScanEventAck&&session.load){
+                if(!scanAwaiting&&!session.scans.Subscribed()&&incoming.sequence<=scanSequence)continue;
+                if(!scanAwaiting||incoming.sequence!=scanSequence)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+                scanAwaiting=false;scanDeadline=Deadline::max();
+                {std::lock_guard lock(session.mutex);if(!session.stopping)++session.snapshot.scanEvents;}session.Notify();continue;
+            }
             if(incoming.type==MessageType::DataRequest&&session.load&&loadDeadline==Deadline::max()){
                 {std::lock_guard lock(session.mutex);if(session.stopping)continue;}
                 // 授权来自当前认证会话，不信任 Host 位掩码；原生插件能破坏 Host 内存但不能借用别的会话。
@@ -169,6 +199,10 @@ struct PluginRuntimeManager::Impl final {
     std::shared_ptr<CatalogPluginService> catalog;
     std::uint64_t nextGeneration{};
     std::map<std::string,std::shared_ptr<Session>,std::less<>> sessions;
+    // 完成路径只读已发布的路由副本，不争用管理器/会话状态锁，不运行插件代码。
+    // Completion reads published routing only, without manager/session-state locks or plugin execution.
+    std::atomic<std::shared_ptr<const std::vector<std::shared_ptr<Session>>>> scanRoutes;
+    void PublishRoutes(){auto routes=std::make_shared<std::vector<std::shared_ptr<Session>>>();for(const auto& [id,session]:sessions)routes->push_back(session);scanRoutes.store(std::move(routes));}
     std::shared_ptr<Session> Find(std::string_view id) const {const auto found=sessions.find(id);return found==sessions.end()?nullptr:found->second;}
     template<class Predicate> bool Wait(std::string_view id,DWORD milliseconds,Predicate predicate) const {
         std::shared_ptr<Session> session;{std::lock_guard lock(mutex);session=Find(id);}if(!session)return false;
@@ -200,10 +234,10 @@ bool PluginRuntimeManager::Ping(std::string_view id){
 }
 bool PluginRuntimeManager::Stop(std::string_view id){
     std::shared_ptr<Session> session;{std::lock_guard lock(impl_->mutex);session=impl_->Find(id);}if(!session)return false;
-    {std::lock_guard stateLock(session->mutex);if(Terminal(session->snapshot.state))return false;session->stopping=true;session->snapshot.pages.clear();session->snapshot.pendingData=0;SetEvent(session->wake.Get());}session->Notify();return true;
+    {std::lock_guard stateLock(session->mutex);if(Terminal(session->snapshot.state))return false;session->stopping=true;session->scans.Subscribe(false);session->snapshot.scanSubscribed=false;session->snapshot.pages.clear();session->snapshot.pendingData=0;SetEvent(session->wake.Get());}session->Notify();return true;
 }
 std::optional<HostSnapshot> PluginRuntimeManager::Snapshot(std::string_view id) const {
-    std::lock_guard lock(impl_->mutex);auto session=impl_->Find(id);if(!session)return std::nullopt;std::lock_guard stateLock(session->mutex);return session->snapshot;
+    std::lock_guard lock(impl_->mutex);auto session=impl_->Find(id);if(!session)return std::nullopt;std::lock_guard stateLock(session->mutex);auto snapshot=session->snapshot;snapshot.pendingScans=session->scans.Pending();snapshot.droppedScans=session->scans.Dropped();return snapshot;
 }
 void PluginRuntimeManager::SetChangeHandler(std::function<void()> handler){std::lock_guard lock(impl_->mutex);impl_->notify=std::move(handler);}
 void PluginRuntimeManager::SetCatalogService(std::shared_ptr<CatalogPluginService> service){std::lock_guard lock(impl_->mutex);impl_->catalog=std::move(service);}
@@ -215,6 +249,16 @@ void PluginRuntimeManager::PublishRaidHistory(std::span<const raid::RaidSession>
 void PluginRuntimeManager::PublishEvents(std::span<const events::EventRecord> events){
     std::shared_ptr<CatalogPluginService> service;{std::lock_guard lock(impl_->mutex);service=impl_->catalog;}
     if(service)service->PublishEvents(events);
+}
+void PluginRuntimeManager::PublishRecentScans(std::span<const data::RecentScanEntry> scans){
+    std::shared_ptr<CatalogPluginService> service;{std::lock_guard lock(impl_->mutex);service=impl_->catalog;}
+    if(service)service->PublishRecentScans(scans);
+}
+void PluginRuntimeManager::NotifyScanCompleted(const data::RecentScanEntry& scan) noexcept {
+    try{
+        auto record=std::make_shared<const std::string>(ScanRecord(scan));const auto routes=impl_->scanRoutes.load();
+        if(routes)for(const auto& session:*routes)if(session->scans.Push(record))SetEvent(session->wake.Get());
+    }catch(const std::exception&){} // 通知失败不得影响正常扫描/持久化。 Notification failure never affects normal scanning/persistence.
 }
 std::vector<HostSnapshot> PluginRuntimeManager::Snapshots() const {
     std::vector<HostSnapshot> result;std::lock_guard lock(impl_->mutex);
@@ -237,7 +281,8 @@ bool PluginRuntimeManager::StartNative(const PluginRecord& record,const PluginSt
     Message load{MessageType::LoadPlugin};const auto directory=std::filesystem::absolute(record.directory).u8string();load.directory.assign(directory.begin(),directory.end());load.entry=record.manifest->runtime->entry;
     load.pagePermission=std::find(record.manifest->requestedPermissions.begin(),record.manifest->requestedPermissions.end(),"ui.page.register")!=record.manifest->requestedPermissions.end();session->load=std::move(load);
     auto* owned=session.get();impl_->sessions.emplace(id,std::move(session));
-    try{owned->worker=std::jthread([owned,host=impl_->host]{Run(*owned,host);});}catch(const std::exception&){impl_->sessions.erase(id);return false;}return true;
+    impl_->PublishRoutes();
+    try{owned->worker=std::jthread([owned,host=impl_->host]{Run(*owned,host);});}catch(const std::exception&){impl_->sessions.erase(id);impl_->PublishRoutes();return false;}return true;
 }
 bool PluginRuntimeManager::Action(std::string_view id,std::uint64_t generation,std::string_view pageId,std::string_view actionId){
     if(!ValidLocalId(pageId)||!ValidLocalId(actionId))return false;

@@ -94,7 +94,7 @@ void CatalogPluginService::PublishEvents(std::span<const events::EventRecord> sn
 void CatalogPluginService::PublishRecentScans(std::span<const data::RecentScanEntry> scans){
     if(scans.size()>data::RecentScanStore::kMaxEntries)throw std::runtime_error("scan snapshot capacity");
     auto rows=std::make_shared<std::vector<Record>>();rows->reserve(scans.size());
-    for(const auto& scan:scans){auto text=ScanRecord(scan);rows->push_back({std::to_string(scan.scanId),text,std::move(text)});}
+    for(const auto& scan:scans)try{auto text=ScanRecord(scan);rows->push_back({std::to_string(scan.scanId),text,std::move(text)});}catch(const std::runtime_error&){}
     // Recent Scans 的现有顺序（最新追加在前）不变；Get 使用真正持久化身份。
     // Preserve Recent Scans order (newest append first); Get uses the real persisted identity.
     scans_.store(std::move(rows));

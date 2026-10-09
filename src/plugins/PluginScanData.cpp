@@ -11,6 +11,8 @@ bool ValidScanId(std::string_view id){
     return parsed.ec==std::errc{}&&parsed.ptr==id.data()+id.size()&&value!=0;
 }
 std::string ScanRecord(const data::RecentScanEntry& entry){
+    if(!entry.scanId||entry.scannedAtUnixMs<=0||entry.stableItemId.empty()||entry.stableItemId.size()>128
+        ||entry.canonicalName.empty()||entry.canonicalName.size()>4096||(entry.localSessionId&&(entry.localSessionId->empty()||entry.localSessionId->size()>256)))throw std::runtime_error("scan projection bounds");
     // 持久化 uint64 身份以十进制字符串传输，避免 JSON/脚本数字丢失精度；不是时间戳身份。
     // Persisted uint64 identity travels as decimal text, avoiding JSON/script precision loss; not timestamp identity.
     using raid::json::Quote;

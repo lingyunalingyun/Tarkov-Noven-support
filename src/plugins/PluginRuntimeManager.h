@@ -25,6 +25,10 @@ struct HostSnapshot final {
     std::string lastLog;
     std::uint64_t dataResults{};
     std::size_t pendingData{};
+    bool scanSubscribed{};
+    std::uint64_t scanEvents{};
+    std::size_t pendingScans{};
+    std::uint32_t droppedScans{};
 };
 bool Terminal(HostState state);
 // 会话所有权留在 Noven；发现不启动会话，独立进程不是 OS 安全沙箱。
@@ -50,6 +54,10 @@ public:
     void SetCatalogLocale(std::string_view locale);
     void PublishRaidHistory(std::span<const raid::RaidSession> completed);
     void PublishEvents(std::span<const events::EventRecord> events);
+    void PublishRecentScans(std::span<const data::RecentScanEntry> scans);
+    // 仅现有成功扫描完成入口调用；复制安全数据并尝试入队，不等待插件/管道。
+    // Only the existing successful scan-completion entry calls this; copy safe data and try enqueue, never await plugins/pipes.
+    void NotifyScanCompleted(const data::RecentScanEntry& scan) noexcept;
     std::vector<HostSnapshot> Snapshots() const;
     bool Ping(std::string_view pluginId);
     bool Stop(std::string_view pluginId);

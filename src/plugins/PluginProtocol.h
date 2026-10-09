@@ -12,7 +12,7 @@ namespace noven::plugins::ipc {
 // Transport is separate from manifest/API/ABI; bounded message set, no arbitrary calls or native UI pointers.
 inline constexpr std::int64_t TransportProtocolVersion=1;
 inline constexpr std::size_t MaximumFrameBytes=64*1024;
-enum class MessageType { Hello,HelloAck,Ping,Pong,Shutdown,ShutdownAck,ProtocolError,LoadPlugin,LoadPluginResult,UiRegisterPage,UiPublishPage,UiAction,UiActionResult,Log,CatalogAccess,DataRequest,DataResult,DataResultAck };
+enum class MessageType { Hello,HelloAck,Ping,Pong,Shutdown,ShutdownAck,ProtocolError,LoadPlugin,LoadPluginResult,UiRegisterPage,UiPublishPage,UiAction,UiActionResult,Log,CatalogAccess,DataRequest,DataResult,DataResultAck,ScanAccess,ScanSubscribe,ScanUnsubscribe,ScanSubscriptionResult,ScanEvent,ScanEventAck,ScanSubscriptionAck };
 struct Message final {
     MessageType type{MessageType::Ping};
     std::int64_t protocolVersion{TransportProtocolVersion};
@@ -23,6 +23,9 @@ struct Message final {
     unsigned catalogMask{};
     plugins::DataRequest dataRequest;
     plugins::DataResult dataResult;
+    bool scanPermission{},subscribed{};
+    std::uint64_t sequence{};
+    std::uint32_t dropped{};
 };
 bool ValidSecret(std::string_view value);
 Message ParseMessage(std::string_view payload);

@@ -1,4 +1,5 @@
 #include "plugins/PluginProtocol.h"
+#include "plugins/PluginScanData.h"
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
@@ -40,12 +41,25 @@ int main(){
     Message log{MessageType::Log};log.text="Scoped log";Check(ParseMessage(Serialize(log)).text==log.text,"log carries no spoofed plugin identity");
     for(const auto bad:{R"({"type":"uiRegisterPage","pageId":"builtin.plugins","title":"Spoof"})",R"({"type":"uiAction","pageId":"dashboard","actionId":"../x"})",R"({"type":"log","text":"x","pluginId":"com.other.test"})",R"({"type":"loadPluginResult","result":7})",R"({"type":"loadPlugin","manifestVersion":1,"apiVersion":1,"abiVersion":1,"directory":"C:\\x","entry":"plugin.dll","pagePermission":true})"})Reject([&]{ParseMessage(bad);});
     load.entry="../plugin.dll";Reject([&]{Serialize(load);});
+    Message scan{MessageType::ScanEvent};noven::data::RecentScanEntry entry;entry.scanId=1;entry.scannedAtUnixMs=100;entry.stableItemId="exact";entry.canonicalName="Item";
+    scan.text=noven::plugins::ScanRecord(entry);scan.sequence=1;scan.dropped=8;
+    const auto event=ParseMessage(Serialize(scan));Check(event.sequence==1&&event.dropped==8&&event.text==scan.text,"bounded safe scan event round trip");
+    scan.sequence=0;Reject([&]{Serialize(scan);});scan.sequence=1;scan.text="{}";Reject([&]{Serialize(scan);});
+    for(const auto type:{MessageType::ScanSubscribe,MessageType::ScanUnsubscribe,MessageType::ScanSubscriptionAck})Check(ParseMessage(Serialize(Message{type})).type==type,"scoped subscription commands");
+    for(const auto bad:{R"({"type":"scanSubscribe","pluginId":"com.other.test"})",R"({"type":"scanEventAck","sequence":0})",R"({"type":"scanEventAck","sequence":"1"})",R"({"type":"scan.trigger"})",R"({"type":"scan.capture"})",R"({"type":"screen.read"})"})Reject([&]{ParseMessage(bad);});
     page.document=R"({"schemaVersion":1,"blocks":[{"type":"html","text":"x"}]})";Reject([&]{Serialize(page);});
     std::cout<<"Bounded plugin protocol PASS\n";
     Message access{MessageType::CatalogAccess};access.catalogMask=7;
     Check(ParseMessage(Serialize(access)).catalogMask==7,"catalog grant configuration");
     access.catalogMask=31;Check(ParseMessage(Serialize(access)).catalogMask==31,"five isolated data permissions");
-    access.catalogMask=32;Reject([&]{Serialize(access);});
+    access.catalogMask=63;Check(ParseMessage(Serialize(access)).catalogMask==63,"six isolated data permissions");
+    access.catalogMask=64;Reject([&]{Serialize(access);});
+    Message scanRequest{MessageType::DataRequest};scanRequest.dataRequest={1,noven::plugins::CatalogKind::RecentScans,noven::plugins::DataOperation::Get,"18446744073709551615",0,0};
+    Check(ParseMessage(Serialize(scanRequest)).dataRequest.stableId=="18446744073709551615","persisted uint64 scan identity wire round trip");
+    scanRequest.dataRequest.stableId="18446744073709551616";Reject([&]{Serialize(scanRequest);});
+    Message scanAccess{MessageType::ScanAccess};scanAccess.scanPermission=true;Check(ParseMessage(Serialize(scanAccess)).scanPermission,"separate subscribe grant");
+    Message subscription{MessageType::ScanSubscriptionResult};subscription.subscribed=true;Check(ParseMessage(Serialize(subscription)).subscribed,"explicit activation result");
+    subscription.result=1;Reject([&]{Serialize(subscription);});
     Message request{MessageType::DataRequest};request.dataRequest.requestId=99;
     for(const auto kind:{noven::plugins::CatalogKind::Items,noven::plugins::CatalogKind::Tasks,noven::plugins::CatalogKind::Maps,noven::plugins::CatalogKind::RaidHistory,noven::plugins::CatalogKind::Events}){
         request.dataRequest.catalog=kind;request.dataRequest.operation=noven::plugins::DataOperation::List;request.dataRequest.limit=32;
