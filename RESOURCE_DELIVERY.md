@@ -25,4 +25,6 @@ AppPaths provides user-root-relative `resources/manifests`, `resources/maps`, `r
 
 ## Release boundary / 发布边界
 
+ResourceSelection computes totals and selections by stable resource ID without changing runtime state. ResourceOnboarding gates display on Installed mode only, reads at most 4 KiB, and stores `schemaVersion: 1, completed: true` in `resources/manifests/onboarding.json`. Both Later and successful selection should call Complete. Atomic temporary-file flush/replacement preserves previous state on write failure; corrupt state is not treated as completed. Development/Test modes never automatically request onboarding. This model does not itself display a dialog or enqueue downloads.
+
 Moving map assets out of Setup does not establish redistribution permission. Existing provenance and unresolved rights remain applicable. This foundation alone does not remove maps from Setup, provide first-run UI, download/install resources, or alter uninstall/data retention behavior; those require subsequent verified integration units.
