@@ -15,7 +15,7 @@ int wmain(int argc,wchar_t** argv) try {
     Check(argc==2,"source root required");const std::filesystem::path root=argv[1];auto abi=Read(root/"sdk/noven_plugin_abi_v1.h");
     const auto extension=abi.substr(abi.find("#define NOVEN_STORAGE_SCHEMA_VERSION"),abi.find("#if defined(NOVEN_PLUGIN_SCAN_IMPLEMENTATION)")-abi.find("#define NOVEN_STORAGE_SCHEMA_VERSION"));
     for(const auto forbidden:{"path","filename","HANDLE","HWND","CreateFile","fopen","directory","plugin_id"})Check(extension.find(forbidden)==extension.npos,"logical storage ABI has no filesystem or namespace selector");
-    for(const auto permission:{"filesystem.arbitrary","process.access","network.http","capture_frame.read","raid.active.read","raw_logs.read"})Check(!SupportedPermission(permission),"privileged permissions remain unsupported");
+    for(const auto permission:{"filesystem.arbitrary","process.access","capture_frame.read","raid.active.read","raw_logs.read"})Check(!SupportedPermission(permission),"privileged permissions remain unsupported");
     const auto demo=Read(root/"examples/storage-plugin/storage_plugin.c");for(const auto forbidden:{"CreateFile","fopen","fwrite","WinHttp","CreateProcess","OpenProcess","LoadLibrary","getenv"})Check(demo.find(forbidden)==demo.npos,"demo uses only logical Host API");
     const auto worker=Read(root/"src/plugins/PluginRuntimeManager.cpp");Check(worker.find("Query(session.snapshot.pluginId,session.catalogGrants,incoming.storageRequest)")!=worker.npos,"core namespace/grants derive from authenticated session");
     const auto now=std::chrono::steady_clock::now();DataRequestBudget budget;for(unsigned i=1;i<=16;++i)Check(budget.Begin(i,now)==RequestAdmission::Accepted,"bounded outstanding admission");

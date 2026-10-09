@@ -1,4 +1,5 @@
 #include "plugins/PluginManifest.h"
+#include "plugins/PluginHttpOrigin.h"
 #include "raid/RaidJson.h"
 #include <algorithm>
 #include <stdexcept>
@@ -122,6 +123,14 @@ ManifestResult ParseManifest(std::string_view text) {
             if(kind->second.type!=raid::json::Value::Type::String||kind->second.text!="native-dll")return fail("plugins.diag.field","runtime.kind");
             if(entry->second.type!=raid::json::Value::Type::String||!ValidRuntimeEntry(entry->second.text))return fail("plugins.diag.field","runtime.entry");
             manifest.runtime=NativeRuntime{kind->second.text,entry->second.text};
+            if(const auto network=root.object.find("network");network!=root.object.end()){
+                if(network->second.type!=raid::json::Value::Type::Object)return fail("plugins.diag.field","network");
+                const auto origins=network->second.object.find("origins");
+                if(origins==network->second.object.end()||origins->second.type!=raid::json::Value::Type::Array||origins->second.array.empty()||origins->second.array.size()>32)return fail("plugins.diag.field","network.origins");
+                for(const auto& origin:origins->second.array){if(origin.type!=raid::json::Value::Type::String)return fail("plugins.diag.field","network.origins");const auto canonical=CanonicalHttpOrigin(origin.text);if(!canonical)return fail("plugins.diag.field","network.origins");manifest.networkOrigins.push_back(*canonical);}
+                std::sort(manifest.networkOrigins.begin(),manifest.networkOrigins.end());manifest.networkOrigins.erase(std::unique(manifest.networkOrigins.begin(),manifest.networkOrigins.end()),manifest.networkOrigins.end());
+            }
+            if(std::find(manifest.requestedPermissions.begin(),manifest.requestedPermissions.end(),"network.http")!=manifest.requestedPermissions.end()&&!ValidHttpOrigins(manifest.networkOrigins))return fail("plugins.diag.required","network.origins");
         }
         result.state=manifest.apiVersion==1?PluginState::Valid:PluginState::IncompatibleApi;
         if(result.state==PluginState::IncompatibleApi)result.diagnostics.push_back({"plugins.diag.api_version","apiVersion"});

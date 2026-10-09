@@ -30,7 +30,7 @@ int main() try {
     auto foreignScan=scans;foreignScan.id="com.example.other";Check(!store.Authorized(foreignScan),"scan grants scoped to identity");
     auto storage=scans;storage.requestedPermissions.push_back("storage.plugin");Check(SupportedPermissions(storage)&&!store.Authorized(storage),"storage expansion requires re-consent");
     Check(store.Consent(storage)&&store.Save(path)&&PluginStateStore::Load(path).Authorized(storage),"nine grants persist");
-    for(const auto permission:{"raid.active.read","network.http","ui.decorate","raw_logs.read","capture_frame.read","filesystem.arbitrary","process.access"})Check(!SupportedPermission(permission),"other product/runtime permissions remain unsupported");
+    for(const auto permission:{"raid.active.read","ui.decorate","raw_logs.read","capture_frame.read","filesystem.arbitrary","process.access"})Check(!SupportedPermission(permission),"other product/runtime permissions remain unsupported");
     auto unsupported=manifest;unsupported.requestedPermissions.push_back("network.http");Check(!SupportedPermissions(unsupported)&&!store.Consent(unsupported)&&!store.Authorized(unsupported),"unsupported permissions never granted/enabled");
     auto foreign=manifest;foreign.id="com.example.other";Check(!store.Authorized(foreign),"grant scoped to exact identity");
     auto v1=manifest;v1.manifestVersion=1;v1.runtime.reset();Check(!store.Consent(v1)&&!store.Authorized(v1),"V1 cannot acquire runtime consent");

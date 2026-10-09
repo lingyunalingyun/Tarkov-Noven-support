@@ -270,6 +270,12 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenPluginHttpContractTests tests/PluginHttpContractTests.cpp)
+    target_link_libraries(NovenPluginHttpContractTests PRIVATE NovenPluginRuntime)
+    if(MSVC)
+        target_compile_options(NovenPluginHttpContractTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME plugin_http_contract COMMAND NovenPluginHttpContractTests)
     set(NOVEN_STORAGE_FIXTURES)
     foreach(storage_mode RANGE 0 5)
         add_library(NovenStorageFixture${storage_mode} SHARED tests/StoragePluginFixture.c)

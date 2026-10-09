@@ -220,6 +220,17 @@ Physical format is a Noven implementation detail, not a plugin protocol: Core st
 存储跨 Disable/Enable、Host/Noven 重启和版本更新保留；清单暂时消失不删除。未来卸载流程再定义删除策略，本阶段无隐藏清理/clear。它不是安全凭据保险箱，无静态加密或 Credential Manager 语义，不建议存密码/API 密钥。
 Storage survives Disable/Enable, Host/Noven restart and version updates. Missing manifests do not delete it; a future uninstall flow will define removal. No hidden cleanup/clear in this phase. It is not a secure secret vault, provides no at-rest encryption/Credential Manager semantics and should not hold passwords/API secrets.
 
+## Managed HTTP origin contract v1
+
+托管网络只约束 Noven 提供的 API，不是原生插件网络沙箱或防火墙。原生 DLL 仍可自行调用 Windows 网络 API。V1 永远只读元数据；V2 请求 `network.http` 必须声明 `network: {"origins": ["https://api.example.com"]}`。既有无网络权限的 V2 不需修改。
+Managed network consent controls only Noven's API, not a native-plugin network sandbox/firewall. A native DLL can independently use Windows networking APIs. V1 remains metadata-only; V2 requesting `network.http` must declare `network: {"origins": ["https://api.example.com"]}`. Existing V2 plugins without network permission remain valid unchanged.
+
+最多 32 个、每个 512 字节来源。仅 ASCII HTTPS DNS 主机名，无路径、查询、片段、userinfo、通配符、IP 字面量或本地域名；scheme/host 大小写及默认 443 归一化，去重排序，端口参与身份。当前采用严格 URL 子集，不支持 IDN 原文（可用有效 punycode）。请求的路径不参与来源授权。运行时还必须验证解析地址。
+At most 32 origins, each 512 bytes. ASCII HTTPS DNS hostnames only: no paths, queries, fragments, userinfo, wildcards, IP literals or local names. Scheme/host casing and default port 443 canonicalize; duplicates collapse into a sorted set, with port part of identity. A strict URL subset excludes raw IDNs (valid punycode may be used). Request paths do not determine authorization. Runtime must additionally validate resolved addresses.
+
+授权保存规范来源集合和权限集合。新增来源/权限须重新确认；删除来源不增加权限。旧授权文件继续有效，但无来源的旧 `network.http` 状态不可执行。授权不表示插件可信，存储 API 不是凭据保险箱。
+Consent stores canonical origin and permission sets. New origins/permissions require re-consent; removal adds no privilege. Old state remains compatible, but old `network.http` grants without origins cannot execute. Consent does not establish trust and storage is not a credential vault.
+
 ### Storage Demo
 
 `-DNOVEN_BUILD_PLUGIN_EXAMPLES=ON` 构建 `NovenStoragePlugin`。将 noven-storage.dll 和 examples/storage-plugin/manifest.json 放入 `<exe>/plugins/com.example.noven-storage/`，新发现默认 Disabled。明确授权后 Increment & Save/Reload/List Keys/Delete 演示异步 SET/GET/LIST/DELETE；禁用重启后自动 GET 已保存计数。示例不调用文件/网络/游戏 API；编译 DLL 和运行数据不提交。

@@ -14,7 +14,7 @@ int wmain(int argc,wchar_t** argv) try {
     Check(argc==2,"source root required");const std::filesystem::path root=argv[1];
     const auto abi=Read(root/"sdk/noven_plugin_abi_v1.h");
     for(const auto forbidden:{"HWND","ID2D1RenderTarget","ID3D","capture_frame","screen_coordinates","ocr_tensor","scan_trigger","scan_start","capture_buffer"})Check(abi.find(forbidden)==abi.npos,"no native UI/capture/trigger ABI");
-    for(const auto permission:{"scan.start","scan.trigger","scan.capture","capture_frame.read","ocr.raw.read","screen.read","raid.active.read","raw_logs.read","process.access","network.http"}){
+    for(const auto permission:{"scan.start","scan.trigger","scan.capture","capture_frame.read","ocr.raw.read","screen.read","raid.active.read","raw_logs.read","process.access"}){
         Check(!SupportedPermission(permission),"no privileged scan/game capability activated");
         bool rejected=false;try{ipc::ParseMessage("{\"type\":\""+std::string(permission)+"\"}");}catch(const std::exception&){rejected=true;}Check(rejected,"no trigger/capture IPC route");
     }
