@@ -17,3 +17,6 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/MAP_ATTRIBUTION.md" DESTINATION 
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/assets/maps/interchange/SOURCE.md" DESTINATION assets/maps/interchange COMPONENT Runtime)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/assets/maps/icons/SOURCE.md" "${CMAKE_CURRENT_SOURCE_DIR}/assets/maps/icons/LICENSE.tarkov-dev.txt" DESTINATION assets/maps/icons COMPONENT Runtime)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnxruntime/LICENSE" DESTINATION docs RENAME LICENSE.onnxruntime.txt COMPONENT Runtime)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnxruntime/LICENSE" "${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnxruntime/ThirdPartyNotices.txt" DESTINATION licenses/onnxruntime COMPONENT Runtime)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/licenses/paddleocr/LICENSE-2.0.txt" DESTINATION licenses/paddleocr COMPONENT Runtime)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/licenses/README.md" DESTINATION licenses COMPONENT Runtime)

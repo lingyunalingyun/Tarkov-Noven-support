@@ -18,7 +18,20 @@ try {
     foreach ($file in @('onnxruntime.dll','noven-installed.layout','NOTICE.md','docs/MAP_ATTRIBUTION.md','docs/LICENSE.onnxruntime.txt','assets/maps/interchange/SOURCE.md','assets/maps/icons/SOURCE.md','assets/maps/icons/LICENSE.tarkov-dev.txt','assets/models/ppocrv5_mobile_det.onnx','assets/models/ppocrv5_mobile_rec.onnx','assets/models/ppocrv5_mobile_rec_dict.txt','assets/data/items_catalog.tsv','assets/data/task_tasks.tsv','assets/data/map_maps.tsv','assets/data/hideout_stations.tsv','assets/i18n/zh-CN.json','assets/i18n/en-US.json')) {
         $path=Join-Path $root $file;New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null;[IO.File]::WriteAllText($path,'bounded test placeholder')
     }
+    foreach ($file in @('licenses/README.md','licenses/onnxruntime/LICENSE','licenses/onnxruntime/ThirdPartyNotices.txt','licenses/paddleocr/LICENSE-2.0.txt')) {
+        $path=Join-Path $root $file;New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+        $source=if($file.StartsWith('licenses/onnxruntime/')) { Join-Path $SourceRoot ('third_party/onnxruntime/' + (Split-Path -Leaf $file)) } else { Join-Path $SourceRoot $file }
+        Copy-Item -LiteralPath $source -Destination $path
+    }
+    Check ((Get-FileHash -LiteralPath (Join-Path $root 'licenses/onnxruntime/ThirdPartyNotices.txt')).Hash -eq '143764B952FDB1A7C69CE653BFBA74A7744D6A8A573BFB73E235FBA356C83DE3') 'Exact ONNX v1.30.0 notice'
+    Check ((Get-FileHash -LiteralPath (Join-Path $root 'licenses/paddleocr/LICENSE-2.0.txt')).Hash -eq 'CFC7749B96F63BD31C3C42B5C471BF756814053E847C10F3EB003417BC523D30') 'Complete official Apache 2.0 license'
     & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version
+    $notice=Join-Path $root 'licenses/onnxruntime/ThirdPartyNotices.txt'
+    Rename-Item -LiteralPath $notice -NewName 'notice.saved'
+    $denied=$false
+    try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null } catch { $denied=$true }
+    Check $denied 'Missing legal notice rejected'
+    Rename-Item -LiteralPath (Join-Path $root 'licenses/onnxruntime/notice.saved') -NewName 'ThirdPartyNotices.txt'
     foreach ($bad in @('demo.dll','extra.pdb','test.exe','CMakeCache.txt','plugins/test/manifest.json','data/settings.json','logs/run.log','assets/data/plugin-registry-review.json')) {
         $path=Join-Path $root $bad;New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null;[IO.File]::WriteAllText($path,'unexpected');$denied=$false
         try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null } catch { $denied=$true }

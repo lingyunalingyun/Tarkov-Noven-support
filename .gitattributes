@@ -10,3 +10,8 @@ assets/data/map*.tsv text eol=lf
 assets/data/map*.json text eol=lf
 assets/data/pve/map*.tsv text eol=lf
 assets/data/pve/map*.json text eol=lf
+# 上游法律原文及固定哈希在 Windows checkout 后仍保持 LF。
+# Keep upstream legal text and pinned hashes stable on Windows checkout.
+third_party/onnxruntime/LICENSE text eol=lf
+third_party/onnxruntime/ThirdPartyNotices.txt text eol=lf
+licenses/**/*.txt text eol=lf

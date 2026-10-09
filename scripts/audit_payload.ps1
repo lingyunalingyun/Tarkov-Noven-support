@@ -4,12 +4,15 @@ $payloadRoot = (Resolve-Path -LiteralPath $Payload).Path
 if ((Get-Item -LiteralPath $payloadRoot -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Unsafe payload root.' }
 $required = @('NovenTarkovSupport.exe','NovenPluginHost.exe','onnxruntime.dll','noven-installed.layout','NOTICE.md','docs/MAP_ATTRIBUTION.md','docs/LICENSE.onnxruntime.txt','assets/maps/interchange/SOURCE.md','assets/maps/icons/SOURCE.md','assets/maps/icons/LICENSE.tarkov-dev.txt','assets/models/ppocrv5_mobile_det.onnx','assets/models/ppocrv5_mobile_rec.onnx','assets/models/ppocrv5_mobile_rec_dict.txt','assets/data/items_catalog.tsv','assets/data/task_tasks.tsv','assets/data/map_maps.tsv','assets/data/hideout_stations.tsv','assets/i18n/zh-CN.json','assets/i18n/en-US.json')
 foreach ($name in $required) { if (-not (Test-Path -LiteralPath (Join-Path $payloadRoot $name) -PathType Leaf)) { throw "Missing runtime payload: $name" } }
+$legal = @('licenses/README.md','licenses/onnxruntime/LICENSE','licenses/onnxruntime/ThirdPartyNotices.txt','licenses/paddleocr/LICENSE-2.0.txt')
+foreach ($name in $legal) { if (-not (Test-Path -LiteralPath (Join-Path $payloadRoot $name) -PathType Leaf)) { throw "Missing legal file: $name" } }
+$required += $legal
 $files = @(Get-ChildItem -LiteralPath $payloadRoot -Recurse -Force)
 foreach ($file in $files) {
     if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Reparse payload: $($file.Name)" }
     $relative = $file.FullName.Substring($payloadRoot.Length + 1).Replace('\','/')
     if ($file.PSIsContainer) {
-        if ($relative -notmatch '^(docs|assets|assets/(data|maps|models|i18n)(/[a-zA-Z0-9_.-]+)*)$') { throw "Unexpected payload directory: $relative" }
+        if ($relative -notmatch '^(docs|licenses|licenses/(onnxruntime|paddleocr)|assets|assets/(data|maps|models|i18n)(/[a-zA-Z0-9_.-]+)*)$') { throw "Unexpected payload directory: $relative" }
         continue
     }
     if ($file.Length -eq 0) { throw "Empty runtime file: $relative" }
