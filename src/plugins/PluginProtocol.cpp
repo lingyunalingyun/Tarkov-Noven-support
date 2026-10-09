@@ -9,7 +9,7 @@
 
 namespace noven::plugins::ipc {
 namespace {
-constexpr std::array<std::string_view,25> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log","catalogAccess","dataRequest","dataResult","dataResultAck","scanAccess","scanSubscribe","scanUnsubscribe","scanSubscriptionResult","scanEvent","scanEventAck","scanSubscriptionAck"};
+constexpr std::array<std::string_view,29> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log","catalogAccess","dataRequest","dataResult","dataResultAck","scanAccess","scanSubscribe","scanUnsubscribe","scanSubscriptionResult","scanEvent","scanEventAck","scanSubscriptionAck","storageAccess","storageRequest","storageResult","storageResultAck"};
 [[noreturn]] void Invalid(){throw std::runtime_error("plugin protocol violation");}
 bool IsHandshake(MessageType type){return type==MessageType::Hello||type==MessageType::HelloAck;}
 std::uint32_t Unsigned(const raid::json::Value& value){
@@ -54,6 +54,22 @@ Message ParseMessage(std::string_view payload){
     }
     std::size_t fields=IsHandshake(message.type)?4u:1u;
     switch(message.type) {
+    case MessageType::StorageAccess:message.storagePermission=object.At("granted").Bool();fields=2;break;
+    case MessageType::StorageRequest:{
+        if(object.At("schemaVersion").Int()!=StorageSchemaVersion)Invalid();auto& request=message.storageRequest;
+        request.requestId=RequestId(object.At("requestId"));request.operation=static_cast<StorageOperation>(Unsigned(object.At("operation")));
+        request.key=object.At("key").String();request.value=DecodeStorageBytes(object.At("value").String());
+        request.offset=Unsigned(object.At("offset"));request.limit=Unsigned(object.At("limit"));
+        if(!ValidStorageRequest(request))Invalid();fields=8;break;
+    }
+    case MessageType::StorageResult:{
+        if(object.At("schemaVersion").Int()!=StorageSchemaVersion)Invalid();auto& result=message.storageResult;
+        result.requestId=RequestId(object.At("requestId"));result.status=static_cast<StorageStatus>(Unsigned(object.At("status")));
+        result.value=DecodeStorageBytes(object.At("value").String());const auto& keys=object.At("keys").Array();if(keys.size()>MaximumStorageList)Invalid();
+        for(const auto& key:keys)result.keys.push_back(key.String());result.total=Unsigned(object.At("total"));result.nextOffset=Unsigned(object.At("nextOffset"));
+        if(!ValidStorageResult(result))Invalid();fields=8;break;
+    }
+    case MessageType::StorageResultAck:message.storageResult.requestId=RequestId(object.At("requestId"));fields=2;break;
     case MessageType::CatalogAccess:
         message.catalogMask=Unsigned(object.At("mask"));if(message.catalogMask>63)Invalid();fields=2;break;
     case MessageType::ScanAccess:
@@ -112,6 +128,19 @@ std::string Serialize(const Message& message){
         text+=",\"protocolVersion\":"+std::to_string(message.protocolVersion)+",\"pluginId\":"+raid::json::Quote(message.pluginId)+",\"session\":"+raid::json::Quote(message.session);
     }
     switch(message.type) {
+    case MessageType::StorageAccess:text+=",\"granted\":"+std::string(message.storagePermission?"true":"false");break;
+    case MessageType::StorageRequest:{const auto& request=message.storageRequest;
+        text+=",\"schemaVersion\":1,\"requestId\":"+std::to_string(request.requestId)+",\"operation\":"+std::to_string(static_cast<unsigned>(request.operation))
+            +",\"key\":"+raid::json::Quote(request.key)+",\"value\":"+raid::json::Quote(EncodeStorageBytes(request.value))
+            +",\"offset\":"+std::to_string(request.offset)+",\"limit\":"+std::to_string(request.limit);break;
+    }
+    case MessageType::StorageResult:{const auto& result=message.storageResult;
+        text+=",\"schemaVersion\":1,\"requestId\":"+std::to_string(result.requestId)+",\"status\":"+std::to_string(static_cast<unsigned>(result.status))
+            +",\"value\":"+raid::json::Quote(EncodeStorageBytes(result.value))+",\"keys\":[";
+        for(std::size_t i=0;i<result.keys.size();++i){if(i)text+=',';text+=raid::json::Quote(result.keys[i]);}
+        text+="],\"total\":"+std::to_string(result.total)+",\"nextOffset\":"+std::to_string(result.nextOffset);break;
+    }
+    case MessageType::StorageResultAck:text+=",\"requestId\":"+std::to_string(message.storageResult.requestId);break;
     case MessageType::CatalogAccess:text+=",\"mask\":"+std::to_string(message.catalogMask);break;
     case MessageType::ScanAccess:text+=",\"granted\":"+std::string(message.scanPermission?"true":"false");break;
     case MessageType::ScanSubscriptionResult:text+=",\"subscribed\":"+std::string(message.subscribed?"true":"false")+",\"result\":"+std::to_string(message.result);break;

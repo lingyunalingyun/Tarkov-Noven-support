@@ -17,6 +17,7 @@
   "plugins.permission.catalog.events.read": "只读活动目录",
   "plugins.permission.scan.history.read": "只读最近扫描历史",
   "plugins.permission.scan.events.subscribe": "订阅扫描完成通知",
+  "plugins.permission.storage.plugin": "存储插件私有数据",
   "plugins.unsupported": "不支持 · 不可授予",
   "plugins.enable": "启用",
   "plugins.disable": "禁用",

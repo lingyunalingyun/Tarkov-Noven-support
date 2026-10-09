@@ -10,7 +10,7 @@ std::string_view Slice(NovenUtf8V1 text,std::size_t maximum) {
 NovenUtf8V1 Borrow(const std::string& text){return {text.data(),static_cast<std::uint32_t>(text.size())};}
 }
 NativePluginHost::~NativePluginHost(){Shutdown();if(library_)FreeLibrary(library_);}
-void NativePluginHost::Shutdown(){accepting_=false;scanCommand_.reset();scanSubscribed_=scanAwaiting_=false;dataQueue_.clear();dataBudget_.Clear();if(initialized_){initialized_=false;instance_.shutdown(instance_.context);}}
+void NativePluginHost::Shutdown(){accepting_=false;scanCommand_.reset();scanSubscribed_=scanAwaiting_=false;dataQueue_.clear();dataBudget_.Clear();storageQueue_.clear();storageBudget_.Clear();if(initialized_){initialized_=false;instance_.shutdown(instance_.context);}}
 int32_t NativePluginHost::Send(ipc::Message message) {
     if(GetCurrentThreadId()!=thread_||!channel_)return NOVEN_ERROR_STATE;
     return channel_->Write(message,ipc::After(2000),parent_)==ipc::IoResult::Complete?NOVEN_OK:NOVEN_ERROR_TRANSPORT;
@@ -55,6 +55,19 @@ int32_t NOVEN_CALL NativePluginHost::RequestData(void* context,const NovenDataRe
     if(admission==RequestAdmission::Limited)return NOVEN_ERROR_LIMIT;
     self.dataQueue_.push_back(std::move(request));return NOVEN_OK;
 }catch(const std::exception&){return NOVEN_ERROR_ARGUMENT;}
+int32_t NOVEN_CALL NativePluginHost::RequestStorage(void* context,const NovenStorageRequestV1* input) try {
+    auto& self=*static_cast<NativePluginHost*>(context);
+    if(GetCurrentThreadId()!=self.thread_||!self.accepting_)return NOVEN_ERROR_STATE;
+    if(!self.storagePermission_)return NOVEN_ERROR_PERMISSION;
+    if(!input||input->struct_size<sizeof(NovenStorageRequestV1)||input->value.length>MaximumStorageValue||(!input->value.data&&input->value.length))return NOVEN_ERROR_ARGUMENT;
+    StorageRequest request;request.requestId=input->request_id;request.operation=static_cast<StorageOperation>(input->operation);request.offset=input->offset;request.limit=input->limit;
+    if(input->key_utf8.length)request.key=Slice(input->key_utf8,128);
+    if(input->value.length)request.value.assign(reinterpret_cast<const char*>(input->value.data),input->value.length);
+    if(!ValidStorageRequest(request))return NOVEN_ERROR_ARGUMENT;
+    const auto admission=self.storageBudget_.Begin(request.requestId);
+    if(admission==RequestAdmission::Duplicate)return NOVEN_ERROR_STATE;if(admission==RequestAdmission::Limited)return NOVEN_ERROR_LIMIT;
+    self.storageQueue_.push_back(std::move(request));return NOVEN_OK;
+}catch(const std::exception&){return NOVEN_ERROR_ARGUMENT;}
 bool NativePluginHost::FlushData(){
     // 插件回调已返回才写 IPC；请求等待绝不阻塞插件回调或主 UI 线程。
     // Write IPC only after plugin callbacks return, never waiting inside callbacks or the main UI thread.
@@ -64,6 +77,10 @@ bool NativePluginHost::FlushData(){
     }
     while(!dataQueue_.empty()){
         ipc::Message message{ipc::MessageType::DataRequest};message.dataRequest=std::move(dataQueue_.front());dataQueue_.pop_front();
+        if(Send(std::move(message))!=NOVEN_OK)return false;
+    }
+    while(!storageQueue_.empty()){
+        ipc::Message message{ipc::MessageType::StorageRequest};message.storageRequest=std::move(storageQueue_.front());storageQueue_.pop_front();
         if(Send(std::move(message))!=NOVEN_OK)return false;
     }
     return true;
@@ -103,10 +120,28 @@ int NativePluginHost::Load(const ipc::Message& message) {
         if(scanInitialize(&scanHost_,&scanInstance_)!=NOVEN_OK)return 6;
         if(scanInstance_.struct_size<sizeof(scanInstance_)||scanInstance_.schema_version!=NOVEN_SCAN_SCHEMA_VERSION||!scanInstance_.on_subscription_result||!scanInstance_.on_scan_event)return 5;
     }
+    const auto storageInitialize=reinterpret_cast<NovenInitializeStorageFn>(GetProcAddress(library_,"NovenPlugin_InitializeStorageV1"));
+    if(storageInitialize){
+        storageInstance_={sizeof(NovenStorageInstanceV1),NOVEN_STORAGE_SCHEMA_VERSION,nullptr};
+        if(storageInitialize(&storageHost_,&storageInstance_)!=NOVEN_OK)return 6;
+        if(storageInstance_.struct_size<sizeof(storageInstance_)||storageInstance_.schema_version!=NOVEN_STORAGE_SCHEMA_VERSION||!storageInstance_.on_storage_result)return 5;
+    }
     return 0;
 }
 bool NativePluginHost::Message(const ipc::Message& message,ipc::Channel& channel,HANDLE parent) {
     channel_=&channel;parent_=parent;
+    if(message.type==ipc::MessageType::StorageAccess){
+        if(attempted_||storageConfigured_)return false;storageConfigured_=true;storagePermission_=message.storagePermission;return true;
+    }
+    if(message.type==ipc::MessageType::StorageResult){
+        if(!initialized_||!accepting_||!storageInstance_.on_storage_result||!storageBudget_.Complete(message.storageResult.requestId))return false;
+        const auto& value=message.storageResult;std::vector<NovenUtf8V1> keys;for(const auto& key:value.keys)keys.push_back(Borrow(key));
+        const NovenStorageResultV1 result{sizeof(NovenStorageResultV1),static_cast<std::uint32_t>(value.status),value.requestId,
+            {reinterpret_cast<const uint8_t*>(value.value.data()),static_cast<std::uint32_t>(value.value.size())},keys.data(),static_cast<std::uint32_t>(keys.size()),value.total,value.nextOffset};
+        storageInstance_.on_storage_result(instance_.context,&result);
+        ipc::Message ack{ipc::MessageType::StorageResultAck};ack.storageResult.requestId=value.requestId;
+        return Send(ack)==NOVEN_OK&&FlushData();
+    }
     if(message.type==ipc::MessageType::ScanAccess){
         if(attempted_||scanConfigured_)return false;scanConfigured_=true;scanPermission_=message.scanPermission;return true;
     }

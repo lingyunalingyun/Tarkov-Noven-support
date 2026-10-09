@@ -7,7 +7,7 @@ namespace noven::plugins {
 namespace {constexpr std::size_t MaximumStateBytes=256*1024;}
 bool SupportedPermission(std::string_view permission){
     return permission=="ui.page.register"||permission=="catalog.items.read"||permission=="catalog.tasks.read"||permission=="catalog.maps.read"
-        ||permission=="raid.history.read"||permission=="catalog.events.read"||permission=="scan.history.read"||permission=="scan.events.subscribe";
+        ||permission=="raid.history.read"||permission=="catalog.events.read"||permission=="scan.history.read"||permission=="scan.events.subscribe"||permission=="storage.plugin";
 }
 bool SupportedPermissions(const PluginManifest& manifest) {
     return std::all_of(manifest.requestedPermissions.begin(),manifest.requestedPermissions.end(),SupportedPermission);
@@ -44,7 +44,7 @@ PluginStateStore PluginStateStore::Decode(std::string_view text) {
         const auto& entries=root.At("plugins").Array();if(entries.size()>128)throw std::runtime_error("plugin state capacity");
         for(const auto& entry:entries) {
             const auto id=entry.At("id").String();PluginIntent intent;intent.enabled=entry.At("enabled").Bool();
-            if(!ValidPluginId(id)||entry.object.size()!=3||entry.At("grantedPermissions").Array().size()>8)throw std::runtime_error("plugin state entry");
+            if(!ValidPluginId(id)||entry.object.size()!=3||entry.At("grantedPermissions").Array().size()>9)throw std::runtime_error("plugin state entry");
             for(const auto& value:entry.At("grantedPermissions").Array()){
                 const auto& permission=value.String();
                 if(!SupportedPermission(permission)||std::find(intent.grantedPermissions.begin(),intent.grantedPermissions.end(),permission)!=intent.grantedPermissions.end())throw std::runtime_error("unsupported/duplicate saved grant");

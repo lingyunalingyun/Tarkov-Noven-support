@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 2,
+  "id": "com.example.noven-storage",
+  "name": "Storage Demo",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "author": "Noven example",
+  "description": "Private logical storage counter. Disable and restart to verify persistence. Not a secret vault.",
+  "permissions": ["ui.page.register", "storage.plugin"],
+  "runtime": {"kind": "native-dll", "entry": "noven-storage.dll"}
+}

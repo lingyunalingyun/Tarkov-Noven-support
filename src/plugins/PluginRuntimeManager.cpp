@@ -1,6 +1,7 @@
 #include "plugins/PluginRuntimeManager.h"
 #include "plugins/PluginPipe.h"
 #include "plugins/PluginNativePath.h"
+#include "plugins/PluginStorageService.h"
 #include <algorithm>
 #include <condition_variable>
 #include <map>
@@ -31,6 +32,9 @@ struct Session final {
     CatalogGrants catalogGrants;
     DataRequestBudget dataBudget{32};
     std::map<std::uint64_t,Deadline> dataAcks;
+    std::shared_ptr<PluginStorageService> storage;
+    DataRequestBudget storageBudget{32};
+    std::map<std::uint64_t,Deadline> storageAcks;
     ScanEventQueue scans;
     // 最后声明，先 join 后释放事件、锁和快照；没有 detached 线程。
     // Declared last so it joins before events/mutex/snapshot are destroyed; no detached threads.
@@ -91,6 +95,10 @@ void Run(Session& session,const std::filesystem::path& host){
                 Message scanAccess{MessageType::ScanAccess};scanAccess.scanPermission=true;
                 Require(channel.Write(scanAccess,After(2000),process.process.Get()),HostError::LoadTimeout,session);
             }
+            if(session.catalogGrants.AllowsPermission("storage.plugin")){
+                Message storageAccess{MessageType::StorageAccess};storageAccess.storagePermission=true;
+                Require(channel.Write(storageAccess,After(2000),process.process.Get()),HostError::LoadTimeout,session);
+            }
             Require(channel.Write(*session.load,After(2000),process.process.Get()),HostError::LoadTimeout,session);loadDeadline=After(5000);
         }
         else session.Publish(HostState::Ready);
@@ -100,13 +108,14 @@ void Run(Session& session,const std::filesystem::path& host){
             if(stop){
                 session.scans.Subscribe(false);
                 session.dataAcks.clear();session.dataBudget.Clear();
+                session.storageAcks.clear();session.storageBudget.Clear();
                 session.Publish(HostState::Stopping);const auto deadline=After(2000);
                 auto result=channel.Write({MessageType::Shutdown},deadline,process.process.Get());
                 if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 // 在停止之前排队的 pong/ping 不得误判为关闭确认。
                 // Queued pong/ping before stopping must not be mistaken for shutdown acknowledgement.
                 while(result==IoResult::Complete&&(incoming.type==MessageType::Pong||incoming.type==MessageType::Ping
-                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult||incoming.type==MessageType::DataRequest||incoming.type==MessageType::DataResultAck||incoming.type==MessageType::ScanSubscribe||incoming.type==MessageType::ScanUnsubscribe||incoming.type==MessageType::ScanEventAck||incoming.type==MessageType::ScanSubscriptionAck)))){
+                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult||incoming.type==MessageType::DataRequest||incoming.type==MessageType::DataResultAck||incoming.type==MessageType::ScanSubscribe||incoming.type==MessageType::ScanUnsubscribe||incoming.type==MessageType::ScanEventAck||incoming.type==MessageType::ScanSubscriptionAck||incoming.type==MessageType::StorageRequest||incoming.type==MessageType::StorageResultAck)))){
                     if(incoming.type==MessageType::Ping)result=channel.Write({MessageType::Pong},deadline,process.process.Get());
                     if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 }
@@ -122,6 +131,7 @@ void Run(Session& session,const std::filesystem::path& host){
                 Require(channel.Write(event,After(2000),process.process.Get()),HostError::DataTimeout,session);scanAwaiting=true;scanDeadline=After(3000);
             }
             auto dataDeadline=Deadline::max();for(const auto& [id,deadline]:session.dataAcks)dataDeadline=std::min(dataDeadline,deadline);
+            for(const auto& [id,deadline]:session.storageAcks)dataDeadline=std::min(dataDeadline,deadline);
             const auto deadline=std::min({pongDeadline,loadDeadline,actionDeadline,dataDeadline,scanDeadline,subscriptionDeadline});
             const auto result=channel.Read(incoming,deadline,session.wake.Get(),process.process.Get());
             if(result==IoResult::Interrupted)continue;
@@ -162,6 +172,18 @@ void Run(Session& session,const std::filesystem::path& host){
                 session.dataAcks.emplace(incoming.dataRequest.requestId,After(3000));
                 {std::lock_guard lock(session.mutex);if(!session.stopping)session.snapshot.pendingData=session.dataAcks.size();}session.Notify();continue;
             }
+            if(incoming.type==MessageType::StorageRequest&&session.load){
+                if(loadDeadline!=Deadline::max()||session.storageBudget.Begin(incoming.storageRequest.requestId)!=RequestAdmission::Accepted)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+                Message reply{MessageType::StorageResult};
+                reply.storageResult=session.storage->Query(session.snapshot.pluginId,session.catalogGrants,incoming.storageRequest);
+                {std::lock_guard lock(session.mutex);if(session.stopping){session.storageBudget.Complete(incoming.storageRequest.requestId);continue;}}
+                Require(channel.Write(reply,After(2000),process.process.Get()),HostError::DataTimeout,session);
+                session.storageAcks.emplace(incoming.storageRequest.requestId,After(3000));continue;
+            }
+            if(incoming.type==MessageType::StorageResultAck&&session.load){
+                if(!session.storageAcks.erase(incoming.storageResult.requestId)||!session.storageBudget.Complete(incoming.storageResult.requestId))throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+                continue;
+            }
             if(incoming.type==MessageType::DataResultAck&&session.load){
                 if(!session.dataAcks.erase(incoming.dataResult.requestId)||!session.dataBudget.Complete(incoming.dataResult.requestId))throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
                 {std::lock_guard lock(session.mutex);if(!session.stopping){++session.snapshot.dataResults;session.snapshot.pendingData=session.dataAcks.size();}}session.Notify();continue;
@@ -188,15 +210,16 @@ void Run(Session& session,const std::filesystem::path& host){
     // Publish terminal state only after child/handle cleanup; failures do not affect other sessions or auto-restart.
     pipe.Reset();job.Reset();
     if(process.process&&WaitForSingleObject(process.process.Get(),2000)!=WAIT_OBJECT_0){TerminateProcess(process.process.Get(),1);WaitForSingleObject(process.process.Get(),2000);finalState=HostState::Crashed;finalError=HostError::ShutdownTimeout;}
-    process.process.Reset();session.nativeFile.reset();session.dataAcks.clear();session.dataBudget.Clear();session.Publish(finalState,finalError);
+    process.process.Reset();session.nativeFile.reset();session.dataAcks.clear();session.dataBudget.Clear();session.storageAcks.clear();session.storageBudget.Clear();session.Publish(finalState,finalError);
 }
 }
 struct PluginRuntimeManager::Impl final {
-    explicit Impl(std::filesystem::path directory):host(std::filesystem::absolute(std::move(directory))/L"NovenPluginHost.exe"){}
+    explicit Impl(std::filesystem::path directory):host(std::filesystem::absolute(std::move(directory))/L"NovenPluginHost.exe"),storage(std::make_shared<PluginStorageService>(host.parent_path()/L"data")){}
     std::filesystem::path host;
     mutable std::mutex mutex;
     std::function<void()> notify;
     std::shared_ptr<CatalogPluginService> catalog;
+    std::shared_ptr<PluginStorageService> storage;
     std::uint64_t nextGeneration{};
     std::map<std::string,std::shared_ptr<Session>,std::less<>> sessions;
     // 完成路径只读已发布的路由副本，不争用管理器/会话状态锁，不运行插件代码。
@@ -276,7 +299,7 @@ bool PluginRuntimeManager::StartNative(const PluginRecord& record,const PluginSt
     if(impl_->sessions.size()>=16)return false;
     auto session=std::make_shared<Session>();if(!session->wake)return false;
     session->notify=impl_->notify;session->nativeFile=std::move(file);session->snapshot.pluginId=id;session->snapshot.state=HostState::Starting;
-    session->catalog=impl_->catalog;session->catalogGrants={true,record.manifest->requestedPermissions,grants.Intent(id).grantedPermissions};
+    session->catalog=impl_->catalog;session->storage=impl_->storage;session->catalogGrants={true,record.manifest->requestedPermissions,grants.Intent(id).grantedPermissions};
     session->snapshot.generation=++impl_->nextGeneration;session->snapshot.startedAt=std::chrono::steady_clock::now();
     Message load{MessageType::LoadPlugin};const auto directory=std::filesystem::absolute(record.directory).u8string();load.directory.assign(directory.begin(),directory.end());load.entry=record.manifest->runtime->entry;
     load.pagePermission=std::find(record.manifest->requestedPermissions.begin(),record.manifest->requestedPermissions.end(),"ui.page.register")!=record.manifest->requestedPermissions.end();session->load=std::move(load);

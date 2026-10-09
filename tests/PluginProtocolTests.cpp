@@ -88,4 +88,11 @@ int main(){
     const auto dataFrame=Frame(Serialize(result));FrameDecoder dataDecoder;unsigned dataCount=0;
     for(const auto byte:dataFrame)dataDecoder.Feed(std::span(&byte,1),[&](auto payload){ParseMessage(payload);++dataCount;});
     Check(dataCount==1&&dataDecoder.Complete(),"catalog frame split at every byte");
+    Message storage{MessageType::StorageRequest};storage.storageRequest={1,noven::plugins::StorageOperation::Set,"中文",std::string(32768,'\xff')};
+    Check(Serialize(storage).size()<MaximumFrameBytes&&ParseMessage(Serialize(storage)).storageRequest.value==storage.storageRequest.value,"bounded maximum opaque storage frame");
+    Message stored{MessageType::StorageResult};stored.storageResult.requestId=1;stored.storageResult.value=std::string("a\0\xff",3);
+    Check(ParseMessage(Serialize(stored)).storageResult.value==stored.storageResult.value,"binary storage response exact");
+    stored.storageResult.value.clear();stored.storageResult.keys={"a","中文"};stored.storageResult.total=2;stored.storageResult.nextOffset=2;
+    Check(ParseMessage(Serialize(stored)).storageResult.keys==stored.storageResult.keys,"logical keys only");
+    for(const auto bad:{R"({"type":"storageRequest","schemaVersion":1,"requestId":1,"operation":1,"key":"settings","value":"","offset":0,"limit":0,"pluginId":"com.other.test"})",R"({"type":"storageRequest","schemaVersion":1,"requestId":1,"operation":2,"key":"../x","value":"","offset":0,"limit":0})",R"({"type":"storageResultAck","requestId":0})"})Reject([&]{ParseMessage(bad);});
 }

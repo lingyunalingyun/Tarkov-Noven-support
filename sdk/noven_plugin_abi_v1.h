@@ -140,6 +140,51 @@ typedef struct NovenScanInstanceV1 {
     void (NOVEN_CALL *on_scan_event)(void*, const NovenScanEventV1*);
 } NovenScanInstanceV1;
 typedef int32_t (NOVEN_CALL *NovenInitializeScanFn)(const NovenScanHostApiV1*, NovenScanInstanceV1*);
+/* 独立可选存储扩展；不改变既有表。键不是路径，值为不透明字节，非凭据保险箱。
+ * Optional independent storage extension preserving all old tables. Logical keys, opaque bytes, not a secret vault.
+ * request 只在回调线程复制并入队；结果切片/键数组仅在回调期间有效。使用基础 instance.context。
+ * Requests copy/enqueue on the callback thread; result slices/key arrays are borrowed for the callback, using base context. */
+#define NOVEN_STORAGE_SCHEMA_VERSION 1u
+#define NOVEN_STORAGE_GET 1u
+#define NOVEN_STORAGE_SET 2u
+#define NOVEN_STORAGE_DELETE 3u
+#define NOVEN_STORAGE_LIST 4u
+#define NOVEN_STORAGE_OK 0u
+#define NOVEN_STORAGE_PERMISSION_DENIED 1u
+#define NOVEN_STORAGE_NOT_FOUND 2u
+#define NOVEN_STORAGE_INVALID_REQUEST 3u
+#define NOVEN_STORAGE_QUOTA 4u
+#define NOVEN_STORAGE_CORRUPT 5u
+#define NOVEN_STORAGE_IO_ERROR 6u
+#define NOVEN_STORAGE_UNAVAILABLE 7u
+typedef struct NovenBytesV1 {const uint8_t* data;uint32_t length;} NovenBytesV1;
+typedef struct NovenStorageRequestV1 {
+    uint32_t struct_size,operation;
+    uint64_t request_id;
+    NovenUtf8V1 key_utf8;
+    NovenBytesV1 value;
+    uint32_t offset,limit;
+} NovenStorageRequestV1;
+typedef struct NovenStorageResultV1 {
+    uint32_t struct_size,status;
+    uint64_t request_id;
+    NovenBytesV1 value;
+    const NovenUtf8V1* keys;
+    uint32_t key_count,total,next_offset;
+} NovenStorageResultV1;
+typedef struct NovenStorageHostApiV1 {
+    uint32_t struct_size,schema_version;
+    void* context;
+    int32_t (NOVEN_CALL *storage_request)(void*,const NovenStorageRequestV1*);
+} NovenStorageHostApiV1;
+typedef struct NovenStorageInstanceV1 {
+    uint32_t struct_size,schema_version;
+    void (NOVEN_CALL *on_storage_result)(void*,const NovenStorageResultV1*);
+} NovenStorageInstanceV1;
+typedef int32_t (NOVEN_CALL *NovenInitializeStorageFn)(const NovenStorageHostApiV1*,NovenStorageInstanceV1*);
+#if defined(NOVEN_PLUGIN_STORAGE_IMPLEMENTATION)
+NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeStorageV1(const NovenStorageHostApiV1*,NovenStorageInstanceV1*);
+#endif
 #if defined(NOVEN_PLUGIN_SCAN_IMPLEMENTATION)
 NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeScanV1(const NovenScanHostApiV1*, NovenScanInstanceV1*);
 #endif

@@ -17,6 +17,7 @@
   "plugins.permission.catalog.events.read": "Read event catalog",
   "plugins.permission.scan.history.read": "Read recent scan history",
   "plugins.permission.scan.events.subscribe": "Subscribe to completed scan events",
+  "plugins.permission.storage.plugin": "Store private plugin data",
   "plugins.unsupported": "Unsupported · Cannot grant",
   "plugins.enable": "Enable",
   "plugins.disable": "Disable",
