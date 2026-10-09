@@ -79,9 +79,11 @@ bool NativePluginHost::FlushData(){
         ipc::Message message{ipc::MessageType::DataRequest};message.dataRequest=std::move(dataQueue_.front());dataQueue_.pop_front();
         if(Send(std::move(message))!=NOVEN_OK)return false;
     }
-    while(!storageQueue_.empty()){
+    // 大 SET 与大 GET 结果不能双端同时填满管道；存储每次只发一条，其余有界排队。
+    // Avoid duplex saturation with large SET/GET frames; send one storage request, retaining a bounded queue.
+    if(!storageInFlight_&&!storageQueue_.empty()){
         ipc::Message message{ipc::MessageType::StorageRequest};message.storageRequest=std::move(storageQueue_.front());storageQueue_.pop_front();
-        if(Send(std::move(message))!=NOVEN_OK)return false;
+        if(Send(std::move(message))!=NOVEN_OK)return false;storageInFlight_=true;
     }
     return true;
 }
@@ -139,6 +141,7 @@ bool NativePluginHost::Message(const ipc::Message& message,ipc::Channel& channel
         const NovenStorageResultV1 result{sizeof(NovenStorageResultV1),static_cast<std::uint32_t>(value.status),value.requestId,
             {reinterpret_cast<const uint8_t*>(value.value.data()),static_cast<std::uint32_t>(value.value.size())},keys.data(),static_cast<std::uint32_t>(keys.size()),value.total,value.nextOffset};
         storageInstance_.on_storage_result(instance_.context,&result);
+        storageInFlight_=false;
         ipc::Message ack{ipc::MessageType::StorageResultAck};ack.storageResult.requestId=value.requestId;
         return Send(ack)==NOVEN_OK&&FlushData();
     }

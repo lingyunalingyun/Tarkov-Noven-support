@@ -38,11 +38,6 @@ static int32_t NOVEN_CALL Action(void* context,NovenUtf8V1 page,NovenUtf8V1 acti
 static void NOVEN_CALL Result(void* context,const NovenStorageResultV1* result){
     State* state=(State*)context;unsigned i;if(result->struct_size<sizeof(*result)||result->request_id!=state->pending)return;
     state->pending=0;state->status=(int32_t)result->status;
-#if defined(NOVEN_STORAGE_TEST_HANG)
-    for(;;){} /* 测试挂起回调隔离。 Test callback-hang isolation. */
-#elif defined(NOVEN_STORAGE_TEST_CRASH)
-    abort();
-#endif
     if(result->status==NOVEN_STORAGE_OK){
         if(state->operation==NOVEN_STORAGE_SET)++state->counter;
         if(state->operation==NOVEN_STORAGE_DELETE)state->counter=0;

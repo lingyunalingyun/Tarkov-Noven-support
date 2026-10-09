@@ -1,7 +1,5 @@
 #include "plugins/PluginRuntimeController.h"
 #include "plugins/PluginPipe.h"
-#include "ui/PluginPages.h"
-#include "ui/BuiltinPages.h"
 #include <iostream>
 #include <stdexcept>
 using namespace noven::plugins;

@@ -40,7 +40,7 @@ private:
     NovenScanInstanceV1 scanInstance_{};
     NovenStorageHostApiV1 storageHost_{sizeof(NovenStorageHostApiV1),NOVEN_STORAGE_SCHEMA_VERSION,this,&RequestStorage};
     NovenStorageInstanceV1 storageInstance_{};
-    bool storageConfigured_{},storagePermission_{};
+    bool storageConfigured_{},storagePermission_{},storageInFlight_{};
     DataRequestBudget storageBudget_;
     std::deque<StorageRequest> storageQueue_;
     std::optional<bool> scanCommand_;
