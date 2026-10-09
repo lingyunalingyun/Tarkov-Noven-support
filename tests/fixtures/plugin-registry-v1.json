@@ -1,0 +1,34 @@
+{
+  "registryVersion": 1,
+  "plugins": [
+    {
+      "id": "com.example.registry-test",
+      "name": "Registry Test Fixture (not a production listing)",
+      "author": "Test author",
+      "summary": "Offline test data only",
+      "description": "Read-only fixture. Never install or execute this record.",
+      "source": "https://github.com/example/registry-test",
+      "license": "MIT",
+      "categories": ["Utilities"],
+      "tags": ["fixture"],
+      "status": "unreviewed",
+      "current": {
+        "version": "1.2.0-beta.1+fixture",
+        "manifestVersion": 2,
+        "apiVersion": 1,
+        "permissions": ["network.http", "ui.page.register"],
+        "network": {"origins": ["https://api.example.com"]},
+        "sourceRef": "test-tag",
+        "releaseUrl": "https://github.com/example/registry-test/releases/tag/test-tag",
+        "package": {
+          "url": "https://github.com/example/registry-test/releases/download/test-tag/fixture.zip",
+          "asset": "fixture.zip",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "size": 1024
+        }
+      },
+      "entry": "evil.exe",
+      "command": "unknown fields are never interpreted"
+    }
+  ]
+}
