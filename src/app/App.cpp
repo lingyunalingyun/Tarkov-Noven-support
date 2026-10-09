@@ -252,7 +252,7 @@ HWND App::CreateMainWindow(HINSTANCE instance) const {
     return CreateWindowExW(
         0,
         kWindowClassName,
-        L"Noven Tarkov Support",
+        L"Noven Tarkov Support " NOVEN_PRODUCT_VERSION,
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,

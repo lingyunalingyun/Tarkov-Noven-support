@@ -4,6 +4,7 @@ project(NovenTarkovSupport
     VERSION 0.1.0
     LANGUAGES C CXX
 )
+enable_language(RC)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Noven Tarkov Support currently targets Windows only.")
@@ -200,6 +201,7 @@ target_include_directories(NovenTarkovSupport PRIVATE
 )
 
 target_compile_definitions(NovenTarkovSupport PRIVATE
+    NOVEN_PRODUCT_VERSION=L"${PROJECT_VERSION}"
     UNICODE
     _UNICODE
     WIN32_LEAN_AND_MEAN
@@ -299,6 +301,12 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 )
 
 include(CTest)
+foreach(runtime IN ITEMS NovenTarkovSupport NovenPluginHost)
+    set(NOVEN_FILE_DESCRIPTION "${runtime}")
+    set(NOVEN_ORIGINAL_FILENAME "${runtime}.exe")
+    configure_file(cmake/Version.rc.in "${CMAKE_CURRENT_BINARY_DIR}/${runtime}.rc" @ONLY)
+    target_sources(${runtime} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/${runtime}.rc")
+endforeach()
 option(NOVEN_MARKETPLACE_REVIEW_FIXTURE "Inject explicitly labeled offline Registry fixture for manual review only" OFF)
 if(NOVEN_MARKETPLACE_REVIEW_FIXTURE)
     if(NOT BUILD_TESTING OR NOVEN_PLUGIN_REGISTRY_URL)
@@ -306,7 +314,16 @@ if(NOVEN_MARKETPLACE_REVIEW_FIXTURE)
     endif()
     target_compile_definitions(NovenTarkovSupport PRIVATE NOVEN_MARKETPLACE_REVIEW_FIXTURE=L"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/plugin-registry-review.json")
 endif()
+include(cmake/InstallRuntime.cmake)
 if(BUILD_TESTING)
+    add_executable(NovenRuntimePayloadTests tests/RuntimePayloadTests.cpp src/ocr/OnnxRuntimeSession.cpp src/ocr/TextDetector.cpp src/ocr/TextRecognizer.cpp src/data/ItemCatalog.cpp src/common/DebugLog.cpp)
+    target_include_directories(NovenRuntimePayloadTests PRIVATE src "${ONNXRUNTIME_INCLUDE_DIR}")
+    target_link_libraries(NovenRuntimePayloadTests PRIVATE NovenPaths)
+    if(MSVC)
+        target_compile_options(NovenRuntimePayloadTests PRIVATE /W4 /utf-8 /EHsc)
+    endif()
+    add_test(NAME runtime_payload COMMAND NovenRuntimePayloadTests "$<TARGET_FILE_DIR:NovenTarkovSupport>")
+    add_test(NAME packaging_contract COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/PackagingContractTests.ps1" -SourceRoot "${CMAKE_CURRENT_SOURCE_DIR}" -MainExe "$<TARGET_FILE:NovenTarkovSupport>" -HostExe "$<TARGET_FILE:NovenPluginHost>")
     add_executable(NovenAppPathsTests tests/AppPathsTests.cpp)
     target_link_libraries(NovenAppPathsTests PRIVATE NovenPaths)
     if(MSVC)

@@ -7,6 +7,7 @@ int main() try {
     const auto root=std::filesystem::temp_directory_path()/("noven-paths-"+std::to_string(GetCurrentProcessId()));
     std::filesystem::create_directories(root/"program");
     const auto check=[](bool ok){if(!ok)throw std::runtime_error("path assertion");};
+    check(AppPaths::Resolve(noven::common::ProgramDirectory(),[]()->std::filesystem::path{throw std::runtime_error("tests must never query real Known Folder");}).mode==noven::common::PathMode::Development);
     const auto installed=AppPaths::Installed(root/"program",root/"local");
     check(installed.userRoot==root/L"local"/L"Noven Tarkov Support"&&installed.Plugins()==installed.userRoot/L"plugins"&&installed.Assets()==root/L"program"/L"assets");
     const auto test=AppPaths::Test(root/"program",root/"test");check(test.Data()==root/"test"/"user"/"data");
