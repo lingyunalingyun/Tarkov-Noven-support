@@ -41,6 +41,7 @@ Testing/
 /data/eft-log-root.txt
 /data/settings.json*
 /data/plugin-state.json*
+/data/plugin-storage/
 /data/item-images/
 /data/price-history/
 /data/map-assets/
