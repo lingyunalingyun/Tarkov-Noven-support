@@ -1,6 +1,7 @@
 #pragma once
 #include "plugins/PluginNativePath.h"
 #include "plugins/PluginUiDocument.h"
+#include "plugins/PluginHttpService.h"
 #include "noven_plugin_abi_v1.h"
 #include <map>
 #include <deque>
@@ -10,16 +11,19 @@ namespace noven::plugins {
 // Linked into Host only, never the main application; process isolation is not an OS sandbox.
 class NativePluginHost final {
 public:
-    explicit NativePluginHost(std::filesystem::path executableDirectory):root_(std::move(executableDirectory)/L"plugins"){}
+    explicit NativePluginHost(std::filesystem::path executableDirectory,std::unique_ptr<IPluginHttpBackend> testBackend={}):root_(std::move(executableDirectory)/L"plugins"),testBackend_(std::move(testBackend)){}
     ~NativePluginHost();
     bool Message(const ipc::Message& message,ipc::Channel& channel,HANDLE parent);
     void Shutdown();
+    HANDLE Wake() const {return http_?http_->Wake():nullptr;}
+    bool Pump();
 private:
     static int32_t NOVEN_CALL Log(void*,NovenUtf8V1);
     static int32_t NOVEN_CALL Register(void*,NovenUtf8V1,NovenUtf8V1);
     static int32_t NOVEN_CALL Publish(void*,NovenUtf8V1,NovenUtf8V1);
     static int32_t NOVEN_CALL RequestData(void*,const NovenDataRequestV1*);
     static int32_t NOVEN_CALL RequestStorage(void*,const NovenStorageRequestV1*);
+    static int32_t NOVEN_CALL RequestHttp(void*,const NovenHttpRequestV1*);
     static int32_t NOVEN_CALL Subscribe(void*);
     static int32_t NOVEN_CALL Unsubscribe(void*);
     int32_t SetSubscription(bool enabled);
@@ -40,6 +44,11 @@ private:
     NovenScanInstanceV1 scanInstance_{};
     NovenStorageHostApiV1 storageHost_{sizeof(NovenStorageHostApiV1),NOVEN_STORAGE_SCHEMA_VERSION,this,&RequestStorage};
     NovenStorageInstanceV1 storageInstance_{};
+    NovenHttpHostApiV1 httpHost_{sizeof(NovenHttpHostApiV1),NOVEN_HTTP_SCHEMA_VERSION,this,&RequestHttp};
+    NovenHttpInstanceV1 httpInstance_{};
+    std::unique_ptr<PluginHttpService> http_;
+    std::unique_ptr<IPluginHttpBackend> testBackend_;
+    bool httpConfigured_{};
     bool storageConfigured_{},storagePermission_{},storageInFlight_{};
     DataRequestBudget storageBudget_;
     std::deque<StorageRequest> storageQueue_;

@@ -44,6 +44,11 @@ std::wstring PluginPermissionText(std::string_view permission,bool supported){
     return text+L" · "+Tr(supported?"plugins.supported":"plugins.unsupported");
 }
 std::wstring PluginsPage::MarketplaceText() const {return Tr("plugins.marketplace_offline");}
+std::wstring PluginNetworkText(const plugins::PluginManifest& manifest){
+    if(manifest.manifestVersion!=2||std::find(manifest.requestedPermissions.begin(),manifest.requestedPermissions.end(),"network.http")==manifest.requestedPermissions.end())return {};
+    std::wstring text=Tr("plugins.network_origins");for(const auto& origin:manifest.networkOrigins)text+=L"\n• "+Wide(origin);
+    return text+L"\n"+Tr("plugins.network_notice");
+}
 std::array<TabBarItem<PluginCenterTab>,2> PluginsPage::Tabs() const {return {{{PluginCenterTab::Marketplace,marketplaceLabel_},{PluginCenterTab::MyPlugins,myLabel_}}};}
 void PluginsPage::SelectTab(PluginCenterTab tab){
     if(tab==tab_)return;outgoingTab_=tab_;tab_=tab;underlineFrom_=underline_;tabProgress_=0;categoryOpen_=false;CancelDrag();search_.Blur();pressedControl_.reset();pressedTab_.reset();
@@ -80,6 +85,7 @@ std::vector<PluginPresentation> PresentPlugins(const plugins::PluginSnapshot& sn
             row.body+=Tr("plugins.permissions")+L"\n";
             if(manifest.requestedPermissions.empty())row.body+=Tr("plugins.no_permissions")+L"\n";
             for(const auto& permission:manifest.requestedPermissions)row.body+=PluginPermissionText(permission,manifest.manifestVersion==2&&plugins::SupportedPermission(permission))+L"\n";
+            const auto network=PluginNetworkText(manifest);if(!network.empty())row.body+=network+L"\n";
             row.body+=Tr(manifest.manifestVersion==1?"plugins.metadata_only":"plugins.native_unverified");
             if(manifest.manifestVersion==2){
                 row.body+=L"\n"+Tr("plugins.notice");

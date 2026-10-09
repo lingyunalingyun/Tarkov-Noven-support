@@ -1,0 +1,12 @@
+{
+  "manifestVersion": 2,
+  "id": "com.example.noven-http",
+  "name": "HTTP Demo",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "author": "Noven example",
+  "description": "Explicit button-driven managed HTTPS. No automatic requests. Native plugins are not OS-sandboxed.",
+  "permissions": ["ui.page.register", "network.http"],
+  "network": {"origins": ["https://httpbin.org"]},
+  "runtime": {"kind": "native-dll", "entry": "noven-http.dll"}
+}

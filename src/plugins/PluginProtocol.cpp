@@ -1,5 +1,6 @@
 #include "plugins/PluginProtocol.h"
 #include "plugins/PluginManifest.h"
+#include "plugins/PluginHttpOrigin.h"
 #include "plugins/PluginUiDocument.h"
 #include "plugins/PluginScanData.h"
 #include "raid/RaidJson.h"
@@ -9,7 +10,7 @@
 
 namespace noven::plugins::ipc {
 namespace {
-constexpr std::array<std::string_view,29> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log","catalogAccess","dataRequest","dataResult","dataResultAck","scanAccess","scanSubscribe","scanUnsubscribe","scanSubscriptionResult","scanEvent","scanEventAck","scanSubscriptionAck","storageAccess","storageRequest","storageResult","storageResultAck"};
+constexpr std::array<std::string_view,32> Names{"hello","helloAck","ping","pong","shutdown","shutdownAck","protocolError","loadPlugin","loadPluginResult","uiRegisterPage","uiPublishPage","uiAction","uiActionResult","log","catalogAccess","dataRequest","dataResult","dataResultAck","scanAccess","scanSubscribe","scanUnsubscribe","scanSubscriptionResult","scanEvent","scanEventAck","scanSubscriptionAck","storageAccess","storageRequest","storageResult","storageResultAck","httpAccess","httpCallbackBegin","httpCallbackEnd"};
 [[noreturn]] void Invalid(){throw std::runtime_error("plugin protocol violation");}
 bool IsHandshake(MessageType type){return type==MessageType::Hello||type==MessageType::HelloAck;}
 std::uint32_t Unsigned(const raid::json::Value& value){
@@ -54,6 +55,11 @@ Message ParseMessage(std::string_view payload){
     }
     std::size_t fields=IsHandshake(message.type)?4u:1u;
     switch(message.type) {
+    case MessageType::HttpAccess:
+        if(object.At("schemaVersion").Int()!=1||object.At("origins").Array().size()>32)Invalid();
+        for(const auto& origin:object.At("origins").Array())message.httpOrigins.push_back(origin.String());
+        if(!ValidHttpOrigins(message.httpOrigins))Invalid();fields=3;break;
+    case MessageType::HttpCallbackBegin:case MessageType::HttpCallbackEnd:message.httpRequestId=RequestId(object.At("requestId"));fields=2;break;
     case MessageType::StorageAccess:message.storagePermission=object.At("granted").Bool();fields=2;break;
     case MessageType::StorageRequest:{
         if(object.At("schemaVersion").Int()!=StorageSchemaVersion)Invalid();auto& request=message.storageRequest;
@@ -128,6 +134,9 @@ std::string Serialize(const Message& message){
         text+=",\"protocolVersion\":"+std::to_string(message.protocolVersion)+",\"pluginId\":"+raid::json::Quote(message.pluginId)+",\"session\":"+raid::json::Quote(message.session);
     }
     switch(message.type) {
+    case MessageType::HttpAccess:
+        text+=",\"schemaVersion\":1,\"origins\":[";for(std::size_t i=0;i<message.httpOrigins.size();++i){if(i)text+=',';text+=raid::json::Quote(message.httpOrigins[i]);}text+=']';break;
+    case MessageType::HttpCallbackBegin:case MessageType::HttpCallbackEnd:text+=",\"requestId\":"+std::to_string(message.httpRequestId);break;
     case MessageType::StorageAccess:text+=",\"granted\":"+std::string(message.storagePermission?"true":"false");break;
     case MessageType::StorageRequest:{const auto& request=message.storageRequest;
         text+=",\"schemaVersion\":1,\"requestId\":"+std::to_string(request.requestId)+",\"operation\":"+std::to_string(static_cast<unsigned>(request.operation))

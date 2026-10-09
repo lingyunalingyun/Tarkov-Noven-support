@@ -83,7 +83,7 @@ int wmain(int argc,wchar_t** argv) try {
             const auto label=PluginPermissionText(permission,true);
             Check(label.starts_with(L"✓ ")&&label.find(Tr("plugins.permission."+permission))!=std::wstring::npos&&catalogRows[0].body.find(label)!=std::wstring::npos,"localized permission description and supported distinction");
         }
-        catalogSnapshot.records[0].manifest->requestedPermissions.push_back("network.http");
+        catalogSnapshot.records[0].manifest->requestedPermissions.push_back("ui.decorate");
         Check(!PresentPlugins(catalogSnapshot)[0].enable&&PluginPermissionText("network.http",false).starts_with(L"✗ "),"unsupported requests still block enable and remain distinct");
         // 按钮只产生第一方请求，不代表授权或进程创建。
         // Buttons emit first-party requests, never consent or process creation themselves.
@@ -104,7 +104,9 @@ int wmain(int argc,wchar_t** argv) try {
         page.Down(pinnedDisable->left+5,pinnedDisable->top+5);page.Up(pinnedDisable->left+5,pinnedDisable->top+5);const auto disableRequest=page.TakeControlAction();Check(disableRequest&&!disableRequest->enable,"pinned Disable emits only the matching explicit disable request");
         Check(page.SelectedPlugin()->status==Tr("plugins.running")&&page.Snapshot().records.size()==1,"runtime updates keep selected detail without discovery mutation");
         const auto disable=page.ControlBounds(host.pluginId);page.Down(disable->left+5,disable->top+5);host.state=HostState::Crashed;page.SetRuntime({host});page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());page.Up(disable->left+5,disable->top+5);Check(!page.TakeControlAction(),"state change cannot reinterpret a pending Disable press as Enable");
-        runtimeSnapshot.records[0].manifest->requestedPermissions.push_back("network.http");page.SetSnapshot(runtimeSnapshot);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(!page.ControlBounds(native.manifest->id)&&page.Rows()[0].body.find(Tr("plugins.unsupported"))!=std::wstring::npos,"unsupported requests cannot be granted or enabled");
+        runtimeSnapshot.records[0].manifest->requestedPermissions.push_back("ui.decorate");page.SetSnapshot(runtimeSnapshot);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());Check(!page.ControlBounds(native.manifest->id)&&page.Rows()[0].body.find(Tr("plugins.unsupported"))!=std::wstring::npos,"unsupported requests cannot be granted or enabled");
+        auto networkManifest=*runtimeSnapshot.records[0].manifest;networkManifest.requestedPermissions={"network.http"};networkManifest.networkOrigins={"https://api.example.com","https://example.org:8443"};
+        const auto networkText=PluginNetworkText(networkManifest);Check(networkText.find(L"https://api.example.com")!=std::wstring::npos&&networkText.find(L"https://example.org:8443")!=std::wstring::npos&&networkText.find(Tr("plugins.network_notice"))!=std::wstring::npos,"consent/detail share exact origins and native network limitation");
         PluginSnapshot many;for(int i=0;i<32;++i){auto record=runtimeSnapshot.records[0];record.directory=L"plugins/item-"+std::to_wstring(i);record.manifest->id="com.example.item-"+std::to_string(i);record.manifest->name="Plugin "+std::to_string(i);many.records.push_back(std::move(record));}
         page.SetRuntime({});page.SetSnapshot(many);page.Prepare(1280,760,theme,factory.Get(),format.Get(),format.Get());
         const auto list=page.ListBounds();const auto detailScroll=page.Scroll();

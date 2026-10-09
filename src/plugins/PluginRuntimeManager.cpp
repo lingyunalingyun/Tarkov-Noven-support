@@ -87,6 +87,7 @@ void Run(Session& session,const std::filesystem::path& host){
         incoming.type=MessageType::HelloAck;Require(channel.Write(incoming,After(2000),process.process.Get()),HostError::HandshakeTimeout,session);
         Deadline pongDeadline=Deadline::max(),actionDeadline=Deadline::max(),loadDeadline=Deadline::max(),scanDeadline=Deadline::max(),burst=After(1000),subscriptionWindow=After(1000);unsigned logs=0,updates=0,subscriptions=0;
         std::uint64_t scanSequence=0;bool scanAwaiting=false;Deadline subscriptionDeadline=Deadline::max();
+        std::uint64_t httpCallbackId{};Deadline httpDeadline=Deadline::max();DataRequestBudget httpCallbacks{32};
         if(session.load){
             session.Publish(HostState::Loading);Message access{MessageType::CatalogAccess};
             for(const auto kind:{CatalogKind::Items,CatalogKind::Tasks,CatalogKind::Maps,CatalogKind::RaidHistory,CatalogKind::Events,CatalogKind::RecentScans})if(session.catalogGrants.Allows(kind))access.catalogMask|=1u<<(static_cast<unsigned>(kind)-1);
@@ -98,6 +99,10 @@ void Run(Session& session,const std::filesystem::path& host){
             if(session.catalogGrants.AllowsPermission("storage.plugin")){
                 Message storageAccess{MessageType::StorageAccess};storageAccess.storagePermission=true;
                 Require(channel.Write(storageAccess,After(2000),process.process.Get()),HostError::LoadTimeout,session);
+            }
+            if(session.catalogGrants.AllowsPermission("network.http")){
+                Message httpAccess{MessageType::HttpAccess};httpAccess.httpOrigins=session.snapshot.httpOrigins;
+                Require(channel.Write(httpAccess,After(2000),process.process.Get()),HostError::LoadTimeout,session);
             }
             Require(channel.Write(*session.load,After(2000),process.process.Get()),HostError::LoadTimeout,session);loadDeadline=After(5000);
         }
@@ -115,7 +120,7 @@ void Run(Session& session,const std::filesystem::path& host){
                 // 在停止之前排队的 pong/ping 不得误判为关闭确认。
                 // Queued pong/ping before stopping must not be mistaken for shutdown acknowledgement.
                 while(result==IoResult::Complete&&(incoming.type==MessageType::Pong||incoming.type==MessageType::Ping
-                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult||incoming.type==MessageType::DataRequest||incoming.type==MessageType::DataResultAck||incoming.type==MessageType::ScanSubscribe||incoming.type==MessageType::ScanUnsubscribe||incoming.type==MessageType::ScanEventAck||incoming.type==MessageType::ScanSubscriptionAck||incoming.type==MessageType::StorageRequest||incoming.type==MessageType::StorageResultAck)))){
+                    ||(session.load&&(incoming.type==MessageType::Log||incoming.type==MessageType::UiRegisterPage||incoming.type==MessageType::UiPublishPage||incoming.type==MessageType::UiActionResult||incoming.type==MessageType::LoadPluginResult||incoming.type==MessageType::DataRequest||incoming.type==MessageType::DataResultAck||incoming.type==MessageType::ScanSubscribe||incoming.type==MessageType::ScanUnsubscribe||incoming.type==MessageType::ScanEventAck||incoming.type==MessageType::ScanSubscriptionAck||incoming.type==MessageType::StorageRequest||incoming.type==MessageType::StorageResultAck||incoming.type==MessageType::HttpCallbackBegin||incoming.type==MessageType::HttpCallbackEnd)))){
                     if(incoming.type==MessageType::Ping)result=channel.Write({MessageType::Pong},deadline,process.process.Get());
                     if(result==IoResult::Complete)result=channel.Read(incoming,deadline,nullptr,process.process.Get());
                 }
@@ -132,6 +137,7 @@ void Run(Session& session,const std::filesystem::path& host){
             }
             auto dataDeadline=Deadline::max();for(const auto& [id,deadline]:session.dataAcks)dataDeadline=std::min(dataDeadline,deadline);
             for(const auto& [id,deadline]:session.storageAcks)dataDeadline=std::min(dataDeadline,deadline);
+            dataDeadline=std::min(dataDeadline,httpDeadline);
             const auto deadline=std::min({pongDeadline,loadDeadline,actionDeadline,dataDeadline,scanDeadline,subscriptionDeadline});
             const auto result=channel.Read(incoming,deadline,session.wake.Get(),process.process.Get());
             if(result==IoResult::Interrupted)continue;
@@ -140,6 +146,12 @@ void Run(Session& session,const std::filesystem::path& host){
                 throw Failure{HostState::Crashed,HostError::Disconnected};
             }
             Require(result,(dataDeadline!=Deadline::max()&&deadline==dataDeadline)||(scanDeadline!=Deadline::max()&&deadline==scanDeadline)||(subscriptionDeadline!=Deadline::max()&&deadline==subscriptionDeadline)?HostError::DataTimeout:deadline==loadDeadline&&loadDeadline!=Deadline::max()?HostError::LoadTimeout:deadline==actionDeadline&&actionDeadline!=Deadline::max()?HostError::ActionTimeout:pongDeadline==Deadline::max()?HostError::FrameTimeout:HostError::PingTimeout,session);
+            if(incoming.type==MessageType::HttpCallbackBegin||incoming.type==MessageType::HttpCallbackEnd){
+                if(!session.load||loadDeadline!=Deadline::max()||!session.catalogGrants.AllowsPermission("network.http"))throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
+                if(incoming.type==MessageType::HttpCallbackBegin){if(httpCallbackId||httpCallbacks.Begin(incoming.httpRequestId)!=RequestAdmission::Accepted)throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};httpCallbackId=incoming.httpRequestId;httpDeadline=After(3000);}
+                else {if(httpCallbackId!=incoming.httpRequestId||!httpCallbacks.Complete(httpCallbackId))throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};httpCallbackId=0;httpDeadline=Deadline::max();}
+                continue;
+            }
             if((incoming.type==MessageType::ScanSubscribe||incoming.type==MessageType::ScanUnsubscribe)&&session.load&&loadDeadline==Deadline::max()){
                 if(std::chrono::steady_clock::now()>=subscriptionWindow){subscriptions=0;subscriptionWindow=After(1000);}
                 if(++subscriptions>32||subscriptionDeadline!=Deadline::max())throw Failure{HostState::ProtocolError,HostError::InvalidProtocol};
@@ -300,6 +312,7 @@ bool PluginRuntimeManager::StartNative(const PluginRecord& record,const PluginSt
     auto session=std::make_shared<Session>();if(!session->wake)return false;
     session->notify=impl_->notify;session->nativeFile=std::move(file);session->snapshot.pluginId=id;session->snapshot.state=HostState::Starting;
     session->catalog=impl_->catalog;session->storage=impl_->storage;session->catalogGrants={true,record.manifest->requestedPermissions,grants.Intent(id).grantedPermissions};
+    if(session->catalogGrants.AllowsPermission("network.http"))session->snapshot.httpOrigins=record.manifest->networkOrigins;
     session->snapshot.generation=++impl_->nextGeneration;session->snapshot.startedAt=std::chrono::steady_clock::now();
     Message load{MessageType::LoadPlugin};const auto directory=std::filesystem::absolute(record.directory).u8string();load.directory.assign(directory.begin(),directory.end());load.entry=record.manifest->runtime->entry;
     load.pagePermission=std::find(record.manifest->requestedPermissions.begin(),record.manifest->requestedPermissions.end(),"ui.page.register")!=record.manifest->requestedPermissions.end();session->load=std::move(load);

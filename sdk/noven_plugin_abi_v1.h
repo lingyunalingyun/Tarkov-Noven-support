@@ -191,6 +191,54 @@ NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeScanV1(const NovenScanHost
 #if defined(NOVEN_PLUGIN_CATALOG_IMPLEMENTATION)
 NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeCatalogV1(const NovenCatalogHostApiV1*, NovenCatalogInstanceV1*);
 #endif
+/* 独立可选 HTTP 扩展，不改变任何既有表；只约束托管 API，不是原生网络沙箱。
+ * Optional independent HTTP extension preserves all old tables; managed API only, not a native network sandbox.
+ * 请求只在 Host 回调线程复制入队；结果回调串行，数组/字节/UTF-8 仅在该回调期间借用。
+ * Requests copy/enqueue on the Host callback thread; serialized result arrays/bytes/UTF-8 are borrowed for that callback only. */
+#define NOVEN_HTTP_SCHEMA_VERSION 1u
+#define NOVEN_HTTP_GET 1u
+#define NOVEN_HTTP_HEAD 2u
+#define NOVEN_HTTP_POST 3u
+#define NOVEN_HTTP_OK 0u
+#define NOVEN_HTTP_PERMISSION_DENIED 1u
+#define NOVEN_HTTP_INVALID_REQUEST 2u
+#define NOVEN_HTTP_BLOCKED_DESTINATION 3u
+#define NOVEN_HTTP_TOO_LARGE 4u
+#define NOVEN_HTTP_TIMEOUT 5u
+#define NOVEN_HTTP_CANCELLED 6u
+#define NOVEN_HTTP_TRANSPORT_ERROR 7u
+#define NOVEN_HTTP_REDIRECT_DENIED 8u
+typedef struct NovenHttpHeaderV1 {NovenUtf8V1 name_utf8,value_utf8;} NovenHttpHeaderV1;
+typedef struct NovenHttpRequestV1 {
+    uint32_t struct_size,method;
+    uint64_t request_id;
+    NovenUtf8V1 url_utf8;
+    const NovenHttpHeaderV1* headers;
+    uint32_t header_count;
+    NovenBytesV1 body;
+} NovenHttpRequestV1;
+typedef struct NovenHttpResultV1 {
+    uint32_t struct_size,status;
+    uint64_t request_id;
+    uint32_t http_status;
+    NovenUtf8V1 final_url_utf8;
+    const NovenHttpHeaderV1* headers;
+    uint32_t header_count;
+    NovenBytesV1 body;
+} NovenHttpResultV1;
+typedef struct NovenHttpHostApiV1 {
+    uint32_t struct_size,schema_version;
+    void* context;
+    int32_t (NOVEN_CALL *http_request)(void*,const NovenHttpRequestV1*);
+} NovenHttpHostApiV1;
+typedef struct NovenHttpInstanceV1 {
+    uint32_t struct_size,schema_version;
+    void (NOVEN_CALL *on_http_result)(void*,const NovenHttpResultV1*);
+} NovenHttpInstanceV1;
+typedef int32_t (NOVEN_CALL *NovenInitializeHttpFn)(const NovenHttpHostApiV1*,NovenHttpInstanceV1*);
+#if defined(NOVEN_PLUGIN_HTTP_IMPLEMENTATION)
+NOVEN_EXPORT int32_t NOVEN_CALL NovenPlugin_InitializeHttpV1(const NovenHttpHostApiV1*,NovenHttpInstanceV1*);
+#endif
 /* Host 初始化 instance.struct_size/abi_version；插件验证并填写其余成员，成功返回 NOVEN_OK。
  * Host initializes instance.struct_size/abi_version; plugin validates/fills remaining members, returns NOVEN_OK. */
 #ifndef NOVEN_PLUGIN_OMIT_EXPORT_DECLARATIONS

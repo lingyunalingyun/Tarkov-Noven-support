@@ -155,7 +155,9 @@ int RunHost(const HostArguments& arguments,const HostCallbacks& callbacks){
             channel.Write({MessageType::ProtocolError},After(1000),parent.Get());return 3;
         }
         for(;;){
-            if(channel.Read(incoming,Deadline::max(),nullptr,parent.Get())!=IoResult::Complete)return 2;
+            const auto result=channel.Read(incoming,Deadline::max(),callbacks.wake?callbacks.wake():nullptr,parent.Get());
+            if(result==IoResult::Interrupted){if(callbacks.pump&&callbacks.pump())continue;return 2;}
+            if(result!=IoResult::Complete)return 2;
             if(incoming.type==MessageType::Ping){if(channel.Write({MessageType::Pong},After(2000),parent.Get())!=IoResult::Complete)return 2;}
             else if(incoming.type==MessageType::Shutdown){if(callbacks.shutdown)callbacks.shutdown();return channel.Write({MessageType::ShutdownAck},After(2000),parent.Get())==IoResult::Complete?0:2;}
             else if(callbacks.message&&callbacks.message(incoming,channel,parent.Get()))continue;

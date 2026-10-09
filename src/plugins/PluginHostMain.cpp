@@ -13,7 +13,7 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
         noven::plugins::NativePluginHost plugin(std::filesystem::path(executable).parent_path());
         result=noven::plugins::ipc::RunHost(parsed,{
             [&](const auto& message,auto& channel,HANDLE parent){return plugin.Message(message,channel,parent);},
-            [&]{plugin.Shutdown();}});
+            [&]{plugin.Shutdown();},[&]{return plugin.Wake();},[&]{return plugin.Pump();}});
     }
     catch(const std::exception&){result=2;}
     if(arguments)LocalFree(arguments);return result;

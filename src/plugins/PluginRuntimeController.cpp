@@ -1,5 +1,6 @@
 #include "plugins/PluginRuntimeController.h"
 #include "plugins/PluginNativePath.h"
+#include <algorithm>
 
 namespace noven::plugins {
 PluginRuntimeController::PluginRuntimeController(PluginDiscovery& discovery,PluginRuntimeManager& runtime,std::filesystem::path path)
@@ -46,7 +47,9 @@ bool PluginRuntimeController::Reconcile() {
     for(const auto& session:runtime_.Snapshots()){
         if(!state_.Intent(session.pluginId).enabled)continue;
         const auto* record=Find(session.pluginId);
-        if(Terminal(session.state)||!record||!state_.Authorized(*record->manifest)){
+        const bool network=record&&std::find(record->manifest->requestedPermissions.begin(),record->manifest->requestedPermissions.end(),"network.http")!=record->manifest->requestedPermissions.end();
+        const bool changedOrigins=record&&session.httpOrigins!=(network?record->manifest->networkOrigins:std::vector<std::string>{});
+        if(Terminal(session.state)||!record||!state_.Authorized(*record->manifest)||changedOrigins){
             runtime_.Stop(session.pluginId);state_.Disable(session.pluginId);changed=true;
         }
     }

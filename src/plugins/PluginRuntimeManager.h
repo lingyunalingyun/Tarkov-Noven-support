@@ -29,6 +29,7 @@ struct HostSnapshot final {
     std::uint64_t scanEvents{};
     std::size_t pendingScans{};
     std::uint32_t droppedScans{};
+    std::vector<std::string> httpOrigins;
 };
 bool Terminal(HostState state);
 // 会话所有权留在 Noven；发现不启动会话，独立进程不是 OS 安全沙箱。

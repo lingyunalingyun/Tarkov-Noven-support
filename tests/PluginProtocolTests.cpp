@@ -95,4 +95,6 @@ int main(){
     stored.storageResult.value.clear();stored.storageResult.keys={"a","中文"};stored.storageResult.total=2;stored.storageResult.nextOffset=2;
     Check(ParseMessage(Serialize(stored)).storageResult.keys==stored.storageResult.keys,"logical keys only");
     for(const auto bad:{R"({"type":"storageRequest","schemaVersion":1,"requestId":1,"operation":1,"key":"settings","value":"","offset":0,"limit":0,"pluginId":"com.other.test"})",R"({"type":"storageRequest","schemaVersion":1,"requestId":1,"operation":2,"key":"../x","value":"","offset":0,"limit":0})",R"({"type":"storageResultAck","requestId":0})"})Reject([&]{ParseMessage(bad);});
+    Message http{MessageType::HttpAccess};http.httpOrigins={"https://api.example.com"};Check(ParseMessage(Serialize(http)).httpOrigins==http.httpOrigins,"canonical first-party HTTP grant frame");
+    for(const auto bad:{R"({"type":"httpAccess","schemaVersion":1,"origins":["http://api.example.com"]})",R"({"type":"httpAccess","schemaVersion":1,"origins":["https://api.example.com"],"pluginId":"other"})",R"({"type":"httpCallbackBegin","requestId":0})"})Reject([&]{ParseMessage(bad);});
 }

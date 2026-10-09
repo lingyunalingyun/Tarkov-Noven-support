@@ -13,7 +13,7 @@ namespace noven::plugins::ipc {
 // Transport is separate from manifest/API/ABI; bounded message set, no arbitrary calls or native UI pointers.
 inline constexpr std::int64_t TransportProtocolVersion=1;
 inline constexpr std::size_t MaximumFrameBytes=64*1024;
-enum class MessageType { Hello,HelloAck,Ping,Pong,Shutdown,ShutdownAck,ProtocolError,LoadPlugin,LoadPluginResult,UiRegisterPage,UiPublishPage,UiAction,UiActionResult,Log,CatalogAccess,DataRequest,DataResult,DataResultAck,ScanAccess,ScanSubscribe,ScanUnsubscribe,ScanSubscriptionResult,ScanEvent,ScanEventAck,ScanSubscriptionAck,StorageAccess,StorageRequest,StorageResult,StorageResultAck };
+enum class MessageType { Hello,HelloAck,Ping,Pong,Shutdown,ShutdownAck,ProtocolError,LoadPlugin,LoadPluginResult,UiRegisterPage,UiPublishPage,UiAction,UiActionResult,Log,CatalogAccess,DataRequest,DataResult,DataResultAck,ScanAccess,ScanSubscribe,ScanUnsubscribe,ScanSubscriptionResult,ScanEvent,ScanEventAck,ScanSubscriptionAck,StorageAccess,StorageRequest,StorageResult,StorageResultAck,HttpAccess,HttpCallbackBegin,HttpCallbackEnd };
 struct Message final {
     MessageType type{MessageType::Ping};
     std::int64_t protocolVersion{TransportProtocolVersion};
@@ -30,6 +30,8 @@ struct Message final {
     bool storagePermission{};
     plugins::StorageRequest storageRequest;
     plugins::StorageResult storageResult;
+    std::vector<std::string> httpOrigins;
+    std::uint64_t httpRequestId{};
 };
 bool ValidSecret(std::string_view value);
 Message ParseMessage(std::string_view payload);

@@ -50,6 +50,8 @@ private:
 struct HostCallbacks final {
     std::function<bool(const Message&,Channel&,HANDLE)> message;
     std::function<void()> shutdown;
+    std::function<HANDLE()> wake;
+    std::function<bool()> pump;
 };
 int RunHost(const HostArguments& arguments,const HostCallbacks& callbacks={});
 }

@@ -312,6 +312,7 @@ int App::Run(HINSTANCE instance, int show_command) {
                 +L"\n\n"+ui::Tr("plugins.permissions");
             if(manifest.requestedPermissions.empty())text+=L"\n"+ui::Tr("plugins.no_permissions");
             for(const auto& permission:manifest.requestedPermissions)text+=L"\n"+ui::PluginPermissionText(permission,plugins::SupportedPermission(permission));
+            const auto network=ui::PluginNetworkText(manifest);if(!network.empty())text+=L"\n\n"+network;
             return ui::ShowMessageDialog(window_,ui::Tr("plugins.consent_title"),text,ui::MessageKind::Warning,
                 ui::Tr("plugins.enable"),ui::Tr("dialog.cancel"));
         }):plugin_controller_->Disable(action.id);
