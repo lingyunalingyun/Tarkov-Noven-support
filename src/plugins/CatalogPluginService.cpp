@@ -2,10 +2,16 @@
 #include "data/LocalizedName.h"
 #include "raid/RaidJson.h"
 #include <algorithm>
+#include <stdexcept>
 
 namespace noven::plugins {
 namespace {
 using raid::json::Quote;
+std::string Number(std::optional<std::int64_t> number){return number?std::to_string(*number):"null";}
+std::string_view Mode(raid::GameMode mode){switch(mode){case raid::GameMode::PvP:return "pvp";case raid::GameMode::PvE:return "pve";case raid::GameMode::Practice:return "practice";case raid::GameMode::Offline:return "offline";default:return "unknown";}}
+std::string_view Outcome(raid::RaidOutcome outcome){switch(outcome){case raid::RaidOutcome::Survived:return "survived";case raid::RaidOutcome::RunThrough:return "runThrough";case raid::RaidOutcome::KIA:return "kia";case raid::RaidOutcome::MIA:return "mia";case raid::RaidOutcome::Left:return "left";default:return "unknown";}}
+std::string_view Status(events::EventStatus status){switch(status){case events::EventStatus::Upcoming:return "upcoming";case events::EventStatus::Active:return "active";case events::EventStatus::Ended:return "ended";default:return "unknown";}}
+std::string_view Source(events::SourceKind source){switch(source){case events::SourceKind::OfficialTelegram:return "officialTelegram";case events::SourceKind::TarkovDev:return "tarkovDev";case events::SourceKind::TarkovChanges:return "tarkovChanges";case events::SourceKind::CommunityWiki:return "communityWiki";}return "unknown";}
 std::string Field(std::string_view key,std::string_view value){return Quote(key)+":"+Quote(value);}
 std::string Names(std::string_view idKey,const std::string& id,const std::string& zh,const std::string& en,bool english){
     return "{"+Field(idKey,id)+","+Field("nameZh",zh)+","+Field("nameEn",en)+","+Field("displayName",data::LocalizedName(zh,en,english?"en-US":"zh-CN"));
@@ -37,21 +43,66 @@ CatalogPluginService::CatalogPluginService(std::span<const data::ItemRecord> ite
         records_[1].push_back({task.id,encode(false),encode(true)});
     }
     for(const auto& map:maps){
+        mapNames_.emplace(map.id,std::pair{map.nameZh,map.nameEn});
         const auto encode=[&](bool en){return Names("stableMapId",map.id,map.nameZh,map.nameEn,en)+","+Field("dataset","regular")+","+Field("players",map.players)
             +",\"raidDuration\":"+std::to_string(map.raidDuration)+","+Field("author",map.author)+"}";};
         records_[2].push_back({map.id,encode(false),encode(true)});
     }
     for(auto& records:records_)std::sort(records.begin(),records.end(),[](const auto& a,const auto& b){return a.id<b.id;});
 }
+void CatalogPluginService::PublishRaidHistory(std::span<const raid::RaidSession> completed){
+    if(completed.size()>100000)throw std::runtime_error("history snapshot capacity");
+    auto rows=std::make_shared<std::vector<Record>>();rows->reserve(completed.size());
+    std::vector<const raid::RaidSession*> sorted;
+    for(const auto& session:completed)if(session.startObserved&&session.endObserved&&!session.localSessionId.empty())sorted.push_back(&session);
+    std::sort(sorted.begin(),sorted.end(),[](const auto* a,const auto* b){return a->startedAt!=b->startedAt?a->startedAt>b->startedAt:a->localSessionId<b->localSessionId;});
+    for(const auto* session:sorted){
+        const auto& s=*session;const auto map=mapNames_.find(s.mapId);
+        const auto encode=[&](bool en){return "{"+Field("localSessionId",s.localSessionId)+",\"stableMapId\":"+(map==mapNames_.end()?"null":Quote(s.mapId))
+            +",\"mapDisplayName\":"+(map==mapNames_.end()?"null":Quote(data::LocalizedName(map->second.first,map->second.second,en?"en-US":"zh-CN")))
+            +",\"mapKnown\":"+(map==mapNames_.end()?"false":"true")+","+Field("timeBasis","local-wall-clock-ms")
+            +",\"startedAt\":"+Number(s.startedAt)+",\"endedAt\":"+Number(s.endedAt)+",\"durationMs\":"+Number(s.duration)
+            +","+Field("completion","completed")+","+Field("gameMode",Mode(s.gameMode))+","+Field("raidType",s.raidType==raid::RaidType::PMC?"pmc":s.raidType==raid::RaidType::Scav?"scav":"unknown")
+            +","+Field("outcome",Outcome(s.outcome))+"}";};
+        rows->push_back({s.localSessionId,encode(false),encode(true)});
+    }
+    history_.store(std::move(rows));
+}
+void CatalogPluginService::PublishEvents(std::span<const events::EventRecord> snapshot){
+    if(snapshot.size()>events::kMaximumEvents)throw std::runtime_error("event snapshot capacity");
+    auto rows=std::make_shared<std::vector<Record>>();rows->reserve(snapshot.size());
+    for(const auto& event:snapshot){
+        const bool community=events::CommunitySourced(event);
+        const bool official=event.eventId.starts_with("official-telegram:");
+        const auto encode=[&](std::string_view locale){
+            const auto title=event.localizedTitles.find(std::string(locale));
+            auto text="{"+Field("eventId",event.eventId)+","+Field("title",title==event.localizedTitles.end()?event.title:title->second)
+                +","+Field("originalTitle",event.title)+","+Field("summary",event.summary)+","+Field("source",community?"communityWiki":official?"officialTelegram":"unknown")
+                +",\"official\":"+(official?"true":"false")+","+Field("sourceStatus",Status(event.sourceStatus))+","+Field("timeBasis","utc-seconds")
+                +",\"announcedAt\":"+Number(event.announcedAt)+",\"startsAt\":"+Number(event.startsAt)+",\"endsAt\":"+Number(event.endsAt)
+                +",\"lastUpdatedAt\":"+Number(event.lastUpdatedAt)+",\"startsAtFromPublication\":"+(event.startsAtFromPublication?"true":"false")+",\"sourceKinds\":[";
+            std::vector<events::SourceKind> seen;
+            for(const auto& evidence:event.sourceEvidence)if(std::find(seen.begin(),seen.end(),evidence.sourceKind)==seen.end()){
+                if(!seen.empty())text+=',';seen.push_back(evidence.sourceKind);text+=Quote(Source(evidence.sourceKind));
+            }
+            return text+"]}";
+        };
+        rows->push_back({event.eventId,encode("zh-CN"),encode("en-US")});
+    }
+    std::sort(rows->begin(),rows->end(),[](const auto& a,const auto& b){return a.id<b.id;});events_.store(std::move(rows));
+}
 DataResult CatalogPluginService::Error(const DataRequest& request,DataStatus status){return {request.requestId,status,Envelope(request,status,{},"null")};}
 DataResult CatalogPluginService::Query(const DataRequest& request,const CatalogGrants& grants) const {
     if(!ValidDataRequest(request))return Error(request,DataStatus::InvalidRequest);
     if(!grants.Allows(request.catalog))return Error(request,DataStatus::PermissionDenied);
-    const auto& rows=records_[static_cast<std::size_t>(request.catalog)-1];
-    if(rows.empty())return Error(request,DataStatus::Unavailable);
+    const auto snapshot=request.catalog==CatalogKind::RaidHistory?history_.load():request.catalog==CatalogKind::Events?events_.load():nullptr;
+    if(static_cast<unsigned>(request.catalog)>3&&!snapshot)return Error(request,DataStatus::Unavailable);
+    const auto& rows=snapshot?*snapshot:records_[static_cast<std::size_t>(request.catalog)-1];
+    if(rows.empty()&&!snapshot)return Error(request,DataStatus::Unavailable);
     const bool english=english_.load();
     if(request.operation==DataOperation::Get){
-        const auto row=std::lower_bound(rows.begin(),rows.end(),request.stableId,[](const auto& record,const auto& id){return record.id<id;});
+        const auto row=request.catalog==CatalogKind::RaidHistory?std::find_if(rows.begin(),rows.end(),[&](const auto& record){return record.id==request.stableId;})
+            :std::lower_bound(rows.begin(),rows.end(),request.stableId,[](const auto& record,const auto& id){return record.id<id;});
         if(row==rows.end()||row->id!=request.stableId)return Error(request,DataStatus::NotFound);
         auto text=Envelope(request,DataStatus::Ok,{},english?row->en:row->zh,rows.size());
         if(text.size()>MaximumCatalogPayloadBytes)return Error(request,DataStatus::TooLarge);

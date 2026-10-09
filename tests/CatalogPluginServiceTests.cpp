@@ -65,7 +65,7 @@ int main() try {
     invalid=request;invalid.operation=DataOperation::Get;invalid.limit=0;invalid.stableId=std::string(129,'a');Check(!ValidDataRequest(invalid),"stable ID bound");
     invalid.stableId="../x";Check(!ValidDataRequest(invalid),"no traversal in IDs");
     invalid.stableId="task_1";Check(ValidDataRequest(invalid),"safe stable ID");
-    invalid.catalog=static_cast<CatalogKind>(4);Check(service.Query(invalid,grants).status==DataStatus::InvalidRequest,"unknown kind fails safely");
+    invalid.catalog=static_cast<CatalogKind>(6);Check(service.Query(invalid,grants).status==DataStatus::InvalidRequest,"unknown kind fails safely");
     CatalogPluginService empty({}, {}, {});Check(empty.Query(request,grants).status==DataStatus::Unavailable,"unavailable catalog diagnostic");
     auto large=second;large.nameZh=std::string(7000,'x');large.nameEn=large.nameZh;
     std::vector bigItems{large,large,large};bigItems[0].id="a";bigItems[1].id="b";bigItems[2].id="c";

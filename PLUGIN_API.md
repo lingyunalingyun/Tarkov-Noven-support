@@ -93,6 +93,25 @@ Phase 3 has no product/game APIs, built-in UI modification, online marketplace, 
 
 ## Catalog projection v1
 
+### Phase 5: completed history and existing event snapshots
+
+复用相同异步请求、结果和 schemaVersion=1：新增 kind `raidHistory`（原生值 4，权限 `raid.history.read`）与 `events`（值 5，权限 `catalog.events.read`）。基础 ABI/API/transport 版本、字段顺序与旧目录协议保持不变。
+Reuse the same asynchronous requests/results and schemaVersion=1: `raidHistory` (native value 4, permission `raid.history.read`) and `events` (5, permission `catalog.events.read`). Base ABI/API/transport versions, field ordering and old catalogs remain unchanged.
+
+| Kind | Public record fields |
+| --- | --- |
+| raidHistory | `localSessionId`, `stableMapId`/`mapDisplayName` (null when unknown), `mapKnown`, `timeBasis: "local-wall-clock-ms"`, nullable `startedAt`/`endedAt`/`durationMs`, `completion: "completed"`, `gameMode` (unknown/pvp/pve/practice/offline), `raidType` (unknown/pmc/scav), `outcome` (unknown/survived/runThrough/kia/mia/left) |
+| events | `eventId`, `title` (existing locale title or original), `originalTitle`, `summary`, `source` (officialTelegram/communityWiki/unknown), `official`, `sourceStatus` (unknown/upcoming/active/ended), `timeBasis: "utc-seconds"`, nullable `announcedAt`/`startsAt`/`endsAt`/`lastUpdatedAt`, `startsAtFromPublication`, `sourceKinds` (distinct officialTelegram/tarkovDev/tarkovChanges/communityWiki evidence categories) |
+
+对局时间为日志原有本地墙钟毫秒，不伪装成 UTC。只发布已完成的历史，不含活动对局、原始日志、EFT raid ID、文件路径、游标、解析器信息或扫描推导小计。事件保持来源事实；社区不是官方，缺失结束时间仍为 null。权限不会触发事件刷新或代插件联网。
+Raid times retain existing local wall-clock milliseconds, not UTC. Only completed history is published: no active raid, raw logs, EFT raid ID, paths, cursors, parser metadata or inferred scan totals. Events retain source facts; community is not official and unknown end stays null. Permissions do not refresh events or perform network access for plugins.
+
+每次查询保留一份不可变的最新已发布快照。跨分页是 best-effort current view，不是跨请求事务；数据更新可能移动记录，单个响应始终完整。对局按开始时间倒序、身份破同序；事件按 eventId 排序。已发布空快照 list 成功且 total=0，get 未知 ID 返回 notFound；尚未发布返回 unavailable。
+Each request retains one immutable latest published snapshot. Pagination is a best-effort current view, not a multi-request transaction: updates may move records while each response remains coherent. Raids sort by descending start time then identity; events by eventId. Published empty lists succeed with total=0; unknown gets return notFound; unpublished snapshots return unavailable.
+
+沿用 1..64 条、默认 32、24 KiB JSON、64 KiB 帧、16 未完成请求及现有速率/会话隔离。对局和旧目录 ID 仍限 128 字节；事件现有社区锚点身份需要最多 261 ASCII 字节，允许字母数字及 `_-.:%`，不截断真实身份且不解释为路径。禁止斜杠、反斜杠或空白。Disable/崩溃撤销请求并丢弃晚到结果。PluginHost 仍不是 OS 沙箱。
+Reuse 1..64 records/default 32, 24 KiB JSON, 64 KiB frames, 16 outstanding requests and existing rate/session isolation. Raid/old catalog IDs remain capped at 128 bytes; existing community event anchor identities require up to 261 ASCII bytes, allowing letters/digits and `_-.:%`, never truncated or interpreted as paths. Slashes, backslashes and whitespace reject. Disable/crash invalidates requests and discards late results. PluginHost is not an OS sandbox.
+
 ### Optional native ABI extension
 
 基础 `NovenHostApiV1`/`NovenPluginInstanceV1` 的字段、x64 尺寸 40/32 字节与 ABI/API 版本 1 不变；旧样例验证精确尺寸，因此不直接追加基础表。新插件可选导出 `NovenPlugin_InitializeCatalogV1`，在基础 Initialize 成功后接收独立 `NovenCatalogHostApiV1` 并填写 `NovenCatalogInstanceV1.on_data_result`。没有此导出的旧 Hello 二进制按原路径运行，不需要目录权限。
