@@ -419,6 +419,7 @@ int App::Run(HINSTANCE instance, int show_command) {
         main_ui_->Tasks().Catalog().Tasks(),main_ui_->Map().Catalog(data::GameMode::Pvp).Maps(),ui::UiLocalization().ActiveLocale()));
     plugin_runtime_->PublishRaidHistory(local_raid_service_->CompletedSessions());
     plugin_runtime_->PublishEvents(event_service_->Events());
+    plugin_runtime_->PublishRecentScans(recent_scan_store_->Snapshot());
     plugin_controller_->StartEnabled();PublishPluginRuntime();
     StartMapAssetUpdate();
 
@@ -861,7 +862,14 @@ void App::OnScanCompletionMessage(LPARAM completion_pointer) {
         entry.itemHeight = result.height;
         raid::AssociateScan(entry, local_raid_service_ ? local_raid_service_->ActiveSession() : std::nullopt);
         if (recent_scan_store_->Append(std::move(entry))) {
-            main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
+            const auto scans = recent_scan_store_->Snapshot();
+            main_ui_->SetRecentScans(scans);
+            if (plugin_runtime_) {
+                plugin_runtime_->PublishRecentScans(scans);
+                // 同一份已追加结果，只入队通知；不让插件反向触发扫描或阻塞完成路径。
+                // Notify only by enqueueing the same admitted result; plugins cannot trigger scans or block completion.
+                plugin_runtime_->NotifyScanCompleted(scans.front());
+            }
             common::DebugLog(L"[recent-scans] appended scan_id="
                 + std::to_wstring(completion->validation.scan_id));
         }
