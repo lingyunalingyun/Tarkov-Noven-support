@@ -34,6 +34,10 @@ int main() try {
     request.offset=1;value=json::Parser(service.Query(request,grants).payload).Parse();
     Check(value.At("records").array[0].At("mapDisplayName").String()=="立交桥"&&!value.At("hasMore").boolean,"localized second page");
     service.SetLocale("en-US");
+    auto longestRaid=raid;longestRaid.localSessionId="raid:"+std::string(251,'a');service.PublishRaidHistory(std::vector{raid,longestRaid});
+    request={};request.requestId=3;request.catalog=CatalogKind::RaidHistory;request.operation=DataOperation::Get;request.limit=0;request.stableId=longestRaid.localSessionId;
+    Check(service.Query(request,grants).status==DataStatus::Ok,"stored history maximum identity and colon round trip");
+    request.stableId+='a';Check(!ValidDataRequest(request),"history identity bound");
     for(const auto kind:{CatalogKind::RaidHistory,CatalogKind::Events}){
         request={};request.requestId=2;request.catalog=kind;request.operation=DataOperation::Get;request.limit=0;
         request.stableId=kind==CatalogKind::RaidHistory?raid.localSessionId:community.eventId;

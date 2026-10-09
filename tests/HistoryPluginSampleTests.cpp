@@ -17,8 +17,8 @@ struct Temp {
 int wmain(int argc,wchar_t** argv) try {
     Check(argc==4,"Host, History Demo DLL and manifest required");
     auto service=std::make_shared<CatalogPluginService>(std::span<const noven::data::ItemRecord>{},std::span<const noven::data::TaskRecord>{},std::span<const noven::data::MapRecord>{},"en-US");
-    noven::raid::RaidSession raid;raid.localSessionId="raid-roundtrip_1";raid.startObserved=raid.endObserved=true;raid.startedAt=100;raid.endedAt=200;raid.duration=100;
-    noven::events::EventRecord event;event.eventId="community-wiki:26936:Exact.%20";event.title="Community event";event.sourceEvidence.emplace_back().sourceKind=noven::events::SourceKind::CommunityWiki;
+    noven::raid::RaidSession raid;raid.localSessionId="raid:"+std::string(251,'a');raid.startObserved=raid.endObserved=true;raid.startedAt=100;raid.endedAt=200;raid.duration=100;
+    noven::events::EventRecord event;event.eventId="community-wiki:26936:"+std::string(235,'a')+".%20x";event.title="Community event";event.sourceEvidence.emplace_back().sourceKind=noven::events::SourceKind::CommunityWiki;
     service->PublishRaidHistory(std::vector{raid});service->PublishEvents(std::vector{event});
     Temp temp;std::filesystem::copy_file(argv[1],temp.path/"NovenPluginHost.exe");
     const auto directory=temp.path/"plugins"/"com.example.noven-history";std::filesystem::create_directories(directory);
@@ -57,6 +57,6 @@ int wmain(int argc,wchar_t** argv) try {
     Check(GetModuleHandleW(L"noven-history.dll")==nullptr,"catalog DLL never loaded in owner");
     Check(controller.Disable(id)==ControlResult::Success&&runtime.WaitForTerminal(id,6000)&&runtime.Snapshot(id)->shutdownAcknowledged,"example disabled and Host exits");
     pages.Sync(runtime.Snapshots());Check(!registry.Contains(pageId)&&!controller.State().Intent(id).enabled,"Disable removes registered page and persisted intent");
-    Check(raid.localSessionId=="raid-roundtrip_1"&&event.eventId=="community-wiki:26936:Exact.%20","reads never mutate source snapshots");
+    Check(raid.localSessionId.size()==256&&event.eventId.size()==261,"reads never mutate source snapshots; maximum history/event identities traverse native ABI");
     std::cout<<"History Demo real catalog / async list-get / dynamic page PASS\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
