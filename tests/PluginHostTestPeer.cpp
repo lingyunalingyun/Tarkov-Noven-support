@@ -41,6 +41,22 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
         if(mode=="mid-frame"||mode=="stalled-frame")Raw(pipe.Get(),{100,0,0,0,'{'});
         if(mode=="stalled-frame"){WaitForSingleObject(parent.Get(),INFINITE);return 0;}
         if(mode=="disconnect"||mode=="mid-frame"){pipe.Reset();WaitForSingleObject(parent.Get(),INFINITE);return 0;}
+        if(mode.starts_with("scan-")){
+            if(channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
+            while(incoming.type==MessageType::CatalogAccess||incoming.type==MessageType::ScanAccess)if(channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
+            if(incoming.type!=MessageType::LoadPlugin||channel.Write({MessageType::LoadPluginResult},After(2000))!=IoResult::Complete)return 71;
+            if(mode=="scan-denied"){
+                if(channel.Write({MessageType::ScanSubscribe},After(2000))!=IoResult::Complete||channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
+                if(incoming.type!=MessageType::ScanSubscriptionResult||incoming.result!=1||incoming.subscribed)return 71;
+                channel.Write({MessageType::ScanSubscriptionAck},After(2000));
+                Message log{MessageType::Log};log.text="scan-denied-ack";channel.Write(log,After(2000));
+            }else{
+                if(mode=="scan-spoof")Raw(pipe.Get(),Frame(R"({"type":"scanSubscribe","pluginId":"dev.example.healthy"})"));
+                else if(mode=="scan-ack"){Message ack{MessageType::ScanEventAck};ack.sequence=99;channel.Write(ack,After(2000));}
+                else if(mode=="scan-suback")channel.Write({MessageType::ScanSubscriptionAck},After(2000));
+                WaitForSingleObject(parent.Get(),INFINITE);return 0;
+            }
+        }
         if(mode.starts_with("catalog-")){
             if(channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
             if(incoming.type==MessageType::CatalogAccess&&channel.Read(incoming,After(2000))!=IoResult::Complete)return 71;
@@ -51,7 +67,8 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int){
             Message request{MessageType::DataRequest};request.dataRequest.requestId=1;request.dataRequest.limit=1;
             if(mode=="catalog-history-denied")request.dataRequest.catalog=noven::plugins::CatalogKind::RaidHistory;
             if(mode=="catalog-events-denied")request.dataRequest.catalog=noven::plugins::CatalogKind::Events;
-            const bool denied=mode=="catalog-denied"||mode=="catalog-history-denied"||mode=="catalog-events-denied";
+            if(mode=="catalog-scan-denied")request.dataRequest.catalog=noven::plugins::CatalogKind::RecentScans;
+            const bool denied=mode=="catalog-denied"||mode=="catalog-history-denied"||mode=="catalog-events-denied"||mode=="catalog-scan-denied";
             if(mode=="catalog-spoof")Raw(pipe.Get(),Frame("{\"type\":\"dataRequest\",\"requestId\":1,\"catalog\":\"items\",\"operation\":\"list\",\"stableId\":\"\",\"offset\":0,\"limit\":1,\"pluginId\":\"dev.example.healthy\"}"));
             else if(mode=="catalog-ack"){
                 Message ack{MessageType::DataResultAck};ack.dataResult.requestId=99;channel.Write(ack,After(2000));

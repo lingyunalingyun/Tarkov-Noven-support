@@ -25,7 +25,7 @@ int wmain(int argc,wchar_t** argv) try {
     auto layout=noven::ui::BuildSidebarLayout(registry,700,noven::ui::UiTheme{});layout=noven::ui::BuildSidebarLayout(registry,700,noven::ui::UiTheme{},layout.maximum);
     Check(registry.Find(pageId)->displayTitle=="Scan Demo"&&layout.Find(pageId)->visible,"recognized page enters real reachable sidebar");
     const auto wait=[&](const auto& predicate){const auto deadline=ipc::After(5000);while(std::chrono::steady_clock::now()<deadline){auto state=runtime.Snapshot(id);if(predicate(*state))return true;WaitForSingleObject(changed.Get(),50);}return false;};
-    const auto action=[&](std::string_view name){const auto state=runtime.Snapshot(id);Check(runtime.Action(id,state->generation,"dashboard",name),"sample action dispatched");};
+    const auto action=[&](std::string_view name){const auto deadline=ipc::After(5000);while(std::chrono::steady_clock::now()<deadline){const auto state=runtime.Snapshot(id);if(runtime.Action(id,state->generation,"dashboard",name))return;WaitForSingleObject(changed.Get(),50);}throw std::runtime_error("sample action dispatched");};
     const auto barrier=[&]{auto count=runtime.Snapshot(id)->pongs;Check(runtime.Ping(id)&&runtime.WaitForPong(id,count+1,5000),"protocol barrier");};
     action("history");Check(wait([](const auto& state){return state.dataResults==1&&state.pendingData==0;}),"async safe history callback");
     auto state=runtime.Snapshot(id);auto history=json::Parser(state->pages[0].document.blocks[7].text).Parse();

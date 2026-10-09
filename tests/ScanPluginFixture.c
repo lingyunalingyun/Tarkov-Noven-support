@@ -23,7 +23,7 @@ static int32_t NOVEN_CALL Action(void* context,NovenUtf8V1 page,NovenUtf8V1 acti
         NovenDataRequestV1 request={0};request.struct_size=sizeof(request);request.catalog_kind=NOVEN_DATA_RECENT_SCANS;
         request.operation=NOVEN_DATA_LIST;request.request_id=1;request.limit=1;status=catalog->request_data(catalog->context,&request);
     }
-    snprintf(log,sizeof(log),"admission:%d",(int)status);base->log(base->context,Text(log));return NOVEN_OK;
+    snprintf(log,sizeof(log),"admission:%s:%d",Equal(action,"history")?"history":Equal(action,"subscribe")?"subscribe":"unsubscribe",(int)status);base->log(base->context,Text(log));return NOVEN_OK;
 }
 static void NOVEN_CALL Subscription(void* context,uint32_t active,int32_t status){
     char log[128];(void)context;

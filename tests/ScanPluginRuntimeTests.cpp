@@ -18,12 +18,12 @@ int wmain(int argc,wchar_t** argv) try {
         Check(!runtime.StartNative(record,store),"ungranted fails before any session");Check(store.Consent(manifest)&&runtime.StartNative(record,store),"explicit scoped consent");return id;
     };
     const auto wait=[&](std::string_view id,const auto& predicate){const auto deadline=ipc::After(6000);while(std::chrono::steady_clock::now()<deadline){auto state=runtime.Snapshot(id);if(state&&predicate(*state))return true;WaitForSingleObject(changed.Get(),50);}return false;};
-    const auto action=[&](std::string_view id,std::string_view name){const auto state=runtime.Snapshot(id);Check(runtime.Action(id,state->generation,"dashboard",name),"action admission");};
+    const auto action=[&](std::string_view id,std::string_view name){const auto deadline=ipc::After(5000);while(std::chrono::steady_clock::now()<deadline){const auto state=runtime.Snapshot(id);if(runtime.Action(id,state->generation,"dashboard",name))return;WaitForSingleObject(changed.Get(),50);}throw std::runtime_error("action admission");};
     const auto barrier=[&](std::string_view id){const auto count=runtime.Snapshot(id)->pongs;Check(runtime.Ping(id)&&runtime.WaitForPong(id,count+1,5000),"session protocol barrier");};
     const auto a=start("com.example.scans-a",0),b=start("com.example.scans-b",0),denied=start("com.example.scans-denied",0,false);
     for(const auto& id:{a,b,denied})Check(runtime.WaitFor(id,HostState::Running,10000),"first-party fixture loads");
-    action(denied,"subscribe");Check(wait(denied,[](const auto& s){return s.lastLog=="admission:-2";}),"not declared subscription denied");
-    action(denied,"history");Check(wait(denied,[](const auto& s){return s.lastLog=="admission:-2";}),"not declared history denied");barrier(denied);
+    action(denied,"subscribe");Check(wait(denied,[](const auto& s){return s.lastLog=="admission:subscribe:-2";}),"not declared subscription denied");
+    action(denied,"history");Check(wait(denied,[](const auto& s){return s.lastLog=="admission:history:-2";}),"not declared history denied");barrier(denied);
     runtime.NotifyScanCompleted(scan);barrier(a);Check(runtime.Snapshot(a)->scanEvents==0,"no event before subscription");
     action(a,"subscribe");Check(wait(a,[](const auto& s){return s.scanSubscribed&&s.lastLog=="subscription:1:0";}),"subscribe acknowledged");barrier(a);Check(runtime.Snapshot(a)->scanEvents==0,"no historical replay");
     action(a,"subscribe");Check(wait(a,[](const auto& s){return s.lastLog=="subscription:1:0";}),"duplicate subscription idempotent");barrier(a);
