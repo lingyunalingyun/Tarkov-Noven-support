@@ -160,3 +160,14 @@ The page has Items/Tasks/Maps buttons. Each requests at most four records asynch
 
 结果回调返回后 Host 才发送 dataResultAck，父进程等待最多 3 秒，防止插件挂起结果回调。核心另有每秒 32 次防洪保护（容纳发送方秒边界），仍最多 16 未确认结果；恶意重复、洪泛或未知 ACK 终止该会话，不影响其他插件。已经进入插件的回调不能被追溯取消，停止后不再接受新交互/结果。
 Host sends dataResultAck only after the result callback returns; the parent bounds that wait to three seconds. Core additionally guards 32 requests/second to accommodate sender window boundaries, still with at most 16 unacknowledged results. Malicious duplicate/flood/unknown ACK ends only that session. Already-entered callbacks cannot be retroactively cancelled; stopped sessions accept no new interaction/results.
+
+## Scan Record v1
+
+Recent Scans 已持久化跨启动递增 uint64 scanId；公开为规范十进制字符串（1–18446744073709551615），避免数字精度丢失。不用名称、时间戳或数组位置造身份。`recentScans` 沿用目录 schema 1 / 异步 list 和 get，以及现有分页、24 KiB 结果限制。权限为 `scan.history.read`。
+Recent Scans already persists a monotonic uint64 scanId across launches. It is canonical decimal text (1–18446744073709551615), not identity invented from names/timestamps/positions. `recentScans` uses the existing schema 1 asynchronous list/get and pagination/24 KiB result budget, requiring `scan.history.read`.
+
+记录恰好包含：`scanId` 字符串、`scannedAtUnixMs` UTC Unix 毫秒、`localSessionId` 字符串或 null、`stableItemId`、`displayName`（存储的扫描时名称，不重新翻译）。一条记录是现有单物品结果，不合成数量或多物品。localSessionId 仅是已有历史关联，不推断缺失关联，不开放活动战局。
+Each record has exactly: `scanId` string, `scannedAtUnixMs` UTC Unix milliseconds, nullable `localSessionId`, `stableItemId`, and `displayName` (stored scan-time name, not retranslated). One record is the existing single-item result; no quantity/multi-item data is invented. Raid association is retained only when stored and exposes no active raid.
+
+投影不包含 OCR/捕获/坐标/窗口/文件路径/调试信息，也不包含价格（即使存储保留了历史价格）；没有实时价格查询。每请求保留一次已发布快照，跨分页是当前视图而非事务；未发布不可用，已发布空列表正常。插件不能触发扫描、读取屏幕/截图/原始 OCR；只消费 Noven 正常用户触发后产出的结果。PluginHost 不是 OS 安全沙箱。
+The projection contains no OCR/capture/coordinates/window/path/debug fields or prices, even when historical prices are stored; no live price queries occur. Each request retains a published snapshot; pages are best-effort current views, not a transaction. Unpublished is unavailable; published empty history is valid. Plugins cannot trigger scans or read screens/screenshots/raw OCR; they consume only results Noven already produced through normal user-triggered scanning. PluginHost is not an OS sandbox.

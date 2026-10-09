@@ -91,17 +91,25 @@ void CatalogPluginService::PublishEvents(std::span<const events::EventRecord> sn
     }
     std::sort(rows->begin(),rows->end(),[](const auto& a,const auto& b){return a.id<b.id;});events_.store(std::move(rows));
 }
+void CatalogPluginService::PublishRecentScans(std::span<const data::RecentScanEntry> scans){
+    if(scans.size()>data::RecentScanStore::kMaxEntries)throw std::runtime_error("scan snapshot capacity");
+    auto rows=std::make_shared<std::vector<Record>>();rows->reserve(scans.size());
+    for(const auto& scan:scans){auto text=ScanRecord(scan);rows->push_back({std::to_string(scan.scanId),text,std::move(text)});}
+    // Recent Scans 的现有顺序（最新追加在前）不变；Get 使用真正持久化身份。
+    // Preserve Recent Scans order (newest append first); Get uses the real persisted identity.
+    scans_.store(std::move(rows));
+}
 DataResult CatalogPluginService::Error(const DataRequest& request,DataStatus status){return {request.requestId,status,Envelope(request,status,{},"null")};}
 DataResult CatalogPluginService::Query(const DataRequest& request,const CatalogGrants& grants) const {
     if(!ValidDataRequest(request))return Error(request,DataStatus::InvalidRequest);
     if(!grants.Allows(request.catalog))return Error(request,DataStatus::PermissionDenied);
-    const auto snapshot=request.catalog==CatalogKind::RaidHistory?history_.load():request.catalog==CatalogKind::Events?events_.load():nullptr;
+    const auto snapshot=request.catalog==CatalogKind::RaidHistory?history_.load():request.catalog==CatalogKind::Events?events_.load():request.catalog==CatalogKind::RecentScans?scans_.load():nullptr;
     if(static_cast<unsigned>(request.catalog)>3&&!snapshot)return Error(request,DataStatus::Unavailable);
     const auto& rows=snapshot?*snapshot:records_[static_cast<std::size_t>(request.catalog)-1];
     if(rows.empty()&&!snapshot)return Error(request,DataStatus::Unavailable);
     const bool english=english_.load();
     if(request.operation==DataOperation::Get){
-        const auto row=request.catalog==CatalogKind::RaidHistory?std::find_if(rows.begin(),rows.end(),[&](const auto& record){return record.id==request.stableId;})
+        const auto row=(request.catalog==CatalogKind::RaidHistory||request.catalog==CatalogKind::RecentScans)?std::find_if(rows.begin(),rows.end(),[&](const auto& record){return record.id==request.stableId;})
             :std::lower_bound(rows.begin(),rows.end(),request.stableId,[](const auto& record,const auto& id){return record.id<id;});
         if(row==rows.end()||row->id!=request.stableId)return Error(request,DataStatus::NotFound);
         auto text=Envelope(request,DataStatus::Ok,{},english?row->en:row->zh,rows.size());

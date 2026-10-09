@@ -5,6 +5,7 @@
 #include "data/MapCatalog.h"
 #include "raid/RaidSession.h"
 #include "events/EventTypes.h"
+#include "plugins/PluginScanData.h"
 #include <array>
 #include <atomic>
 #include <span>
@@ -21,6 +22,7 @@ public:
     void SetLocale(std::string_view locale){english_.store(locale.starts_with("en"));}
     void PublishRaidHistory(std::span<const raid::RaidSession> completed);
     void PublishEvents(std::span<const events::EventRecord> events);
+    void PublishRecentScans(std::span<const data::RecentScanEntry> scans);
     DataResult Query(const DataRequest& request,const CatalogGrants& grants) const;
     static DataResult Error(const DataRequest& request,DataStatus status);
 private:
@@ -29,7 +31,7 @@ private:
     std::map<std::string,std::pair<std::string,std::string>,std::less<>> mapNames_;
     // 每次请求保留一个已发布投影；替换快照不使分页/查询持有的字符串失效。
     // Each request retains one published projection; replacement never invalidates its strings.
-    std::atomic<std::shared_ptr<const std::vector<Record>>> history_,events_;
+    std::atomic<std::shared_ptr<const std::vector<Record>>> history_,events_,scans_;
     std::atomic<bool> english_{};
 };
 }

@@ -11,7 +11,7 @@ inline constexpr unsigned CatalogSchemaVersion=1,MaximumCatalogRecords=64,Defaul
 // JSON 切片再转义成传输字符串仍留有余量，不扩张既有 64 KiB 帧。
 // Re-escaping the JSON slice still fits comfortably within the existing 64 KiB frame.
 inline constexpr std::size_t MaximumCatalogPayloadBytes=24*1024;
-enum class CatalogKind {Items=1,Tasks=2,Maps=3,RaidHistory=4,Events=5};
+enum class CatalogKind {Items=1,Tasks=2,Maps=3,RaidHistory=4,Events=5,RecentScans=6};
 enum class DataOperation {List=1,Get=2};
 enum class DataStatus {Ok,PermissionDenied,NotFound,InvalidRequest,Unavailable,TooLarge,Limited};
 struct DataRequest final {
