@@ -14,9 +14,12 @@ void CALLBACK Inspect(HWND,UINT,UINT_PTR timer,DWORD) {
         if(GetWindow(candidate,GW_OWNER)!=owner)return TRUE;
         *reinterpret_cast<HWND*>(result)=candidate;return FALSE;
     },reinterpret_cast<LPARAM>(&dialog));
-    if(!dialog) { if(++ticks>100)ExitProcess(2);return; }
+    // 枚举可在构建阶段看到尚未显示的对话框；只在系统已显示它后验证交互焦点。
+    // Enumeration can see a dialog still being constructed; inspect interactive focus only after it is shown.
+    if(!dialog||!IsWindowVisible(dialog)) { if(++ticks>100)ExitProcess(2);return; }
     KillTimer(nullptr,timer);inspected=true;
     Check(!IsWindowEnabled(owner),"owner is disabled during modal message");
+    if(GetFocus()!=GetDlgItem(dialog,mode==4?IDOK:IDCANCEL))std::cerr<<"focus mode="<<mode<<" visible="<<IsWindowVisible(dialog)<<" control="<<GetDlgCtrlID(GetFocus())<<'\n';
     Check(GetFocus()==GetDlgItem(dialog,mode==4?IDOK:IDCANCEL),"default focus is cancel for consent, OK for information");
     Check(GetWindowTextLengthW(GetDlgItem(dialog,100))>10000,"long warning is retained without truncation");
     wchar_t content[64]{};GetDlgItemTextW(dialog,100,content,64);
@@ -55,6 +58,7 @@ int main() {
             L"Enable",mode==4?L"":L"Cancel");
         KillTimer(nullptr,timer);
         if(accepted!=(mode==0||mode==4||mode==5))std::cerr<<"mode="<<mode<<" accepted="<<accepted<<'\n';
+        if(!inspected)std::cerr<<"uninspected mode="<<mode<<" error="<<GetLastError()<<'\n';
         Check(inspected,"dialog was created");Check(accepted==(mode==0||mode==4||mode==5),"close, Escape and default Enter never authorize consent");
         Check(IsWindowEnabled(owner),"owner restored after modal dialog");
     }
