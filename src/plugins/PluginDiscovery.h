@@ -1,5 +1,6 @@
 #pragma once
 #include "plugins/PluginManifest.h"
+#include "common/AppPaths.h"
 #include <filesystem>
 #include <windows.h>
 
@@ -21,7 +22,8 @@ inline bool UnsafeAttributes(DWORD attributes,bool directory) {
 // Called on the UI thread at startup and explicit refresh only: no thread, polling, network, writes or code loading.
 class PluginDiscovery final {
 public:
-    explicit PluginDiscovery(const std::filesystem::path& executableDirectory):root_(executableDirectory/L"plugins"){}
+    explicit PluginDiscovery(const std::filesystem::path& executableDirectory):PluginDiscovery(common::AppPaths::Development(executableDirectory)){}
+    explicit PluginDiscovery(const common::AppPaths& paths):root_(paths.Plugins()){}
     const PluginSnapshot& Refresh();
     const PluginSnapshot& Snapshot() const noexcept {return snapshot_;}
     const std::filesystem::path& Root() const noexcept {return root_;}

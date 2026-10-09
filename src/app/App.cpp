@@ -85,15 +85,6 @@ capture::Rect VirtualScreenRect() {
     };
 }
 
-std::filesystem::path ExecutableDirectory() {
-    wchar_t path[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(nullptr, path, ARRAYSIZE(path));
-    if (length == 0 || length == ARRAYSIZE(path)) {
-        return std::filesystem::current_path();
-    }
-    return std::filesystem::path(std::wstring(path, length)).parent_path();
-}
-
 std::wstring FormatMeasurement(double value) {
     std::wostringstream stream;
     stream << std::fixed << std::setprecision(2) << value;
@@ -275,9 +266,10 @@ HWND App::CreateMainWindow(HINSTANCE instance) const {
 }
 
 int App::Run(HINSTANCE instance, int show_command) {
+    common::ConfigureDebugLog(paths_.Diagnostics());
     instance_ = instance;
     std::wstring locale_error;
-    if (!ui::UiLocalization().DiscoverLocales(ExecutableDirectory() / L"assets" / L"i18n", locale_error)) {
+    if (!ui::UiLocalization().DiscoverLocales(paths_.programRoot / L"assets" / L"i18n", locale_error)) {
         common::DebugLog(locale_error);
         (void)ui::ShowMessageDialog(nullptr,L"Noven - Localization",locale_error,ui::MessageKind::Error,L"OK");
         return 1;
@@ -309,14 +301,14 @@ int App::Run(HINSTANCE instance, int show_command) {
         return 1;
     }
     std::wstring history_error;
-    preferences_=data::AppSettings::Load(ExecutableDirectory()/L"data"/L"settings.json").value_or(data::AppSettings{});
+    preferences_=data::AppSettings::Load(paths_.Data()/L"settings.json").value_or(data::AppSettings{});
     main_ui_->SetPreferences(preferences_);
     main_ui_->SetPreferencesHandler([this](const auto& next){return ApplyPreferences(next);});
-    plugin_discovery_=std::make_unique<plugins::PluginDiscovery>(ExecutableDirectory());
+    plugin_discovery_=std::make_unique<plugins::PluginDiscovery>(paths_);
     // 新插件默认禁用；仅独立的授权控制器可启动 V2，发现和刷新不启动会话。
     // New plugins default disabled; only the consent controller starts V2, never discovery/refresh.
-    plugin_runtime_=std::make_unique<plugins::PluginRuntimeManager>();
-    plugin_controller_=std::make_unique<plugins::PluginRuntimeController>(*plugin_discovery_,*plugin_runtime_,ExecutableDirectory()/L"data"/L"plugin-state.json");
+    plugin_runtime_=std::make_unique<plugins::PluginRuntimeManager>(paths_);
+    plugin_controller_=std::make_unique<plugins::PluginRuntimeController>(*plugin_discovery_,*plugin_runtime_,paths_.Data()/L"plugin-state.json");
     plugin_runtime_->SetChangeHandler([window=window_,pending=plugin_notification_pending_]{
         if(!pending->exchange(true)&&!PostMessageW(window,kPluginRuntimeMessage,0,0))pending->store(false);
     });
@@ -325,10 +317,10 @@ int App::Run(HINSTANCE instance, int show_command) {
     // 市场工作线程只通知 UI 读取不可变快照，不接触本地插件执行或授权。
     // Marketplace worker only notifies UI to read an immutable snapshot, never local execution or grants.
 #ifdef NOVEN_MARKETPLACE_REVIEW_FIXTURE
-    marketplace_=std::make_unique<plugins::MarketplaceService>(ExecutableDirectory()/L"data"/L"marketplace-review-cache.json",
+    marketplace_=std::make_unique<plugins::MarketplaceService>(paths_.Data()/L"marketplace-review-cache.json",
         "review-fixture-v1",std::make_unique<MarketplaceReviewTransport>(),[window=window_]{PostMessageW(window,kMarketplaceMessage,0,0);},true);
 #else
-    marketplace_=std::make_unique<plugins::MarketplaceService>(ExecutableDirectory()/L"data"/L"marketplace-cache.json",
+    marketplace_=std::make_unique<plugins::MarketplaceService>(paths_.Data()/L"marketplace-cache.json",
         NOVEN_PLUGIN_REGISTRY_URL,plugins::MakeRegistryTransport(NOVEN_PLUGIN_REGISTRY_URL),[window=window_]{PostMessageW(window,kMarketplaceMessage,0,0);});
 #endif
     main_ui_->SetMarketplace(marketplace_->Snapshot());
@@ -350,7 +342,7 @@ int App::Run(HINSTANCE instance, int show_command) {
                 ui::MessageKind::Warning,ui::Tr("dialog.ok"));
     });
     main_ui_->SetPluginActionHandler([this](const ui::PluginOwnedPage& page,std::string_view action){plugin_runtime_->Action(page.pluginId,page.generation,page.page.localId,action);});
-    if (!recent_scan_store_->Load(ExecutableDirectory() / L"data" / L"recent-scans.json",
+    if (!recent_scan_store_->Load(paths_.Data() / L"recent-scans.json",
                                   history_error)) {
         common::DebugLog(L"[recent-scans] load warning: " + history_error);
     }
@@ -361,30 +353,30 @@ int App::Run(HINSTANCE instance, int show_command) {
     official_event_source_=std::make_unique<events::OfficialEventSource>(*event_http_);
     wiki_event_source_=std::make_unique<events::WikiEventSource>(*event_http_);
     event_service_=std::make_unique<events::EventService>(*official_event_source_,
-        events::MakeEventEnrichment(ExecutableDirectory()/L"assets",*event_http_),wiki_event_source_.get(),event_http_.get());
+        events::MakeEventEnrichment(paths_.programRoot/L"assets",*event_http_),wiki_event_source_.get(),event_http_.get());
     event_service_->SetChangedCallback([this]{
         const auto state=event_service_->RefreshState();
         common::DebugLog(state.phase==events::RefreshPhase::Ready?L"[events] refresh ready":
             state.phase==events::RefreshPhase::Refreshing?L"[events] source snapshot ready; translation running":L"[events] refresh failed; cache preserved");
         PostMessageW(window_,kEventsMessage,0,0);
     });
-    if(!event_service_->Start(ExecutableDirectory()/L"data"/L"events"/L"event-catalog.json"))
+    if(!event_service_->Start(paths_.Data()/L"events"/L"event-catalog.json"))
         common::DebugLog(L"[events] cache unavailable; original file preserved");
     PublishEvents();
     main_ui_->SetEventRefreshHandler([this]{
         if(!event_service_||!event_service_->RequestRefresh())return false;
         PublishEvents();return true;
     });
-    main_ui_->StartItemImages(ExecutableDirectory() / L"data" / L"item-images");
-    main_ui_->StartPriceHistory(ExecutableDirectory() / L"data" / L"price-history");
+    main_ui_->StartItemImages(paths_.Data() / L"item-images");
+    main_ui_->StartPriceHistory(paths_.Data() / L"price-history");
     main_ui_->SetRecentScans(recent_scan_store_->Snapshot());
     // 本地对局服务独立于 Scanner/UI；仅明确配置路径时启动后台读取。
     // Local raid service is independent of Scanner/UI; start background reads only for explicit configuration.
-    const auto raidRoot=preferences_.gameDirectory.empty()?raid::ReadEftLogRoot(ExecutableDirectory()/L"data"/L"eft-log-root.txt")
+    const auto raidRoot=preferences_.gameDirectory.empty()?raid::ReadEftLogRoot(paths_.Data()/L"eft-log-root.txt")
         :data::GameLogRoot(preferences_.gameDirectory);
     local_raid_service_=std::make_unique<raid::LocalRaidService>();
     local_raid_service_->SetChangedCallback([window=window_]{PostMessageW(window,kRaidHistoryMessage,0,0);});
-    if(!local_raid_service_->Start(raidRoot.value_or(std::filesystem::path{}),ExecutableDirectory()/L"data"/L"raid-history.json"))
+    if(!local_raid_service_->Start(raidRoot.value_or(std::filesystem::path{}),paths_.Data()/L"raid-history.json"))
         common::DebugLog(L"[local-raid] service could not start");
     main_ui_->SetRaidScanHandler([this]{return local_raid_service_&&local_raid_service_->RequestScan();});
 
@@ -415,10 +407,10 @@ int App::Run(HINSTANCE instance, int show_command) {
         }
     }
 
-    scan_trigger_->SetOutputDirectory(ExecutableDirectory() / L"debug-captures");
+    scan_trigger_->SetOutputDirectory(paths_.Diagnostics());
     scan_trigger_->SetRoiSize(capture::Size{800, 600});
 
-    const std::filesystem::path executable_directory = ExecutableDirectory();
+    const std::filesystem::path executable_directory = paths_.programRoot;
     std::wstring catalog_error;
     if (!item_catalog_->Load(
         executable_directory / L"assets" / L"data" / L"items_catalog.tsv",
@@ -452,7 +444,7 @@ int App::Run(HINSTANCE instance, int show_command) {
     plugin_controller_->StartEnabled();PublishPluginRuntime();
     StartMapAssetUpdate();
 
-    data_refresh_service_->Start(executable_directory / L"data" / L"economy-cache");
+    data_refresh_service_->Start(paths_.Data() / L"economy-cache");
 
     std::wstring ocr_error;
     if (!text_detector_->Initialize(
@@ -695,7 +687,7 @@ void App::CheckDebugVisualizationCursor() {
 
 void App::OnModeChanged(data::GameMode mode) {
     auto next=preferences_;next.mode=mode;
-    if(!next.Save(ExecutableDirectory()/L"data"/L"settings.json"))common::DebugLog(L"[settings] could not save scanner mode");
+    if(!next.Save(paths_.Data()/L"settings.json"))common::DebugLog(L"[settings] could not save scanner mode");
     preferences_=next;main_ui_->SetPreferences(preferences_);
     scan_trigger_->SetGameMode(mode);
     main_ui_->SetScannerState(ui::ScannerPageState{
@@ -713,18 +705,18 @@ bool App::ApplyPreferences(const data::AppSettings& next) {
     if(shortcutChanged&&!hotkey_->Register(window_,kCaptureHotkeyId,{next.scanModifiers|MOD_NOREPEAT,next.scanKey})){
         hotkey_->Register(window_,kCaptureHotkeyId,previous);return false;
     }
-    if(!next.Save(ExecutableDirectory()/L"data"/L"settings.json")){
+    if(!next.Save(paths_.Data()/L"settings.json")){
         if(shortcutChanged)hotkey_->Register(window_,kCaptureHotkeyId,previous);return false;
     }
     preferences_=next;main_ui_->SetPreferences(preferences_);
-    if(directoryChanged&&local_raid_service_)local_raid_service_->Start(*root,ExecutableDirectory()/L"data"/L"raid-history.json");
+    if(directoryChanged&&local_raid_service_)local_raid_service_->Start(*root,paths_.Data()/L"raid-history.json");
     return true;
 }
 
 void App::StartMapAssetUpdate(){
     if(map_asset_worker_.joinable())return;
-    const auto assets=ExecutableDirectory()/L"assets";
-    const auto cache=ExecutableDirectory()/L"data"/L"map-assets";
+    const auto assets=paths_.programRoot/L"assets";
+    const auto cache=paths_.Data()/L"map-assets";
     data::MapAssetComposer existing(data::MapAssetStore(cache/L"sources",assets),cache/L"generations");
     if(const auto generation=existing.CurrentGeneration())main_ui_->SetMapAssetGeneration(*generation);
     const auto window=window_;

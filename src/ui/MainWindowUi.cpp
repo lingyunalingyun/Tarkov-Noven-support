@@ -1,4 +1,5 @@
 #include "ui/MainWindowUi.h"
+#include "common/AppPaths.h"
 #include "ui/Dropdown.h"
 #include "ui/NavigationButton.h"
 #include "ui/PricePagination.h"
@@ -1075,12 +1076,10 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
                 navigation_.Active() == BuiltinPageId::Settings)) {
             // 只打开安装目录中的本地通知，不使用工作目录或网络地址。
             // Open only the local installed notice, never a working-directory or network URL.
-            wchar_t executable[32768]{};
-            const DWORD length = GetModuleFileNameW(nullptr, executable, ARRAYSIZE(executable));
-            if (length > 0 && length < ARRAYSIZE(executable)) {
-                const auto notice = std::filesystem::path(executable).parent_path() / L"NOTICE.md";
+            try {
+                const auto notice = common::ProgramDirectory() / L"NOTICE.md";
                 ShellExecuteW(window_, L"open", notice.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-            }
+            }catch(const std::exception&){}
         }
         Invalidate();
         return std::nullopt;

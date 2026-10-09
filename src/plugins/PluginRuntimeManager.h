@@ -40,6 +40,7 @@ public:
     // 目录重载仅供第一方测试夹具；生产默认构造总从当前可执行文件定位 Host。
     // Directory overload is for first-party fixtures; production defaults always resolve Host from the current executable.
     explicit PluginRuntimeManager(std::filesystem::path executableDirectory);
+    explicit PluginRuntimeManager(const common::AppPaths& paths);
     ~PluginRuntimeManager();
     PluginRuntimeManager(const PluginRuntimeManager&)=delete;
     PluginRuntimeManager& operator=(const PluginRuntimeManager&)=delete;

@@ -6,6 +6,7 @@
 
 #include "capture/Roi.h"
 #include "common/DebugLog.h"
+#include "common/AppPaths.h"
 #include "scanner/AdaptiveTextExpansion.h"
 #include "scanner/DebugImageWriter.h"
 #include "scanner/InventoryRecognition.h"
@@ -171,7 +172,7 @@ ScanTrigger::ScanTrigger(
       text_recognizer_(text_recognizer),
       item_catalog_(item_catalog),
       economy_store_(economy_store),
-      output_directory_(std::filesystem::current_path() / L"debug-captures") {}
+      output_directory_(common::AppPaths::Current().Diagnostics()) {}
 
 ScanTrigger::~ScanTrigger() {
     {

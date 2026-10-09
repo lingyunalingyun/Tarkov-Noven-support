@@ -12,11 +12,6 @@ namespace noven::plugins {
 using namespace ipc;
 bool Terminal(HostState state){return state==HostState::Stopped||state==HostState::Exited||state==HostState::Crashed||state==HostState::ProtocolError;}
 namespace {
-std::filesystem::path ExecutableDirectory(){
-    std::wstring path(32768,L'\0');const auto length=GetModuleFileNameW(nullptr,path.data(),static_cast<DWORD>(path.size()));
-    if(!length||length==path.size())throw std::runtime_error("cannot resolve first-party runtime directory");
-    path.resize(length);return std::filesystem::path(path).parent_path();
-}
 struct Failure final {HostState state;HostError error;};
 struct Session final {
     mutable std::mutex mutex;
@@ -226,8 +221,9 @@ void Run(Session& session,const std::filesystem::path& host){
 }
 }
 struct PluginRuntimeManager::Impl final {
-    explicit Impl(std::filesystem::path directory):host(std::filesystem::absolute(std::move(directory))/L"NovenPluginHost.exe"),storage(std::make_shared<PluginStorageService>(host.parent_path()/L"data")){}
+    explicit Impl(const common::AppPaths& paths):host(paths.programRoot/L"NovenPluginHost.exe"),pluginRoot(paths.Plugins()),storage(std::make_shared<PluginStorageService>(paths.Data())){}
     std::filesystem::path host;
+    std::filesystem::path pluginRoot;
     mutable std::mutex mutex;
     std::function<void()> notify;
     std::shared_ptr<CatalogPluginService> catalog;
@@ -246,8 +242,9 @@ struct PluginRuntimeManager::Impl final {
         return predicate(session->snapshot);
     }
 };
-PluginRuntimeManager::PluginRuntimeManager():PluginRuntimeManager(ExecutableDirectory()){}
-PluginRuntimeManager::PluginRuntimeManager(std::filesystem::path directory):impl_(std::make_unique<Impl>(std::move(directory))){}
+PluginRuntimeManager::PluginRuntimeManager():PluginRuntimeManager(common::AppPaths::Current()){}
+PluginRuntimeManager::PluginRuntimeManager(std::filesystem::path directory):PluginRuntimeManager(common::AppPaths::Development(std::filesystem::absolute(directory))){}
+PluginRuntimeManager::PluginRuntimeManager(const common::AppPaths& paths):impl_(std::make_unique<Impl>(paths)){}
 PluginRuntimeManager::~PluginRuntimeManager(){
     for(auto& [id,session]:impl_->sessions){std::lock_guard lock(session->mutex);session->stopping=true;SetEvent(session->wake.Get());}
     for(auto& [id,session]:impl_->sessions)if(session->worker.joinable())session->worker.join();
@@ -301,7 +298,7 @@ std::vector<HostSnapshot> PluginRuntimeManager::Snapshots() const {
 }
 bool PluginRuntimeManager::StartNative(const PluginRecord& record,const PluginStateStore& grants){
     if(record.state!=PluginState::Valid||!record.manifest||!grants.Authorized(*record.manifest))return false;
-    std::optional<NativeFile> file;try{file=NativeFile::Open(impl_->host.parent_path()/L"plugins",record.directory,record.manifest->runtime->entry);}catch(const std::exception&){return false;}
+    std::optional<NativeFile> file;try{file=NativeFile::Open(impl_->pluginRoot,record.directory,record.manifest->runtime->entry);}catch(const std::exception&){return false;}
     std::unique_lock lock(impl_->mutex);const auto& id=record.manifest->id;
     if(auto previous=impl_->Find(id)){
         {std::lock_guard stateLock(previous->mutex);if(!Terminal(previous->snapshot.state))return false;}

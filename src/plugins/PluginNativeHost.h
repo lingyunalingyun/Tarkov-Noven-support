@@ -1,4 +1,5 @@
 #pragma once
+#include "common/AppPaths.h"
 #include "plugins/PluginNativePath.h"
 #include "plugins/PluginUiDocument.h"
 #include "plugins/PluginHttpService.h"
@@ -11,7 +12,8 @@ namespace noven::plugins {
 // Linked into Host only, never the main application; process isolation is not an OS sandbox.
 class NativePluginHost final {
 public:
-    explicit NativePluginHost(std::filesystem::path executableDirectory,std::unique_ptr<IPluginHttpBackend> testBackend={}):root_(std::move(executableDirectory)/L"plugins"),testBackend_(std::move(testBackend)){}
+    explicit NativePluginHost(std::filesystem::path executableDirectory,std::unique_ptr<IPluginHttpBackend> testBackend={}):NativePluginHost(common::AppPaths::Development(std::filesystem::absolute(executableDirectory)),std::move(testBackend)){}
+    explicit NativePluginHost(const common::AppPaths& paths,std::unique_ptr<IPluginHttpBackend> testBackend={}):root_(paths.Plugins()),testBackend_(std::move(testBackend)){}
     ~NativePluginHost();
     bool Message(const ipc::Message& message,ipc::Channel& channel,HANDLE parent);
     void Shutdown();

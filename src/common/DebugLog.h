@@ -4,9 +4,11 @@
 // Diagnostic output correlates scan stages; it never drives recognition, matching, or display.
 
 #include <string_view>
+#include <filesystem>
 
 namespace noven::common {
 
 void DebugLog(std::wstring_view message);
+void ConfigureDebugLog(const std::filesystem::path& directory);
 
 } // namespace noven::common

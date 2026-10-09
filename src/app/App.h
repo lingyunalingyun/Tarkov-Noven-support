@@ -6,6 +6,7 @@
 // worker results cross over through WM_APP messages.
 
 #include <windows.h>
+#include "common/AppPaths.h"
 
 #include <cstdint>
 #include <memory>
@@ -67,6 +68,7 @@ public:
     int Run(HINSTANCE instance, int show_command);
 
 private:
+    common::AppPaths paths_{common::AppPaths::Current()};
     static constexpr wchar_t kWindowClassName[] = L"NovenTarkovSupportWindow";
     // 消息附带堆上结果指针，投递失败由发送端释放，成功由接收端接管。
     // Messages carry heap-owned results; the sender frees failed posts,
