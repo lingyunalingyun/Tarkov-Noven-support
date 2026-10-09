@@ -44,3 +44,11 @@ Optional package is {url,asset,sha256,size}: same URL policy, asset at most 256 
 
 status 默认 unreviewed，允许 reviewed/deprecated/blocked。reviewed 仅表示 Registry 维护者声明已审阅发布资料，不是恶意软件保证、OS 沙箱、长期反作弊保证或签名验证。blocked 显示警告但不自动禁用/删除本地插件。Registry 上架不使代码安全；权限预览不授予权限。
 status defaults to unreviewed and permits reviewed/deprecated/blocked. Reviewed means Registry maintainers declare review of publication materials, not malware-proofing, an OS sandbox, lasting anti-cheat compliance or signature verification. Blocked shows a warning without automatically disabling/deleting local plugins. Listing does not make code safe; permission preview grants nothing.
+
+## Client snapshots and cache
+
+服务在托管工作线程获取 Registry，UI 接收不可变快照。构造只载入缓存，不联网；进入市场可请求获取，显式刷新至少间隔 5 秒，自动进入刷新至少间隔 30 秒且 Live 快照 15 分钟内复用。没有后台轮询。状态区分 Unconfigured/Empty/Loading/Live/Cached/Error；Cached 总是标注缓存，fetch 时间随快照保存。
+The managed worker fetches Registry data and publishes immutable snapshots. Construction loads cache only, without networking. Entry may request refresh; explicit refresh has a five-second cooldown, entry refresh a thirty-second cooldown and reuses Live snapshots for fifteen minutes. No background polling. States distinguish Unconfigured/Empty/Loading/Live/Cached/Error; Cached is always labeled and preserves its fetch timestamp.
+
+第一方数据区缓存绑定配置来源，cacheVersion=1，最多 6 MiB + 4 KiB（原始 1 MiB JSON 的最坏转义大小）。载入重新验证 Registry；损坏或不同来源缓存忽略。仅完整成功数据经过唯一临时文件、FlushFileBuffers、原子替换落盘，网络/解析/替换失败保留旧缓存；不写 plugins/ 或插件存储。
+The first-party data cache binds its configured source, uses cacheVersion=1 and is bounded to 6 MiB + 4 KiB (worst-case escaping of the original 1 MiB JSON). Reload revalidates Registry data; corrupt or different-source caches are ignored. Only fully validated data is persisted through a unique temporary file, FlushFileBuffers and atomic replacement. Network/parse/replacement failures retain the previous cache. Nothing writes plugins/ or plugin storage.
