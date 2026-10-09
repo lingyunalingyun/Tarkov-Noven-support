@@ -417,6 +417,8 @@ int App::Run(HINSTANCE instance, int show_command) {
     // Start consented plugins only after catalogs load; copy static projections without worker access to UI catalog objects.
     plugin_runtime_->SetCatalogService(std::make_shared<plugins::CatalogPluginService>(item_catalog_->Items(),
         main_ui_->Tasks().Catalog().Tasks(),main_ui_->Map().Catalog(data::GameMode::Pvp).Maps(),ui::UiLocalization().ActiveLocale()));
+    plugin_runtime_->PublishRaidHistory(local_raid_service_->CompletedSessions());
+    plugin_runtime_->PublishEvents(event_service_->Events());
     plugin_controller_->StartEnabled();PublishPluginRuntime();
     StartMapAssetUpdate();
 
@@ -733,8 +735,11 @@ void App::EnsureRecentAnimationTimer() {
 }
 
 void App::PublishEvents() {
-    if(event_service_&&main_ui_)main_ui_->SetEvents(event_service_->Events(),
-        event_service_->RefreshState(),event_service_->LastSuccessfulRefresh());
+    if(event_service_&&main_ui_){
+        auto snapshot=event_service_->Events();
+        if(plugin_runtime_)plugin_runtime_->PublishEvents(snapshot);
+        main_ui_->SetEvents(std::move(snapshot),event_service_->RefreshState(),event_service_->LastSuccessfulRefresh());
+    }
 }
 
 void App::RefreshPlugins() {
@@ -895,7 +900,9 @@ LRESULT CALLBACK App::WindowProc(
         case kRaidHistoryMessage:
             if(app->local_raid_service_&&app->main_ui_){
                 const auto status=app->local_raid_service_->Status();
-                app->main_ui_->SetRaidSessions(app->local_raid_service_->CompletedSessions(),app->local_raid_service_->ActiveSession(),!status.error.empty());
+                auto completed=app->local_raid_service_->CompletedSessions();
+                if(app->plugin_runtime_)app->plugin_runtime_->PublishRaidHistory(completed);
+                app->main_ui_->SetRaidSessions(std::move(completed),app->local_raid_service_->ActiveSession(),!status.error.empty());
                 app->main_ui_->SetRaidScanStatus(status.manualScanPending,status.manualScans>0,!status.error.empty());
             }
             return 0;
