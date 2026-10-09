@@ -22,10 +22,16 @@ add_library(NovenPluginHttp STATIC src/plugins/PluginHttpService.cpp src/plugins
 target_link_libraries(NovenPluginHttp PUBLIC NovenPluginTransport winhttp ws2_32)
 target_link_libraries(NovenPluginRuntime PUBLIC NovenPluginTransport)
 set(NOVEN_PLUGIN_REGISTRY_URL "" CACHE STRING "First-party raw.githubusercontent.com Registry HTTPS URL (empty until published)")
+if(NOVEN_PLUGIN_REGISTRY_URL AND (NOT NOVEN_PLUGIN_REGISTRY_URL MATCHES "^https://raw\\.githubusercontent\\.com/[A-Za-z0-9._/-]+/registry\\.json$" OR NOVEN_PLUGIN_REGISTRY_URL MATCHES "\\.\\.|//.*//"))
+    message(FATAL_ERROR "Registry URL must be a fixed HTTPS GitHub raw registry.json without traversal/query/redirects")
+endif()
 add_library(NovenMarketplace STATIC src/plugins/PluginRegistry.cpp src/plugins/MarketplaceService.cpp src/plugins/MarketplaceHttp.cpp)
 target_link_libraries(NovenMarketplace PUBLIC NovenPluginRuntime winhttp)
+add_library(NovenMarketplaceUi STATIC src/ui/MarketplacePresentation.cpp)
+target_link_libraries(NovenMarketplaceUi PUBLIC NovenMarketplace)
 if(MSVC)
     target_compile_options(NovenMarketplace PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    target_compile_options(NovenMarketplaceUi PRIVATE /W4 /permissive- /utf-8 /EHsc)
 endif()
 add_executable(NovenPluginHost WIN32 src/plugins/PluginHostMain.cpp src/plugins/PluginNativeHost.cpp)
 target_include_directories(NovenPluginHost PRIVATE sdk)
@@ -213,7 +219,7 @@ else()
 endif()
 
 target_link_libraries(NovenTarkovSupport PRIVATE
-    NovenPluginRuntime
+    NovenMarketplaceUi
     user32
     shell32
     imm32
@@ -230,6 +236,7 @@ target_link_libraries(NovenTarkovSupport PRIVATE
     ole32
     bcrypt
 )
+target_compile_definitions(NovenTarkovSupport PRIVATE NOVEN_PLUGIN_REGISTRY_URL="${NOVEN_PLUGIN_REGISTRY_URL}")
 
 # 每次构建复制整个语言目录；添加语言包不需要修改源列表或重新链接。
 # Copy the locale directory on every build; adding a pack needs no source-list edit or relink.
@@ -285,6 +292,12 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(NovenMarketplacePageTests tests/MarketplacePageTests.cpp src/ui/PluginsPage.cpp src/ui/localization/LocalizationService.cpp)
+    target_link_libraries(NovenMarketplacePageTests PRIVATE NovenMarketplaceUi d2d1 dwrite imm32)
+    if(MSVC)
+        target_compile_options(NovenMarketplacePageTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME marketplace_page COMMAND NovenMarketplacePageTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n" "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/plugin-registry-v1.json")
     add_executable(NovenMarketplaceServiceTests tests/MarketplaceServiceTests.cpp)
     target_link_libraries(NovenMarketplaceServiceTests PRIVATE NovenMarketplace)
     if(MSVC)
@@ -1044,7 +1057,7 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME plugin_runtime_faults COMMAND NovenPluginRuntimeFaultTests "$<TARGET_FILE:NovenPluginHostTestPeer>")
     add_executable(NovenPluginExecutionBoundaryTests tests/PluginExecutionBoundaryTests.cpp src/plugins/PluginDiscovery.cpp src/ui/PluginsPage.cpp src/ui/localization/LocalizationService.cpp)
-    target_link_libraries(NovenPluginExecutionBoundaryTests PRIVATE NovenPluginRuntime d2d1 dwrite imm32)
+    target_link_libraries(NovenPluginExecutionBoundaryTests PRIVATE NovenMarketplaceUi d2d1 dwrite imm32)
     if(MSVC)
         target_compile_options(NovenPluginExecutionBoundaryTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
@@ -1062,7 +1075,7 @@ if(BUILD_TESTING)
     if(MSVC)
         target_compile_options(NovenPluginsPageTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
-    target_link_libraries(NovenPluginsPageTests PRIVATE NovenPluginRuntime d2d1 dwrite imm32)
+    target_link_libraries(NovenPluginsPageTests PRIVATE NovenMarketplaceUi d2d1 dwrite imm32)
     add_test(NAME plugins_page COMMAND NovenPluginsPageTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenSidebarLayoutTests tests/SidebarLayoutTests.cpp)
     target_include_directories(NovenSidebarLayoutTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -1143,7 +1156,7 @@ if(BUILD_TESTING)
     if(MSVC)
         target_compile_options(NovenLocalizationUiTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
-    target_link_libraries(NovenLocalizationUiTests PRIVATE NovenPluginRuntime d2d1 dwrite winhttp windowscodecs ole32 windowsapp imm32 shell32)
+    target_link_libraries(NovenLocalizationUiTests PRIVATE NovenMarketplaceUi d2d1 dwrite winhttp windowscodecs ole32 windowsapp imm32 shell32)
     add_test(NAME localization_ui COMMAND NovenLocalizationUiTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenPriceHistoryTests tests/PriceHistoryTests.cpp
         src/data/PriceHistory.cpp src/common/DebugLog.cpp)

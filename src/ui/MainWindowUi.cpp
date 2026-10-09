@@ -151,6 +151,7 @@ bool MainWindowUi::SelectPage(PageId page) {
     if(page==BuiltinPageId::Events){EventClockTick();SetTimer(window_,EventClockTimerId,60000,nullptr);}else KillTimer(window_,EventClockTimerId);
     if(page==BuiltinPageId::Map)SetTimer(window_,MapClockTimerId,250,nullptr);else KillTimer(window_,MapClockTimerId);
     if(page==BuiltinPageId::Tasks)tasks_.Activate();
+    if(page==BuiltinPageId::Plugins&&plugins_.Tab()==PluginCenterTab::Marketplace&&marketplace_refresh_)marketplace_refresh_(false);
     Invalidate();return true;
 }
 void MainWindowUi::RefreshPriceRows(bool animateSearch, bool resetPage) {
@@ -1020,7 +1021,9 @@ std::optional<data::GameMode> MainWindowUi::MouseUp(int x, int y) {
     if(navigation_.Active()==BuiltinPageId::Settings&&preferences_.Up(window_,x/Scale(),y/Scale())){Invalidate();return {};}
     if(page_content_press_blocked_) { page_content_press_blocked_=false;return std::nullopt; }
     if(navigation_.Active()==BuiltinPageId::Plugins) {
-        if(plugins_.Up(x/Scale(),y/Scale())&&plugin_refresh_)plugin_refresh_();
+        const auto previousTab=plugins_.Tab();const bool refresh=plugins_.Up(x/Scale(),y/Scale());
+        if(plugins_.Tab()==PluginCenterTab::Marketplace){if(marketplace_refresh_&&(refresh||previousTab!=plugins_.Tab()))marketplace_refresh_(refresh);}
+        else if(refresh&&plugin_refresh_)plugin_refresh_();
         if(const auto action=plugins_.TakeControlAction();action&&plugin_control_)plugin_control_(*action);
         if(x/Scale()>=theme_.sidebarWidth&&!back_pressed_){Invalidate();return {};}
     }

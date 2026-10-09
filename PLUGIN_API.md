@@ -269,3 +269,11 @@ IPC adds only `httpAccess {schemaVersion:1,origins:[canonical-origin...]}` from 
 
 `-DNOVEN_BUILD_PLUGIN_EXAMPLES=ON` 构建 `NovenHttpPlugin`。将 noven-http.dll 与 examples/http-plugin/manifest.json 放到 `<exe>/plugins/com.example.noven-http/`；新发现默认 Disabled。授权提示显示 https://httpbin.org，明确 Enable 后 GET/HEAD/POST 按钮才联网；Try undeclared origin 应立即拒绝。自动化使用独立第一方离线 Host 后端，不依赖公共 Internet；生产 Host 无后端切换参数。示例只提供最多 512 字节文本预览，不调用网络/文件/游戏 API。手动公共端点可用性与证书由实际环境决定；不提交 DLL/用户授权数据。
 Build `NovenHttpPlugin` with `-DNOVEN_BUILD_PLUGIN_EXAMPLES=ON`. Copy noven-http.dll and examples/http-plugin/manifest.json into `<exe>/plugins/com.example.noven-http/`; newly discovered stays Disabled. Consent lists https://httpbin.org. Only GET/HEAD/POST clicks after explicit Enable request network; Try undeclared origin must immediately reject. Automation uses a separate first-party offline Host backend, never public Internet; production Host has no backend-switch argument. The sample previews up to 512 body bytes and calls no networking/file/game APIs directly. Public endpoint availability/certificates depend on the real environment. Never commit DLLs/user grants.
+
+## Phase 9: Read-only Marketplace
+
+GitHub 托管第一方 Registry 为市场机器可读数据来源，契约见 [PLUGIN_REGISTRY.md](PLUGIN_REGISTRY.md)。市场使用独立第一方 HTTPS 客户端，不走插件 network.http；搜索/筛选在快照本地运行，离线保留最后有效缓存并标注时间。浏览、刷新、选择详情不安装/下载包、不启动 Host、不授权、不修改本地清单/启用状态。blocked 标记仅警告，不能自动删除或停用本地插件。
+The first-party GitHub Registry is the machine-readable Marketplace source; see [PLUGIN_REGISTRY.md](PLUGIN_REGISTRY.md). Marketplace uses a separate first-party HTTPS client, not plugin network.http. Search/filter are local to snapshots; offline browsing retains the last valid cache with its timestamp. Browse/refresh/detail selection never installs/downloads packages, starts a Host, grants permissions or changes local manifests/enable state. Blocked metadata warns only, without automatic local deletion or disable.
+
+上架、审阅与包哈希均不保证代码安全、签名真实性或 OS 沙箱；权限和网络来源仍仅在本地显式 Enable 时授予。Muse、评级、评论与安装/更新不属于 Phase 9。原有 ABI/API/IPC 版本与插件数据接口不变。
+Listing, review and package hashes guarantee neither code safety, signature authenticity nor an OS sandbox. Permission/origin consent remains exclusive to explicit local Enable. Muse, ratings, comments and install/update are outside Phase 9. Existing ABI/API/IPC versions and plugin data interfaces are unchanged.

@@ -31,6 +31,7 @@
 #include "plugins/PluginDiscovery.h"
 #include "plugins/PluginRuntimeManager.h"
 #include "plugins/PluginRuntimeController.h"
+#include "plugins/MarketplaceService.h"
 #include "events/OfficialEventSource.h"
 #include "events/WikiEventSource.h"
 #include "events/EventService.h"
@@ -219,6 +220,7 @@ App::App()
       recent_scan_store_(std::make_unique<data::RecentScanStore>()) {}
 
 App::~App() {
+    marketplace_.reset();
     plugin_controller_.reset();plugin_runtime_.reset();
     if (event_service_) event_service_->Stop();
     if (local_raid_service_) local_raid_service_->Stop();
@@ -305,6 +307,12 @@ int App::Run(HINSTANCE instance, int show_command) {
     });
     RefreshPlugins();
     main_ui_->SetPluginRefreshHandler([this]{RefreshPlugins();});
+    // 市场工作线程只通知 UI 读取不可变快照，不接触本地插件执行或授权。
+    // Marketplace worker only notifies UI to read an immutable snapshot, never local execution or grants.
+    marketplace_=std::make_unique<plugins::MarketplaceService>(ExecutableDirectory()/L"data"/L"marketplace-cache.json",
+        NOVEN_PLUGIN_REGISTRY_URL,plugins::MakeRegistryTransport(NOVEN_PLUGIN_REGISTRY_URL),[window=window_]{PostMessageW(window,kMarketplaceMessage,0,0);});
+    main_ui_->SetMarketplace(marketplace_->Snapshot());
+    main_ui_->SetMarketplaceRefreshHandler([this](bool explicitRequest){if(marketplace_)marketplace_->Refresh(explicitRequest);});
     main_ui_->SetPluginControlHandler([this](const ui::PluginControlAction& action){
         const auto result=action.enable?plugin_controller_->Enable(action.id,[this](const plugins::PluginManifest& manifest){
             std::wstring text=ui::Tr("plugins.consent_warning")+L"\n\n"+Utf8ToWide(manifest.name)+L"\n"+Utf8ToWide(manifest.id)
@@ -904,6 +912,8 @@ LRESULT CALLBACK App::WindowProc(
         switch (message) {
         case kPluginRuntimeMessage:
             app->plugin_notification_pending_->store(false);app->PublishPluginRuntime();return 0;
+        case kMarketplaceMessage:
+            if(app->marketplace_&&app->main_ui_)app->main_ui_->SetMarketplace(app->marketplace_->Snapshot());return 0;
         case kEventsMessage:
             app->PublishEvents();app->EnsureRecentAnimationTimer();return 0;
         case kRaidHistoryMessage:
@@ -1060,7 +1070,7 @@ LRESULT CALLBACK App::WindowProc(
         case WM_CLOSE:
             // 先收束线程与自有 Job，再销毁通知目标；普通退出保留已授权运行意图。
             // Join owned workers/Jobs before destroying the notification target; normal exit preserves approved intent.
-            app->plugin_controller_.reset();app->plugin_runtime_.reset();
+            app->marketplace_.reset();app->plugin_controller_.reset();app->plugin_runtime_.reset();
             DestroyWindow(window);
             return 0;
         case WM_NCDESTROY:
@@ -1073,6 +1083,7 @@ LRESULT CALLBACK App::WindowProc(
 
     if (message == WM_DESTROY) {
         if(app){
+            app->marketplace_.reset();
             app->map_asset_worker_.request_stop();
             if(app->map_asset_worker_.joinable())app->map_asset_worker_.join();
             MSG pending{};

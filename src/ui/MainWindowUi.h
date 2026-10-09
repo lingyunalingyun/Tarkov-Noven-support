@@ -36,6 +36,8 @@ public:
     const PageRegistry& Registry() const noexcept {return registry_;}
     const SidebarLayout& SidebarGeometry() const {return sidebar_.Layout(DipHeight(),theme_);}
     void SetPlugins(plugins::PluginSnapshot snapshot){plugins_.SetSnapshot(std::move(snapshot));Invalidate();}
+    void SetMarketplace(std::shared_ptr<const plugins::MarketplaceSnapshot> snapshot){plugins_.SetMarketplace(std::move(snapshot));Invalidate();}
+    void SetMarketplaceRefreshHandler(std::function<void(bool)> handler){marketplace_refresh_=std::move(handler);}
     void SetPluginRefreshHandler(std::function<void()> handler){plugin_refresh_=std::move(handler);}
     const PluginsPage& Plugins() const noexcept {return plugins_;}
     void SetPluginRuntime(const std::vector<plugins::HostSnapshot>& snapshots);
@@ -176,6 +178,7 @@ private:
     std::function<void(const PluginControlAction&)> plugin_control_;
     std::function<void(const PluginOwnedPage&,std::string_view)> plugin_action_;
     std::function<void()> plugin_refresh_;
+    std::function<void(bool)> marketplace_refresh_;
     HideoutPage hideout_;
     TasksPage tasks_;
     MapPage map_;

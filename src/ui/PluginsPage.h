@@ -3,6 +3,7 @@
 #include "ui/Scrollbar.h"
 #include "plugins/PluginDiscovery.h"
 #include "plugins/PluginRuntimeManager.h"
+#include "plugins/MarketplaceService.h"
 #include "ui/TabBar.h"
 #include "ui/SearchBox.h"
 #include "ui/Dropdown.h"
@@ -16,11 +17,15 @@ std::wstring HostStateText(plugins::HostState state);
 std::wstring PluginPermissionText(std::string_view permission,bool supported);
 std::wstring PluginNetworkText(const plugins::PluginManifest& manifest);
 std::vector<PluginPresentation> PresentPlugins(const plugins::PluginSnapshot& snapshot);
+std::vector<PluginPresentation> PresentMarketplace(const plugins::PluginRegistry& registry,const plugins::PluginSnapshot& local,
+    std::string_view category={},bool compatibleOnly=false,std::optional<plugins::RegistryReview> review={});
 std::wstring PluginStateText(plugins::PluginState state);
-// 保护页面只产生显式启用/禁用请求；确认与授权由 Noven 拥有，市场不接网络。
-// Protected page emits explicit enable/disable requests; Noven owns consent/grants, marketplace is offline.
+// 市场仅浏览第一方元数据；启用和授权仍只来自本地插件显式操作。
+// Marketplace browses first-party metadata only; enable and consent remain explicit local-plugin actions.
 class PluginsPage final {
 public:
+    void SetMarketplace(std::shared_ptr<const plugins::MarketplaceSnapshot> snapshot){marketplace_=std::move(snapshot);dirty_=true;CancelDrag();controlAction_.reset();}
+    void SetMarketplaceFilter(std::string category,bool compatibleOnly,std::optional<plugins::RegistryReview> review={}){marketCategory_=std::move(category);compatibleOnly_=compatibleOnly;marketReview_=review;dirty_=true;scroll_=target_=listScroll_=listTarget_=0;CancelDrag();}
     void SetSnapshot(plugins::PluginSnapshot snapshot){CancelDrag();controlAction_.reset();snapshot_=std::move(snapshot);dirty_=true;}
     void SetRuntime(std::vector<plugins::HostSnapshot> runtime){
         bool changed=runtime.size()!=runtime_.size();
@@ -39,6 +44,7 @@ public:
     D2D1_RECT_F DetailBounds() const noexcept {return detailViewport_;}
     D2D1_RECT_F ListBounds() const noexcept {return listViewport_;}
     D2D1_RECT_F CategoryBounds() const noexcept {return category_.header;}
+    D2D1_RECT_F FilterBounds(unsigned filter) const {return FilterLayout(filter).header;}
     bool CategoryOpen() const noexcept {return categoryOpen_;}
     D2D1_RECT_F RowBounds(std::size_t index) const;
     const PluginPresentation* SelectedPlugin() const;
@@ -70,10 +76,21 @@ private:
     void SelectRow(std::size_t index);
     void UpdateDetailBounds();
     void DrawCategory(const UiCanvas& canvas,const UiTheme& theme) const;
+    DropdownLayout FilterLayout(unsigned filter) const;
+    std::vector<std::wstring> FilterOptions(unsigned filter) const;
+    std::size_t VisibleFilterRows() const;
     TabBarLayout TabLayout() const {return {panel_.left,95,135,(std::min)(150.0F,(std::max)(40.0F,(searchBounds_.left-panel_.left-16)/2)),23};}
     std::array<TabBarItem<PluginCenterTab>,2> Tabs() const;
     std::optional<std::size_t> ControlAt(float x,float y) const;
     plugins::PluginSnapshot snapshot_;
+    std::shared_ptr<const plugins::MarketplaceSnapshot> marketplace_=std::make_shared<plugins::MarketplaceSnapshot>();
+    std::string marketCategory_;
+    bool compatibleOnly_{};
+    std::optional<plugins::RegistryReview> marketReview_;
+    std::vector<std::string> marketCategories_;
+    std::array<std::wstring,2> tabSearch_;
+    std::array<std::filesystem::path,2> tabSelection_;
+    std::array<float,2> tabListScroll_{},tabDetailScroll_{};
     std::vector<PluginPresentation> rows_;
     std::vector<Card> cards_;
     std::string locale_;
@@ -83,6 +100,9 @@ private:
     // 清单尚无分类字段；分类栏仅提供全部，不从名称或权限推测分类。
     // Manifests have no category field yet; offer All without inferring categories from names or permissions.
     DropdownLayout category_{};
+    DropdownLayout compatibility_{},review_{};
+    unsigned openFilter_{};
+    std::size_t filterOffset_{};
     bool categoryOpen_{},categoryClosing_{};
     float categoryProgress_{};
     std::optional<D2D1_POINT_2F> categoryPress_;
