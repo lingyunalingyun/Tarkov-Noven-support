@@ -9,6 +9,10 @@ foreach ($name in @('package_release.ps1','audit_payload.ps1','prepare_update_re
     $errors=$null;[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $SourceRoot "scripts/$name"),[ref]$null,[ref]$errors)|Out-Null
     Check (-not $errors) 'Script syntax'
 }
+foreach ($name in @('package_release.ps1','prepare_update_review.ps1')) {
+    $script=Get-Content -LiteralPath (Join-Path $SourceRoot "scripts/$name") -Raw
+    Check ($script -match '(?m)Start-Process[^\r\n]*NovenUpdater.exe[^\r\n]*--seed[^\r\n]*-Wait[^\r\n]*-PassThru' -and $script -match 'seedProcess.ExitCode -ne 0') 'Win32 inventory completion must precede audit'
+}
 $root = Join-Path ([IO.Path]::GetTempPath()) ('noven-payload-test-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root | Out-Null
 try {

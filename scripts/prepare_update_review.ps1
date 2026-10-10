@@ -45,8 +45,8 @@ foreach($version in @('0.1.0','0.1.1')) {
     if($version -eq '0.1.0') {
         [IO.File]::WriteAllText((Join-Path $destination 'synthetic-obsolete.txt'),'removed from target')
         foreach($name in @('NovenLauncher.exe','NovenUpdater.exe')) {Copy-Item -LiteralPath (Join-Path $build $name) -Destination (Join-Path $program $name)}
-        & (Join-Path $program 'NovenUpdater.exe') --seed
-        if($LASTEXITCODE -ne 0) {throw 'Review initial inventory failed.'}
+        $seedProcess=Start-Process -FilePath (Join-Path $program 'NovenUpdater.exe') -ArgumentList '--seed' -WindowStyle Hidden -Wait -PassThru
+        if($seedProcess.ExitCode -ne 0) {throw 'Review initial inventory failed.'}
     } else {
         [IO.File]::WriteAllText((Join-Path $destination 'synthetic-new.txt'),'new target file')
         & (Join-Path $build 'NovenReleaseTool.exe') --release $destination (Join-Path $program 'update-review-fixture') $version 'review-only-p256' $private '2026-10-10T00:00:00Z'

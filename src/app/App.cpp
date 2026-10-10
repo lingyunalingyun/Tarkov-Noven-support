@@ -31,6 +31,7 @@
 #include "ui/ResourceDialog.h"
 #include "ui/UpdateDialog.h"
 #include "updates/UpdateService.h"
+#include "updates/UpdateHttpsSource.h"
 #include "updates/UpdateTrust.h"
 #include <shellapi.h>
 #ifdef NOVEN_UPDATE_REVIEW_FIXTURE
@@ -779,7 +780,7 @@ void App::StartResources(){
         [this](auto id){ui::MapPage::ResourceInfo info;for(const auto& value:resources_->Snapshot())if(value.record.stableMapId==id){info.bytes=value.record.downloadSize;info.downloadAllowed=resources_->Remote()!=resources::RemoteAvailability::ProductionEndpointUnconfigured;break;}return info;},
         [this](auto id){resources_->Act("maps."+std::string(id),resources::ResourceAction::Download);});
     main_ui_->SetResourceManagementHandler([this]{ui::ShowResourceDialog(window_,*resources_,paths_.userRoot,false);});
-    std::shared_ptr<updates::UpdateSource> updateSource;
+    auto updateSource=updates::CompiledUpdateSource();
 #ifdef NOVEN_UPDATE_REVIEW_FIXTURE
     updateSource=updates::LocalUpdateSource(paths_.BootstrapRoot()/L"update-review-fixture",std::chrono::milliseconds(100));
 #endif

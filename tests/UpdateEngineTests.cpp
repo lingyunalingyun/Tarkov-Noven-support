@@ -51,6 +51,9 @@ int main()try {
     manifest.files.push_back(Add(target,"NovenTarkovSupport.exe","new app",transport));manifest.files.push_back(Add(target,"NovenPluginHost.exe","baseline host",transport));manifest.files.push_back(Add(target,"unchanged.txt","unchanged",transport));
     manifest.files.push_back(Add(target,"large.bin",std::string(static_cast<std::size_t>(3*ChunkBytes),'a'),transport));manifest.files.push_back(Add(target,"new.txt","new",transport));
     const auto release=VerifyRelease(signer.Sign(EncodeReleaseManifest(manifest)),keys);const auto plan=PlanUpdate("0.1.0",old,cache,release);UpdateEngine engine(program,cache);
+    auto incomplete=manifest;incomplete.version="0.1.3";incomplete.files.erase(incomplete.files.begin());
+    const auto noMain=VerifyRelease(signer.Sign(EncodeReleaseManifest(incomplete)),keys);
+    Reject([&]{engine.Stage(noMain,PlanUpdate("0.1.0",old,cache,noMain),transport);});Check(store.Read().active=="0.1.0");
     Reject([&]{engine.Stage(release,plan,transport,{}, {},[]{return 0ULL;});});Check(transport.requests.empty());
     transport.fail=true;Reject([&]{engine.Stage(release,plan,transport);});transport.fail=false;Check(store.Read().active=="0.1.0");
     transport.wrong=true;Reject([&]{engine.Stage(release,plan,transport);});Check(store.Read().active=="0.1.0");transport.wrong=false;
@@ -65,6 +68,8 @@ int main()try {
     Check(installed==program/"versions"/"0.1.1"&&restarted.ValidateVersion(release)&&transport.requests.size()>prior);
     Check(transport.requests[prior].first==manifest.files[3].content[1].packOffset+65536);
     Check(!std::filesystem::exists(installed/"obsolete.txt")&&std::filesystem::exists(old/"obsolete.txt"));Check(store.Read().active=="0.1.0");
+    const auto unlisted=installed/"unlisted.dll";Check(noven::resources::WriteResourceText(unlisted,"not an executable, synthetic unlisted record"));
+    Check(!engine.ValidateVersion(release));Reject([&]{store.Activate(release);});Check(store.Read().active=="0.1.0"&&std::filesystem::remove(unlisted));
     const auto savedEnvelope=program/"releases"/"0.1.1.json";Check(noven::resources::WriteResourceText(savedEnvelope,"tampered signed manifest"));
     Reject([&]{store.Activate(release);});Check(store.Read().active=="0.1.0");Check(noven::resources::WriteResourceText(savedEnvelope,release.Envelope()));
     auto badWhole=manifest;badWhole.version="0.1.2";badWhole.files[3].sha256=std::string(64,'0');

@@ -7,6 +7,13 @@ namespace {
 using plugins::ipc::Handle;
 [[noreturn]]void Fail(){throw std::runtime_error("update staging failed; old version unchanged");}
 void Cancel(std::stop_token stop){if(stop.stop_requested())throw std::runtime_error("update interrupted; partial content retained");}
+bool ApplicationEntries(const ReleaseManifest& manifest){bool main{},host{};for(const auto& file:manifest.files){
+    main|=file.path=="NovenTarkovSupport.exe";host|=file.path=="NovenPluginHost.exe";}return main&&host;}
+bool ExactInventory(const std::filesystem::path& root,std::size_t expected){std::size_t files{},entries{};
+    for(const auto& entry:std::filesystem::recursive_directory_iterator(root)){
+        if(++entries>65536||!resources::SafeResourcePath(entry.path()))return false;if(entry.is_regular_file()&&++files>expected)return false;}
+    return files==expected;
+}
 Handle Open(const std::filesystem::path& path,DWORD access,DWORD disposition){
     if(!resources::SafeResourcePath(path))Fail();Handle file(CreateFileW(path.c_str(),access,FILE_SHARE_READ,nullptr,disposition,FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
     BY_HANDLE_FILE_INFORMATION info{};if(!file||!GetFileInformationByHandle(file.Get(),&info)||info.nNumberOfLinks!=1||(info.dwFileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)))Fail();return file;
@@ -25,11 +32,12 @@ UpdateEngine::UpdateEngine(std::filesystem::path program,std::filesystem::path c
 }
 bool UpdateEngine::ValidateVersion(const AuthenticatedRelease& target) const try {
     const auto root=program_/L"versions"/target.Manifest().version;if(!resources::SafeResourcePath(root))return false;
+    if(!ApplicationEntries(target.Manifest())||!ExactInventory(root,target.Manifest().files.size()))return false;
     for(const auto& f:target.Manifest().files)if(!Matches(root/f.path,f.size,f.sha256))return false;return true;
 }catch(...){return false;}
 std::filesystem::path UpdateEngine::Stage(const AuthenticatedRelease& release,const UpdatePlan& plan,UpdateTransport& transport,
     std::stop_token stop,std::function<void(UpdateProgress)> progress,std::function<std::uint64_t()> space){
-    if(plan.manifestIdentity!=release.Identity()||plan.version!=release.Manifest().version||plan.files.size()!=release.Manifest().files.size())Fail();
+    if(!ApplicationEntries(release.Manifest())||plan.manifestIdentity!=release.Identity()||plan.version!=release.Manifest().version||plan.files.size()!=release.Manifest().files.size())Fail();
     // 调用方的计划只是性能提示；目标字节和路径始终来自已验证清单。
     // The caller's plan is only a performance hint; authenticated manifest defines all target paths/content.
     for(std::size_t i=0;i<plan.files.size();++i){const auto& f=release.Manifest().files[i];const auto& p=plan.files[i];

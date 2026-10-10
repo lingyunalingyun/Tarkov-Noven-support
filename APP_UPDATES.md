@@ -38,11 +38,34 @@ URLs, delete actions, or permission grants are interpreted from metadata.
 Paths reject traversal, device names, alternate streams, case-insensitive
 duplicates and conflicting file/directory identities. Versions have no
 prerelease/build suffix in v1. Normal updates cannot downgrade.
+Staging/activation require manifest records for both canonical application
+executables. Signed versions reject extra unlisted files and unsafe entries
+(inventory traversal is bounded to 65536 entries).
 
 Limits: payload 4 MiB, 4096 files, 8192 ranges, aggregate 8 GiB. Files below
 8 MiB use whole-file objects; larger files use fixed 4 MiB chunks. Range
 transport must be bounded and cancellation-aware; production transport is
 not configured. Deterministic offline transport exercises the same pipeline.
+
+The shared first-party `ContentHttps` adapter supports update packs and map
+packages without merging their authorization or manifests. An empty source
+creates no network backend. `NOVEN_UPDATE_SOURCE_ROOT` defaults to empty;
+provisioning requires an approved fixed HTTPS root and public trust key.
+Resource source approval and map redistribution rights remain prerequisites
+for enabling map downloads. No resource production manifest is configured.
+
+WinHTTP requests retain normal certificate validation, use no proxy/PAC,
+disable redirects, cookies and automatic authentication, and send only a
+minimal User-Agent/identity encoding/Range. Logical basenames cannot change
+the configured origin. Each range is at most 4 MiB; strict 206 Content-Range
+and length validation rejects ignored, shifted, truncated or oversized ranges.
+Manifest text is bounded to 8 MiB + 2048 bytes. Range streams are hashed by
+the requesting service before activation; HTTP headers are not authenticity.
+Worker-thread synchronous calls use 1-second resolution and 2-second
+connect/send/read timeouts, with a 120-second per-request deadline checked
+between calls. Cancellation is observed between finite blocking calls;
+handles are never closed concurrently with synchronous WinHTTP operations.
+Tests inject an offline backend into this same policy and stream layer.
 
 ## Planning, staging and activation
 
@@ -86,6 +109,18 @@ runtime payloads; never commit passwords or production signing material.
 review-key identities. Review builds require explicit test configuration and
 cannot be packaged through the production install rules.
 
-Final installer migration, real offline executable review and complete
-regression are required before claiming Phase 11 completion. User manual
-acceptance is separate from automated tests.
+The installer establishes the initial versioned tree and seeds trusted local
+inventory after optional code signing. The stable AppId, per-user privileges
+and separate User Data root are unchanged. Existing Phase 10 flat files are
+left as recovery content while the initial versioned tree is added; shortcuts
+switch to Launcher. Trusted uninstall cleanup checks version inventory and
+does not touch User Data. Unknown/corrupt program inventory is not deleted.
+Future installer baseline-version migrations require separate validation;
+v1's tested migration is a flat 0.1.0 installation to versioned 0.1.0.
+
+The offline Review build has separate test-only keys/source and persistent
+test User Data outside real LocalAppData. It demonstrates 0.1.0 -> 0.1.1
+and trusted local rollback, with optional synthetic map delivery still
+available. Real installer lifecycle and user UI acceptance remain separate
+from automated tests. Production endpoints, public-key provisioning and
+map redistribution clearance are not supplied by this milestone.
