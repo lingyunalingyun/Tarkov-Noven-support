@@ -50,7 +50,7 @@ public:
     bool WaitIdle(std::chrono::milliseconds timeout);
     void Shutdown();
 private:
-    enum class Work {Download,Verify,Delete,ClearCache};
+    enum class Work {Download,Verify,Repair,Delete,ClearCache};
     struct Entry {ResourceSnapshot view;std::optional<ResourceRecord> installed;MapLease location;bool busy{},cancel{};std::uint64_t reserved{};std::stop_source stop;};
     struct Job {std::string id;Work work;};
     void Worker(std::stop_token stop);

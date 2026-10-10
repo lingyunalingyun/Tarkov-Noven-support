@@ -78,6 +78,9 @@ int main() try {
     const auto partial=partialPaths.DownloadCache()/"resources"/(record.stableMapId+".part.json");Check(WriteResourceText(partial,"malformed"));transport->fail=false;
     {ResourceService service(partialPaths,{{record}},transport,[]{return 1024*1024ULL;});Check(View(service).state==S::NotInstalled);service.DownloadAll();Idle(service);Check(transport->offsets.back()==0&&View(service).state==S::Installed);}
     auto wrongSize=record;++wrongSize.downloadSize;
+    {ResourceService service(partialPaths,{{record}},transport,[]{return 1024*1024ULL;});Idle(service);const auto requests=transport->opens;Check(service.Act(record.resourceId,ResourceAction::Repair));Idle(service);Check(transport->opens==requests&&View(service).state==S::Installed);
+        auto location=service.ResolveMap(record.stableMapId);Check(WriteResourceText(*location/"maps/synthetic/floor.png","bad"));location.reset();Check(service.Act(record.resourceId,ResourceAction::Verify));Idle(service);Check(View(service).state==S::Error);
+        Check(service.Act(record.resourceId,ResourceAction::Repair));Idle(service);Check(View(service).state==S::Installed&&transport->opens==requests+1);}
     {ResourceService service(noven::common::AppPaths::Test(root/"program",root/"wrong-size"),{{wrongSize}},transport,[]{return 1024*1024ULL;});service.DownloadAll();Idle(service);Check(View(service).state==S::Error&&!service.ResolveMap(record.stableMapId));}
     const auto queuePaths=noven::common::AppPaths::Test(root/"program",root/"queue");const auto woods=Record(root,"woods"),customs=Record(root,"customs");transport->hold=true;const auto opened=transport->opens;
     {ResourceService service(queuePaths,{{record,woods,customs}},transport,[]{return 1024*1024ULL;});service.DownloadAll();Check(transport->WaitOpen(opened+2));

@@ -91,12 +91,13 @@ bool ResourceService::Act(std::string_view id,ResourceAction action){
     if(e.busy||e.location.use_count()>1)return false;
     Work work=Work::Download;
     if(action==ResourceAction::Verify)work=Work::Verify;
+    if(action==ResourceAction::Repair&&e.installed)work=Work::Repair;
     if(action==ResourceAction::Delete)work=Work::Delete;
-    if(work==Work::Download&&!transport_){e.view.error="resources.unconfigured";lock.unlock();Notify();return false;}
+    if((work==Work::Download||work==Work::Repair)&&!transport_){e.view.error="resources.unconfigured";lock.unlock();Notify();return false;}
     if(work==Work::Verify&&!e.installed)return false;
     if(work==Work::Delete&&!e.installed)return false;
     if(jobs_.size()>=MaximumComponents)return false;
-    e.stop=std::stop_source{};e.cancel=false;e.busy=true;e.view.error.clear();e.view.state=work==Work::Verify?S::Verifying:work==Work::Delete?S::Deleting:S::Queued;
+    e.stop=std::stop_source{};e.cancel=false;e.busy=true;e.view.error.clear();e.view.state=(work==Work::Verify||work==Work::Repair)?S::Verifying:work==Work::Delete?S::Deleting:S::Queued;
     jobs_.push_back({std::string(id),work});lock.unlock();condition_.notify_one();Notify();return true;
 }
 void ResourceService::DownloadAll(){for(const auto& v:Snapshot())if(v.state==S::NotInstalled||v.state==S::Unavailable||v.state==S::Error)Act(v.record.resourceId,ResourceAction::Download);}
@@ -120,10 +121,11 @@ void ResourceService::Worker(std::stop_token stop){
 void ResourceService::Execute(const Job& job,std::stop_token stop){
     ResourceRecord record;std::optional<ResourceRecord> installed;
     {std::lock_guard lock(mutex_);const auto& e=entries_.at(job.id);record=e.view.record;installed=e.installed;}
-    if(job.work==Work::Verify){
+    if(job.work==Work::Verify||job.work==Work::Repair){
         const auto root=paths_.ResourceMaps()/installed->stableMapId/installed->sha256;const bool valid=VerifyPackage(root,*installed,stop);if(stop.stop_requested())throw std::runtime_error("cancelled");
         {std::lock_guard lock(mutex_);auto& e=entries_.at(job.id);e.location=valid?std::make_shared<const std::filesystem::path>(root):MapLease{};e.view.installed=valid;}
-        Set(job.id,valid?(Same(*installed,record)?S::Installed:S::UpdateAvailable):S::Error,valid?"":"resources.corrupt");return;
+        Set(job.id,valid?(Same(*installed,record)?S::Installed:S::UpdateAvailable):S::Error,valid?"":"resources.corrupt");
+        if(valid||job.work==Work::Verify)return;Set(job.id,S::Queued);
     }
     if(job.work==Work::Delete){
         const auto target=paths_.ResourceMaps()/record.stableMapId;const auto nonce=plugins::ipc::RandomSecret();const auto trash=paths_.ResourceStaging()/(nonce+"-delete");
