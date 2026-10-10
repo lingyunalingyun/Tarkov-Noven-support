@@ -19,6 +19,8 @@ foreach ($key in $englishMessages.Keys) {
 foreach ($match in [regex]::Matches($iss,"CustomMessage\('([^']+)'\)")) { Check ($englishMessages.ContainsKey($match.Groups[1].Value)) 'Every custom prompt has both translations' }
 Check ($iss -notmatch "(?:Result :=|RaiseException\()\s*'[^']+" -and $iss -match '\{cm:CreateDesktopIcon\}' -and $iss -match '\{cm:LaunchProgram,Noven Tarkov Support\}') 'No hardcoded installer prompts or shortcut labels'
 Check ($iss -match 'AppId=\{\{70C934D2-C53B-4F49-A8C7-152E748A8E54\}' -and $iss -match 'PrivilegesRequired=lowest') 'Stable AppId / per-user contract'
+Check ($iss -match '(?m)^DisableDirPage=no\s*$' -and $iss -match '(?m)^DefaultDirName=\{localappdata\}\\Programs\\Noven Tarkov Support\s*$') 'Allow custom program location while retaining the per-user default'
+Check ($iss -match "UserRoot := AddBackslash\(ExpandFileName\(ExpandConstant\('\{localappdata\}\\Noven Tarkov Support'\)\)\)" -and $iss -match 'PathStartsWith\(ProgramRoot, UserRoot, True\) or PathStartsWith\(UserRoot, ProgramRoot, True\)') 'Custom program location must remain separate from fixed user data'
 Check ($iss -match 'CloseApplications=no' -and $iss -match 'AppMutex=Local\\NovenTarkovSupport.App' -and $iss -notmatch '\[UninstallDelete\]') 'No forced close or user-data cleanup'
 Check ($iss -notmatch '(?i)(downloadtemporaryfile|urldownload|taskkill|powershell|cmd\.exe)' -and $iss -match 'Program and user data directories must not overlap') 'No updater/network/commands; no overlapping root'
 Check ($iss -match 'DestDir: "\{app\}\\installer-staging' -and $iss -match "'--install-bundle'.*ewWaitUntilTerminated" -and $iss -match 'if Code <> 0 then RaiseException') 'Installer must verify staged Core before activation'
