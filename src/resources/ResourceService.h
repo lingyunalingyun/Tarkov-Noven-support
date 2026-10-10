@@ -41,6 +41,7 @@ public:
     ~ResourceService();
     ResourceService(const ResourceService&)=delete;
     RemoteAvailability Remote() const {return transport_?RemoteAvailability::OfflineFixture:RemoteAvailability::ProductionEndpointUnconfigured;}
+    bool CanDownload() const;
     std::vector<ResourceSnapshot> Snapshot() const;
     bool Act(std::string_view id,ResourceAction action);
     void DownloadAll();

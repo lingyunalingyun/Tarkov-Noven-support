@@ -13,7 +13,8 @@ public:
     void None(){ids_.clear();}
     bool Selected(std::string_view id) const {return ids_.contains(std::string(id));}
     std::uint64_t Total(const std::vector<resources::ResourceSnapshot>& rows) const {std::uint64_t size{};for(const auto& r:rows)if(Selected(r.record.resourceId))size+=r.record.downloadSize;return size;}
-    ResourceDialogDecision Download(const std::vector<resources::ResourceSnapshot>& rows,resources::RemoteAvailability remote) const;
+    bool UnknownSize(const std::vector<resources::ResourceSnapshot>& rows) const {for(const auto& row:rows)if(Selected(row.record.resourceId)&&!row.record.downloadSize)return true;return false;}
+    ResourceDialogDecision Download(const std::vector<resources::ResourceSnapshot>& rows,bool canDownload) const;
 private:std::set<std::string> ids_;
 };
 std::string_view ResourceStateKey(resources::ResourceState state);

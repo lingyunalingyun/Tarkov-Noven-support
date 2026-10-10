@@ -3,6 +3,7 @@
 #include "ui/PageComponents.h"
 #include "ui/NavigationButton.h"
 #include "ui/Dropdown.h"
+#include "ui/ValueFormat.h"
 #include "data/InterchangeReference.h"
 #include <cwctype>
 
@@ -412,7 +413,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         const auto* map=Information();const auto info=resource_info_?resource_info_(map_id_):ResourceInfo{};
         canvas.Text(map?Wide(UiLocalization().ActiveLocale()=="zh-CN"?map->nameZh:map->nameEn):Tr("nav.map"),canvas.label,{body.left+24,body.top+20,body.right-24,body.top+54},theme.primaryText);
         canvas.Text(Tr("resources.missing"),canvas.body,{body.left+24,body.top+62,body.right-24,body.top+94},theme.secondaryText);
-        canvas.Text(info.bytes?std::to_wstring((info.bytes+1023)/1024)+L" KiB":Tr("resources.size_unknown"),canvas.smallFormat,{body.left+24,body.top+100,body.right-24,body.top+132},theme.secondaryText);
+        canvas.Text(info.bytes?FormatBytes(info.bytes):Tr("resources.size_unknown"),canvas.smallFormat,{body.left+24,body.top+100,body.right-24,body.top+132},theme.secondaryText);
         if(info.downloadAllowed)DrawTextButton(canvas,theme,ResourceButton(),Tr("resources.download"),false,resource_pressed_);
         else canvas.Text(Tr("resources.unconfigured"),canvas.smallFormat,{body.left+24,body.top+142,body.right-24,body.top+198},theme.secondaryText);
         DrawMapPicker(canvas,theme);return;

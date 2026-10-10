@@ -32,7 +32,11 @@ int wmain(int argc,wchar_t** argv) try {
     resources::ResourceService service(paths,{{record}},resources::LocalResourceTransport(root),[]{return 1024*1024ULL;});
     page.SetResourceResolver([&](auto id){return service.ResolveMap(id);},[](auto){return ui::MapPage::ResourceInfo{};},{});Check(page.MissingResource());
     Check(service.Act(record.resourceId,resources::ResourceAction::Download)&&service.WaitIdle(std::chrono::seconds(10)));page.ResourcesChanged();Check(!page.MissingResource());
-    Check(!service.Act(record.resourceId,resources::ResourceAction::Delete));page.ResourceActive(false);Check(service.Act(record.resourceId,resources::ResourceAction::Delete));Check(service.WaitIdle(std::chrono::seconds(10)));
-    page.ResourceActive(true);Check(page.MissingResource());service.Shutdown();Check(!std::filesystem::exists(paths.Plugins())&&!std::filesystem::exists(paths.Data()));
+    Check(!service.Act(record.resourceId,resources::ResourceAction::Delete));page.ResourceActive(false);service.Shutdown();
+    resources::ResourceService restarted(paths,{{record}},resources::LocalResourceTransport(root),[]{return 1024*1024ULL;});Check(restarted.WaitIdle(std::chrono::seconds(10)));
+    page.SetResourceResolver([&](auto id){return restarted.ResolveMap(id);},[](auto){return ui::MapPage::ResourceInfo{};},{});page.ResourceActive(true);Check(!page.MissingResource());
+    page.ResourceActive(false);Check(restarted.Act(record.resourceId,resources::ResourceAction::Verify)&&restarted.WaitIdle(std::chrono::seconds(10)));page.ResourceActive(true);Check(!page.MissingResource());
+    page.ResourceActive(false);Check(restarted.Act(record.resourceId,resources::ResourceAction::Delete)&&restarted.WaitIdle(std::chrono::seconds(10)));
+    page.ResourceActive(true);Check(page.MissingResource());restarted.Shutdown();Check(!std::filesystem::exists(paths.Plugins())&&!std::filesystem::exists(paths.Data()));
     std::filesystem::remove_all(root);CoUninitialize();std::cout<<"map managed install/load/delete/missing/no-program-fallback/startup PASS\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what();return 1;}

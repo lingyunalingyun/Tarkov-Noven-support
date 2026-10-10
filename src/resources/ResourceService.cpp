@@ -60,6 +60,7 @@ ResourceService::ResourceService(common::AppPaths paths,ResourceManifest manifes
     for(unsigned i=0;i<2;++i)workers_.emplace_back([this](std::stop_token stop){Worker(stop);});
 }
 ResourceService::~ResourceService(){Shutdown();}
+bool ResourceService::CanDownload() const {std::lock_guard lock(mutex_);return transport_&&!stopping_;}
 void ResourceService::Shutdown(){
     {std::lock_guard lock(mutex_);if(stopping_)return;stopping_=true;for(auto& [id,e]:entries_)e.stop.request_stop();jobs_.clear();}
     for(auto& worker:workers_)worker.request_stop();condition_.notify_all();workers_.clear();idle_.notify_all();
