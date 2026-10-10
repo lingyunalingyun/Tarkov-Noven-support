@@ -91,6 +91,6 @@ AuthenticatedRelease VerifyRelease(std::string_view text,std::span<const Release
         BCryptImportKeyPair(algorithm.handle,nullptr,BCRYPT_ECCPUBLIC_BLOB,&key.handle,const_cast<PUCHAR>(found->cngPublicBlob.data()),static_cast<ULONG>(found->cngPublicBlob.size()),0)<0)Invalid();
     const std::string bytes(payload.begin(),payload.end());auto digest=ReleaseDigest(bytes);
     if(BCryptVerifySignature(key.handle,nullptr,digest.data(),static_cast<ULONG>(digest.size()),const_cast<PUCHAR>(signature.data()),static_cast<ULONG>(signature.size()),0)<0)Invalid();
-    AuthenticatedRelease release;release.manifest_=ParseReleaseManifest(bytes);release.identity_=Hex(digest);return release;
+    AuthenticatedRelease release;release.manifest_=ParseReleaseManifest(bytes);release.identity_=Hex(digest);release.envelope_=text;return release;
 }
 }

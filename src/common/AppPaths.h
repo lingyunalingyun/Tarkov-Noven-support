@@ -25,6 +25,8 @@ struct AppPaths final {
     std::filesystem::path ResourceMaps() const {return Resources()/L"maps";}
     std::filesystem::path ResourceStaging() const {return Resources()/L"staging";}
     std::filesystem::path DownloadCache() const {return userRoot/L"downloads"/L"cache";}
+    std::filesystem::path Updates() const {return userRoot/L"updates";}
+    std::filesystem::path UpdateCache() const {return Updates()/L"cache";}
     std::filesystem::path Assets() const {return programRoot/L"assets";}
     std::filesystem::path Diagnostics() const {return mode==PathMode::Development?programRoot/L"debug-captures":userRoot/L"logs";}
 };

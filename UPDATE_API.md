@@ -49,3 +49,33 @@ Optional map delivery remains under ResourceService and its own bounded
 manifest/package validation. An application release cannot authorize a map
 package, plugin permission or plugin code execution. Public map delivery stays
 disabled until both an approved HTTPS endpoint and redistribution rights exist.
+
+## Side-by-side construction and activation
+
+`versions/<strict-version>/` contains immutable application payloads. Range
+downloads reuse ResourceService's cancellable bounded byte-stream interface,
+with separate update authorization. Partial objects live below
+`updates/cache/partial/<authenticated-manifest-identity>/<content-hash>.part`.
+Actual byte count determines the resume offset. A different manifest identity
+cannot resume old partial content. Final size and SHA-256 are mandatory before
+cache publication; each reconstructed file is verified again before its version
+directory is renamed into place. Failed construction leaves the old version
+unchanged. No manifest supplies a deletion action or native filesystem handle.
+
+`current.json` atomically records active/previous versions and pending boot
+confirmation. Launch paths are derived only under the local `versions` root.
+The installer baseline is seeded once from its audited local payload into
+`initial.json`; this local installer inventory is distinct from remote signed
+release authentication. New versions require a signed release from the compiled
+public-key set. Production currently has neither an endpoint nor a provisioned
+release key; it cannot accept remote updates.
+
+Launcher and Updater are installer-owned bootstrap components. They never load
+plugin DLLs. Updater waits only for a verified Noven process, does not force-kill,
+and refuses activation while Noven/PluginHost ownership markers remain. A new
+version retains the previous known-good version. Health confirmation requires
+the local activation token; an unconfirmed failed boot falls back on the next
+launch. A successful intentional exit before confirmation defers another boot
+attempt rather than immediately rolling back. Corrupt active metadata falls
+back only through the validated local last-good inventory. Rollback changes
+application selection only, never user data or optional map resources.

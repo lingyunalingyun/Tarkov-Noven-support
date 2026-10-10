@@ -18,9 +18,10 @@ class AuthenticatedRelease final {
 public:
     const ReleaseManifest& Manifest() const noexcept {return manifest_;}
     const std::string& Identity() const noexcept {return identity_;}
+    const std::string& Envelope() const noexcept {return envelope_;}
 private:
     AuthenticatedRelease()=default;
-    ReleaseManifest manifest_;std::string identity_;
+    ReleaseManifest manifest_;std::string identity_,envelope_;
     friend AuthenticatedRelease VerifyRelease(std::string_view,std::span<const ReleasePublicKey>);
 };
 bool ValidReleasePath(std::string_view path);
