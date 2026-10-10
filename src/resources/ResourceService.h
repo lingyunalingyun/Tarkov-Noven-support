@@ -50,7 +50,7 @@ public:
     bool WaitIdle(std::chrono::milliseconds timeout);
     void Shutdown();
 private:
-    enum class Work {Download,Verify,Delete};
+    enum class Work {Download,Verify,Delete,ClearCache};
     struct Entry {ResourceSnapshot view;std::optional<ResourceRecord> installed;MapLease location;bool busy{},cancel{};std::uint64_t reserved{};std::stop_source stop;};
     struct Job {std::string id;Work work;};
     void Worker(std::stop_token stop);
@@ -65,7 +65,7 @@ private:
     std::function<std::uint64_t()> diskSpace_;std::function<void()> changed_;
     mutable std::mutex mutex_;std::condition_variable condition_,idle_;
     std::map<std::string,Entry> entries_;std::deque<Job> jobs_;std::vector<std::jthread> workers_;
-    bool stopping_{};unsigned active_{};std::uint64_t reservedBytes_{};
+    bool stopping_{},clearing_{};unsigned active_{};std::uint64_t reservedBytes_{};
 };
 std::vector<ResourceAction> ResourceActions(const ResourceSnapshot& snapshot,RemoteAvailability remote);
 }

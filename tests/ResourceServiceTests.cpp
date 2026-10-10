@@ -54,7 +54,7 @@ int main() try {
     transport->hold=true;const auto previous=transport->opens;
     {ResourceService service(paths,{{record}},transport,[]{return 1024*1024ULL;});Check(service.Act(record.resourceId,ResourceAction::Download));Check(transport->WaitOpen(previous+1));
         Check(!service.Act(record.resourceId,ResourceAction::Download));Check(service.Act(record.resourceId,ResourceAction::Pause));Idle(service);Check(View(service).state==S::Paused);
-        Check(service.Act(record.resourceId,ResourceAction::Cancel));Check(service.ClearDownloadCache());Check(View(service).state==S::NotInstalled);}
+        Check(service.Act(record.resourceId,ResourceAction::Cancel));Check(service.ClearDownloadCache());Idle(service);Check(View(service).state==S::NotInstalled);}
     transport->hold=false;transport->identityMismatch=true;
     {ResourceService service(paths,{{record}},transport,[]{return 1024*1024ULL;});service.DownloadAll();Idle(service);Check(View(service).state==S::Error&&!View(service).installed);}
     transport->identityMismatch=false;auto bad=record;bad.sha256=std::string(64,'a');

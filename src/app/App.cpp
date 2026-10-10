@@ -27,6 +27,8 @@
 #include "ui/MainWindowUi.h"
 #include "ui/MessageDialog.h"
 #include "resources/ResourceService.h"
+#include "resources/ResourceOnboarding.h"
+#include "ui/ResourceDialog.h"
 #include "raid/LocalRaidService.h"
 #include "raid/RaidScanAssociation.h"
 #include "plugins/PluginDiscovery.h"
@@ -542,6 +544,7 @@ int App::Run(HINSTANCE instance, int show_command) {
 
     ShowWindow(window_, show_command);
     UpdateWindow(window_);
+    PostMessageW(window_,kResourceOnboardingMessage,0,0);
 
     recent_animation_timer_ = CreateWaitableTimerExW(nullptr, nullptr,
         CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
@@ -724,6 +727,7 @@ void App::StartResources(){
     main_ui_->SetResourceResolver([this](auto id){return resources_->ResolveMap(id);},
         [this](auto id){ui::MapPage::ResourceInfo info;for(const auto& value:resources_->Snapshot())if(value.record.stableMapId==id){info.bytes=value.record.downloadSize;info.downloadAllowed=resources_->Remote()!=resources::RemoteAvailability::ProductionEndpointUnconfigured;break;}return info;},
         [this](auto id){resources_->Act("maps."+std::string(id),resources::ResourceAction::Download);});
+    main_ui_->SetResourceManagementHandler([this]{ui::ShowResourceDialog(window_,*resources_,paths_.userRoot,false);});
 }
 void App::StartMapAssetUpdate(){
     if(paths_.mode!=common::PathMode::Development)return;
@@ -941,6 +945,12 @@ LRESULT CALLBACK App::WindowProc(
             if(app->marketplace_&&app->main_ui_)app->main_ui_->SetMarketplace(app->marketplace_->Snapshot());return 0;
         case kResourcesMessage:
             app->resource_notification_pending_->store(false);if(app->main_ui_)app->main_ui_->ResourcesChanged();return 0;
+        case kResourceOnboardingMessage:
+            if(app->resources_&&resources::ResourceOnboarding(app->paths_).ShouldShow()){
+                const auto decision=ui::ShowResourceDialog(window,*app->resources_,app->paths_.userRoot,true);
+                if(resources::ResourceOnboarding(app->paths_).Complete()){for(const auto& id:decision.ids)app->resources_->Act(id,resources::ResourceAction::Download);}
+                else (void)ui::ShowMessageDialog(window,ui::Tr("resources.manage"),ui::Tr("resources.state_failed"),ui::MessageKind::Error,ui::Tr("dialog.ok"));
+            }return 0;
         case kEventsMessage:
             app->PublishEvents();app->EnsureRecentAnimationTimer();return 0;
         case kRaidHistoryMessage:

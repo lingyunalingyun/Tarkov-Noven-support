@@ -139,6 +139,7 @@ add_executable(NovenTarkovSupport WIN32
     src/plugins/PluginDiscovery.cpp
     src/ui/PluginsPage.cpp
     src/ui/MessageDialog.cpp
+    src/ui/ResourceDialog.cpp
     src/ui/PluginPageView.cpp
     src/events/EventCatalog.cpp
     src/events/EventBrowser.cpp
@@ -251,6 +252,7 @@ target_link_libraries(NovenTarkovSupport PRIVATE
     dwrite
     dwmapi
     comctl32
+    uxtheme
     windowsapp
     winhttp
     windowscodecs
@@ -360,6 +362,12 @@ if(BUILD_TESTING)
         target_compile_options(NovenResourceServiceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME resource_service COMMAND NovenResourceServiceTests)
+    add_executable(NovenResourceDialogTests tests/ResourceDialogTests.cpp src/ui/ResourceDialog.cpp src/ui/MessageDialog.cpp src/ui/localization/LocalizationService.cpp)
+    target_link_libraries(NovenResourceDialogTests PRIVATE NovenResources user32 gdi32 dwmapi comctl32 uxtheme)
+    if(MSVC)
+        target_compile_options(NovenResourceDialogTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME resource_dialog COMMAND NovenResourceDialogTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenMapResourceTests tests/MapResourceTests.cpp src/ui/MapPage.cpp src/data/MapCatalog.cpp src/ui/localization/LocalizationService.cpp)
     target_link_libraries(NovenMapResourceTests PRIVATE NovenResourceFixtures d2d1 dwrite imm32 windowscodecs ole32)
     if(MSVC)

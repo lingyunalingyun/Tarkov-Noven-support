@@ -80,7 +80,7 @@ std::uint64_t ResourceService::LoadPartial(const ResourceRecord& r) const try {
 }catch(...){return 0;}
 void ResourceService::DiscardPartial(const ResourceRecord& r) const {const auto file=Partial(r);auto meta=file;meta+=L".json";if(SafeResourcePath(file))DeleteFileW(file.c_str());if(SafeResourcePath(meta))DeleteFileW(meta.c_str());}
 bool ResourceService::Act(std::string_view id,ResourceAction action){
-    std::unique_lock lock(mutex_);const auto found=entries_.find(std::string(id));if(stopping_||found==entries_.end())return false;auto& e=found->second;
+    std::unique_lock lock(mutex_);const auto found=entries_.find(std::string(id));if(stopping_||clearing_||found==entries_.end())return false;auto& e=found->second;
     const auto available=ResourceActions(e.view,Remote());if(std::find(available.begin(),available.end(),action)==available.end()&&action!=ResourceAction::Repair)return false;
     if(action==ResourceAction::Pause||action==ResourceAction::Cancel){
         e.cancel=action==ResourceAction::Cancel;e.stop.request_stop();
@@ -101,13 +101,14 @@ bool ResourceService::Act(std::string_view id,ResourceAction action){
 }
 void ResourceService::DownloadAll(){for(const auto& v:Snapshot())if(v.state==S::NotInstalled||v.state==S::Unavailable||v.state==S::Error)Act(v.record.resourceId,ResourceAction::Download);}
 void ResourceService::CheckResources(){for(const auto& v:Snapshot())if(v.installed)Act(v.record.resourceId,ResourceAction::Verify);}
-bool ResourceService::ClearDownloadCache(){std::lock_guard lock(mutex_);if(active_||!jobs_.empty())return false;const auto root=paths_.DownloadCache();const auto target=root/L"resources";
-    if(!RemoveResourceTree(root,target))return false;for(auto& [id,e]:entries_)if(e.view.state==S::Paused){e.view.received=0;e.view.state=e.location?(Same(*e.installed,e.view.record)?S::Installed:S::UpdateAvailable):transport_?S::NotInstalled:S::Unavailable;}return true;}
+bool ResourceService::ClearDownloadCache(){std::lock_guard lock(mutex_);if(stopping_||clearing_||active_||!jobs_.empty())return false;clearing_=true;jobs_.push_back({{},Work::ClearCache});condition_.notify_one();return true;}
 void ResourceService::Worker(std::stop_token stop){
     while(!stop.stop_requested()){
         Job job;std::stop_token task;
         {std::unique_lock lock(mutex_);condition_.wait(lock,[&]{return stopping_||stop.stop_requested()||!jobs_.empty();});if(stopping_||stop.stop_requested())break;
-            job=jobs_.front();jobs_.pop_front();++active_;task=entries_.at(job.id).stop.get_token();}
+            job=jobs_.front();jobs_.pop_front();++active_;task=job.work==Work::ClearCache?stop:entries_.at(job.id).stop.get_token();}
+        if(job.work==Work::ClearCache){const bool valid=RemoveResourceTree(paths_.DownloadCache(),paths_.DownloadCache()/L"resources");
+            {std::lock_guard lock(mutex_);for(auto& [id,e]:entries_)if(e.view.state==S::Paused){if(valid){e.view.received=0;e.view.state=e.location?(Same(*e.installed,e.view.record)?S::Installed:S::UpdateAvailable):transport_?S::NotInstalled:S::Unavailable;}else e.view.error="resources.failed";}clearing_=false;--active_;}idle_.notify_all();Notify();continue;}
         try{Execute(job,task);}catch(...){
             bool cancel{},paused{};{std::lock_guard lock(mutex_);const auto& e=entries_.at(job.id);cancel=e.cancel;paused=task.stop_requested();}
             if(cancel){ResourceRecord r;S next;{std::lock_guard lock(mutex_);auto& e=entries_.at(job.id);r=e.view.record;e.view.received=0;next=e.location?(Same(*e.installed,r)?S::Installed:S::UpdateAvailable):transport_?S::NotInstalled:S::Unavailable;}DiscardPartial(r);Set(job.id,next);}

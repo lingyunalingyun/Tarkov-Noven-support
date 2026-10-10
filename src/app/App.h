@@ -82,6 +82,7 @@ private:
     static constexpr UINT kPluginRuntimeMessage = WM_APP + 8;
     static constexpr UINT kMarketplaceMessage = WM_APP + 9;
     static constexpr UINT kResourcesMessage = WM_APP + 10;
+    static constexpr UINT kResourceOnboardingMessage = WM_APP + 11;
     static constexpr UINT kDebugMouseTimerId = 2;
     static constexpr UINT kDebugMouseCheckMilliseconds = 50;
     static constexpr UINT kRecentAnimationTimerId = 3;
