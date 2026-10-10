@@ -58,4 +58,12 @@ ResourceManifest ParseResourceManifest(std::string_view utf8,const std::vector<s
     std::sort(manifest.components.begin(),manifest.components.end(),[](const auto& a,const auto& b){return a.resourceId<b.resourceId;});
     return manifest;
 }
+std::string EncodeResourceManifest(const ResourceManifest& manifest){
+    std::string text="{\"schemaVersion\":1,\"components\":[";bool comma{};
+    for(const auto& r:manifest.components){if(comma)text+=',';comma=true;
+        text+="{\"type\":\"map\",\"required\":false,\"resourceId\":"+raid::json::Quote(r.resourceId)+",\"stableMapId\":"+raid::json::Quote(r.stableMapId)
+            +",\"titleZh\":"+raid::json::Quote(r.titleZh)+",\"titleEn\":"+raid::json::Quote(r.titleEn)+",\"version\":"+raid::json::Quote(r.version)
+            +",\"sha256\":"+raid::json::Quote(r.sha256)+",\"artifact\":"+raid::json::Quote(r.artifact)+",\"downloadSize\":"+std::to_string(r.downloadSize)+",\"installedSize\":"+std::to_string(r.installedSize)+"}";}
+    return text+"]}";
+}
 }

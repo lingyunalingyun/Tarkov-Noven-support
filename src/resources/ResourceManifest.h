@@ -22,4 +22,5 @@ struct ResourceSourcePolicy final {
 bool ValidMapIdentity(std::string_view value);
 bool ValidArtifactName(std::string_view value);
 ResourceManifest ParseResourceManifest(std::string_view utf8,const std::vector<std::string>& knownMapIds);
+std::string EncodeResourceManifest(const ResourceManifest& manifest);
 }
