@@ -88,3 +88,19 @@ guarantee; confirm the roommate's network can reach it.
 No private-key upload, source push, optional maps, ratings, marketplace package
 installation or unrelated work is part of this workflow. Historical AV and
 pending installer lifecycle acceptance remain recorded in INSTALLATION.md.
+
+## Initial beta verification boundary
+
+The genuine signed 0.1.1 payload contains 68,190,100 bytes. Against the configured
+0.1.0 staging payload, native HTTPS reused 65,069,972 local bytes and received
+3,120,128 content bytes (95.42% avoided). An interrupted process received 65,536
+bytes; a new process resumed at that exact offset and received the remaining
+3,054,592 bytes. These counts exclude TLS/HTTP overhead. Every referenced remote
+pack range was also checked independently before manifest publication.
+
+Core version-store activation, rollback to 0.1.0, reactivation of 0.1.1, and
+preservation of isolated user-data sentinels passed. This used the exact tester
+installer's CMake staging payload, not an actual Setup installation. Installed
+Launcher/UI pause, restart, health confirmation and installer lifecycle acceptance
+remain pending in a clean Windows test environment. Roommate manual acceptance
+is likewise pending; these core tests must not be reported as GUI acceptance.
