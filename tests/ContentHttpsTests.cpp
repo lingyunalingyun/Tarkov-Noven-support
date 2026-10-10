@@ -26,6 +26,7 @@ std::string Read(ResourceStream& stream){std::string result;std::array<char,6553
 int main()try{
     const ResourceSourcePolicy policy{"https://content.example.test/releases/"};auto backend=std::make_shared<Backend>();
     Check(!HttpsResourceTransport({})&&!noven::updates::HttpsUpdateSource({}));Check(backend->requests.empty());
+    Check(static_cast<bool>(noven::updates::CompiledUpdateSource())==static_cast<bool>(NOVEN_EXPECT_UPDATE_SOURCE));
     auto source=noven::updates::HttpsUpdateSource(policy,backend);auto stream=source->Open("core-0.1.1.pack",2,5,"signed-identity",{});
     Check(stream->Offset()==2&&stream->TotalSize()==11&&stream->Identity()=="signed-identity"&&Read(*stream)=="cdefg");
     Check(backend->url==policy.baseUrl+"core-0.1.1.pack");Check(source->FetchManifest({})==backend->bytes);

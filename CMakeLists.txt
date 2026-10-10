@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(NovenTarkovSupport
-    VERSION 0.1.0
+    VERSION 0.1.1
     LANGUAGES C CXX
 )
 enable_language(RC)
@@ -409,6 +409,7 @@ endif()
 include(cmake/InstallRuntime.cmake)
 if(BUILD_TESTING)
     add_executable(NovenContentHttpsTests tests/ContentHttpsTests.cpp)
+    target_compile_definitions(NovenContentHttpsTests PRIVATE NOVEN_EXPECT_UPDATE_SOURCE=$<BOOL:${NOVEN_UPDATE_SOURCE_ROOT}>)
     target_link_libraries(NovenContentHttpsTests PRIVATE NovenUpdates)
     target_compile_options(NovenContentHttpsTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     add_test(NAME content_https COMMAND NovenContentHttpsTests)
