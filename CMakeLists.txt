@@ -13,6 +13,7 @@ endif()
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+option(NOVEN_RESOURCE_REVIEW_FIXTURE "Enable local synthetic resource review, never production packaging" OFF)
 
 add_library(NovenPaths STATIC src/common/AppPaths.cpp)
 target_include_directories(NovenPaths PUBLIC src)
@@ -275,10 +276,13 @@ add_custom_target(NovenHideoutAssets ALL
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/data"
         "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/data")
 add_dependencies(NovenTarkovSupport NovenHideoutAssets)
+set(NOVEN_DEVELOPMENT_MAP_COPY)
+if(NOT NOVEN_RESOURCE_REVIEW_FIXTURE)
+    set(NOVEN_DEVELOPMENT_MAP_COPY COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/maps" "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/maps")
+endif()
 add_custom_target(NovenMapAssets ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/maps"
-        "$<TARGET_FILE_DIR:NovenTarkovSupport>/assets/maps"
+    ${NOVEN_DEVELOPMENT_MAP_COPY}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/NOTICE.md"
         "$<TARGET_FILE_DIR:NovenTarkovSupport>/NOTICE.md"
@@ -327,7 +331,6 @@ if(NOVEN_MARKETPLACE_REVIEW_FIXTURE)
     endif()
     target_compile_definitions(NovenTarkovSupport PRIVATE NOVEN_MARKETPLACE_REVIEW_FIXTURE=L"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/plugin-registry-review.json")
 endif()
-option(NOVEN_RESOURCE_REVIEW_FIXTURE "Enable local synthetic resource review, never production packaging" OFF)
 if(NOVEN_RESOURCE_REVIEW_FIXTURE)
     if(NOT BUILD_TESTING)
         message(FATAL_ERROR "Resource review requires BUILD_TESTING")
