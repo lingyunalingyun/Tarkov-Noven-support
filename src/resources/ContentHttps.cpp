@@ -6,7 +6,10 @@
 #include <charconv>
 namespace noven::resources {
 namespace {
-[[noreturn]] void Failed(){throw std::runtime_error("invalid or unavailable HTTPS content");}
+[[noreturn]] void Failed(const char* stage="validation"){
+    const auto code=GetLastError();const auto message=std::string("invalid or unavailable HTTPS content; stage=")+stage+"; Win32="+std::to_string(code);
+    if(std::string_view(stage)!="validation")throw ContentNetworkError(message,code);throw std::runtime_error(message);
+}
 void CheckStop(std::stop_token stop){if(stop.stop_requested())throw std::runtime_error("cancelled HTTPS content");}
 std::uint64_t Number(std::string_view value){std::uint64_t n{};const auto [end,error]=std::from_chars(value.data(),value.data()+value.size(),n);
     if(value.empty()||error!=std::errc{}||end!=value.data()+value.size())Failed();return n;}
@@ -26,17 +29,17 @@ public:
     Handle session,connection,request;std::chrono::steady_clock::time_point deadline=std::chrono::steady_clock::now()+std::chrono::seconds(120);
     void Ready(std::stop_token stop){CheckStop(stop);if(std::chrono::steady_clock::now()>=deadline)Failed();}
     std::size_t Read(std::span<char> out,std::stop_token stop)override{Ready(stop);DWORD read{};const auto n=static_cast<DWORD>(std::min<std::size_t>(out.size(),65536));
-        if(!n)return 0;if(!WinHttpReadData(request.value,out.data(),n,&read))Failed();Ready(stop);return read;}
+        if(!n)return 0;if(!WinHttpReadData(request.value,out.data(),n,&read))Failed("read");Ready(stop);return read;}
 };
-std::string Header(HINTERNET request,DWORD query){std::array<wchar_t,128> text{};DWORD bytes=static_cast<DWORD>(sizeof(text));
+std::string Header(HINTERNET request,DWORD query){std::array<wchar_t,2049> text{};DWORD bytes=static_cast<DWORD>(sizeof(text));
     if(!WinHttpQueryHeaders(request,query,WINHTTP_HEADER_NAME_BY_INDEX,text.data(),&bytes,WINHTTP_NO_HEADER_INDEX)){
         if(GetLastError()==ERROR_WINHTTP_HEADER_NOT_FOUND)return {};Failed();}
     std::string result;for(auto c:std::wstring_view(text.data(),bytes/sizeof(wchar_t))){if(!c)break;if(c<32||c>126)Failed();result+=static_cast<char>(c);}return result;
 }
 class WindowsBackend final:public ContentBackend {
-    bool systemStaticProxy_{};
+    bool systemStaticProxy_{},resourceTransfer_{};
 public:
-    explicit WindowsBackend(bool systemStaticProxy):systemStaticProxy_(systemStaticProxy){}
+    WindowsBackend(bool systemStaticProxy,bool resourceTransfer):systemStaticProxy_(systemStaticProxy),resourceTransfer_(resourceTransfer){}
     ContentResponse Open(std::string_view url,std::optional<ContentRange> range,std::stop_token stop)override{
         CheckStop(stop);const auto parsed=plugins::ParseHttpUrl(url);if(!parsed||parsed->port!=443)Failed();
         auto body=std::make_unique<WindowsBody>();
@@ -50,7 +53,9 @@ public:
         body->session.value=WinHttpOpen(L"Noven Content/1",named?WINHTTP_ACCESS_TYPE_NAMED_PROXY:WINHTTP_ACCESS_TYPE_NO_PROXY,
             named?proxy.lpszProxy:WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);
         if(proxy.lpszProxy)GlobalFree(proxy.lpszProxy);if(proxy.lpszProxyBypass)GlobalFree(proxy.lpszProxyBypass);if(proxy.lpszAutoConfigUrl)GlobalFree(proxy.lpszAutoConfigUrl);
-        if(!body->session.value||!WinHttpSetTimeouts(body->session.value,1000,2000,2000,2000))Failed();
+        // CDN 首次解析/握手实测超过更新的小范围超时；仅地图请求采用独立有界超时。
+        // CDN cold DNS/handshake exceeded update timeouts; only resource transfers use separate bounded limits.
+        if(!body->session.value||!WinHttpSetTimeouts(body->session.value,resourceTransfer_?5000:1000,resourceTransfer_?10000:2000,resourceTransfer_?10000:2000,resourceTransfer_?10000:2000))Failed();
         body->connection.value=WinHttpConnect(body->session.value,Wide(parsed->host).c_str(),443,0);if(!body->connection.value)Failed();
         body->request.value=WinHttpOpenRequest(body->connection.value,L"GET",Wide(parsed->target).c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,WINHTTP_FLAG_SECURE);
         if(!body->request.value)Failed();DWORD disabled=WINHTTP_DISABLE_REDIRECTS|WINHTTP_DISABLE_COOKIES|WINHTTP_DISABLE_AUTHENTICATION,auth=WINHTTP_AUTOLOGON_SECURITY_LEVEL_HIGH,headers=16*1024;
@@ -58,13 +63,15 @@ public:
             !WinHttpSetOption(body->request.value,WINHTTP_OPTION_AUTOLOGON_POLICY,&auth,sizeof(auth))||
             !WinHttpSetOption(body->request.value,WINHTTP_OPTION_MAX_RESPONSE_HEADER_SIZE,&headers,sizeof(headers)))Failed();
         std::wstring requestHeaders=L"Accept-Encoding: identity\r\n";
+        if(resourceTransfer_&&parsed->host=="api.github.com"&&parsed->target.starts_with("/repos/lingyunalingyun/Noven-Update-Channel/releases/assets/"))requestHeaders+=L"Accept: application/octet-stream\r\n";
         if(range){if(!range->count||range->count>ContentRangeBytes||range->offset>MaximumContentBytes||range->count>MaximumContentBytes-range->offset)Failed();
             requestHeaders+=L"Range: bytes="+std::to_wstring(range->offset)+L"-"+std::to_wstring(range->offset+range->count-1)+L"\r\n";}
-        if(!WinHttpSendRequest(body->request.value,requestHeaders.c_str(),static_cast<DWORD>(requestHeaders.size()),WINHTTP_NO_REQUEST_DATA,0,0,0))Failed();body->Ready(stop);
-        if(!WinHttpReceiveResponse(body->request.value,nullptr))Failed();body->Ready(stop);DWORD status{},length=sizeof(status);
+        if(!WinHttpSendRequest(body->request.value,requestHeaders.c_str(),static_cast<DWORD>(requestHeaders.size()),WINHTTP_NO_REQUEST_DATA,0,0,0))Failed("send");body->Ready(stop);
+        if(!WinHttpReceiveResponse(body->request.value,nullptr))Failed("receive");body->Ready(stop);DWORD status{},length=sizeof(status);
         if(!WinHttpQueryHeaders(body->request.value,WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,WINHTTP_HEADER_NAME_BY_INDEX,&status,&length,WINHTTP_NO_HEADER_INDEX))Failed();
         const auto encoding=Header(body->request.value,WINHTTP_QUERY_CONTENT_ENCODING);if(!encoding.empty()&&encoding!="identity")Failed();
-        return {status,Header(body->request.value,WINHTTP_QUERY_CONTENT_RANGE),Header(body->request.value,WINHTTP_QUERY_CONTENT_LENGTH),std::move(body)};
+        const auto location=Header(body->request.value,WINHTTP_QUERY_LOCATION);
+        return {status,Header(body->request.value,WINHTTP_QUERY_CONTENT_RANGE),Header(body->request.value,WINHTTP_QUERY_CONTENT_LENGTH),std::move(body),location};
     }
 };
 class Stream final:public ResourceStream {
@@ -87,12 +94,13 @@ class ResourceHttps final:public ResourceTransport {
     ResourceSourcePolicy policy_;std::shared_ptr<ContentBackend> backend_;
 public:
     ResourceHttps(ResourceSourcePolicy policy,std::shared_ptr<ContentBackend> backend):policy_(std::move(policy)),backend_(std::move(backend)){}
+    bool InstalledModeAllowed()const override{return true;}
     std::unique_ptr<ResourceStream> Open(const ResourceRecord& record,std::uint64_t offset,std::stop_token stop)override{
         if(!ValidArtifactName(record.artifact)||!record.downloadSize||record.downloadSize>MaximumPackageBytes||offset>=record.downloadSize)Failed();
         return OpenContentRange(policy_,record.artifact,{offset,record.downloadSize-offset},record.sha256,record.downloadSize,backend_,stop);}
 };
 }
-std::shared_ptr<ContentBackend> WindowsContentBackend(bool systemStaticProxy){return std::make_shared<WindowsBackend>(systemStaticProxy);}
+std::shared_ptr<ContentBackend> WindowsContentBackend(bool systemStaticProxy,bool resourceTransfer){return std::make_shared<WindowsBackend>(systemStaticProxy,resourceTransfer);}
 std::unique_ptr<ResourceStream> OpenContentRange(const ResourceSourcePolicy& policy,std::string_view name,ContentRange range,std::string identity,std::uint64_t total,std::shared_ptr<ContentBackend> backend,std::stop_token stop){
     CheckStop(stop);(void)Url(policy,name);return std::make_unique<Stream>(policy,std::string(name),range,std::move(identity),total,std::move(backend),stop);}
 std::string FetchContentText(const ResourceSourcePolicy& policy,std::string_view name,std::size_t maximum,std::shared_ptr<ContentBackend> backend,std::stop_token stop){

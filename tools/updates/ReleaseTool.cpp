@@ -1,6 +1,7 @@
 #include "updates/ReleaseManifest.h"
 #include "updates/UpdatePlanner.h"
 #include "resources/ResourceFiles.h"
+#include "resources/ResourceOnline.h"
 #include "plugins/PluginPipe.h"
 #include "raid/RaidJson.h"
 #include <bcrypt.h>
@@ -54,8 +55,19 @@ void Build(const std::filesystem::path& source,const std::filesystem::path& outp
     const auto publicBlob=key.Export(BCRYPT_ECCPUBLIC_BLOB);const std::array keys{ReleasePublicKey{id,std::vector<unsigned char>(publicBlob.begin(),publicBlob.end())}};
     (void)VerifyRelease(envelope,keys);Require(resources::WriteResourceText(output/L"release.json",envelope));std::cout<<"signed offline release "<<version<<" packBytes="<<packOffset<<" files="<<files.size()<<'\n';
 }
+void SignResource(const std::filesystem::path& payloadFile,const std::filesystem::path& output,std::string id,const std::filesystem::path& privateKey){
+    Require(!std::filesystem::exists(output)&&!id.empty()&&id.size()<=64);
+    const auto payload=resources::ReadResourceText(payloadFile,resources::MaximumManifestBytes);auto digest=resources::ResourceManifestDigest(payload);
+    auto blob=resources::ReadResourceText(privateKey,104);Require(blob.size()==104);SigningKey key;
+    Require(BCryptImportKeyPair(key.algorithm,nullptr,BCRYPT_ECCPRIVATE_BLOB,&key.key,reinterpret_cast<PUCHAR>(blob.data()),104,0)>=0);
+    SecureZeroMemory(blob.data(),blob.size());std::array<unsigned char,64> signature{};ULONG n{};
+    Require(BCryptSignHash(key.key,nullptr,digest.data(),32,signature.data(),64,&n,0)>=0&&n==64);
+    const auto envelope="{\"scheme\":\"ecdsa-p256-sha256\",\"keyId\":"+raid::json::Quote(id)+",\"payloadHex\":"+raid::json::Quote(resources::ResourceHex(std::span(reinterpret_cast<const unsigned char*>(payload.data()),payload.size())))+",\"signatureHex\":"+raid::json::Quote(resources::ResourceHex(signature))+"}";
+    Require(resources::WriteResourceText(output,envelope));std::cout<<"signed resource metadata bytes="<<envelope.size()<<'\n';
+}
 }
 int wmain(int argc,wchar_t** argv)try {
+    if(argc==6&&std::wstring_view(argv[1])==L"--resource-sign"){SignResource(std::filesystem::absolute(argv[2]),std::filesystem::absolute(argv[3]),Ascii(argv[4]),std::filesystem::absolute(argv[5]));return 0;}
     if(argc==3&&std::wstring_view(argv[1])==L"--review-key"){ReviewKey(std::filesystem::absolute(argv[2]));return 0;}
     if(argc==4&&std::wstring_view(argv[1])==L"--operator-key"){OperatorKey(std::filesystem::absolute(argv[2]),Ascii(argv[3]));return 0;}
     if(argc!=8||std::wstring_view(argv[1])!=L"--release"){std::cerr<<"--review-key <NEW test-only key directory> OR --operator-key <NEW protected operator directory> <keyId> OR --release <staged version root> <NEW artifact directory> <version> <keyId> <operator private CNG blob> <publishedAt>\n";return 2;}

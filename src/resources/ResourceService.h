@@ -11,12 +11,14 @@
 #include <span>
 #include <stop_token>
 #include <thread>
+#include <atomic>
 namespace noven::resources {
 enum class ResourceState {Unavailable,NotInstalled,Queued,Downloading,Paused,Verifying,Installing,Installed,UpdateAvailable,Deleting,Error};
-enum class RemoteAvailability {ProductionEndpointUnconfigured,OfflineFixture};
+enum class RemoteAvailability {ProductionEndpointUnconfigured,OfflineFixture,Loading,Online,Cached,NetworkUnavailable,ManifestInvalid};
+bool ResourceRemoteUsable(RemoteAvailability remote);
 enum class ResourceAction {Download,Pause,Resume,Cancel,Verify,Repair,Delete};
 bool LegalResourceTransition(ResourceState from,ResourceState to);
-struct ResourceSnapshot final {ResourceRecord record;ResourceState state{ResourceState::Unavailable};std::uint64_t received{};std::string error;bool installed{},present{};};
+struct ResourceSnapshot final {ResourceRecord record;ResourceState state{ResourceState::Unavailable};std::uint64_t received{};std::string error;bool installed{},present{},downloadAllowed{true};};
 struct ResourceMapLabel final {std::string stableMapId,titleZh,titleEn;};
 // 传输必须有界并响应取消；只有第一方服务能注入，插件没有入口。生产默认没有传输。
 // Transports must be bounded/cancellable, injected only by first-party code; production defaults to no transport.
@@ -31,6 +33,7 @@ public:
 class ResourceTransport {
 public:
     virtual ~ResourceTransport()=default;
+    virtual bool InstalledModeAllowed() const {return false;}
     virtual std::unique_ptr<ResourceStream> Open(const ResourceRecord& record,std::uint64_t offset,std::stop_token stop)=0;
 };
 class ResourceService final {
@@ -40,7 +43,9 @@ public:
         std::function<std::uint64_t()> diskSpace={},std::function<void()> changed={},std::vector<ResourceMapLabel> unavailableMaps={});
     ~ResourceService();
     ResourceService(const ResourceService&)=delete;
-    RemoteAvailability Remote() const {return transport_?RemoteAvailability::OfflineFixture:RemoteAvailability::ProductionEndpointUnconfigured;}
+    RemoteAvailability Remote() const {return remote_.load();}
+    void RemoteStatus(RemoteAvailability remote);
+    bool ConfigureRemote(ResourceManifest manifest,std::shared_ptr<ResourceTransport> transport,RemoteAvailability remote);
     bool CanDownload() const;
     std::vector<ResourceSnapshot> Snapshot() const;
     bool Act(std::string_view id,ResourceAction action);
@@ -67,6 +72,7 @@ private:
     mutable std::mutex mutex_;std::condition_variable condition_,idle_;
     std::map<std::string,Entry> entries_;std::deque<Job> jobs_;std::vector<std::jthread> workers_;
     bool stopping_{},clearing_{};unsigned active_{};std::uint64_t reservedBytes_{};
+    std::atomic<RemoteAvailability> remote_{RemoteAvailability::ProductionEndpointUnconfigured};
 };
 std::vector<ResourceAction> ResourceActions(const ResourceSnapshot& snapshot,RemoteAvailability remote);
 }

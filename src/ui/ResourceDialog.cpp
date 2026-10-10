@@ -10,7 +10,7 @@
 namespace noven::ui {
 ResourceDialogDecision ResourceDialogSelection::Download(const std::vector<resources::ResourceSnapshot>& rows,bool canDownload) const {
     ResourceDialogDecision result;if(!canDownload)return result;
-    for(const auto& row:rows)if(Selected(row.record.resourceId)&&row.record.downloadSize&&!row.installed&&
+    for(const auto& row:rows)if(Selected(row.record.resourceId)&&row.downloadAllowed&&row.record.downloadSize&&!row.installed&&
         (row.state==resources::ResourceState::NotInstalled||row.state==resources::ResourceState::Unavailable||row.state==resources::ResourceState::Error))result.ids.push_back(row.record.resourceId);
     result.download=!result.ids.empty();return result;
 }
@@ -52,7 +52,16 @@ struct Dialog {
         std::wstring total=Tr("resources.selected_total")+L" "+(selection.UnknownSize(rows)?Tr("resources.size_unknown"):FormatBytes(selection.Total(rows)));
         auto existing=root;while(!std::filesystem::exists(existing)&&existing!=existing.root_path())existing=existing.parent_path();ULARGE_INTEGER free{};
         if(GetDiskFreeSpaceExW(existing.c_str(),&free,nullptr,nullptr))total+=L" · "+Tr("resources.disk_free")+L" "+FormatBytes(free.QuadPart);
-        SetDlgItemTextW(window,Total,total.c_str());SetDlgItemTextW(window,Note,Tr(service.Remote()==resources::RemoteAvailability::ProductionEndpointUnconfigured?"resources.unconfigured":"resources.review_only").c_str());
+        const char* note="resources.unconfigured";
+        switch(service.Remote()){
+        case resources::RemoteAvailability::OfflineFixture:note="resources.review_only";break;
+        case resources::RemoteAvailability::Loading:note="resources.catalog_loading";break;
+        case resources::RemoteAvailability::Online:note="resources.catalog_online";break;
+        case resources::RemoteAvailability::Cached:note="resources.catalog_cached";break;
+        case resources::RemoteAvailability::NetworkUnavailable:note="resources.catalog_offline";break;
+        case resources::RemoteAvailability::ManifestInvalid:note="resources.catalog_invalid";break;
+        default:break;}
+        SetDlgItemTextW(window,Total,total.c_str());SetDlgItemTextW(window,Note,Tr(note).c_str());
         ResourceDialogSelection all;all.All(rows);
         EnableWindow(GetDlgItem(window,Download),(onboarding?selection:all).Download(rows,service.CanDownload()).download);
         actions.clear();if(!onboarding&&selected>=0&&static_cast<std::size_t>(selected)<rows.size())actions=resources::ResourceActions(rows[static_cast<std::size_t>(selected)],service.Remote());

@@ -87,6 +87,12 @@ int main() try {
         unsigned queued{};for(const auto& view:service.Snapshot())if(view.state==S::Queued){++queued;Check(service.Act(view.record.resourceId,ResourceAction::Pause));}Check(queued==1);
         for(const auto& view:service.Snapshot())if(view.state==S::Downloading)Check(service.Act(view.record.resourceId,ResourceAction::Pause));Idle(service);
         for(const auto& view:service.Snapshot())Check(view.state==S::Paused);Check(transport->opens==opened+2);service.Shutdown();Check(!service.Act(record.resourceId,ResourceAction::Resume));}
+    const auto completed=noven::common::AppPaths::Test(root/"program",root/"completed-partial");
+    Check(ResourceDirectories(completed.DownloadCache()/"resources"));
+    Check(WriteResourceText(completed.DownloadCache()/"resources"/"factory.part",Package(record.resourceId)));
+    Check(WriteResourceText(completed.DownloadCache()/"resources"/"factory.part.json",EncodeResourceManifest({{record}})));
+    transport->hold=false;const auto countBefore=transport->opens;
+    {ResourceService service(completed,{{record}},transport,[]{return 1024*1024ULL;});Check(View(service).state==S::Paused);Check(service.Act(record.resourceId,ResourceAction::Resume));Idle(service);Check(View(service).state==S::Installed&&transport->opens==countBefore);}
     Check(!std::filesystem::exists(paths.Plugins())&&!std::filesystem::exists(paths.Data())&&!std::filesystem::exists(paths.programRoot));
     std::filesystem::remove_all(root);std::cout<<"state machine/offline/resume/restart/hash/atomic install/delete/leases/cancel/disk/identity PASS\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what();return 1;}

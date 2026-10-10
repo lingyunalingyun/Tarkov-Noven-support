@@ -10,6 +10,7 @@ inline constexpr std::uint64_t MaximumPackageBytes=2ULL*1024*1024*1024;
 struct ResourceRecord final {
     std::string resourceId,stableMapId,titleZh,titleEn,version,sha256,artifact;
     std::uint64_t downloadSize{},installedSize{};
+    std::uint64_t githubAssetId{};
 };
 struct ResourceManifest final {std::vector<ResourceRecord> components;};
 // 来源只由第一方调用者提供；空配置禁止下载，清单不能选择主机或命令。

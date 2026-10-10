@@ -111,6 +111,7 @@ private:
     void StartMapAssetUpdate();
     void StartResources();
     std::unique_ptr<resources::ResourceService> resources_;
+    std::jthread resource_catalog_worker_;
     std::unique_ptr<updates::UpdateService> updates_;
     std::shared_ptr<std::atomic_bool> resource_notification_pending_{std::make_shared<std::atomic_bool>(false)};
     void PublishEvents();

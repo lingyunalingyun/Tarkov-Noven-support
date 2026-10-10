@@ -23,8 +23,9 @@ bool LegalResourceTransition(S from,S to){
     case S::Error:return to==S::Queued||to==S::Verifying||to==S::Deleting||to==S::NotInstalled||to==S::Unavailable||to==S::Installed||to==S::UpdateAvailable;
     }return false;
 }
+bool ResourceRemoteUsable(RemoteAvailability remote){return remote==RemoteAvailability::Online||remote==RemoteAvailability::Cached||remote==RemoteAvailability::OfflineFixture;}
 std::vector<ResourceAction> ResourceActions(const ResourceSnapshot& v,RemoteAvailability remote){
-    const bool online=remote!=RemoteAvailability::ProductionEndpointUnconfigured;
+    const bool online=ResourceRemoteUsable(remote)&&v.downloadAllowed&&v.record.downloadSize!=0;
     switch(v.state){
     case S::NotInstalled:case S::Unavailable:return online?std::vector{ResourceAction::Download}:std::vector<ResourceAction>{};
     case S::Downloading:case S::Queued:return {ResourceAction::Pause,ResourceAction::Cancel};
@@ -37,11 +38,12 @@ std::vector<ResourceAction> ResourceActions(const ResourceSnapshot& v,RemoteAvai
 }
 ResourceService::ResourceService(common::AppPaths paths,ResourceManifest manifest,std::shared_ptr<ResourceTransport> transport,
     std::function<std::uint64_t()> disk,std::function<void()> changed,std::vector<ResourceMapLabel> unavailable):paths_(std::move(paths)),transport_(std::move(transport)),diskSpace_(std::move(disk)),changed_(std::move(changed)){
-    if(transport_&&paths_.mode==common::PathMode::Installed)throw std::runtime_error("offline transport forbidden in production installed mode");
+    if(transport_&&paths_.mode==common::PathMode::Installed&&!transport_->InstalledModeAllowed())throw std::runtime_error("offline transport forbidden in production installed mode");
+    remote_=transport_?RemoteAvailability::OfflineFixture:RemoteAvailability::ProductionEndpointUnconfigured;
     std::vector<std::string> ids;for(const auto& r:manifest.components)ids.push_back(r.stableMapId);
     manifest=ParseResourceManifest(EncodeResourceManifest(manifest),ids);
     if(!diskSpace_)diskSpace_=[this]{auto path=paths_.userRoot;while(!std::filesystem::exists(path)&&path!=path.root_path())path=path.parent_path();ULARGE_INTEGER free{};return GetDiskFreeSpaceExW(path.c_str(),&free,nullptr,nullptr)?free.QuadPart:0ULL;};
-    for(const auto& record:manifest.components){Entry entry;entry.view.record=record;entry.view.state=transport_?S::NotInstalled:S::Unavailable;
+    for(const auto& record:manifest.components){Entry entry;entry.view.record=record;entry.view.downloadAllowed=static_cast<bool>(transport_);entry.view.state=transport_?S::NotInstalled:S::Unavailable;
         try{const auto stored=ParseResourceManifest(ReadResourceText(Pointer(record),MaximumManifestBytes),{record.stableMapId});
             if(stored.components.size()==1&&stored.components[0].resourceId==record.resourceId){entry.installed=stored.components[0];entry.view.state=S::Verifying;entry.busy=true;jobs_.push_back({record.resourceId,Work::Verify});}}
         catch(...){ }
@@ -50,7 +52,7 @@ ResourceService::ResourceService(common::AppPaths paths,ResourceManifest manifes
     }
     if(!transport_){if(unavailable.size()>MaximumComponents)throw std::runtime_error("resource label limit");
         for(const auto& label:unavailable){if(!ValidMapIdentity(label.stableMapId)||label.titleZh.empty()||label.titleEn.empty()||label.titleZh.size()>256||label.titleEn.size()>256)throw std::runtime_error("invalid map label");
-            const auto id="maps."+label.stableMapId;if(entries_.contains(id))continue;Entry entry;entry.view.record.resourceId=id;entry.view.record.stableMapId=label.stableMapId;entry.view.record.titleZh=label.titleZh;entry.view.record.titleEn=label.titleEn;
+            const auto id="maps."+label.stableMapId;if(entries_.contains(id))continue;Entry entry;entry.view.downloadAllowed=false;entry.view.record.resourceId=id;entry.view.record.stableMapId=label.stableMapId;entry.view.record.titleZh=label.titleZh;entry.view.record.titleEn=label.titleEn;
             try{const auto stored=ParseResourceManifest(ReadResourceText(Pointer(entry.view.record),MaximumManifestBytes),{label.stableMapId});
                 if(stored.components.size()==1&&stored.components[0].resourceId==id){entry.installed=stored.components[0];entry.view.record=*entry.installed;entry.view.state=S::Verifying;entry.busy=true;jobs_.push_back({id,Work::Verify});}}
             catch(...){ }
@@ -60,7 +62,20 @@ ResourceService::ResourceService(common::AppPaths paths,ResourceManifest manifes
     for(unsigned i=0;i<2;++i)workers_.emplace_back([this](std::stop_token stop){Worker(stop);});
 }
 ResourceService::~ResourceService(){Shutdown();}
-bool ResourceService::CanDownload() const {std::lock_guard lock(mutex_);return transport_&&!stopping_;}
+bool ResourceService::CanDownload() const {std::lock_guard lock(mutex_);return transport_&&ResourceRemoteUsable(Remote())&&!stopping_;}
+void ResourceService::RemoteStatus(RemoteAvailability remote){remote_=remote;Notify();}
+bool ResourceService::ConfigureRemote(ResourceManifest manifest,std::shared_ptr<ResourceTransport> transport,RemoteAvailability remote){
+    if(!transport||!transport->InstalledModeAllowed()||!ResourceRemoteUsable(remote))return false;
+    std::lock_guard lock(mutex_);if(stopping_||active_||!jobs_.empty()||clearing_)return false;
+    std::vector<std::string> ids;for(const auto& [id,e]:entries_)ids.push_back(e.view.record.stableMapId);
+    manifest=ParseResourceManifest(EncodeResourceManifest(manifest),ids);
+    // 仅更新可信目录中的同一身份；未发布地图保留本地已安装内容，不提供伪下载。
+    // Update known identities only; unpublished maps retain installed content without fake downloads.
+    for(auto& [id,e]:entries_){e.view.downloadAllowed=false;if(!e.installed){e.view.state=S::Unavailable;e.view.record.downloadSize=0;}}
+    for(const auto& r:manifest.components){auto& e=entries_.at(r.resourceId);e.view.downloadAllowed=true;e.view.record=r;e.view.error.clear();
+        e.view.received=LoadPartial(r);e.view.state=e.location?(Same(*e.installed,r)?S::Installed:S::UpdateAvailable):e.view.received?S::Paused:S::NotInstalled;}
+    transport_=std::move(transport);remote_=remote;return true;
+}
 void ResourceService::Shutdown(){
     {std::lock_guard lock(mutex_);if(stopping_)return;stopping_=true;for(auto& [id,e]:entries_)e.stop.request_stop();jobs_.clear();}
     for(auto& worker:workers_)worker.request_stop();condition_.notify_all();workers_.clear();idle_.notify_all();
@@ -94,7 +109,7 @@ bool ResourceService::Act(std::string_view id,ResourceAction action){
     if(action==ResourceAction::Verify)work=Work::Verify;
     if(action==ResourceAction::Repair&&e.installed)work=Work::Repair;
     if(action==ResourceAction::Delete)work=Work::Delete;
-    if((work==Work::Download||work==Work::Repair)&&!transport_){e.view.error="resources.unconfigured";lock.unlock();Notify();return false;}
+    if((work==Work::Download||work==Work::Repair)&&(!transport_||!ResourceRemoteUsable(Remote())||!e.view.downloadAllowed)){e.view.error="resources.unconfigured";lock.unlock();Notify();return false;}
     if(work==Work::Verify&&!e.installed)return false;
     if(work==Work::Delete&&!e.installed)return false;
     if(jobs_.size()>=MaximumComponents)return false;
@@ -147,10 +162,13 @@ void ResourceService::Execute(const Job& job,std::stop_token stop){
     plugins::ipc::Handle file(CreateFileW(partial.c_str(),GENERIC_WRITE,0,nullptr,offset?OPEN_EXISTING:CREATE_NEW,FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
     BY_HANDLE_FILE_INFORMATION info{};if(!file||!GetFileInformationByHandle(file.Get(),&info)||info.nNumberOfLinks!=1||(info.dwFileAttributes&FILE_ATTRIBUTE_REPARSE_POINT))throw std::runtime_error("unsafe partial");
     LARGE_INTEGER seek{};seek.QuadPart=static_cast<LONGLONG>(offset);if(!SetFilePointerEx(file.Get(),seek,nullptr,FILE_BEGIN))throw std::runtime_error("seek failed");
-    auto stream=transport_->Open(record,offset,stop);
-    if(!stream||stream->Offset()!=offset||stream->TotalSize()!=record.downloadSize||stream->Identity()!=record.sha256){file.Reset();DiscardPartial(record);throw std::runtime_error("range identity mismatch");}
+    std::unique_ptr<ResourceStream> stream;
+    if(offset<record.downloadSize){
+        stream=transport_->Open(record,offset,stop);
+        if(!stream||stream->Offset()!=offset||stream->TotalSize()!=record.downloadSize||stream->Identity()!=record.sha256){file.Reset();DiscardPartial(record);throw std::runtime_error("range identity mismatch");}
+    }
     std::array<char,65536> bytes{};std::uint64_t received=offset;
-    while(!stop.stop_requested()){
+    while(stream&&!stop.stop_requested()){
         const auto count=stream->Read(bytes,stop);if(!count)break;if(count>bytes.size()||count>record.downloadSize-received)throw std::runtime_error("response too large");
         DWORD written{};if(!WriteFile(file.Get(),bytes.data(),static_cast<DWORD>(count),&written,nullptr)||written!=count||!FlushFileBuffers(file.Get()))throw std::runtime_error("partial write failed");received+=count;
         {std::lock_guard lock(mutex_);entries_.at(job.id).view.received=received;}Notify();

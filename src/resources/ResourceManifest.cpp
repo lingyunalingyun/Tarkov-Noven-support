@@ -53,6 +53,7 @@ ResourceManifest ParseResourceManifest(std::string_view utf8,const std::vector<s
         if(!ValidArtifactName(record.artifact)||!artifacts.insert(record.artifact).second)Invalid();
         record.downloadSize=Size(value,"downloadSize",MaximumPackageBytes);
         record.installedSize=Size(value,"installedSize",4*MaximumPackageBytes);
+        if(value.object.contains("githubAssetId"))record.githubAssetId=Size(value,"githubAssetId",9007199254740991ULL);
         manifest.components.push_back(std::move(record));
     }
     std::sort(manifest.components.begin(),manifest.components.end(),[](const auto& a,const auto& b){return a.resourceId<b.resourceId;});
@@ -63,7 +64,8 @@ std::string EncodeResourceManifest(const ResourceManifest& manifest){
     for(const auto& r:manifest.components){if(comma)text+=',';comma=true;
         text+="{\"type\":\"map\",\"required\":false,\"resourceId\":"+raid::json::Quote(r.resourceId)+",\"stableMapId\":"+raid::json::Quote(r.stableMapId)
             +",\"titleZh\":"+raid::json::Quote(r.titleZh)+",\"titleEn\":"+raid::json::Quote(r.titleEn)+",\"version\":"+raid::json::Quote(r.version)
-            +",\"sha256\":"+raid::json::Quote(r.sha256)+",\"artifact\":"+raid::json::Quote(r.artifact)+",\"downloadSize\":"+std::to_string(r.downloadSize)+",\"installedSize\":"+std::to_string(r.installedSize)+"}";}
+            +",\"sha256\":"+raid::json::Quote(r.sha256)+",\"artifact\":"+raid::json::Quote(r.artifact)+",\"downloadSize\":"+std::to_string(r.downloadSize)+",\"installedSize\":"+std::to_string(r.installedSize);
+        if(r.githubAssetId)text+=",\"githubAssetId\":"+std::to_string(r.githubAssetId);text+="}";}
     return text+"]}";
 }
 }

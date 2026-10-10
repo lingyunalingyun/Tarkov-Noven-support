@@ -26,7 +26,7 @@ public:
     MapPage& operator=(const MapPage&)=delete;
     bool Initialize(const std::filesystem::path& assets,std::wstring& error,bool managedResources=false);
     using ResourceLease=std::shared_ptr<const std::filesystem::path>;
-    struct ResourceInfo {std::uint64_t bytes{};bool downloadAllowed{};};
+    struct ResourceInfo {std::uint64_t bytes{};bool downloadAllowed{};std::string unavailableKey{"resources.unconfigured"};};
     void SetResourceResolver(std::function<ResourceLease(std::string_view)> resolver,
         std::function<ResourceInfo(std::string_view)> info,std::function<void(std::string_view)> download);
     void ResourceActive(bool active);

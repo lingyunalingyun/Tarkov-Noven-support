@@ -415,7 +415,7 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
         canvas.Text(Tr("resources.missing"),canvas.body,{body.left+24,body.top+62,body.right-24,body.top+94},theme.secondaryText);
         canvas.Text(info.bytes?FormatBytes(info.bytes):Tr("resources.size_unknown"),canvas.smallFormat,{body.left+24,body.top+100,body.right-24,body.top+132},theme.secondaryText);
         if(info.downloadAllowed)DrawTextButton(canvas,theme,ResourceButton(),Tr("resources.download"),false,resource_pressed_);
-        else canvas.Text(Tr("resources.unconfigured"),canvas.smallFormat,{body.left+24,body.top+142,body.right-24,body.top+198},theme.secondaryText);
+        else canvas.Text(Tr(info.unavailableKey),canvas.smallFormat,{body.left+24,body.top+142,body.right-24,body.top+198},theme.secondaryText);
         DrawMapPicker(canvas,theme);return;
     }
     if(missing_reference_){canvas.Text(Tr("map.no_background"),canvas.body,layout_.content,theme.secondaryText);DrawMapPicker(canvas,theme);return;}

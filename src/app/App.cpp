@@ -27,6 +27,7 @@
 #include "ui/MainWindowUi.h"
 #include "ui/MessageDialog.h"
 #include "resources/ResourceService.h"
+#include "resources/ResourceOnline.h"
 #include "resources/ResourceOnboarding.h"
 #include "ui/ResourceDialog.h"
 #include "ui/UpdateDialog.h"
@@ -249,6 +250,7 @@ App::App()
       recent_scan_store_(std::make_unique<data::RecentScanStore>()) {}
 
 App::~App() {
+    resource_catalog_worker_.request_stop();if(resource_catalog_worker_.joinable())resource_catalog_worker_.join();
     resources_.reset();
     updates_.reset();
     marketplace_.reset();
@@ -776,8 +778,22 @@ void App::StartResources(){
 #endif
     resources_=std::make_unique<resources::ResourceService>(paths_,std::move(manifest),std::move(transport),std::function<std::uint64_t()>{},
         [window=window_,pending=resource_notification_pending_]{if(!pending->exchange(true)&&!PostMessageW(window,kResourcesMessage,0,0))pending->store(false);},std::move(maps));
+#ifndef NOVEN_RESOURCE_REVIEW_FIXTURE
+    const auto resourcePolicy=resources::CompiledResourcePolicy();
+    if(!resourcePolicy.metadata.baseUrl.empty()){
+        std::vector<std::string> ids;for(const auto& row:resources_->Snapshot())ids.push_back(row.record.stableMapId);
+        resource_catalog_worker_=std::jthread([this,resourcePolicy,ids](std::stop_token stop){resources::RefreshRemoteResources(*resources_,paths_,resourcePolicy,ids,stop);});
+    }
+#endif
     main_ui_->SetResourceResolver([this](auto id){return resources_->ResolveMap(id);},
-        [this](auto id){ui::MapPage::ResourceInfo info;for(const auto& value:resources_->Snapshot())if(value.record.stableMapId==id){info.bytes=value.record.downloadSize;info.downloadAllowed=resources_->Remote()!=resources::RemoteAvailability::ProductionEndpointUnconfigured;break;}return info;},
+        [this](auto id){ui::MapPage::ResourceInfo info;
+            switch(resources_->Remote()){
+            case resources::RemoteAvailability::Loading:info.unavailableKey="resources.catalog_loading";break;
+            case resources::RemoteAvailability::ManifestInvalid:info.unavailableKey="resources.catalog_invalid";break;
+            case resources::RemoteAvailability::NetworkUnavailable:case resources::RemoteAvailability::Cached:info.unavailableKey="resources.catalog_offline";break;
+            case resources::RemoteAvailability::Online:info.unavailableKey="resources.unpublished";break;
+            default:break;}
+            for(const auto& value:resources_->Snapshot())if(value.record.stableMapId==id){info.bytes=value.record.downloadSize;info.downloadAllowed=value.downloadAllowed&&value.record.downloadSize&&resources_->CanDownload();break;}return info;},
         [this](auto id){resources_->Act("maps."+std::string(id),resources::ResourceAction::Download);});
     main_ui_->SetResourceManagementHandler([this]{ui::ShowResourceDialog(window_,*resources_,paths_.userRoot,false);});
     auto updateSource=updates::CompiledUpdateSource();
@@ -1184,6 +1200,7 @@ LRESULT CALLBACK App::WindowProc(
     if (message == WM_DESTROY) {
         if(app){
             app->marketplace_.reset();
+            app->resource_catalog_worker_.request_stop();if(app->resource_catalog_worker_.joinable())app->resource_catalog_worker_.join();
             app->resources_.reset();
             app->updates_.reset();
             app->map_asset_worker_.request_stop();
