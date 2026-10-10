@@ -6,8 +6,8 @@ Phase 10 uses an Inno Setup EXE, not MSI/auto-update/Updater/package downloads/M
 默认当前用户程序目录：`%LOCALAPPDATA%\Programs\Noven Tarkov Support\`。普通安装不请求管理员；缺少 VC++ Runtime 时，独立微软 prerequisite 需明确同意并可能要求管理员。安装器只使用有效 Microsoft 签名的 vc_redist.x64.exe，不复制零散 CRT DLL，不改 /MD 为 /MT。
 Default per-user program directory: `%LOCALAPPDATA%\Programs\Noven Tarkov Support\`. Normal installation does not request admin rights. A missing VC++ Runtime is a separate explicitly approved Microsoft prerequisite and may require administrator rights. Packaging requires an authentic Microsoft-signed vc_redist.x64.exe; no loose CRT DLLs or /MD-to-/MT workaround.
 
-用户根：`%LOCALAPPDATA%\Noven Tarkov Support\`。插件在 `plugins/`，settings、plugin-state、plugin-storage、Recent Scans、Raid History、Events、Marketplace、物价/图像/地图缓存在 `data/`，诊断日志和扫描调试输出在 `logs/`。程序目录仅安装 Runtime：主 EXE、Host、ONNX Runtime、OCR 模型、语言、静态目录与地图、版权通知。
-User root: `%LOCALAPPDATA%\Noven Tarkov Support\`. Plugins use plugins/; settings/plugin-state/plugin-storage/Recent Scans/Raid History/Events/Marketplace/economy/image/map caches use data/; diagnostic logs and scan debug output use logs/. Program payload contains executables, ONNX Runtime, OCR models, locales, static catalogs/maps and attribution only.
+用户根：`%LOCALAPPDATA%\Noven Tarkov Support\`。插件在 `plugins/`；设置、历史、插件状态/存储等在 `data/`；日志在 `logs/`；可选官方资源在 `resources/`，临时下载在 `downloads/cache/`。正常 Core 程序目录只安装主 EXE、Host、ONNX Runtime、OCR 模型/字典、语言、静态目录及版权通知，不包含可选地图图片或缩放包。
+User root: `%LOCALAPPDATA%\Noven Tarkov Support\`. Plugins use plugins/, settings/history/plugin state/storage use data/, logs use logs/, optional resources use resources/, and temporary downloads use downloads/cache/. Normal Core payload contains Main/Host, ONNX Runtime, OCR models/dictionary, locales, catalogs and notices, but no optional map imagery or zoom packs.
 
 AppPaths 用 install() 专属 noven-installed.layout 标记识别 Installed Mode；Known Folder 失败时停止启动，不回退到 CWD/程序目录写数据。无标记的 Development/Review 保留 EXE 相邻 data/plugins/debug-captures。测试显式注入临时 Test Root，不查询真实用户目录。不会自动搬迁/删除旧开发目录数据。
 AppPaths recognizes Installed Mode through the install-only noven-installed.layout marker. Known Folder failures stop startup rather than writing into CWD/program files. Marker-free Development/Review retains exe-relative data/plugins/debug-captures. Tests inject temporary roots without real user-data writes. No automatic migration/deletion of old development data.
@@ -25,8 +25,8 @@ Use MSVC x64 Release and complete tests first, then invoke with your local tool 
   -VcRedist 'C:/path/to/Microsoft/vc_redist.x64.exe' -CMake cmake -ISCC ISCC
 ```
 
-脚本只清空精确的 Output/runtime-staging，构建两个目标、cmake --install --component Runtime、白名单审计、ISCC，再输出字节大小/SHA-256 和 artifact.json。禁止 Review payload、测试/Demo DLL、PDB/OBJ/LIB、源码、缓存和用户数据。包含实际地图 .tiles、PNG/SVG/JSON、生成 TSV 及现有地图署名/许可说明，不能复制整个 Release 目录。
-The script clears only Output/runtime-staging, builds both executables, runs cmake install Runtime, allowlist audit and ISCC, then emits bytes/SHA-256 and artifact.json. Review payloads/tests/demo DLLs/PDB/OBJ/LIB/source/cache/user data are excluded. Actual maps/catalogs and existing map attribution/license notices are included; the Release directory is never copied wholesale.
+脚本只清空精确的 Output/runtime-staging，构建两个目标、CMake install、Core 白名单审计、ISCC，再输出大小/SHA-256。禁止 Review、测试/Demo DLL、PDB、源码、缓存、用户数据及 assets/maps。地图来源/许可文本保留在 docs/maps，静态目录表保留。不能复制整个 Release 文件夹。
+The script clears only Output/runtime-staging, builds Main/Host, runs CMake install, Core audit and ISCC, then reports size/SHA-256. Review/test/demo/build/cache/user artifacts and assets/maps are rejected. Map provenance/license text is retained in docs/maps; static catalogs remain. Never copy the entire Release directory.
 
 当前 ONNX Runtime 为 1.30.0.20260909.8.f2c39fe；`licenses/onnxruntime` 打包对应固定提交的 MIT 和完整 ThirdPartyNotices。OCR 模型附 Apache-2.0 原文和精确来源/哈希；完整组件清单及未解决的地图授权见 [licenses/README.md](licenses/README.md)。补齐法律文件不等于所有地图获准公开再分发；本地安装验收不能替代授权审定。
 ONNX Runtime 1.30.0.20260909.8.f2c39fe ships its matching fixed-commit MIT and complete notices under licenses/onnxruntime. OCR models include Apache-2.0 and precise source/hash attribution. The inventory records unresolved map rights; notice inclusion and local installation testing are not blanket redistribution clearance.
@@ -53,7 +53,9 @@ For user-side functional testing only, not public distribution before map cleara
 
 The controlled upgrade uses an isolated source copy with only its single CMake product version changed to 0.1.1, the same AppId, independent build/output folders, and no automatic installation. Verify new version, unchanged state/grants, uninstall retention and reinstall visibility. No secondary version source, updater, or published test release is introduced.
 
-## Map payload dependency boundary / 地图安装依赖边界
+## Historical full-map payload dependency boundary / 原完整地图安装依赖记录
+
+Phase 10B supersedes the full-map installation rules below. Normal Core excludes all optional map content; Installed Mode does not run legacy map recomposition/update networking. ResourceService supplies verified user-root generations, and missing maps show a native unavailable state. Production delivery stays unconfigured pending approved origin and redistribution rights. The following source/runtime findings are retained as historical provenance, not current Core install requirements. See [RESOURCE_DELIVERY.md](RESOURCE_DELIVERY.md) for the offline review fixture and first-run/Settings flow. No application updater is implemented.
 
 | Resource | Consumer | Production requirement |
 | --- | --- | --- |

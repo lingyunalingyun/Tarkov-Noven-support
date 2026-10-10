@@ -1,5 +1,8 @@
 # Third-party notices / 第三方来源与版权
 
+Phase 10B 正常 Core 安装包不再携带可选地图图片/缩放包。以下地图来源记录继续保留，不代表下载资源已获授权；生产资源下载尚未配置。安装包中的来源说明位于 docs/maps。
+Phase 10B normal Core excludes optional map imagery/zoom packs. Historical provenance below is retained, not redistribution clearance. Production resource downloads remain unconfigured; packaged provenance text is under docs/maps.
+
 ## Public event sources / 公开活动来源
 
 活动内容的可选机器译文由 [MyMemory](https://mymemory.translated.net/) 提供，并标明为机器翻译。

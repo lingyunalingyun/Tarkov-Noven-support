@@ -15,7 +15,7 @@ Each component contains:
 - `version`: strict SemVer, at most 128 bytes.
 - `downloadSize`: positive integer, at most 2 GiB; `installedSize`: positive integer, at most 8 GiB. These are validation ceilings, not allocation instructions.
 - `sha256`: exactly 64 lowercase hexadecimal characters for the downloadable artifact.
-- `artifact`: unique bounded filename, at most 128 ASCII bytes, ending in `.nvr`; no paths, percent escapes, traversal, URL or executable extension. The package format/extraction implementation is not established by this parser.
+- `artifact`: unique bounded filename, at most 128 ASCII bytes, ending in `.nvr`; no paths, percent escapes, traversal, URL or executable extension. NVR1 is defined below.
 
 IDs use lowercase ASCII letters, digits and hyphens, at most 64 bytes. Duplicate resource IDs/artifacts reject the manifest. Manifest data does not select a download host. A first-party source policy supplies a fixed HTTPS base directory; default empty policy rejects all download URL construction. Only port 443 is accepted, without query, percent escapes or traversal. No transport or production source is configured in this foundation.
 

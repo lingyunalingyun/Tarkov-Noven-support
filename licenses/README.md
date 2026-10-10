@@ -1,7 +1,7 @@
 # Runtime redistribution inventory / 运行资源再分发清单
 
 核对日期：2026-10-09。本清单记录实际安装资源，不是“安全认证”或全部素材的授权证明。许可证及来源说明在 Program Root，绝不放入用户数据目录。地图授权缺口仍阻止公开发布。
-Checked on 2026-10-09. This inventories installed resources, not a safety certification or blanket redistribution grant. Legal files belong to Program Root, not user data. Unresolved map rights still block public distribution.
+Checked on 2026-10-09. This inventories dependencies and source/full-map resources, not a safety certification or blanket redistribution grant. Phase 10B Core no longer ships optional map imagery; its historical map provenance is retained under docs/maps. Unresolved map rights still block publishing downloadable map assets. Production resource delivery remains unconfigured. Legal files belong to Program Root, not user data.
 
 ## ONNX Runtime
 

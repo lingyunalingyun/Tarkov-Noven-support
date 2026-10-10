@@ -15,7 +15,7 @@ try {
     Copy-Item -LiteralPath $MainExe -Destination (Join-Path $root 'NovenTarkovSupport.exe')
     Copy-Item -LiteralPath $HostExe -Destination (Join-Path $root 'NovenPluginHost.exe')
     $version=(Get-Item -LiteralPath $MainExe).VersionInfo.ProductVersion
-    foreach ($file in @('onnxruntime.dll','noven-installed.layout','NOTICE.md','docs/MAP_ATTRIBUTION.md','docs/LICENSE.onnxruntime.txt','assets/maps/interchange/SOURCE.md','assets/maps/icons/SOURCE.md','assets/maps/icons/LICENSE.tarkov-dev.txt','assets/models/ppocrv5_mobile_det.onnx','assets/models/ppocrv5_mobile_rec.onnx','assets/models/ppocrv5_mobile_rec_dict.txt','assets/data/items_catalog.tsv','assets/data/task_tasks.tsv','assets/data/map_maps.tsv','assets/data/hideout_stations.tsv','assets/i18n/zh-CN.json','assets/i18n/en-US.json')) {
+    foreach ($file in @('onnxruntime.dll','noven-installed.layout','NOTICE.md','docs/MAP_ATTRIBUTION.md','docs/LICENSE.onnxruntime.txt','docs/maps/interchange/SOURCE.md','docs/maps/icons/SOURCE.md','docs/maps/icons/LICENSE.tarkov-dev.txt','assets/models/ppocrv5_mobile_det.onnx','assets/models/ppocrv5_mobile_rec.onnx','assets/models/ppocrv5_mobile_rec_dict.txt','assets/data/items_catalog.tsv','assets/data/task_tasks.tsv','assets/data/map_maps.tsv','assets/data/hideout_stations.tsv','assets/i18n/zh-CN.json','assets/i18n/en-US.json')) {
         $path=Join-Path $root $file;New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null;[IO.File]::WriteAllText($path,'bounded test placeholder')
     }
     foreach ($file in @('licenses/README.md','licenses/onnxruntime/LICENSE','licenses/onnxruntime/ThirdPartyNotices.txt','licenses/paddleocr/LICENSE-2.0.txt')) {
@@ -25,11 +25,8 @@ try {
     }
     Check ((Get-FileHash -LiteralPath (Join-Path $root 'licenses/onnxruntime/ThirdPartyNotices.txt')).Hash -eq '143764B952FDB1A7C69CE653BFBA74A7744D6A8A573BFB73E235FBA356C83DE3') 'Exact ONNX v1.30.0 notice'
     Check ((Get-FileHash -LiteralPath (Join-Path $root 'licenses/paddleocr/LICENSE-2.0.txt')).Hash -eq 'CFC7749B96F63BD31C3C42B5C471BF756814053E847C10F3EB003417BC523D30') 'Complete official Apache 2.0 license'
-    # 小型依赖闭包夹具，不复制全地图、不写真实 User Data。
-    # A small dependency-closure fixture, not all maps or real user data.
-    foreach ($file in @('assets/maps/sources/aa.png','assets/maps/test/floor.png','assets/maps/test/floor.tiles')) {
-        $path=Join-Path $root $file;New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null;[IO.File]::WriteAllText($path,'runtime fixture')
-    }
+    # Core 保留身份表而不含地图图片；测试不复制地图、不写真实 User Data。
+    # Core retains identity tables without imagery; tests never copy maps or write real User Data.
     [IO.File]::WriteAllText((Join-Path $root 'assets/data/map_compositions.tsv'),"outputPath`tsourcePath`nmaps/test/floor.png`tmaps/sources/aa.png`n")
     [IO.File]::WriteAllText((Join-Path $root 'assets/data/map_update_assets.tsv'),"relativePath`turl`tsha256`nmaps/sources/aa.png`thttps://assets.tarkov.dev/maps/test.png`t`n")
     foreach ($table in @('map_floors.tsv','pve/map_floors.tsv')) {
@@ -43,14 +40,15 @@ try {
     try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null } catch { $denied=$true }
     Check $denied 'Missing legal notice rejected'
     Rename-Item -LiteralPath (Join-Path $root 'licenses/onnxruntime/notice.saved') -NewName 'ThirdPartyNotices.txt'
-    foreach ($bad in @('demo.dll','extra.pdb','test.exe','CMakeCache.txt','plugins/test/manifest.json','data/settings.json','logs/run.log','assets/data/plugin-registry-review.json','assets/maps/sources/unreferenced.png')) {
+    foreach ($bad in @('demo.dll','extra.pdb','test.exe','CMakeCache.txt','plugins/test/manifest.json','data/settings.json','logs/run.log','assets/data/plugin-registry-review.json','assets/maps/sources/unreferenced.png','assets/maps/test/floor.png','assets/maps/test/floor.tiles','assets/maps/map.json')) {
         $path=Join-Path $root $bad;New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null;[IO.File]::WriteAllText($path,'unexpected');$denied=$false
         try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null } catch { $denied=$true }
         Check $denied "Audit accepted $bad";Remove-Item -LiteralPath $path
         if ($bad -match '^(plugins|data|logs)/') { Remove-Item -LiteralPath (Join-Path $root $Matches[1]) -Recurse -Force }
+        if ($bad.StartsWith('assets/maps/')) { Remove-Item -LiteralPath (Join-Path $root 'assets/maps') -Recurse -Force }
         & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null
     }
-    foreach ($file in @('assets/maps/sources/aa.png','assets/maps/test/floor.png','assets/maps/test/floor.tiles')) {
+    foreach ($file in @('assets/models/ppocrv5_mobile_det.onnx','assets/models/ppocrv5_mobile_rec.onnx','assets/models/ppocrv5_mobile_rec_dict.txt','assets/data/map_floors.tsv')) {
         $path=Join-Path $root $file;Rename-Item -LiteralPath $path -NewName 'dependency.saved';$denied=$false
         try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $root -Version $version | Out-Null } catch { $denied=$true }
         Check $denied "Missing dependency rejected: $file"
