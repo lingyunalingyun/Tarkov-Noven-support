@@ -1,9 +1,9 @@
 # Application Update v1
 
-Production update networking and trust provisioning are unconfigured. No
-public endpoint is assumed, no releases are published by the tooling, and
-startup checks do nothing in this state. Optional map delivery remains a
-separate ResourceService trust domain, also production-unconfigured.
+Default builds remain update-unconfigured. The explicitly provisioned external
+beta preset and operator publication workflow are documented in
+[UPDATE_CHANNEL.md](UPDATE_CHANNEL.md). Optional map delivery remains a separate
+ResourceService trust domain and production-unconfigured.
 
 ## Layout and trust
 
@@ -54,7 +54,7 @@ provisioning requires an approved fixed HTTPS root and public trust key.
 Resource source approval and map redistribution rights remain prerequisites
 for enabling map downloads. No resource production manifest is configured.
 
-WinHTTP requests retain normal certificate validation, use no proxy/PAC,
+WinHTTP requests retain normal certificate validation, use no PAC/WPAD,
 disable redirects, cookies and automatic authentication, and send only a
 minimal User-Agent/identity encoding/Range. Logical basenames cannot change
 the configured origin. Each range is at most 4 MiB; strict 206 Content-Range
@@ -66,6 +66,10 @@ connect/send/read timeouts, with a 120-second per-request deadline checked
 between calls. Cancellation is observed between finite blocking calls;
 handles are never closed concurrently with synchronous WinHTTP operations.
 Tests inject an offline backend into this same policy and stream layer.
+Application update requests may use the current user's explicitly configured
+static Windows proxy (no environment-variable proxies or automatic proxy
+discovery). Automatic authentication remains disabled. Resource delivery keeps
+its original direct-only backend. No proxy credentials are supplied by Noven.
 
 ## Planning, staging and activation
 

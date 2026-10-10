@@ -13,6 +13,6 @@ public:
 }
 std::shared_ptr<UpdateSource> HttpsUpdateSource(resources::ResourceSourcePolicy policy,std::shared_ptr<resources::ContentBackend> backend){
     if(policy.baseUrl.empty())return {};if(policy.baseUrl.size()>512||!policy.Enabled())throw std::runtime_error("invalid first-party update source");
-    return std::make_shared<Source>(std::move(policy),backend?std::move(backend):resources::WindowsContentBackend());}
+    return std::make_shared<Source>(std::move(policy),backend?std::move(backend):resources::WindowsContentBackend(true));}
 std::shared_ptr<UpdateSource> CompiledUpdateSource(){return HttpsUpdateSource({NOVEN_UPDATE_SOURCE_ROOT});}
 }

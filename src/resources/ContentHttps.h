@@ -17,7 +17,7 @@ public:
     virtual ~ContentBackend()=default;
     virtual ContentResponse Open(std::string_view url,std::optional<ContentRange>,std::stop_token)=0;
 };
-std::shared_ptr<ContentBackend> WindowsContentBackend();
+std::shared_ptr<ContentBackend> WindowsContentBackend(bool systemStaticProxy=false);
 std::unique_ptr<ResourceStream> OpenContentRange(const ResourceSourcePolicy&,std::string_view name,
     ContentRange,std::string identity,std::uint64_t expectedTotal,std::shared_ptr<ContentBackend>,std::stop_token);
 std::string FetchContentText(const ResourceSourcePolicy&,std::string_view name,std::size_t maximum,

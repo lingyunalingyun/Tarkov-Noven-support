@@ -23,6 +23,16 @@ void ReviewKey(const std::filesystem::path& root){Require(!std::filesystem::exis
     const auto publicKey=key.Export(BCRYPT_ECCPUBLIC_BLOB);Require(resources::WriteResourceText(root/L"review-only.public",publicKey));
     std::cout<<"NON-PRODUCTION keyId=review-only-p256 publicHex="<<Hex(std::span(reinterpret_cast<const unsigned char*>(publicKey.data()),publicKey.size()))<<'\n';
 }
+void OperatorKey(const std::filesystem::path& root,std::string id){
+    Require(!id.empty()&&id.size()<=64&&id.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")==id.npos&&
+        !id.starts_with("review-")&&!id.starts_with("test-")&&!std::filesystem::exists(root)&&resources::ResourceDirectories(root));
+    // 操作员预先保护父目录；只生成全新密钥，不覆盖已有的发布身份。
+    // Operator protects the parent first; create a new identity, never replace an existing key.
+    SigningKey key;Require(BCryptGenerateKeyPair(key.algorithm,&key.key,256,0)>=0&&BCryptFinalizeKeyPair(key.key,0)>=0);
+    Require(resources::WriteResourceText(root/L"update.private",key.Export(BCRYPT_ECCPRIVATE_BLOB)));
+    const auto publicKey=key.Export(BCRYPT_ECCPUBLIC_BLOB);Require(resources::WriteResourceText(root/L"update.public",publicKey));
+    std::cout<<"operator keyId="<<id<<" publicHex="<<Hex(std::span(reinterpret_cast<const unsigned char*>(publicKey.data()),publicKey.size()))<<'\n';
+}
 void Build(const std::filesystem::path& source,const std::filesystem::path& output,std::string version,std::string id,const std::filesystem::path& privateKey,std::string stamp){
     Require(ValidReleaseVersion(version)&&!id.empty()&&id.size()<=64&&id.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")==id.npos);
     Require(resources::SafeResourcePath(source)&&!std::filesystem::exists(output)&&resources::ResourceDirectories(output));
@@ -47,6 +57,7 @@ void Build(const std::filesystem::path& source,const std::filesystem::path& outp
 }
 int wmain(int argc,wchar_t** argv)try {
     if(argc==3&&std::wstring_view(argv[1])==L"--review-key"){ReviewKey(std::filesystem::absolute(argv[2]));return 0;}
-    if(argc!=8||std::wstring_view(argv[1])!=L"--release"){std::cerr<<"--review-key <NEW test-only key directory> OR --release <staged version root> <NEW artifact directory> <version> <keyId> <operator private CNG blob> <publishedAt>\n";return 2;}
+    if(argc==4&&std::wstring_view(argv[1])==L"--operator-key"){OperatorKey(std::filesystem::absolute(argv[2]),Ascii(argv[3]));return 0;}
+    if(argc!=8||std::wstring_view(argv[1])!=L"--release"){std::cerr<<"--review-key <NEW test-only key directory> OR --operator-key <NEW protected operator directory> <keyId> OR --release <staged version root> <NEW artifact directory> <version> <keyId> <operator private CNG blob> <publishedAt>\n";return 2;}
     Build(std::filesystem::absolute(argv[2]),std::filesystem::absolute(argv[3]),Ascii(argv[4]),Ascii(argv[5]),std::filesystem::absolute(argv[6]),Ascii(argv[7]));return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

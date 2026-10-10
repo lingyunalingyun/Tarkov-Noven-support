@@ -34,13 +34,22 @@ std::string Header(HINTERNET request,DWORD query){std::array<wchar_t,128> text{}
     std::string result;for(auto c:std::wstring_view(text.data(),bytes/sizeof(wchar_t))){if(!c)break;if(c<32||c>126)Failed();result+=static_cast<char>(c);}return result;
 }
 class WindowsBackend final:public ContentBackend {
+    bool systemStaticProxy_{};
 public:
+    explicit WindowsBackend(bool systemStaticProxy):systemStaticProxy_(systemStaticProxy){}
     ContentResponse Open(std::string_view url,std::optional<ContentRange> range,std::stop_token stop)override{
         CheckStop(stop);const auto parsed=plugins::ParseHttpUrl(url);if(!parsed||parsed->port!=443)Failed();
         auto body=std::make_unique<WindowsBody>();
         // 同步操作只在服务工作线程运行；有限超时之间检查取消，不跨线程关闭同步句柄。
         // Worker-only synchronous calls: bounded timeouts/checks, never cross-thread close a synchronous handle.
-        body->session.value=WinHttpOpen(L"Noven Content/1",WINHTTP_ACCESS_TYPE_NO_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);
+        // 更新可使用用户显式配置的静态系统代理；不读取环境变量，不执行 PAC/WPAD。
+        // Updates may use the user's static Windows proxy, never environment proxies or PAC/WPAD.
+        WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxy{};
+        if(systemStaticProxy_&&!WinHttpGetIEProxyConfigForCurrentUser(&proxy))Failed();
+        const bool named=proxy.lpszProxy&&*proxy.lpszProxy;
+        body->session.value=WinHttpOpen(L"Noven Content/1",named?WINHTTP_ACCESS_TYPE_NAMED_PROXY:WINHTTP_ACCESS_TYPE_NO_PROXY,
+            named?proxy.lpszProxy:WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);
+        if(proxy.lpszProxy)GlobalFree(proxy.lpszProxy);if(proxy.lpszProxyBypass)GlobalFree(proxy.lpszProxyBypass);if(proxy.lpszAutoConfigUrl)GlobalFree(proxy.lpszAutoConfigUrl);
         if(!body->session.value||!WinHttpSetTimeouts(body->session.value,1000,2000,2000,2000))Failed();
         body->connection.value=WinHttpConnect(body->session.value,Wide(parsed->host).c_str(),443,0);if(!body->connection.value)Failed();
         body->request.value=WinHttpOpenRequest(body->connection.value,L"GET",Wide(parsed->target).c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,WINHTTP_FLAG_SECURE);
@@ -83,7 +92,7 @@ public:
         return OpenContentRange(policy_,record.artifact,{offset,record.downloadSize-offset},record.sha256,record.downloadSize,backend_,stop);}
 };
 }
-std::shared_ptr<ContentBackend> WindowsContentBackend(){return std::make_shared<WindowsBackend>();}
+std::shared_ptr<ContentBackend> WindowsContentBackend(bool systemStaticProxy){return std::make_shared<WindowsBackend>(systemStaticProxy);}
 std::unique_ptr<ResourceStream> OpenContentRange(const ResourceSourcePolicy& policy,std::string_view name,ContentRange range,std::string identity,std::uint64_t total,std::shared_ptr<ContentBackend> backend,std::stop_token stop){
     CheckStop(stop);(void)Url(policy,name);return std::make_unique<Stream>(policy,std::string(name),range,std::move(identity),total,std::move(backend),stop);}
 std::string FetchContentText(const ResourceSourcePolicy& policy,std::string_view name,std::size_t maximum,std::shared_ptr<ContentBackend> backend,std::stop_token stop){
