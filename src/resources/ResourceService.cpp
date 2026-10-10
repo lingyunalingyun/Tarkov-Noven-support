@@ -154,6 +154,7 @@ void ResourceService::Execute(const Job& job,std::stop_token stop){
     }
     file.Reset();if(stop.stop_requested())throw std::runtime_error("cancelled");if(received!=record.downloadSize)throw std::runtime_error("wrong response size");
     Set(job.id,S::Verifying);if(ResourceHash(partial,stop)!=record.sha256){DiscardPartial(record);throw std::runtime_error("hash mismatch");}
+    {std::lock_guard lock(mutex_);const auto& e=entries_.at(job.id);if(e.location.use_count()>1&&e.installed&&e.installed->sha256==record.sha256)throw std::runtime_error("resource in use");}
     Set(job.id,S::Installing);const auto root=InstallPackage(paths_,record,partial,stop);
     if(stop.stop_requested()||!WriteResourceText(Pointer(record),EncodeResourceManifest({{record}})))throw std::runtime_error("activation failed");
     {std::lock_guard lock(mutex_);auto& e=entries_.at(job.id);e.installed=record;e.location=std::make_shared<const std::filesystem::path>(root);e.view.installed=true;e.view.present=true;}

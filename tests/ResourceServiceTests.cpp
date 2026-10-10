@@ -65,6 +65,20 @@ int main() try {
     auto next=record;next.version="1.0.1";transport->fail=false;
     {ResourceService service(paths,{{next}},transport,[]{return 1024*1024ULL;});Check(View(service).state==S::NotInstalled);service.DownloadAll();Idle(service);Check(transport->offsets.back()==0&&View(service).state==S::Installed);}
     {ResourceService service(paths,{}, {},{}, {},{{"factory","Factory","Factory"},{"woods","Woods","Woods"}});Idle(service);Check(service.Snapshot().size()==2);Check(View(service).state==S::Installed&&service.ResolveMap("factory"));Check(service.Snapshot().back().state==S::Unavailable&&service.Snapshot().back().record.downloadSize==0);Check(!service.Act("maps.factory",ResourceAction::Download));}
+    auto update=next;update.version="1.0.2";update.sha256=std::string(64,'b');
+    {ResourceService service(paths,{{update}},transport,[]{return 1024*1024ULL;});Idle(service);Check(View(service).state==S::UpdateAvailable);Check(service.Act(next.resourceId,ResourceAction::Download));Idle(service);
+        Check(View(service).state==S::Error&&View(service).installed);auto old=service.ResolveMap(next.stableMapId);Check(old&&VerifyPackage(*old,next));}
+    const auto safety=noven::common::AppPaths::Test(root/"safe-program",root/"safe-user");
+    for(const auto& path:{safety.Plugins()/"keep.txt",safety.Data()/"settings.json",safety.Data()/"recent-scans.json",safety.Data()/"raid-history.json",safety.Data()/"plugin-storage"/"keep.txt",safety.Diagnostics()/"keep.log",safety.ResourceMaps()/"woods"/"keep.txt",safety.programRoot/"keep.txt"}){
+        std::filesystem::create_directories(path.parent_path());Check(WriteResourceText(path,"preserved"));}
+    {ResourceService service(safety,{{record}},transport,[]{return 1024*1024ULL;});service.DownloadAll();Idle(service);Check(View(service).state==S::Installed);Check(service.Act(record.resourceId,ResourceAction::Delete));Idle(service);Check(View(service).state==S::NotInstalled);}
+    for(const auto& path:{safety.Plugins()/"keep.txt",safety.Data()/"settings.json",safety.Data()/"recent-scans.json",safety.Data()/"raid-history.json",safety.Data()/"plugin-storage"/"keep.txt",safety.Diagnostics()/"keep.log",safety.ResourceMaps()/"woods"/"keep.txt",safety.programRoot/"keep.txt"})Check(ReadResourceText(path,100)=="preserved");
+    const auto partialPaths=noven::common::AppPaths::Test(root/"program",root/"partial");transport->fail=true;
+    {ResourceService service(partialPaths,{{record}},transport,[]{return 1024*1024ULL;});service.DownloadAll();Idle(service);Check(View(service).received==10);}
+    const auto partial=partialPaths.DownloadCache()/"resources"/(record.stableMapId+".part.json");Check(WriteResourceText(partial,"malformed"));transport->fail=false;
+    {ResourceService service(partialPaths,{{record}},transport,[]{return 1024*1024ULL;});Check(View(service).state==S::NotInstalled);service.DownloadAll();Idle(service);Check(transport->offsets.back()==0&&View(service).state==S::Installed);}
+    auto wrongSize=record;++wrongSize.downloadSize;
+    {ResourceService service(noven::common::AppPaths::Test(root/"program",root/"wrong-size"),{{wrongSize}},transport,[]{return 1024*1024ULL;});service.DownloadAll();Idle(service);Check(View(service).state==S::Error&&!service.ResolveMap(record.stableMapId));}
     const auto queuePaths=noven::common::AppPaths::Test(root/"program",root/"queue");const auto woods=Record(root,"woods"),customs=Record(root,"customs");transport->hold=true;const auto opened=transport->opens;
     {ResourceService service(queuePaths,{{record,woods,customs}},transport,[]{return 1024*1024ULL;});service.DownloadAll();Check(transport->WaitOpen(opened+2));
         unsigned queued{};for(const auto& view:service.Snapshot())if(view.state==S::Queued){++queued;Check(service.Act(view.record.resourceId,ResourceAction::Pause));}Check(queued==1);

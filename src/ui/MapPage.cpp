@@ -186,7 +186,7 @@ void MapPage::SetResourceResolver(std::function<ResourceLease(std::string_view)>
 void MapPage::ResourceActive(bool active){resource_active_=active;
     if(managed_resources_&&real_&&generic_){if(!active)resource_lease_.reset();ReloadFloorImages();}
 }
-void MapPage::ResourcesChanged(){if(managed_resources_&&resource_active_&&real_&&generic_)ReloadFloorImages();}
+void MapPage::ResourcesChanged(){if(managed_resources_&&resource_active_&&real_&&generic_){const auto next=resource_resolver_?resource_resolver_(map_id_):ResourceLease{};if(next!=resource_lease_)ReloadFloorImages();}}
 bool MapPage::MissingResource() const {return managed_resources_&&real_&&
     std::none_of(images_.begin(),images_.end(),[](const auto& image){return image.Ready();})&&
     std::none_of(upper_images_.begin(),upper_images_.end(),[](const auto& image){return image.Ready();});}
