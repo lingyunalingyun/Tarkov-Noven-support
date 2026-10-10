@@ -12,6 +12,9 @@ public:
     // 仅安装器/离线评审调用一次；不从远程内容建立初始信任。
     // Installer/offline review seeds baseline once; remote content cannot establish initial trust.
     void SeedInitial();
+    // 仅安装器固定暂存目录可建立本地安装信任；不接受远程清单或任意路径。
+    // Only fixed installer staging establishes local install trust, never remote manifests or arbitrary paths.
+    void InstallBundle();
     void RemoveInstalledVersions();
     void Activate(const AuthenticatedRelease&);
     void Rollback();
@@ -19,6 +22,7 @@ public:
     void ConfirmHealthy(std::string_view version,std::string_view token);
     void DeferUnconfirmedBoot(std::string_view version,std::string_view token);
 private:
+    void RecoverInstaller();
     void Write(const Activation&) const;
     std::filesystem::path root_;std::string initial_;std::vector<ReleasePublicKey> keys_;
 };

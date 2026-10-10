@@ -64,8 +64,12 @@ unchanged. No manifest supplies a deletion action or native filesystem handle.
 
 `current.json` atomically records active/previous versions and pending boot
 confirmation. Launch paths are derived only under the local `versions` root.
-The installer baseline is seeded once from its audited local payload into
-`initial.json`; this local installer inventory is distinct from remote signed
+The initial installer baseline is seeded from its audited local payload into
+`initial.json`; later installer-owned inventories use
+`installer-releases/<version>.json` through the fixed local bundle transaction.
+Same/older installer bundles do not rewrite activation; newer bundles retain
+the previous trusted version and require normal boot-health confirmation.
+These local installer inventories are distinct from remote signed
 release authentication. New versions require a signed release from the compiled
 public-key set. Production currently has neither an endpoint nor a provisioned
 release key; it cannot accept remote updates.

@@ -1,12 +1,18 @@
 #include "updates/VersionStore.h"
 #include "updates/UpdateTrust.h"
 #include "common/AppPaths.h"
+#include "common/RuntimeOwnership.h"
 #include "plugins/PluginPipe.h"
 #include "ui/MessageDialog.h"
 #include <windows.h>
 int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int)try {
+    // 安装后启动可等待 Setup 释放短暂标记；不在安装文件提交期间启动版本。
+    // Post-install launch may wait briefly for Setup; never start a version during installer commit.
+    const auto installerDeadline=GetTickCount64()+30000;
+    while(noven::common::InstallationInProgress()){if(GetTickCount64()>=installerDeadline)return 3;Sleep(100);}
     noven::plugins::ipc::Handle ownership(CreateMutexW(nullptr,FALSE,L"Local\\NovenTarkovSupport.Launcher.70C934D2"));
     if(!ownership||GetLastError()==ERROR_ALREADY_EXISTS)return 0;
+    if(noven::common::InstallationInProgress())return 3;
     const auto root=noven::common::ProgramDirectory();noven::updates::VersionStore versions(root,noven::updates::InstallerVersion(),noven::updates::CompiledReleaseKeys());
     const auto active=versions.BeginLaunch();const auto versionRoot=versions.Resolve(active.active),exe=versionRoot/L"NovenTarkovSupport.exe";
     std::wstring command=L"\""+exe.wstring()+L"\"";if(active.pending)command+=L" --noven-boot-token "+std::wstring(active.token.begin(),active.token.end());

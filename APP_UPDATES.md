@@ -115,8 +115,20 @@ and separate User Data root are unchanged. Existing Phase 10 flat files are
 left as recovery content while the initial versioned tree is added; shortcuts
 switch to Launcher. Trusted uninstall cleanup checks version inventory and
 does not touch User Data. Unknown/corrupt program inventory is not deleted.
-Future installer baseline-version migrations require separate validation;
-v1's tested migration is a flat 0.1.0 installation to versioned 0.1.0.
+Phase 12 adds installer bundle transactions. Setup extracts the audited
+version tree to fixed `installer-staging/<version>` and its inventory to
+`installer-staging/inventory.json`. Updater `--install-bundle` validates exact
+file membership and hashes, moves any old same-version tree to a fixed backup,
+publishes the complete tree, and records local installer trust under
+`installer-releases/<version>.json`. A bounded transaction journal restores
+the old tree/receipt after interruption before commit. No remote release can
+establish installer trust. `initial.json` remains the historical baseline;
+local receipts allow later installers to retain that baseline for rollback.
+Newer bundles use the existing pending boot-token activation contract;
+same/older bundles preserve `current.json` byte-for-byte. Bootstrap binaries
+use Windows version comparison, and Setup rejects an older bootstrap before
+copying files. Flat legacy Main/Host remain recovery copies; shortcuts switch
+to Launcher only. User Data is outside every installer transaction path.
 
 The offline Review build has separate test-only keys/source and persistent
 test User Data outside real LocalAppData. It demonstrates 0.1.0 -> 0.1.1
