@@ -28,14 +28,36 @@ OutputBaseFilename=NovenTarkovSupport-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+LanguageDetectionMethod=uilanguage
+ShowLanguageDialog=yes
 AppMutex=Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2,Local\NovenTarkovSupport.Installer.70C934D2
 CloseApplications=no
 RestartApplications=no
 UninstallDisplayIcon={app}\NovenLauncher.exe
 ; 用户数据不属于安装清单：升级和卸载均不得清理。
 ; User data is not an installed file: neither upgrade nor uninstall removes it.
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+[CustomMessages]
+english.PathsOverlap=Program and user data directories must not overlap.
+chinesesimplified.PathsOverlap=程序目录与用户数据目录不能重叠。
+english.CloseBeforeInstall=Close Noven and its PluginHost normally before installing. No process will be forcibly terminated.
+chinesesimplified.CloseBeforeInstall=请正常关闭 Noven 及其 PluginHost 后再安装。安装器不会强制终止进程。
+english.NewerBootstrap=A newer Noven bootstrap is installed. Use its installer to repair; application rollback is an explicit Settings action.
+chinesesimplified.NewerBootstrap=已安装更新版本的 Noven 启动组件。请使用对应版本的安装器修复；应用回退须在设置中主动操作。
+english.RuntimeRequired=Microsoft Visual C++ x64 Runtime %1 or newer is required. The prerequisite may require administrator approval; Noven itself installs per-user.
+chinesesimplified.RuntimeRequired=需要 Microsoft Visual C++ x64 运行库 %1 或更新版本。安装运行库可能需要管理员批准；Noven 本身仅为当前用户安装。
+english.InstallRuntime=Install the bundled Microsoft prerequisite now?
+chinesesimplified.InstallRuntime=现在安装随附的 Microsoft 运行库吗？
+english.CommitStartFailed=Could not start the trusted Noven installer commit. Repair with this installer.
+chinesesimplified.CommitStartFailed=无法启动 Noven 安装提交程序。请使用此安装器修复。
+english.CommitFailed=Noven Core validation/commit failed. Previous application and user data are retained; repair with this installer.
+chinesesimplified.CommitFailed=Noven 核心文件验证或提交失败。原应用与用户数据均保留；请使用此安装器修复。
+english.CloseBeforeUninstall=Close Noven normally before uninstalling. User data will be retained.
+chinesesimplified.CloseBeforeUninstall=请正常关闭 Noven 后再卸载。用户数据将保留。
 [Tasks]
-Name: desktopicon; Description: "Create a desktop shortcut"; Flags: unchecked
+Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; Flags: unchecked
 [Files]
 ; 只解包到固定安装暂存树；Updater 验证完整清单后提交，不直接覆盖活动版本。
 ; Extract only to fixed installer staging; Updater commits a verified inventory without patching the active version.
@@ -48,7 +70,7 @@ Source: "{#VcRedist}"; DestName: "vc_redist.x64.exe"; Flags: dontcopy
 Name: "{userprograms}\Noven Tarkov Support\Noven Tarkov Support"; Filename: "{app}\NovenLauncher.exe"; WorkingDir: "{app}"
 Name: "{userdesktop}\Noven Tarkov Support"; Filename: "{app}\NovenLauncher.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 [Run]
-Filename: "{app}\NovenLauncher.exe"; Description: "Launch Noven Tarkov Support"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\NovenLauncher.exe"; Description: "{cm:LaunchProgram,Noven Tarkov Support}"; Flags: nowait postinstall skipifsilent
 [UninstallRun]
 Filename: "{app}\NovenUpdater.exe"; Parameters: "--remove-versions"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveTrustedApplicationVersions"
 [Code]
@@ -69,20 +91,20 @@ begin
   ProgramRoot := AddBackslash(ExpandFileName(ExpandConstant('{app}')));
   UserRoot := AddBackslash(ExpandFileName(ExpandConstant('{localappdata}\Noven Tarkov Support')));
   if PathStartsWith(ProgramRoot, UserRoot, True) or PathStartsWith(UserRoot, ProgramRoot, True) then begin
-    Result := 'Program and user data directories must not overlap.'; exit;
+    Result := CustomMessage('PathsOverlap'); exit;
   end;
   if CheckForMutexes('Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2') then begin
-    Result := 'Close Noven and its PluginHost normally before installing. No process will be forcibly terminated.'; exit;
+    Result := CustomMessage('CloseBeforeInstall'); exit;
   end;
   if GetVersionNumbers(ExpandConstant('{app}\NovenLauncher.exe'), InstalledMS, InstalledLS) then begin
     if (InstalledMS > {#BundleVersionMS}) or ((InstalledMS = {#BundleVersionMS}) and (InstalledLS > {#BundleVersionLS})) then begin
-      Result := 'A newer Noven bootstrap is installed. Use its installer to repair; application rollback is an explicit Settings action.'; exit;
+      Result := CustomMessage('NewerBootstrap'); exit;
     end;
   end;
   if RuntimeReady then exit;
-  Result := 'Microsoft Visual C++ x64 Runtime {#VcMajor}.{#VcMinor}.{#VcBuild} or newer is required. The prerequisite may require administrator approval; Noven itself installs per-user.';
+  Result := FmtMessage(CustomMessage('RuntimeRequired'), ['{#VcMajor}.{#VcMinor}.{#VcBuild}']);
   if WizardSilent then exit;
-  if MsgBox(Result + #13#10 + 'Install the bundled Microsoft prerequisite now?', mbConfirmation, MB_YESNO) <> IDYES then exit;
+  if MsgBox(Result + #13#10 + CustomMessage('InstallRuntime'), mbConfirmation, MB_YESNO) <> IDYES then exit;
   ExtractTemporaryFile('vc_redist.x64.exe');
   if ShellExec('open', ExpandConstant('{tmp}\vc_redist.x64.exe'), '/install /passive /norestart', '', SW_SHOW, ewWaitUntilTerminated, Code) then begin
     if RuntimeReady then Result := '';
@@ -95,12 +117,12 @@ begin
   if CurStep = ssInstall then begin
     CreateMutex('Local\NovenTarkovSupport.Installer.70C934D2');
     if CheckForMutexes('Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2') then
-      RaiseException('Close Noven normally before installation. No process will be forcibly terminated.');
+      RaiseException(CustomMessage('CloseBeforeInstall'));
   end;
   if CurStep = ssPostInstall then begin
     if not Exec(ExpandConstant('{app}\NovenUpdater.exe'), '--install-bundle', ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, Code) then
-      RaiseException('Could not start the trusted Noven installer commit. Repair with this installer.');
-    if Code <> 0 then RaiseException('Noven Core validation/commit failed. Previous application and user data are retained; repair with this installer.');
+      RaiseException(CustomMessage('CommitStartFailed'));
+    if Code <> 0 then RaiseException(CustomMessage('CommitFailed'));
   end;
 end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
@@ -108,6 +130,6 @@ begin
   if CurUninstallStep = usUninstall then begin
     CreateMutex('Local\NovenTarkovSupport.Installer.70C934D2');
     if CheckForMutexes('Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2') then
-      RaiseException('Close Noven normally before uninstalling. User data will be retained.');
+      RaiseException(CustomMessage('CloseBeforeUninstall'));
   end;
 end;

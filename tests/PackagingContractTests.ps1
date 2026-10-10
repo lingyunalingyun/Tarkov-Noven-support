@@ -1,7 +1,23 @@
 param([string]$SourceRoot,[string]$MainExe,[string]$HostExe,[string]$LauncherExe,[string]$UpdaterExe)
 $ErrorActionPreference = 'Stop'
 function Check([bool]$Condition,[string]$Message) { if (-not $Condition) { throw $Message } }
-$iss = Get-Content -LiteralPath (Join-Path $SourceRoot 'installer/Noven.iss') -Raw
+$iss = Get-Content -LiteralPath (Join-Path $SourceRoot 'installer/Noven.iss') -Encoding UTF8 -Raw
+Check ($iss -match 'LanguageDetectionMethod=uilanguage' -and $iss -match 'ShowLanguageDialog=yes') 'Detect Windows UI language and allow explicit selection'
+Check ($iss -match 'Name: "english"; MessagesFile: "compiler:Default.isl"' -and $iss -match 'Name: "chinesesimplified"; MessagesFile: "compiler:Languages\\ChineseSimplified.isl"') 'English and Simplified Chinese wizard translations'
+$englishMessages=@{}; $chineseMessages=@{}
+foreach ($line in ($iss -split "`n")) {
+    if ($line -match '^english\.([^=]+)=(.*)') { $englishMessages[$Matches[1]]=$Matches[2] }
+    if ($line -match '^chinesesimplified\.([^=]+)=(.*)') { $chineseMessages[$Matches[1]]=$Matches[2] }
+}
+Check ($englishMessages.Count -gt 0 -and $englishMessages.Count -eq $chineseMessages.Count) 'Custom installer language key counts'
+foreach ($key in $englishMessages.Keys) {
+    Check ($chineseMessages.ContainsKey($key) -and $chineseMessages[$key] -match '[\u4e00-\u9fff]') "Chinese installer translation: $key"
+    $englishPlaceholders=([regex]::Matches($englishMessages[$key],'%\d+') | ForEach-Object Value) -join ','
+    $chinesePlaceholders=([regex]::Matches($chineseMessages[$key],'%\d+') | ForEach-Object Value) -join ','
+    Check ($englishPlaceholders -ceq $chinesePlaceholders) "Installer placeholder parity: $key"
+}
+foreach ($match in [regex]::Matches($iss,"CustomMessage\('([^']+)'\)")) { Check ($englishMessages.ContainsKey($match.Groups[1].Value)) 'Every custom prompt has both translations' }
+Check ($iss -notmatch "(?:Result :=|RaiseException\()\s*'[^']+" -and $iss -match '\{cm:CreateDesktopIcon\}' -and $iss -match '\{cm:LaunchProgram,Noven Tarkov Support\}') 'No hardcoded installer prompts or shortcut labels'
 Check ($iss -match 'AppId=\{\{70C934D2-C53B-4F49-A8C7-152E748A8E54\}' -and $iss -match 'PrivilegesRequired=lowest') 'Stable AppId / per-user contract'
 Check ($iss -match 'CloseApplications=no' -and $iss -match 'AppMutex=Local\\NovenTarkovSupport.App' -and $iss -notmatch '\[UninstallDelete\]') 'No forced close or user-data cleanup'
 Check ($iss -notmatch '(?i)(downloadtemporaryfile|urldownload|taskkill|powershell|cmd\.exe)' -and $iss -match 'Program and user data directories must not overlap') 'No updater/network/commands; no overlapping root'
