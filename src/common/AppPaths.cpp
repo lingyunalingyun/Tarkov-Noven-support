@@ -18,6 +18,11 @@ AppPaths Separate(PathMode mode,std::filesystem::path program,std::filesystem::p
 AppPaths AppPaths::Development(std::filesystem::path program){program=Absolute(std::move(program));return {PathMode::Development,program,program};}
 AppPaths AppPaths::Installed(std::filesystem::path program,std::filesystem::path local){return Separate(PathMode::Installed,std::move(program),Absolute(std::move(local))/L"Noven Tarkov Support");}
 AppPaths AppPaths::Test(std::filesystem::path program,std::filesystem::path root){return Separate(PathMode::Test,std::move(program),Absolute(std::move(root))/L"user");}
+AppPaths AppPaths::ResourceReview(std::filesystem::path program){
+    program=Absolute(std::move(program));
+    const auto root=program.parent_path()/(program.filename().wstring()+L".resource-review-data");
+    return Test(std::move(program),root);
+}
 AppPaths AppPaths::Resolve(std::filesystem::path program,const std::function<std::filesystem::path()>& folder){
     program=Absolute(std::move(program));
     const auto marker=program/L"noven-installed.layout";

@@ -11,6 +11,10 @@ int main() try {
     const auto installed=AppPaths::Installed(root/"program",root/"local");
     check(installed.userRoot==root/L"local"/L"Noven Tarkov Support"&&installed.Plugins()==installed.userRoot/L"plugins"&&installed.Assets()==root/L"program"/L"assets");
     const auto test=AppPaths::Test(root/"program",root/"test");check(test.Data()==root/"test"/"user"/"data");
+    const auto review=AppPaths::ResourceReview(root/"program");
+    check(review.mode==noven::common::PathMode::Test&&review.programRoot==root/"program");
+    check(review.userRoot==root/"program.resource-review-data"/"user");
+    check(review.ResourceMaps()==review.userRoot/"resources"/"maps"&&!std::filesystem::exists(review.userRoot));
     unsigned queries{};auto folder=[&]{++queries;return root/"local";};
     check(AppPaths::Resolve(root/"program",folder).Plugins()==root/"program"/"plugins"&&queries==0);
     {std::ofstream marker(root/"program"/"noven-installed.layout");marker<<"1";}

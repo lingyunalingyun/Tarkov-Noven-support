@@ -275,7 +275,7 @@ HWND App::CreateMainWindow(HINSTANCE instance) const {
 
 int App::Run(HINSTANCE instance, int show_command) {
 #ifdef NOVEN_RESOURCE_REVIEW_FIXTURE
-    paths_=common::AppPaths::Test(paths_.programRoot,paths_.programRoot/L"resource-review-data");
+    paths_=common::AppPaths::ResourceReview(paths_.programRoot);
 #endif
     common::ConfigureDebugLog(paths_.Diagnostics());
     instance_ = instance;

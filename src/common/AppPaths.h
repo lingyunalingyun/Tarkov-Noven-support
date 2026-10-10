@@ -11,6 +11,9 @@ struct AppPaths final {
     static AppPaths Development(std::filesystem::path program);
     static AppPaths Installed(std::filesystem::path program,std::filesystem::path localAppData);
     static AppPaths Test(std::filesystem::path program,std::filesystem::path testRoot);
+    // 显式评审使用相邻的测试目录，不能嵌套在程序目录中。
+    // Explicit review uses a sibling test root, never a child of the program root.
+    static AppPaths ResourceReview(std::filesystem::path program);
     static AppPaths Resolve(std::filesystem::path program,const std::function<std::filesystem::path()>& knownFolder);
     static AppPaths Current();
     std::filesystem::path Data() const {return userRoot/L"data";}
