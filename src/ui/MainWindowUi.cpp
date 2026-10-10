@@ -142,6 +142,7 @@ bool MainWindowUi::SelectPage(PageId page) {
     sidebar_.StartSelection(navigation_.Active(),page,DipHeight(),theme_);
     page_transition_.Start(navigation_.Active());
     if(!navigation_.Select(page)) return false;
+    map_.ResourceActive(page==BuiltinPageId::Map);
     if (page != BuiltinPageId::Prices) price_page_input_.Blur();
     if(page!=BuiltinPageId::Settings)preferences_.Blur();
     if(page!=BuiltinPageId::Scanner){mode_menu_open_=false;mode_menu_progress_=0;}

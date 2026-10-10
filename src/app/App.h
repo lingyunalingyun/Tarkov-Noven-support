@@ -54,6 +54,7 @@ class LocalRaidService;
 }
 namespace noven::events {class EventService;class WinHttpEventClient;class OfficialEventSource;class WikiEventSource;}
 namespace noven::plugins {class PluginDiscovery;class PluginRuntimeManager;class PluginRuntimeController;class MarketplaceService;}
+namespace noven::resources {class ResourceService;}
 
 namespace noven {
 
@@ -80,6 +81,7 @@ private:
     static constexpr UINT kEventsMessage = WM_APP + 7;
     static constexpr UINT kPluginRuntimeMessage = WM_APP + 8;
     static constexpr UINT kMarketplaceMessage = WM_APP + 9;
+    static constexpr UINT kResourcesMessage = WM_APP + 10;
     static constexpr UINT kDebugMouseTimerId = 2;
     static constexpr UINT kDebugMouseCheckMilliseconds = 50;
     static constexpr UINT kRecentAnimationTimerId = 3;
@@ -105,6 +107,9 @@ private:
     data::AppSettings preferences_;
     void EnsureRecentAnimationTimer();
     void StartMapAssetUpdate();
+    void StartResources();
+    std::unique_ptr<resources::ResourceService> resources_;
+    std::shared_ptr<std::atomic_bool> resource_notification_pending_{std::make_shared<std::atomic_bool>(false)};
     void PublishEvents();
     void RefreshPlugins();
     void PublishPluginRuntime();

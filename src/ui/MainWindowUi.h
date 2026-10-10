@@ -92,8 +92,8 @@ public:
     void SetTaskDataSources(const std::filesystem::path& directory,const data::ItemCatalog& catalog) {
         tasks_.Initialize(directory,catalog);BindEventCatalogs();
     }
-    bool SetMapDataSources(const std::filesystem::path& assets,std::wstring& error){
-        const bool loaded=map_.Initialize(assets,error);
+    bool SetMapDataSources(const std::filesystem::path& assets,std::wstring& error,bool managedResources=false){
+        const bool loaded=map_.Initialize(assets,error,managedResources);
         for(const auto mode:{data::GameMode::Pvp,data::GameMode::Pve})
             if(loaded)tasks_.SetMapLinks(map_.Catalog(mode),mode);
             else tasks_.SetMapLinks(data::MapCatalog{},mode);
@@ -101,6 +101,10 @@ public:
         BindEventCatalogs();
         return loaded;}
     const TasksPage& Tasks() const noexcept{return tasks_;}
+    void SetResourceResolver(std::function<MapPage::ResourceLease(std::string_view)> resolver,
+        std::function<MapPage::ResourceInfo(std::string_view)> info,std::function<void(std::string_view)> download){
+        map_.ResourceActive(navigation_.Active()==BuiltinPageId::Map);map_.SetResourceResolver(std::move(resolver),std::move(info),std::move(download));}
+    void ResourcesChanged(){map_.ResourcesChanged();Invalidate();}
     void SetMapAssetGeneration(std::filesystem::path generation){map_.SetAssetGeneration(std::move(generation));Invalidate();}
     [[nodiscard]] bool KeyDown(WPARAM key, bool control);
     [[nodiscard]] bool Char(wchar_t character);

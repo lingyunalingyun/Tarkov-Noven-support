@@ -466,5 +466,9 @@
   "prices.previous_page": "上一页",
   "prices.next_page": "下一页",
   "prices.page": "{page}/{pages} · {total} 件",
-  "prices.jump_page": "输入页码，回车跳转"
+  "prices.jump_page": "输入页码，回车跳转",
+  "resources.missing": "此地图资源尚未安装。",
+  "resources.size_unknown": "暂未提供下载大小。",
+  "resources.unconfigured": "此构建尚未配置在线资源下载。",
+  "resources.download": "下载"
 }

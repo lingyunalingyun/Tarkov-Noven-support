@@ -28,6 +28,11 @@ target_compile_definitions(NovenPluginTransport PUBLIC UNICODE _UNICODE NOMINMAX
 target_link_libraries(NovenPluginTransport PUBLIC bcrypt advapi32 NovenPaths)
 add_library(NovenPluginRuntime STATIC src/plugins/PluginRuntimeManager.cpp src/plugins/PluginStateStore.cpp src/plugins/PluginRuntimeController.cpp src/plugins/PluginDiscovery.cpp src/plugins/CatalogPluginService.cpp src/plugins/PluginStorageService.cpp)
 add_library(NovenResources STATIC src/resources/ResourceManifest.cpp src/resources/ResourceOnboarding.cpp src/resources/ResourceFiles.cpp src/resources/ResourceService.cpp)
+add_library(NovenResourceFixtures STATIC src/resources/ResourceLocalTransport.cpp)
+target_link_libraries(NovenResourceFixtures PUBLIC NovenResources)
+if(MSVC)
+    target_compile_options(NovenResourceFixtures PRIVATE /W4 /permissive- /utf-8 /EHsc)
+endif()
 target_link_libraries(NovenResources PUBLIC NovenPluginTransport)
 if(MSVC)
     target_compile_options(NovenResources PRIVATE /W4 /permissive- /utf-8 /EHsc)
@@ -234,6 +239,7 @@ else()
 endif()
 
 target_link_libraries(NovenTarkovSupport PRIVATE
+    NovenResources
     NovenMarketplaceUi
     user32
     shell32
@@ -354,6 +360,12 @@ if(BUILD_TESTING)
         target_compile_options(NovenResourceServiceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME resource_service COMMAND NovenResourceServiceTests)
+    add_executable(NovenMapResourceTests tests/MapResourceTests.cpp src/ui/MapPage.cpp src/data/MapCatalog.cpp src/ui/localization/LocalizationService.cpp)
+    target_link_libraries(NovenMapResourceTests PRIVATE NovenResourceFixtures d2d1 dwrite imm32 windowscodecs ole32)
+    if(MSVC)
+        target_compile_options(NovenMapResourceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    endif()
+    add_test(NAME map_resources COMMAND NovenMapResourceTests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
     add_executable(NovenAppPathsTests tests/AppPathsTests.cpp)
     target_link_libraries(NovenAppPathsTests PRIVATE NovenPaths)
     if(MSVC)

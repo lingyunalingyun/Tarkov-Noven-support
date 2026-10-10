@@ -13,6 +13,8 @@
 #include "data/MapCatalog.h"
 #include "data/GameMode.h"
 #include <vector>
+#include <functional>
+#include <memory>
 
 namespace noven::ui {
 // 常驻 UI 状态独立于任务/藏身处；生产绑定失败不能回退成演示地图。
@@ -22,7 +24,14 @@ public:
     MapPage();
     MapPage(const MapPage&)=delete;
     MapPage& operator=(const MapPage&)=delete;
-    bool Initialize(const std::filesystem::path& assets,std::wstring& error);
+    bool Initialize(const std::filesystem::path& assets,std::wstring& error,bool managedResources=false);
+    using ResourceLease=std::shared_ptr<const std::filesystem::path>;
+    struct ResourceInfo {std::uint64_t bytes{};bool downloadAllowed{};};
+    void SetResourceResolver(std::function<ResourceLease(std::string_view)> resolver,
+        std::function<ResourceInfo(std::string_view)> info,std::function<void(std::string_view)> download);
+    void ResourceActive(bool active);
+    void ResourcesChanged();
+    bool MissingResource() const;
     void SetAssetGeneration(std::filesystem::path generation);
     bool RealData() const noexcept{return real_;}
     const data::MapRecord* Information() const noexcept{return Catalog().Map(map_id_);}
@@ -119,6 +128,12 @@ private:
     SegmentedSwitch mode_switch_;
     std::filesystem::path assets_;
     std::filesystem::path asset_generation_;
+    bool managed_resources_{},resource_active_{true},resource_pressed_{};
+    ResourceLease resource_lease_;
+    std::function<ResourceLease(std::string_view)> resource_resolver_;
+    std::function<ResourceInfo(std::string_view)> resource_info_;
+    std::function<void(std::string_view)> resource_download_;
+    D2D1_RECT_F ResourceButton() const {return {layout_.content.left+24,layout_.content.top+142,layout_.content.left+200,layout_.content.top+186};}
     D2D1_SIZE_F world_{MapPrototype::World};
     bool real_{},unavailable_{},missing_reference_{},generic_{};
     bool picker_open_{},picker_pressed_{};

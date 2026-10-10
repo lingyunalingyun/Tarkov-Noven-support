@@ -466,5 +466,9 @@
   "prices.previous_page": "Previous",
   "prices.next_page": "Next",
   "prices.page": "{page}/{pages} · {total} items",
-  "prices.jump_page": "Page number, Enter to jump"
+  "prices.jump_page": "Page number, Enter to jump",
+  "resources.missing": "This map resource is not installed.",
+  "resources.size_unknown": "Download size is not available yet.",
+  "resources.unconfigured": "Online resource downloading is not configured in this build.",
+  "resources.download": "Download"
 }

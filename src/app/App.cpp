@@ -26,6 +26,7 @@
 #include "scanner/TooltipHeuristic.h"
 #include "ui/MainWindowUi.h"
 #include "ui/MessageDialog.h"
+#include "resources/ResourceService.h"
 #include "raid/LocalRaidService.h"
 #include "raid/RaidScanAssociation.h"
 #include "plugins/PluginDiscovery.h"
@@ -226,6 +227,7 @@ App::App()
       recent_scan_store_(std::make_unique<data::RecentScanStore>()) {}
 
 App::~App() {
+    resources_.reset();
     marketplace_.reset();
     plugin_controller_.reset();plugin_runtime_.reset();
     if (event_service_) event_service_->Stop();
@@ -431,7 +433,7 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->SetHideoutDataSources(executable_directory / L"assets" / L"data", *item_catalog_, *item_economy_store_);
     main_ui_->SetTaskDataSources(executable_directory / L"assets" / L"data", *item_catalog_);
     std::wstring map_error;
-    if(!main_ui_->SetMapDataSources(executable_directory / L"assets",map_error)){
+    if(!main_ui_->SetMapDataSources(executable_directory / L"assets",map_error,paths_.mode==common::PathMode::Installed)){
         common::DebugLog(L"[map] reference unavailable: "+map_error);
     }
     // 目录加载后再启动已授权插件；只复制静态投影，不让工作线程接触 UI 目录对象。
@@ -442,6 +444,7 @@ int App::Run(HINSTANCE instance, int show_command) {
     plugin_runtime_->PublishEvents(event_service_->Events());
     plugin_runtime_->PublishRecentScans(recent_scan_store_->Snapshot());
     plugin_controller_->StartEnabled();PublishPluginRuntime();
+    StartResources();
     StartMapAssetUpdate();
 
     data_refresh_service_->Start(paths_.Data() / L"economy-cache");
@@ -713,7 +716,17 @@ bool App::ApplyPreferences(const data::AppSettings& next) {
     return true;
 }
 
+void App::StartResources(){
+    std::vector<resources::ResourceMapLabel> maps;
+    for(const auto& map:main_ui_->Map().Catalog(data::GameMode::Pvp).Maps())maps.push_back({map.id,map.nameZh,map.nameEn});
+    resources_=std::make_unique<resources::ResourceService>(paths_,resources::ResourceManifest{},nullptr,std::function<std::uint64_t()>{},
+        [window=window_,pending=resource_notification_pending_]{if(!pending->exchange(true)&&!PostMessageW(window,kResourcesMessage,0,0))pending->store(false);},std::move(maps));
+    main_ui_->SetResourceResolver([this](auto id){return resources_->ResolveMap(id);},
+        [this](auto id){ui::MapPage::ResourceInfo info;for(const auto& value:resources_->Snapshot())if(value.record.stableMapId==id){info.bytes=value.record.downloadSize;info.downloadAllowed=resources_->Remote()!=resources::RemoteAvailability::ProductionEndpointUnconfigured;break;}return info;},
+        [this](auto id){resources_->Act("maps."+std::string(id),resources::ResourceAction::Download);});
+}
 void App::StartMapAssetUpdate(){
+    if(paths_.mode!=common::PathMode::Development)return;
     if(map_asset_worker_.joinable())return;
     const auto assets=paths_.programRoot/L"assets";
     const auto cache=paths_.Data()/L"map-assets";
@@ -926,6 +939,8 @@ LRESULT CALLBACK App::WindowProc(
             app->plugin_notification_pending_->store(false);app->PublishPluginRuntime();return 0;
         case kMarketplaceMessage:
             if(app->marketplace_&&app->main_ui_)app->main_ui_->SetMarketplace(app->marketplace_->Snapshot());return 0;
+        case kResourcesMessage:
+            app->resource_notification_pending_->store(false);if(app->main_ui_)app->main_ui_->ResourcesChanged();return 0;
         case kEventsMessage:
             app->PublishEvents();app->EnsureRecentAnimationTimer();return 0;
         case kRaidHistoryMessage:
@@ -1096,6 +1111,7 @@ LRESULT CALLBACK App::WindowProc(
     if (message == WM_DESTROY) {
         if(app){
             app->marketplace_.reset();
+            app->resources_.reset();
             app->map_asset_worker_.request_stop();
             if(app->map_asset_worker_.joinable())app->map_asset_worker_.join();
             MSG pending{};

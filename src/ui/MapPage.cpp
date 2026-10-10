@@ -44,7 +44,8 @@ MapPage::MapPage(){
     map_id_=maps_.front().id;
     for(auto& p:points_){p.searchChinese=Fold(p.chinese);p.searchEnglish=Fold(p.english);}
 }
-bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error){
+bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error,bool managedResources){
+    managed_resources_=managedResources;
     data::MapCatalog candidate;
     if(!candidate.Load(assets/L"data",error)){unavailable_=true;return false;}
     namespace reference=data::InterchangeReference;
@@ -59,7 +60,7 @@ bool MapPage::Initialize(const std::filesystem::path& assets,std::wstring& error
     for(std::size_t i=0;!generic&&i<2;++i)if(!upperImages[i].Load(assets/L"maps"/L"interchange"/(std::string(reference::Floors[i].id)+".overlay.png"))){
         error=L"Upper floor overlay unavailable";unavailable_=true;return false;}
     MapIconImages markerImages;
-    if(!markerImages.Load(assets/L"maps"/L"icons")){
+    if(!markerImages.Load(assets/L"maps"/L"icons")&&!managed_resources_){
         error=L"Local DEV marker icons unavailable";unavailable_=true;return false;}
     for(std::size_t i=0;!generic&&i<images.size();++i)
         if(!images[i].Load(assets/L"maps"/L"interchange"/(std::string(reference::Floors[i].id)+".png"))){
@@ -166,9 +167,11 @@ void MapPage::BindMapImages(){
 void MapPage::ReloadFloorImages(){
     const auto* map=Information();if(!map)return;
     images_.clear();upper_images_.clear();
+    if(managed_resources_)resource_lease_=resource_active_&&resource_resolver_?resource_resolver_(map_id_):ResourceLease{};
     const auto load=[&](const std::string& name){
         LocalImage image;if(name.empty())return image;
         const auto path=std::filesystem::path(std::u8string(name.begin(),name.end()));
+        if(managed_resources_){if(resource_lease_)image.Load(*resource_lease_/path);return image;}
         // 整代缓存只含已验证的衍生文件；坏缓存独立回退，不重绑页面或导航状态。
         // Published generations contain verified products; invalid cache falls back without rebinding page/navigation state.
         if(!asset_generation_.empty()&&image.Load(asset_generation_/path))return image;
@@ -176,6 +179,17 @@ void MapPage::ReloadFloorImages(){
     };
     for(const auto& floor:map->floors){images_.push_back(load(floor.abstractPath));upper_images_.push_back(load(floor.satellitePath));}
 }
+void MapPage::SetResourceResolver(std::function<ResourceLease(std::string_view)> resolver,
+    std::function<ResourceInfo(std::string_view)> info,std::function<void(std::string_view)> download){
+    resource_resolver_=std::move(resolver);resource_info_=std::move(info);resource_download_=std::move(download);ResourcesChanged();
+}
+void MapPage::ResourceActive(bool active){resource_active_=active;
+    if(managed_resources_&&real_&&generic_){if(!active)resource_lease_.reset();ReloadFloorImages();}
+}
+void MapPage::ResourcesChanged(){if(managed_resources_&&resource_active_&&real_&&generic_)ReloadFloorImages();}
+bool MapPage::MissingResource() const {return managed_resources_&&real_&&
+    std::none_of(images_.begin(),images_.end(),[](const auto& image){return image.Ready();})&&
+    std::none_of(upper_images_.begin(),upper_images_.end(),[](const auto& image){return image.Ready();});}
 void MapPage::SetAssetGeneration(std::filesystem::path generation){
     if(asset_generation_==generation)return;
     asset_generation_=std::move(generation);
@@ -393,6 +407,16 @@ void MapPage::Draw(const UiCanvas& canvas,const UiTheme& theme) const {
     search_.Draw(canvas,theme,layout_.search,Tr(TextKey::MapSearch),caret_visible_);
     if(unavailable_){canvas.Text(Tr(TextKey::Unavailable),canvas.body,layout_.content,theme.secondaryText);return;}
     DrawMapSelection(canvas,theme);
+    if(MissingResource()){
+        const auto body=layout_.content;canvas.Round(body,theme.cornerRadius,theme.surface);
+        const auto* map=Information();const auto info=resource_info_?resource_info_(map_id_):ResourceInfo{};
+        canvas.Text(map?Wide(UiLocalization().ActiveLocale()=="zh-CN"?map->nameZh:map->nameEn):Tr("nav.map"),canvas.label,{body.left+24,body.top+20,body.right-24,body.top+54},theme.primaryText);
+        canvas.Text(Tr("resources.missing"),canvas.body,{body.left+24,body.top+62,body.right-24,body.top+94},theme.secondaryText);
+        canvas.Text(info.bytes?std::to_wstring((info.bytes+1023)/1024)+L" KiB":Tr("resources.size_unknown"),canvas.smallFormat,{body.left+24,body.top+100,body.right-24,body.top+132},theme.secondaryText);
+        if(info.downloadAllowed)DrawTextButton(canvas,theme,ResourceButton(),Tr("resources.download"),false,resource_pressed_);
+        else canvas.Text(Tr("resources.unconfigured"),canvas.smallFormat,{body.left+24,body.top+142,body.right-24,body.top+198},theme.secondaryText);
+        DrawMapPicker(canvas,theme);return;
+    }
     if(missing_reference_){canvas.Text(Tr("map.no_background"),canvas.body,layout_.content,theme.secondaryText);DrawMapPicker(canvas,theme);return;}
     canvas.target.PushAxisAlignedClip(layout_.content,D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     if(progress_>0){
@@ -560,6 +584,7 @@ void MapPage::MouseDown(float x,float y){
         if(picker_open_){picker_row_=Picker().Hit(x,y,maps_.size());if(picker_row_)return;picker_open_=false;}
     }
     const auto& maps=MapItems();pressed_map_=UsesPicker()?std::nullopt:HitTestTabBar<std::string_view>(maps,layout_.maps,x,y);if(pressed_map_)return;
+    if(MissingResource()){const auto info=resource_info_?resource_info_(map_id_):ResourceInfo{};resource_pressed_=info.downloadAllowed&&MapContains(ResourceButton(),p);return;}
     // 主侧栏点击属于页面导航，不是画布的面板外点击。
     // Shell navigation clicks are not outside clicks within the canvas.
     if(!MapContains(layout_.content,p))return;
@@ -589,6 +614,7 @@ void MapPage::MouseDown(float x,float y){
 }
 void MapPage::MouseUp(float x,float y){
     const D2D1_POINT_2F p{x,y};
+    if(resource_pressed_){resource_pressed_=false;if(MapContains(ResourceButton(),p)&&resource_download_)resource_download_(map_id_);return;}
     if(mode_pressed_){const bool pve=*mode_pressed_;mode_pressed_.reset();if(MapContains(ModeButton(pve),p))SetMode(pve?data::GameMode::Pve:data::GameMode::Pvp);return;}
     if(picker_pressed_){picker_pressed_=false;if(MapContains(Picker().header,p))picker_open_=!picker_open_;return;}
     if(picker_row_){const auto row=*picker_row_;picker_row_.reset();
