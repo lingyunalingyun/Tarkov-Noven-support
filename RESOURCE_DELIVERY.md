@@ -21,6 +21,12 @@ IDs use lowercase ASCII letters, digits and hyphens, at most 64 bytes. Duplicate
 
 ## Paths / 路径
 
+## NVR1 package / 资源包
+
+The v1 package is a bounded regular-file container, not an executable archive: ASCII `NVR1`, uint32 little-endian resource-ID length, resource-ID bytes, uint32 entry count; each entry is uint32 path length, uint64 byte length, ASCII relative path, then raw file bytes. At most 30,000 entries; paths at most 240 bytes; files at most 512 MiB; total materialized bytes must exactly equal installedSize. No compression or executable/symlink entry type is provided in v1.
+
+Only `maps/` relative paths with PNG/tile/JSON/SVG/Markdown/text suffixes are accepted; Windows reserved names, path traversal, drive/UNC paths, alternate streams and case-insensitive duplicate destinations reject. Staging/ancestors reject reparse points. Package size and SHA-256 are checked before extraction from the same write-denying file handle. Extracted files are flushed and the generation directory is atomically published; activation is a separate service operation. Verification reconstructs the original package SHA-256 from installed bytes/index, rather than trusting editable local receipt hashes alone. Synthetic test packages contain no third-party map assets.
+
 AppPaths provides user-root-relative `resources/manifests`, `resources/maps`, `resources/staging`, and `downloads/cache`. They are separate from Program Root in installed/test modes and from plugins, plugin storage and user history. Development mode retains the existing explicit development root. Path accessors do not create directories or delete anything.
 
 ## Release boundary / 发布边界
