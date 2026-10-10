@@ -1,11 +1,11 @@
-param([string]$SourceRoot,[string]$MainExe,[string]$HostExe)
+param([string]$SourceRoot,[string]$MainExe,[string]$HostExe,[string]$LauncherExe,[string]$UpdaterExe)
 $ErrorActionPreference = 'Stop'
 function Check([bool]$Condition,[string]$Message) { if (-not $Condition) { throw $Message } }
 $iss = Get-Content -LiteralPath (Join-Path $SourceRoot 'installer/Noven.iss') -Raw
 Check ($iss -match 'AppId=\{\{70C934D2-C53B-4F49-A8C7-152E748A8E54\}' -and $iss -match 'PrivilegesRequired=lowest') 'Stable AppId / per-user contract'
 Check ($iss -match 'CloseApplications=no' -and $iss -match 'AppMutex=Local\\NovenTarkovSupport.App' -and $iss -notmatch '\[UninstallDelete\]') 'No forced close or user-data cleanup'
 Check ($iss -notmatch '(?i)(downloadtemporaryfile|urldownload|taskkill|powershell|cmd\.exe)' -and $iss -match 'Program and user data directories must not overlap') 'No updater/network/commands; no overlapping root'
-foreach ($name in @('package_release.ps1','audit_payload.ps1')) {
+foreach ($name in @('package_release.ps1','audit_payload.ps1','prepare_update_review.ps1')) {
     $errors=$null;[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $SourceRoot "scripts/$name"),[ref]$null,[ref]$errors)|Out-Null
     Check (-not $errors) 'Script syntax'
 }
@@ -54,7 +54,30 @@ try {
         Check $denied "Missing dependency rejected: $file"
         Rename-Item -LiteralPath (Join-Path (Split-Path -Parent $path) 'dependency.saved') -NewName (Split-Path -Leaf $path)
     }
-    Write-Output 'Packaging contract / metadata / artifact rejection PASS'
+    $children=@(Get-ChildItem -LiteralPath $root -Force)
+    $bootstrap=Join-Path $root 'versioned'
+    $payload=Join-Path $bootstrap "versions/$version"
+    New-Item -ItemType Directory -Path $payload -Force | Out-Null
+    $children | Copy-Item -Destination $payload -Recurse
+    Copy-Item -LiteralPath $LauncherExe -Destination (Join-Path $bootstrap 'NovenLauncher.exe')
+    Copy-Item -LiteralPath $UpdaterExe -Destination (Join-Path $bootstrap 'NovenUpdater.exe')
+    $inventory=@(Get-ChildItem -LiteralPath $payload -File -Recurse | ForEach-Object {
+        @{path=$_.FullName.Substring($payload.Length+1).Replace('\','/');size=$_.Length;sha256=(Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant()}
+    })
+    $initial=@{schemaVersion=1;version=$version;files=$inventory} | ConvertTo-Json -Depth 5
+    $current=@{schemaVersion=1;active=$version;previous='';pending=$false;attempts=0;token=''} | ConvertTo-Json
+    [IO.File]::WriteAllText((Join-Path $bootstrap 'initial.json'),$initial)
+    [IO.File]::WriteAllText((Join-Path $bootstrap 'current.json'),$current)
+    [IO.File]::WriteAllText((Join-Path $bootstrap 'last-good.json'),(@{version=$version} | ConvertTo-Json))
+    & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $bootstrap -Version $version
+    [IO.File]::WriteAllText((Join-Path $bootstrap 'current.json'),$current.Replace($version,'../escape'))
+    $denied=$false;try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $bootstrap -Version $version | Out-Null } catch {$denied=$true}
+    Check $denied 'Unsafe activation identity rejected'
+    [IO.File]::WriteAllText((Join-Path $bootstrap 'current.json'),$current)
+    [IO.File]::WriteAllText((Join-Path $payload 'NOTICE.md'),'tampered')
+    $denied=$false;try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $bootstrap -Version $version | Out-Null } catch {$denied=$true}
+    Check $denied 'Initial inventory hash mismatch rejected'
+    Write-Output 'Packaging contract / versioned bootstrap / activation integrity / artifact rejection PASS'
 } finally {
     # 测试创建的 GUID 临时子目录，不触碰真实 Known Folder。
     # Only the GUID temp child created by this test, never real Known Folders.

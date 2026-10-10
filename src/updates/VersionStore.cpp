@@ -32,9 +32,12 @@ bool VersionStore::Validate(std::string_view version) const try {
         const auto release=VerifyRelease(envelope,keys_);return release.Manifest().version==version&&UpdateEngine(root_,root_/L"unused-cache").ValidateVersion(release);}
     const auto json=raid::json::Parser(resources::ReadResourceText(root_/L"initial.json",MaximumManifestBytes)).Parse();if(json.At("schemaVersion").Int()!=1||json.At("version").String()!=initial_)return false;
     const auto& files=json.At("files").Array();if(files.empty()||files.size()>MaximumReleaseFiles)return false;std::set<std::string> names;
+    std::uint64_t total{};
     for(const auto& f:files){const auto name=f.At("path").String(),hash=f.At("sha256").String();const auto n=f.At("size").Int();
-        if(!ValidReleasePath(name)||!names.insert(name).second||hash.size()!=64||n<0||static_cast<std::uint64_t>(n)>MaximumReleaseBytes||
-            std::filesystem::file_size(path/name)!=static_cast<std::uint64_t>(n)||HashFileRange(path/name,0,static_cast<std::uint64_t>(n))!=hash)return false;}return true;
+        auto normalized=name;std::transform(normalized.begin(),normalized.end(),normalized.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
+        if(!ValidReleasePath(name)||!names.insert(normalized).second||hash.size()!=64||hash.find_first_not_of("0123456789abcdef")!=hash.npos||n<0||static_cast<std::uint64_t>(n)>MaximumReleaseBytes-total||
+            std::filesystem::file_size(path/name)!=static_cast<std::uint64_t>(n)||HashFileRange(path/name,0,static_cast<std::uint64_t>(n))!=hash)return false;total+=static_cast<std::uint64_t>(n);}
+    return names.contains("noventarkovsupport.exe")&&names.contains("novenpluginhost.exe");
 }catch(...){return false;}
 void VersionStore::SeedInitial(){
     if(std::filesystem::exists(root_/L"initial.json")||std::filesystem::exists(root_/L"current.json"))Fail();const auto path=Resolve(initial_);std::vector<std::filesystem::path> files;
@@ -49,6 +52,22 @@ void VersionStore::Activate(const AuthenticatedRelease& release){
     if(Running())throw std::runtime_error("close Noven and PluginHost normally before activation");const auto old=Read();const auto& version=release.Manifest().version;
     if(CompareReleaseVersions(version,old.active)<=0||!Validate(old.active)||!Validate(version))Fail();
     Write({version,old.active,plugins::ipc::RandomSecret(),true,0});
+}
+void VersionStore::RemoveInstalledVersions(){
+    if(Running())throw std::runtime_error("close Noven before uninstall");
+    if(!Validate(initial_))Fail();
+    const auto versions=root_/L"versions",releases=root_/L"releases";
+    if(!resources::SafeResourcePath(versions)||!resources::SafeResourcePath(releases))Fail();
+    for(const auto& entry:std::filesystem::directory_iterator(versions)){
+        const auto version=entry.path().filename().string();
+        if(!entry.is_directory()||!Version(version)||!Validate(version))Fail();}
+    // 卸载只清理固定 Program 子树；没有从清单接受删除路径，也不触碰 User Data。
+    // Uninstall removes fixed Program subtrees only, never manifest-selected paths or User Data.
+    if(!resources::RemoveResourceTree(root_,versions))Fail();
+    if(std::filesystem::exists(releases)&&!resources::RemoveResourceTree(root_,releases))Fail();
+    for(const auto name:{L"initial.json",L"current.json",L"last-good.json"}){
+        const auto file=root_/name;if(!resources::SafeResourcePath(file))Fail();
+        if(std::filesystem::exists(file)&&!std::filesystem::remove(file))Fail();}
 }
 void VersionStore::Rollback(){if(Running())throw std::runtime_error("close Noven normally before rollback");const auto old=Read();if(old.previous.empty()||!Validate(old.previous))Fail();
     Write({old.previous,{}, {},false,0});if(!resources::WriteResourceText(root_/L"last-good.json","{\"version\":"+raid::json::Quote(old.previous)+"}"))Fail();}

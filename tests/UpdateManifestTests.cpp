@@ -45,6 +45,9 @@ int main()try {
     Check(noven::resources::WriteResourceText(cache/m.files[1].sha256,"poison"));Check(PlanUpdate("0.1.0",old,cache,authenticated).downloadBytes==plan.downloadBytes);
     Reject([&]{VerifyRelease(text,keys);});Reject([&]{VerifyRelease(envelope,{});});TestSigner wrong;const std::array wrongKeys{ReleasePublicKey{signer.publicKey.id,wrong.publicKey.cngPublicBlob}};
     Reject([&]{VerifyRelease(envelope,wrongKeys);});Reject([&]{VerifyRelease(Replace(envelope,"ecdsa-p256-sha256","sha256"),keys);});
+    const auto payloadHex=Hex(std::span(reinterpret_cast<const unsigned char*>(text.data()),text.size()));auto alteredPayload=payloadHex;
+    alteredPayload[20]=alteredPayload[20]=='a'?'b':'a';Reject([&]{VerifyRelease(Replace(envelope,payloadHex,alteredPayload),keys);});
+    Reject([&]{VerifyRelease(Replace(envelope,signer.publicKey.id,"unknown-release-key"),keys);});
     auto modified=envelope;const auto at=modified.find("signatureHex\":\"")+15;modified[at]=modified[at]=='a'?'b':'a';Reject([&]{VerifyRelease(modified,keys);});
     Reject([&]{VerifyRelease(signer.Sign(Replace(text,"\"schemaVersion\":1","\"schemaVersion\":2")),keys);});
     Reject([&]{ParseReleaseManifest(Replace(text,"0.1.1","../0.1.1"));});Reject([&]{ParseReleaseManifest(Replace(text,"unchanged.txt","../evil.exe"));});

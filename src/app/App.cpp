@@ -29,6 +29,13 @@
 #include "resources/ResourceService.h"
 #include "resources/ResourceOnboarding.h"
 #include "ui/ResourceDialog.h"
+#include "ui/UpdateDialog.h"
+#include "updates/UpdateService.h"
+#include "updates/UpdateTrust.h"
+#include <shellapi.h>
+#ifdef NOVEN_UPDATE_REVIEW_FIXTURE
+#include "updates/UpdateLocalSource.h"
+#endif
 #ifdef NOVEN_RESOURCE_REVIEW_FIXTURE
 #include "resources/ResourceLocalTransport.h"
 #include "resources/ResourceFiles.h"
@@ -62,6 +69,14 @@
 namespace noven {
 
 namespace {
+#ifdef NOVEN_UPDATE_REVIEW_FIXTURE
+// 更新验收保持离线：既有事件页面仍使用同一服务，但不访问公共网络。
+// Update review stays offline: the existing event service gets a no-network client.
+struct UpdateReviewEventHttp final:events::IEventHttp {
+    events::HttpResponse Get(std::wstring_view,std::wstring_view,std::string_view,std::string_view)override{
+        events::HttpResponse response;response.error="Offline update review; event networking unavailable";return response;}
+};
+#endif
 #ifdef NOVEN_MARKETPLACE_REVIEW_FIXTURE
 // 仅显式测试构建提供夹具；正常产品没有后端切换参数或内置市场条目。
 // Explicit test builds alone provide fixtures; production has no backend-switch argument or embedded listings.
@@ -234,6 +249,7 @@ App::App()
 
 App::~App() {
     resources_.reset();
+    updates_.reset();
     marketplace_.reset();
     plugin_controller_.reset();plugin_runtime_.reset();
     if (event_service_) event_service_->Stop();
@@ -274,7 +290,11 @@ HWND App::CreateMainWindow(HINSTANCE instance) const {
 }
 
 int App::Run(HINSTANCE instance, int show_command) {
-#ifdef NOVEN_RESOURCE_REVIEW_FIXTURE
+#ifdef NOVEN_UPDATE_REVIEW_FIXTURE
+    const auto reviewBootstrap=paths_.BootstrapRoot();
+    if(reviewBootstrap.empty())throw std::runtime_error("update review requires versioned fixture layout");
+    paths_=common::AppPaths::Test(paths_.programRoot,reviewBootstrap.parent_path()/(reviewBootstrap.filename().wstring()+L".update-review-data"));
+#elif defined(NOVEN_RESOURCE_REVIEW_FIXTURE)
     paths_=common::AppPaths::ResourceReview(paths_.programRoot);
 #endif
     common::ConfigureDebugLog(paths_.Diagnostics());
@@ -360,7 +380,11 @@ int App::Run(HINSTANCE instance, int show_command) {
     recent_scan_id_base_ = recent_scan_store_->MaxScanId();
     // 页面先接收本地快照；后台结果只投递通知，由 UI 线程查询服务，不解析来源。
     // Publish cached snapshots first; worker notifications let the UI thread query the service, never its sources.
+#ifdef NOVEN_UPDATE_REVIEW_FIXTURE
+    event_http_=std::make_unique<UpdateReviewEventHttp>();
+#else
     event_http_=std::make_unique<events::WinHttpEventClient>();
+#endif
     official_event_source_=std::make_unique<events::OfficialEventSource>(*event_http_);
     wiki_event_source_=std::make_unique<events::WikiEventSource>(*event_http_);
     event_service_=std::make_unique<events::EventService>(*official_event_source_,
@@ -460,7 +484,9 @@ int App::Run(HINSTANCE instance, int show_command) {
     StartResources();
     StartMapAssetUpdate();
 
+#ifndef NOVEN_UPDATE_REVIEW_FIXTURE
     data_refresh_service_->Start(paths_.Data() / L"economy-cache");
+#endif
 
     std::wstring ocr_error;
     if (!text_detector_->Initialize(
@@ -555,6 +581,14 @@ int App::Run(HINSTANCE instance, int show_command) {
 
     ShowWindow(window_, show_command);
     UpdateWindow(window_);
+    const auto bootstrap=paths_.BootstrapRoot();
+    if(!bootstrap.empty())try{
+        int count{};auto args=CommandLineToArgvW(GetCommandLineW(),&count);std::string token;
+        if(args){for(int i=1;i+1<count;++i)if(std::wstring_view(args[i])==L"--noven-boot-token"){
+            const std::wstring_view value(args[i+1]);if(value.size()==64&&value.find_first_not_of(L"0123456789abcdef")==value.npos)for(auto c:value)token+=static_cast<char>(c);}
+            LocalFree(args);}
+        if(!token.empty())updates::VersionStore(bootstrap,updates::InstallerVersion(),updates::CompiledReleaseKeys()).ConfirmHealthy(NOVEN_APP_VERSION,token);
+    }catch(...){common::DebugLog(L"[updates] Boot confirmation failed; previous version retained.");}
     PostMessageW(window_,kResourceOnboardingMessage,0,0);
 
     recent_animation_timer_ = CreateWaitableTimerExW(nullptr, nullptr,
@@ -745,6 +779,13 @@ void App::StartResources(){
         [this](auto id){ui::MapPage::ResourceInfo info;for(const auto& value:resources_->Snapshot())if(value.record.stableMapId==id){info.bytes=value.record.downloadSize;info.downloadAllowed=resources_->Remote()!=resources::RemoteAvailability::ProductionEndpointUnconfigured;break;}return info;},
         [this](auto id){resources_->Act("maps."+std::string(id),resources::ResourceAction::Download);});
     main_ui_->SetResourceManagementHandler([this]{ui::ShowResourceDialog(window_,*resources_,paths_.userRoot,false);});
+    std::shared_ptr<updates::UpdateSource> updateSource;
+#ifdef NOVEN_UPDATE_REVIEW_FIXTURE
+    updateSource=updates::LocalUpdateSource(paths_.BootstrapRoot()/L"update-review-fixture",std::chrono::milliseconds(100));
+#endif
+    updates_=std::make_unique<updates::UpdateService>(paths_,paths_.BootstrapRoot(),NOVEN_APP_VERSION,updates::CompiledReleaseKeys(),std::move(updateSource));
+    main_ui_->SetUpdateManagementHandler([this]{if(ui::ShowUpdateDialog(window_,*updates_))PostMessageW(window_,WM_CLOSE,0,0);});
+    (void)updates_->StartupCheck(static_cast<std::int64_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()));
 }
 void App::StartMapAssetUpdate(){
     if(paths_.mode!=common::PathMode::Development)return;
@@ -1143,6 +1184,7 @@ LRESULT CALLBACK App::WindowProc(
         if(app){
             app->marketplace_.reset();
             app->resources_.reset();
+            app->updates_.reset();
             app->map_asset_worker_.request_stop();
             if(app->map_asset_worker_.joinable())app->map_asset_worker_.join();
             MSG pending{};

@@ -14,6 +14,19 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(NOVEN_RESOURCE_REVIEW_FIXTURE "Enable local synthetic resource review, never production packaging" OFF)
+option(NOVEN_UPDATE_REVIEW_FIXTURE "Enable explicit offline application update review, never production packaging" OFF)
+set(NOVEN_REVIEW_APP_VERSION "" CACHE STRING "Explicit non-production update fixture version")
+set(NOVEN_BASE_VERSION "${PROJECT_VERSION}")
+if(NOVEN_REVIEW_APP_VERSION)
+    if(NOT NOVEN_UPDATE_REVIEW_FIXTURE OR NOT NOVEN_REVIEW_APP_VERSION MATCHES "^0\\.1\\.[01]$")
+        message(FATAL_ERROR "Synthetic app version requires explicit update review (0.1.0 or 0.1.1 only)")
+    endif()
+    set(PROJECT_VERSION "${NOVEN_REVIEW_APP_VERSION}")
+    string(REPLACE "." ";" review_parts "${PROJECT_VERSION}")
+    list(GET review_parts 0 PROJECT_VERSION_MAJOR)
+    list(GET review_parts 1 PROJECT_VERSION_MINOR)
+    list(GET review_parts 2 PROJECT_VERSION_PATCH)
+endif()
 
 add_library(NovenPaths STATIC src/common/AppPaths.cpp)
 target_include_directories(NovenPaths PUBLIC src)
@@ -39,14 +52,15 @@ set(NOVEN_UPDATE_KEY_ID "" CACHE STRING "Approved application update public-key 
 set(NOVEN_UPDATE_PUBLIC_KEY_HEX "" CACHE STRING "Approved CNG P-256 public blob, never a private key")
 if(NOVEN_UPDATE_PUBLIC_KEY_HEX)
     string(LENGTH "${NOVEN_UPDATE_PUBLIC_KEY_HEX}" key_length)
-    if(NOT key_length EQUAL 144 OR NOT NOVEN_UPDATE_PUBLIC_KEY_HEX MATCHES "^[0-9a-f]+$" OR NOT NOVEN_UPDATE_KEY_ID MATCHES "^[a-zA-Z0-9._-]+$")
+    string(LENGTH "${NOVEN_UPDATE_KEY_ID}" key_id_length)
+    if(NOT key_length EQUAL 144 OR key_id_length GREATER 64 OR NOT NOVEN_UPDATE_PUBLIC_KEY_HEX MATCHES "^[0-9a-f]+$" OR NOT NOVEN_UPDATE_KEY_ID MATCHES "^[a-zA-Z0-9._-]+$")
         message(FATAL_ERROR "Update trust requires an explicit 72-byte CNG public key and bounded key identity")
     endif()
 elseif(NOVEN_UPDATE_KEY_ID)
     message(FATAL_ERROR "Update key identity without public key")
 endif()
-add_library(NovenUpdates STATIC src/updates/ReleaseManifest.cpp src/updates/UpdatePlanner.cpp src/updates/UpdateEngine.cpp src/updates/VersionStore.cpp src/updates/UpdateTrust.cpp)
-target_compile_definitions(NovenUpdates PRIVATE NOVEN_INSTALLER_VERSION="${PROJECT_VERSION}" NOVEN_UPDATE_KEY_ID="${NOVEN_UPDATE_KEY_ID}" NOVEN_UPDATE_PUBLIC_KEY_HEX="${NOVEN_UPDATE_PUBLIC_KEY_HEX}")
+add_library(NovenUpdates STATIC src/updates/ReleaseManifest.cpp src/updates/UpdatePlanner.cpp src/updates/UpdateEngine.cpp src/updates/VersionStore.cpp src/updates/UpdateTrust.cpp src/updates/UpdateService.cpp)
+target_compile_definitions(NovenUpdates PRIVATE NOVEN_INSTALLER_VERSION="${NOVEN_BASE_VERSION}" NOVEN_UPDATE_KEY_ID="${NOVEN_UPDATE_KEY_ID}" NOVEN_UPDATE_PUBLIC_KEY_HEX="${NOVEN_UPDATE_PUBLIC_KEY_HEX}")
 target_link_libraries(NovenUpdates PUBLIC NovenResources)
 add_executable(NovenLauncher WIN32 src/updates/LauncherMain.cpp)
 add_executable(NovenUpdater WIN32 src/updates/UpdaterMain.cpp)
@@ -55,6 +69,15 @@ target_link_libraries(NovenBootstrapUi PUBLIC NovenPaths user32 gdi32 dwmapi com
 target_compile_options(NovenBootstrapUi PRIVATE /W4 /permissive- /utf-8 /EHsc)
 target_link_libraries(NovenLauncher PRIVATE NovenUpdates NovenBootstrapUi)
 target_link_libraries(NovenUpdater PRIVATE NovenUpdates NovenBootstrapUi)
+add_executable(NovenReleaseTool EXCLUDE_FROM_ALL tools/updates/ReleaseTool.cpp)
+target_link_libraries(NovenReleaseTool PRIVATE NovenUpdates)
+target_compile_options(NovenReleaseTool PRIVATE /W4 /permissive- /utf-8 /EHsc)
+add_library(NovenUpdateFixtures STATIC EXCLUDE_FROM_ALL src/updates/UpdateLocalSource.cpp)
+add_executable(NovenUpdateReviewTests EXCLUDE_FROM_ALL tests/UpdateReviewTests.cpp)
+target_link_libraries(NovenUpdateReviewTests PRIVATE NovenUpdateFixtures)
+target_compile_options(NovenUpdateReviewTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+target_link_libraries(NovenUpdateFixtures PUBLIC NovenUpdates)
+target_compile_options(NovenUpdateFixtures PRIVATE /W4 /permissive- /utf-8 /EHsc)
 if(MSVC)
     target_compile_options(NovenUpdates PRIVATE /W4 /permissive- /utf-8 /EHsc)
     target_compile_options(NovenLauncher PRIVATE /W4 /permissive- /utf-8 /EHsc)
@@ -166,6 +189,7 @@ add_executable(NovenTarkovSupport WIN32
     src/ui/PluginsPage.cpp
     src/ui/MessageDialog.cpp
     src/ui/ResourceDialog.cpp
+    src/ui/UpdateDialog.cpp
     src/ui/PluginPageView.cpp
     src/events/EventCatalog.cpp
     src/events/EventBrowser.cpp
@@ -239,6 +263,7 @@ target_include_directories(NovenTarkovSupport PRIVATE
 
 target_compile_definitions(NovenTarkovSupport PRIVATE
     NOVEN_PRODUCT_VERSION=L"${PROJECT_VERSION}"
+    NOVEN_APP_VERSION="${PROJECT_VERSION}"
     UNICODE
     _UNICODE
     WIN32_LEAN_AND_MEAN
@@ -267,6 +292,7 @@ endif()
 
 target_link_libraries(NovenTarkovSupport PRIVATE
     NovenResources
+    NovenUpdates
     NovenMarketplaceUi
     user32
     shell32
@@ -343,6 +369,15 @@ add_custom_command(TARGET NovenTarkovSupport POST_BUILD
 )
 
 include(CTest)
+if(NOVEN_UPDATE_REVIEW_FIXTURE)
+    if(NOT BUILD_TESTING OR NOT NOVEN_UPDATE_KEY_ID MATCHES "^review-")
+        message(FATAL_ERROR "Update review requires tests and an explicitly review-only public key")
+    endif()
+    target_compile_definitions(NovenTarkovSupport PRIVATE NOVEN_UPDATE_REVIEW_FIXTURE=1)
+    target_link_libraries(NovenTarkovSupport PRIVATE NovenUpdateFixtures)
+elseif(NOVEN_UPDATE_KEY_ID MATCHES "^review-")
+    message(FATAL_ERROR "Review update trust is forbidden in production builds")
+endif()
 foreach(runtime IN ITEMS NovenTarkovSupport NovenPluginHost NovenLauncher NovenUpdater)
     set(NOVEN_FILE_DESCRIPTION "${runtime}")
     set(NOVEN_ORIGINAL_FILENAME "${runtime}.exe")
@@ -377,6 +412,14 @@ if(BUILD_TESTING)
         target_compile_options(NovenUpdateEngineTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     add_test(NAME update_engine COMMAND NovenUpdateEngineTests)
+    add_executable(NovenUpdateServiceTests tests/UpdateServiceTests.cpp)
+    target_link_libraries(NovenUpdateServiceTests PRIVATE NovenUpdateFixtures)
+    target_compile_options(NovenUpdateServiceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    add_test(NAME update_service COMMAND NovenUpdateServiceTests)
+    add_executable(NovenUpdateDialogTests tests/UpdateDialogTests.cpp src/ui/UpdateDialog.cpp src/ui/MessageDialog.cpp src/ui/localization/LocalizationService.cpp)
+    target_link_libraries(NovenUpdateDialogTests PRIVATE NovenUpdates user32 gdi32 dwmapi comctl32 uxtheme)
+    target_compile_options(NovenUpdateDialogTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    add_test(NAME update_dialog COMMAND NovenUpdateDialogTests "${CMAKE_CURRENT_SOURCE_DIR}/assets/i18n")
     add_executable(NovenRuntimePayloadTests tests/RuntimePayloadTests.cpp src/ocr/OnnxRuntimeSession.cpp src/ocr/TextDetector.cpp src/ocr/TextRecognizer.cpp src/data/ItemCatalog.cpp src/common/DebugLog.cpp)
     target_include_directories(NovenRuntimePayloadTests PRIVATE src "${ONNXRUNTIME_INCLUDE_DIR}")
     target_link_libraries(NovenRuntimePayloadTests PRIVATE NovenPaths)
@@ -384,7 +427,7 @@ if(BUILD_TESTING)
         target_compile_options(NovenRuntimePayloadTests PRIVATE /W4 /utf-8 /EHsc)
     endif()
     add_test(NAME runtime_payload COMMAND NovenRuntimePayloadTests "$<TARGET_FILE_DIR:NovenTarkovSupport>")
-    add_test(NAME packaging_contract COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/PackagingContractTests.ps1" -SourceRoot "${CMAKE_CURRENT_SOURCE_DIR}" -MainExe "$<TARGET_FILE:NovenTarkovSupport>" -HostExe "$<TARGET_FILE:NovenPluginHost>")
+    add_test(NAME packaging_contract COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/PackagingContractTests.ps1" -SourceRoot "${CMAKE_CURRENT_SOURCE_DIR}" -MainExe "$<TARGET_FILE:NovenTarkovSupport>" -HostExe "$<TARGET_FILE:NovenPluginHost>" -LauncherExe "$<TARGET_FILE:NovenLauncher>" -UpdaterExe "$<TARGET_FILE:NovenUpdater>")
     add_test(NAME map_runtime_sources COMMAND "${CMAKE_COMMAND}" "-DSourceRoot=${CMAKE_CURRENT_SOURCE_DIR}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/MapRuntimeSourcesTests.cmake")
     add_executable(NovenResourceManifestTests tests/ResourceManifestTests.cpp)
     target_link_libraries(NovenResourceManifestTests PRIVATE NovenResources)

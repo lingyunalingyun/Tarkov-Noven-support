@@ -52,9 +52,10 @@ class MainWindowUi;
 namespace noven::raid {
 class LocalRaidService;
 }
-namespace noven::events {class EventService;class WinHttpEventClient;class OfficialEventSource;class WikiEventSource;}
+namespace noven::events {class EventService;class IEventHttp;class OfficialEventSource;class WikiEventSource;}
 namespace noven::plugins {class PluginDiscovery;class PluginRuntimeManager;class PluginRuntimeController;class MarketplaceService;}
 namespace noven::resources {class ResourceService;}
+namespace noven::updates {class UpdateService;}
 
 namespace noven {
 
@@ -110,6 +111,7 @@ private:
     void StartMapAssetUpdate();
     void StartResources();
     std::unique_ptr<resources::ResourceService> resources_;
+    std::unique_ptr<updates::UpdateService> updates_;
     std::shared_ptr<std::atomic_bool> resource_notification_pending_{std::make_shared<std::atomic_bool>(false)};
     void PublishEvents();
     void RefreshPlugins();
@@ -146,7 +148,7 @@ private:
     bool mouse_tracking_{};
     std::jthread map_asset_worker_;
     std::unique_ptr<raid::LocalRaidService> local_raid_service_;
-    std::unique_ptr<events::WinHttpEventClient> event_http_;
+    std::unique_ptr<events::IEventHttp> event_http_;
     std::unique_ptr<events::OfficialEventSource> official_event_source_;
     std::unique_ptr<events::WikiEventSource> wiki_event_source_;
     std::unique_ptr<events::EventService> event_service_;

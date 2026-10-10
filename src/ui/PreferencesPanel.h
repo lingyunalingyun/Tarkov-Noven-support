@@ -22,6 +22,7 @@ public:
     data::AppSettings value;
     std::function<bool(const data::AppSettings&)> changed;
     std::function<void()> resources;
+    std::function<void()> updates;
     bool Recording() const noexcept {return recording_;}
     void Blur(){recording_=false;pressed_.reset();}
     void Draw(const UiCanvas& canvas,const UiTheme& theme,float left,float right) {
@@ -33,18 +34,23 @@ public:
         canvas.Text(Tr("settings.scan_shortcut"),canvas.label,D2D1::RectF(left,404,right,434),theme.primaryText);
         DrawTextButton(canvas,theme,hotkey_,recording_?Tr("settings.shortcut_recording"):ScanShortcutText(value.scanKey,value.scanModifiers),false,pressed_==1);
         canvas.Text(Tr(error_.empty()?"settings.shortcut_hint":error_),canvas.smallFormat,D2D1::RectF(left,492,right,524),theme.secondaryText);
-        resource_=D2D1::RectF(left,550,right,594);
+        const auto middle=(left+right)/2;
+        resource_=D2D1::RectF(left,550,middle-8,594);
         DrawTextButton(canvas,theme,resource_,Tr("resources.manage"),false,pressed_==2);
+        update_=D2D1::RectF(middle+8,550,right,594);
+        DrawTextButton(canvas,theme,update_,Tr("updates.manage"),false,pressed_==3);
     }
     bool Down(float x,float y) {
         pressed_.reset();
         if(HitNavigationButton(directory_,x,y))pressed_=0;
         if(HitNavigationButton(hotkey_,x,y))pressed_=1;
         if(resources&&HitNavigationButton(resource_,x,y))pressed_=2;
+        if(updates&&HitNavigationButton(update_,x,y))pressed_=3;
         return pressed_.has_value();
     }
     bool Up(HWND window,float x,float y) {
         const auto pressed=pressed_;pressed_.reset();if(!pressed)return false;
+        if(*pressed==3){if(updates&&HitNavigationButton(update_,x,y))updates();return true;}
         if(*pressed==2){if(resources&&HitNavigationButton(resource_,x,y))resources();return true;}
         if(*pressed==1&&HitNavigationButton(hotkey_,x,y)){recording_=!recording_;error_.clear();return true;}
         if(*pressed!=0||!HitNavigationButton(directory_,x,y))return true;
@@ -76,7 +82,7 @@ public:
         return true;
     }
 private:
-    D2D1_RECT_F directory_{},hotkey_{},resource_{};
+    D2D1_RECT_F directory_{},hotkey_{},resource_{},update_{};
     std::optional<int> pressed_;
     bool recording_{};
     std::string error_;

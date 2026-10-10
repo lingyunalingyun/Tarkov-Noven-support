@@ -37,6 +37,13 @@ std::filesystem::path UpdateEngine::Stage(const AuthenticatedRelease& release,co
         for(std::size_t j=0;j<f.content.size();++j){const auto& a=f.content[j];const auto& b=p.ranges[j].content;
             if(a.sha256!=b.sha256||a.pack!=b.pack||a.size!=b.size||a.packOffset!=b.packOffset||a.fileOffset!=b.fileOffset)Fail();}}
     if(!resources::ResourceDirectories(program_/L"versions")||!resources::ResourceDirectories(cache_))Fail();
+    std::uint64_t cachedBytes{},incomingBytes{};std::size_t entries{},incomingEntries{};
+    for(const auto& entry:std::filesystem::recursive_directory_iterator(cache_)){
+        if(++entries>MaximumUpdateCacheEntries||!resources::SafeResourcePath(entry.path()))Fail();
+        if(entry.is_regular_file()){const auto size=entry.file_size();if(size>MaximumUpdateCacheBytes-cachedBytes)Fail();cachedBytes+=size;}}
+    for(const auto& file:plan.files)for(const auto& range:file.ranges)if(range.source==ContentSource::Download){incomingBytes+=range.content.size;incomingEntries+=2;}
+    if(!UpdateCacheFits(cachedBytes,entries,incomingBytes,incomingEntries))
+        throw std::runtime_error("update content cache quota exceeded; old version unchanged");
     if(!space)space=[this]{ULARGE_INTEGER available{};if(!GetDiskFreeSpaceExW(program_.c_str(),&available,nullptr,nullptr))Fail();return available.QuadPart;};
     if(space()<plan.requiredFreeBytes)throw std::runtime_error("insufficient update disk space");
     const auto versions=program_/L"versions",stage=versions/(".stage-"+release.Identity()),final=versions/release.Manifest().version;

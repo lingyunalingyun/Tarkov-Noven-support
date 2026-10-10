@@ -12,6 +12,7 @@ public:
     // 仅安装器/离线评审调用一次；不从远程内容建立初始信任。
     // Installer/offline review seeds baseline once; remote content cannot establish initial trust.
     void SeedInitial();
+    void RemoveInstalledVersions();
     void Activate(const AuthenticatedRelease&);
     void Rollback();
     Activation BeginLaunch();

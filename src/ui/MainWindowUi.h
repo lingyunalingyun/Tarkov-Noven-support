@@ -47,6 +47,7 @@ public:
     void SetPreferences(const data::AppSettings& value){preferences_.value=value;scanner_.shortcut=ScanShortcutText(value.scanKey,value.scanModifiers);Invalidate();}
     void SetPreferencesHandler(std::function<bool(const data::AppSettings&)> handler){preferences_.changed=std::move(handler);}
     void SetResourceManagementHandler(std::function<void()> handler){preferences_.resources=std::move(handler);}
+    void SetUpdateManagementHandler(std::function<void()> handler){preferences_.updates=std::move(handler);}
     bool RecordingShortcut() const noexcept {return preferences_.Recording();}
     const data::AppSettings& Preferences() const noexcept {return preferences_.value;}
     void SetRaidScanHandler(std::function<bool()> handler){raid_scan_=std::move(handler);}

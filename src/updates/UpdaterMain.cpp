@@ -14,6 +14,7 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,PWSTR,int)try {
     int count{};LPWSTR* raw=CommandLineToArgvW(GetCommandLineW(),&count);if(!raw)return 2;
     std::vector<std::wstring> args;for(int i=1;i<count;++i)args.emplace_back(raw[i]);LocalFree(raw);
     if(args.size()==1&&args[0]==L"--seed"){versions.SeedInitial();return 0;}
+    if(args.size()==1&&args[0]==L"--remove-versions"){versions.RemoveInstalledVersions();return 0;}
     if(args.size()!=2&&args.size()!=4)return 2;
     const bool rollback=args[0]==L"--rollback";if(!rollback&&args[0]!=L"--apply")return 2;
     const auto version=Ascii(args[1]);if(!noven::updates::ValidReleaseVersion(version))return 2;

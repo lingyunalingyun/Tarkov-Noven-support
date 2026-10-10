@@ -41,4 +41,8 @@ std::filesystem::path LocalAppDataDirectory(){
     std::filesystem::path path(folder);CoTaskMemFree(folder);return Absolute(path);
 }
 AppPaths AppPaths::Current(){return Resolve(ProgramDirectory(),LocalAppDataDirectory);}
+std::filesystem::path AppPaths::BootstrapRoot() const {
+    if(programRoot.parent_path().filename()!=L"versions")return {};
+    return programRoot.parent_path().parent_path();
+}
 }
