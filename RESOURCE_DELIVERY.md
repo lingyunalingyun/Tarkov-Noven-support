@@ -1,5 +1,8 @@
 # Resource Delivery v1 / 官方资源交付 v1
 
+Phase 14 的签名目录、固定 GitHub 资产解析和发布授权边界见 [MAP_DELIVERY.md](MAP_DELIVERY.md)。
+See [MAP_DELIVERY.md](MAP_DELIVERY.md) for Phase 14 authenticated online catalogs. The unconfigured-delivery statements below describe the original Phase 10B foundation, not an authorization to publish real maps.
+
 此契约是 Phase 10B 基础设施，不是应用更新器。生产下载未配置；没有批准的 HTTPS 来源及相关地图再分发授权前，不发布资源、不开放生产下载。
 This Phase 10B contract is not an application updater. Production delivery remains unconfigured until an approved HTTPS source and applicable map redistribution rights are confirmed. No resources are published by this implementation.
 
