@@ -7,11 +7,15 @@
 #ifndef VcRedist
   #error An authentic Microsoft VC++ x64 prerequisite is required
 #endif
+#define BundleVersionMS 0
+#define BundleVersionLS 0
+#expr GetVersionNumbers(AddBackslash(Payload) + "NovenLauncher.exe", BundleVersionMS, BundleVersionLS)
 [Setup]
 AppId={{70C934D2-C53B-4F49-A8C7-152E748A8E54}
 AppName=Noven Tarkov Support
 AppVersion={#AppVersion}
 VersionInfoVersion={#AppVersion}.0
+VersionInfoProductVersion={#AppVersion}
 DefaultDirName={localappdata}\Programs\Noven Tarkov Support
 DisableDirPage=yes
 DefaultGroupName=Noven Tarkov Support
@@ -24,7 +28,7 @@ OutputBaseFilename=NovenTarkovSupport-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-AppMutex=Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2
+AppMutex=Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2,Local\NovenTarkovSupport.Installer.70C934D2
 CloseApplications=no
 RestartApplications=no
 UninstallDisplayIcon={app}\NovenLauncher.exe
@@ -33,12 +37,12 @@ UninstallDisplayIcon={app}\NovenLauncher.exe
 [Tasks]
 Name: desktopicon; Description: "Create a desktop shortcut"; Flags: unchecked
 [Files]
-Source: "{#Payload}\versions\*"; DestDir: "{app}\versions"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#Payload}\NovenLauncher.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#Payload}\NovenUpdater.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#Payload}\initial.json"; DestDir: "{app}"; Flags: onlyifdoesntexist
-Source: "{#Payload}\current.json"; DestDir: "{app}"; Flags: onlyifdoesntexist
-Source: "{#Payload}\last-good.json"; DestDir: "{app}"; Flags: onlyifdoesntexist
+; 只解包到固定安装暂存树；Updater 验证完整清单后提交，不直接覆盖活动版本。
+; Extract only to fixed installer staging; Updater commits a verified inventory without patching the active version.
+Source: "{#Payload}\versions\{#AppVersion}\*"; DestDir: "{app}\installer-staging\{#AppVersion}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#Payload}\initial.json"; DestDir: "{app}\installer-staging"; DestName: "inventory.json"; Flags: ignoreversion
+Source: "{#Payload}\NovenLauncher.exe"; DestDir: "{app}"; Flags: replacesameversion
+Source: "{#Payload}\NovenUpdater.exe"; DestDir: "{app}"; Flags: replacesameversion
 Source: "{#VcRedist}"; DestName: "vc_redist.x64.exe"; Flags: dontcopy
 [Icons]
 Name: "{userprograms}\Noven Tarkov Support\Noven Tarkov Support"; Filename: "{app}\NovenLauncher.exe"; WorkingDir: "{app}"
@@ -59,7 +63,7 @@ begin
   Result := Result and ((Major > {#VcMajor}) or ((Major = {#VcMajor}) and ((Minor > {#VcMinor}) or ((Minor = {#VcMinor}) and (Build >= {#VcBuild})))));
 end;
 function PrepareToInstall(var NeedsRestart: Boolean): String;
-var Code: Integer; ProgramRoot, UserRoot: String;
+var Code: Integer; ProgramRoot, UserRoot: String; InstalledMS, InstalledLS: Cardinal;
 begin
   Result := '';
   ProgramRoot := AddBackslash(ExpandFileName(ExpandConstant('{app}')));
@@ -70,6 +74,11 @@ begin
   if CheckForMutexes('Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2') then begin
     Result := 'Close Noven and its PluginHost normally before installing. No process will be forcibly terminated.'; exit;
   end;
+  if GetVersionNumbers(ExpandConstant('{app}\NovenLauncher.exe'), InstalledMS, InstalledLS) then begin
+    if (InstalledMS > {#BundleVersionMS}) or ((InstalledMS = {#BundleVersionMS}) and (InstalledLS > {#BundleVersionLS})) then begin
+      Result := 'A newer Noven bootstrap is installed. Use its installer to repair; application rollback is an explicit Settings action.'; exit;
+    end;
+  end;
   if RuntimeReady then exit;
   Result := 'Microsoft Visual C++ x64 Runtime {#VcMajor}.{#VcMinor}.{#VcBuild} or newer is required. The prerequisite may require administrator approval; Noven itself installs per-user.';
   if WizardSilent then exit;
@@ -78,5 +87,27 @@ begin
   if ShellExec('open', ExpandConstant('{tmp}\vc_redist.x64.exe'), '/install /passive /norestart', '', SW_SHOW, ewWaitUntilTerminated, Code) then begin
     if RuntimeReady then Result := '';
     if Code = 3010 then NeedsRestart := True;
+  end;
+end;
+procedure CurStepChanged(CurStep: TSetupStep);
+var Code: Integer;
+begin
+  if CurStep = ssInstall then begin
+    CreateMutex('Local\NovenTarkovSupport.Installer.70C934D2');
+    if CheckForMutexes('Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2') then
+      RaiseException('Close Noven normally before installation. No process will be forcibly terminated.');
+  end;
+  if CurStep = ssPostInstall then begin
+    if not Exec(ExpandConstant('{app}\NovenUpdater.exe'), '--install-bundle', ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, Code) then
+      RaiseException('Could not start the trusted Noven installer commit. Repair with this installer.');
+    if Code <> 0 then RaiseException('Noven Core validation/commit failed. Previous application and user data are retained; repair with this installer.');
+  end;
+end;
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then begin
+    CreateMutex('Local\NovenTarkovSupport.Installer.70C934D2');
+    if CheckForMutexes('Local\NovenTarkovSupport.App.70C934D2,Local\NovenTarkovSupport.Host.70C934D2,Local\NovenTarkovSupport.Launcher.70C934D2,Local\NovenTarkovSupport.Updater.70C934D2') then
+      RaiseException('Close Noven normally before uninstalling. User data will be retained.');
   end;
 end;

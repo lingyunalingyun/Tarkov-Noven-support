@@ -5,6 +5,14 @@ $iss = Get-Content -LiteralPath (Join-Path $SourceRoot 'installer/Noven.iss') -R
 Check ($iss -match 'AppId=\{\{70C934D2-C53B-4F49-A8C7-152E748A8E54\}' -and $iss -match 'PrivilegesRequired=lowest') 'Stable AppId / per-user contract'
 Check ($iss -match 'CloseApplications=no' -and $iss -match 'AppMutex=Local\\NovenTarkovSupport.App' -and $iss -notmatch '\[UninstallDelete\]') 'No forced close or user-data cleanup'
 Check ($iss -notmatch '(?i)(downloadtemporaryfile|urldownload|taskkill|powershell|cmd\.exe)' -and $iss -match 'Program and user data directories must not overlap') 'No updater/network/commands; no overlapping root'
+Check ($iss -match 'DestDir: "\{app\}\\installer-staging' -and $iss -match "'--install-bundle'.*ewWaitUntilTerminated" -and $iss -match 'if Code <> 0 then RaiseException') 'Installer must verify staged Core before activation'
+Check ($iss -match 'A newer Noven bootstrap is installed' -and $iss -match 'Flags: replacesameversion' -and $iss -notmatch 'current.json.*DestDir') 'Bootstrap downgrade protection; preserve activation metadata'
+foreach($line in ($iss -split "`n" | Where-Object {$_ -match '^Name:.*Filename:'})) {
+    Check ($line -match 'Filename: "\{app\}\\NovenLauncher.exe"') 'All shortcuts target Launcher only'
+}
+Check ($iss -match '(?m)^Filename: "\{app\}\\NovenLauncher.exe";.*postinstall' -and $iss -notmatch '(?m)^AppPublisher=') 'Launcher post-install entry; no invented publisher'
+$runtime=Get-Content -LiteralPath (Join-Path $SourceRoot 'src/plugins/PluginRuntimeManager.cpp') -Raw
+Check ($runtime -match 'host\(paths.programRoot/L"NovenPluginHost.exe"\)') 'PluginHost must resolve from active runtime directory'
 foreach ($name in @('package_release.ps1','audit_payload.ps1','prepare_update_review.ps1')) {
     $errors=$null;[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $SourceRoot "scripts/$name"),[ref]$null,[ref]$errors)|Out-Null
     Check (-not $errors) 'Script syntax'
@@ -81,6 +89,18 @@ try {
     [IO.File]::WriteAllText((Join-Path $payload 'NOTICE.md'),'tampered')
     $denied=$false;try { & (Join-Path $SourceRoot 'scripts/audit_payload.ps1') -Payload $bootstrap -Version $version | Out-Null } catch {$denied=$true}
     Check $denied 'Initial inventory hash mismatch rejected'
+    $stage=Join-Path $bootstrap "installer-staging/$version"
+    New-Item -ItemType Directory -Path $stage -Force | Out-Null
+    $children | Copy-Item -Destination $stage -Recurse
+    [IO.File]::WriteAllText((Join-Path $bootstrap 'installer-staging/inventory.json'),$initial)
+    $repair=Start-Process -FilePath (Join-Path $bootstrap 'NovenUpdater.exe') -ArgumentList '--install-bundle' -WindowStyle Hidden -PassThru
+    Check ($repair.WaitForExit(15000) -and $repair.ExitCode -eq 0) 'Real production Updater must commit the installer bundle'
+    Check ((Get-Content -LiteralPath (Join-Path $bootstrap 'current.json') -Raw) -ceq $current) 'Native repair preserves activation bytes'
+    Check ((Get-Item -LiteralPath (Join-Path $payload 'NovenTarkovSupport.exe')).VersionInfo.ProductVersion -eq $version -and (Test-Path -LiteralPath (Join-Path $payload 'NovenPluginHost.exe'))) 'Native installer restores Main and version-local Host'
+    Check (-not(Test-Path -LiteralPath (Join-Path $bootstrap 'installer-staging')) -and (Test-Path -LiteralPath (Join-Path $bootstrap "installer-releases/$version.json"))) 'Native transaction cleanup and trusted receipt'
+    $uninstall=Start-Process -FilePath (Join-Path $bootstrap 'NovenUpdater.exe') -ArgumentList '--remove-versions' -WindowStyle Hidden -PassThru
+    Check ($uninstall.WaitForExit(15000) -and $uninstall.ExitCode -eq 0) 'Real production Updater uninstall cleanup'
+    Check (-not(Test-Path -LiteralPath $payload) -and -not(Test-Path -LiteralPath (Join-Path $bootstrap 'current.json'))) 'Native uninstall removes versions and activation only'
     Write-Output 'Packaging contract / versioned bootstrap / activation integrity / artifact rejection PASS'
 } finally {
     # 测试创建的 GUID 临时子目录，不触碰真实 Known Folder。

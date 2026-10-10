@@ -1,5 +1,76 @@
 # Windows installation / Windows 安装
 
+## Current production installer / 当前 Phase 12 安装器
+
+唯一版本源仍为 CMake `project VERSION`（当前 0.1.0）。所有四个 EXE 的
+VERSIONINFO、Setup 版本/文件名及初始目录均由此派生。普通入口仅为 Launcher：
+
+```text
+%LOCALAPPDATA%/Programs/Noven Tarkov Support/
+  NovenLauncher.exe
+  NovenUpdater.exe
+  current.json
+  initial.json / last-good.json
+  installer-releases/0.1.0.json
+  versions/0.1.0/
+    NovenTarkovSupport.exe
+    NovenPluginHost.exe
+    onnxruntime.dll
+    assets/models/  assets/data/  assets/i18n/
+    licenses/  docs/  NOTICE.md  noven-installed.layout
+```
+
+Start Menu、可选桌面快捷方式及安装后启动都指向 `NovenLauncher.exe`，
+Launcher 只启动可信版本目录；Host 从该活动版本自身目录解析。
+用户可变数据全部留在 `%LOCALAPPDATA%/Noven Tarkov Support/`。
+Core 不含可选地图、Review 夹具、测试、Demo DLL 或私钥。
+生产更新和资源下载端点均未配置；可选资源首次引导可选“稍后”，
+Settings 资源管理及缺失地图提示仍可用，下载按钮不会假装可下载。
+
+安装器将 Core 解包到固定 `installer-staging`，调用真实 Updater
+`--install-bundle` 验证完整文件清单、大小、SHA-256，再提交版本目录和本地
+安装收据。安装中断日志可恢复旧目录/收据；不从网络建立初始信任。
+同版本修复可恢复缺失/损坏 Core，不重置 `current.json` 或用户状态。
+较新 bundled Core 按现有 VersionStore 规则激活，保留上一版本并等待健康确认。
+旧 Core 安装器不切换较新的活动版本；如果已装 bootstrap 版本更高，则在复制前
+拒绝旧 Setup，要求使用相应新安装器修复。平铺 Phase 10 Main/Host 保留为恢复文件，
+直到原安装清单正常卸载；它们不再是快捷方式入口。
+新降级保护仅存在于 Phase 12 及后续安装器；已生成的 Phase 10/11 开发 Setup
+不能追溯补丁，不应拿它们修复或回退较新的安装。
+
+固定 AppId `70C934D2-C53B-4F49-A8C7-152E748A8E54` 不变。普通安装为当前用户，
+不提权；微软 VC++ prerequisite 独立提示/同意后可能需要管理员。
+所有运行标记要求正常关闭，不默认强杀。默认卸载只清理受信任 Program 版本、
+bootstrap、快捷方式及注册项，保留整个 User Data（含下载资源）。
+异常/未知 Program 清单会拒绝破坏性清理，需用原安装器修复后再卸载。
+
+打包仍为 Release → clean CMake install → payload audit → 可选签四个 EXE →
+本地 inventory → ISCC → 可选签 Setup → SHA-256。没有虚构 Publisher 或签名。
+Authenticode 未配置时 SmartScreen 可能警告；更新清单签名不等于 Authenticode。
+Launcher/Updater 是安装器所有的 bootstrap，应用差分更新只管理 versions 内容。
+
+人工安装验收须用户执行，自动测试或 Review 更新通过不能替代：
+
+1. 干净测试用户安装 0.1.0，检查无普通 UAC、Start Menu → Launcher → versioned Main。
+2. 检查 OCR/F2、插件、首次资源“稍后”、Settings 及缺失地图状态；产生真实状态并备份。
+3. 关闭应用，同版本 Setup 修复后确认状态/授权/资源不变。
+4. 使用独立源码副本中唯一 CMake VERSION 改为 0.1.1 的受控安装器，保持同一 AppId，
+   手工升级并确认版本/用户状态；不要发布此测试制品或改主仓库版本。
+5. 运行旧 0.1.0 Setup，确认不静默降级（新版 bootstrap 会拒绝旧 Setup）。
+6. 关闭、卸载，确认 Program/快捷方式消失、User Data 保留；用新 Setup 重装并确认原状态。
+
+The current production installer uses the versioned layout and trusted local
+bundle transaction above. It preserves user data and existing activation on
+same/older-Core repair, blocks bootstrap downgrade, and retains the previous
+trusted version on a newer bundled-Core activation. No optional maps or
+production network source are enabled. Manual installer lifecycle acceptance
+is still a separate user-run check; do not automatically install Setup.
+
+## Historical Phase 10 notes / 历史 Phase 10 记录
+
+以下无 Updater 等描述仅记录当时边界；当前行为以以上 Phase 12 与
+[APP_UPDATES.md](APP_UPDATES.md) 为准，历史 AV 事件仍保留。
+
 Phase 10 使用 Inno Setup EXE；没有 MSI、自动更新、Updater、包下载或 Muse。唯一版本源是 CMake `project(... VERSION ...)`；主程序标题、两个 EXE VERSIONINFO、安装器和输出文件名均由它派生。没有已有 ICO 素材，保留当前窗口品牌绘制，不虚构发布者或签名。
 Phase 10 uses an Inno Setup EXE, not MSI/auto-update/Updater/package downloads/Muse. CMake project VERSION is the sole version source for the app title, both executables' VERSIONINFO, Setup and artifact filename. There is no existing ICO asset; retain current window branding without inventing a publisher/signature.
 
