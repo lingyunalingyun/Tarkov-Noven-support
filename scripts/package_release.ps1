@@ -11,7 +11,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $buildRoot = (Resolve-Path -LiteralPath $BuildDirectory).Path
 $cache = Get-Content -LiteralPath (Join-Path $buildRoot 'CMakeCache.txt') -Encoding UTF8 -Raw
 if ($cache -notmatch 'CMAKE_HOME_DIRECTORY:INTERNAL=([^\r\n]+)' -or [IO.Path]::GetFullPath($Matches[1]) -ne $repoRoot) { throw 'Build belongs to another source tree.' }
-if ($cache -notmatch 'CMAKE_BUILD_TYPE:STRING=Release' -or $cache -notmatch 'CMAKE_CXX_COMPILER:FILEPATH=.*cl.exe' -or $cache -match 'NOVEN_MARKETPLACE_REVIEW_FIXTURE:BOOL=ON') { throw 'Packaging requires an MSVC Release production build, not a review build.' }
+if ($cache -notmatch 'CMAKE_BUILD_TYPE:STRING=Release' -or $cache -notmatch 'CMAKE_CXX_COMPILER:FILEPATH=.*cl.exe' -or $cache -match 'NOVEN_(MARKETPLACE|RESOURCE)_REVIEW_FIXTURE:BOOL=ON') { throw 'Packaging requires an MSVC Release production build, not a review build.' }
 $signature = Get-AuthenticodeSignature -LiteralPath $VcRedist
 if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'VC prerequisite must have a valid Microsoft signature.' }
 $vcVersion = (Get-Item -LiteralPath $VcRedist).VersionInfo

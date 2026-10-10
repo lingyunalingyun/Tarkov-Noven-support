@@ -1,6 +1,6 @@
 # install() 是唯一运行包来源，不复制构建目录。
 # install() is the sole runtime payload source, never the build directory.
-if(NOVEN_MARKETPLACE_REVIEW_FIXTURE)
+if(NOVEN_MARKETPLACE_REVIEW_FIXTURE OR NOVEN_RESOURCE_REVIEW_FIXTURE)
     install(CODE "message(FATAL_ERROR \"Review fixtures cannot be installed as a production payload\")" COMPONENT Runtime)
     return()
 endif()

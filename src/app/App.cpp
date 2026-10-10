@@ -29,6 +29,10 @@
 #include "resources/ResourceService.h"
 #include "resources/ResourceOnboarding.h"
 #include "ui/ResourceDialog.h"
+#ifdef NOVEN_RESOURCE_REVIEW_FIXTURE
+#include "resources/ResourceLocalTransport.h"
+#include "resources/ResourceFiles.h"
+#endif
 #include "raid/LocalRaidService.h"
 #include "raid/RaidScanAssociation.h"
 #include "plugins/PluginDiscovery.h"
@@ -270,6 +274,9 @@ HWND App::CreateMainWindow(HINSTANCE instance) const {
 }
 
 int App::Run(HINSTANCE instance, int show_command) {
+#ifdef NOVEN_RESOURCE_REVIEW_FIXTURE
+    paths_=common::AppPaths::Test(paths_.programRoot,paths_.programRoot/L"resource-review-data");
+#endif
     common::ConfigureDebugLog(paths_.Diagnostics());
     instance_ = instance;
     std::wstring locale_error;
@@ -435,7 +442,11 @@ int App::Run(HINSTANCE instance, int show_command) {
     main_ui_->SetHideoutDataSources(executable_directory / L"assets" / L"data", *item_catalog_, *item_economy_store_);
     main_ui_->SetTaskDataSources(executable_directory / L"assets" / L"data", *item_catalog_);
     std::wstring map_error;
-    if(!main_ui_->SetMapDataSources(executable_directory / L"assets",map_error,paths_.mode==common::PathMode::Installed)){
+    bool managedMaps=paths_.mode==common::PathMode::Installed;
+#ifdef NOVEN_RESOURCE_REVIEW_FIXTURE
+    managedMaps=true;
+#endif
+    if(!main_ui_->SetMapDataSources(executable_directory / L"assets",map_error,managedMaps)){
         common::DebugLog(L"[map] reference unavailable: "+map_error);
     }
     // 目录加载后再启动已授权插件；只复制静态投影，不让工作线程接触 UI 目录对象。
@@ -722,7 +733,13 @@ bool App::ApplyPreferences(const data::AppSettings& next) {
 void App::StartResources(){
     std::vector<resources::ResourceMapLabel> maps;
     for(const auto& map:main_ui_->Map().Catalog(data::GameMode::Pvp).Maps())maps.push_back({map.id,map.nameZh,map.nameEn});
-    resources_=std::make_unique<resources::ResourceService>(paths_,resources::ResourceManifest{},nullptr,std::function<std::uint64_t()>{},
+    resources::ResourceManifest manifest;std::shared_ptr<resources::ResourceTransport> transport;
+#ifdef NOVEN_RESOURCE_REVIEW_FIXTURE
+    const auto fixture=paths_.programRoot/L"resource-review-fixture";std::vector<std::string> ids;for(const auto& map:maps)ids.push_back(map.stableMapId);
+    try{manifest=resources::ParseResourceManifest(resources::ReadResourceText(fixture/L"manifest.json",resources::MaximumManifestBytes),ids);transport=resources::LocalResourceTransport(fixture);}
+    catch(...){common::DebugLog(L"[resources] Synthetic review fixture unavailable; downloads disabled.");}
+#endif
+    resources_=std::make_unique<resources::ResourceService>(paths_,std::move(manifest),std::move(transport),std::function<std::uint64_t()>{},
         [window=window_,pending=resource_notification_pending_]{if(!pending->exchange(true)&&!PostMessageW(window,kResourcesMessage,0,0))pending->store(false);},std::move(maps));
     main_ui_->SetResourceResolver([this](auto id){return resources_->ResolveMap(id);},
         [this](auto id){ui::MapPage::ResourceInfo info;for(const auto& value:resources_->Snapshot())if(value.record.stableMapId==id){info.bytes=value.record.downloadSize;info.downloadAllowed=resources_->Remote()!=resources::RemoteAvailability::ProductionEndpointUnconfigured;break;}return info;},
@@ -946,11 +963,15 @@ LRESULT CALLBACK App::WindowProc(
         case kResourcesMessage:
             app->resource_notification_pending_->store(false);if(app->main_ui_)app->main_ui_->ResourcesChanged();return 0;
         case kResourceOnboardingMessage:
-            if(app->resources_&&resources::ResourceOnboarding(app->paths_).ShouldShow()){
+            {auto onboardingPaths=app->paths_;
+#ifdef NOVEN_RESOURCE_REVIEW_FIXTURE
+            onboardingPaths.mode=common::PathMode::Installed;
+#endif
+            if(app->resources_&&resources::ResourceOnboarding(onboardingPaths).ShouldShow()){
                 const auto decision=ui::ShowResourceDialog(window,*app->resources_,app->paths_.userRoot,true);
-                if(resources::ResourceOnboarding(app->paths_).Complete()){for(const auto& id:decision.ids)app->resources_->Act(id,resources::ResourceAction::Download);}
+                if(resources::ResourceOnboarding(onboardingPaths).Complete()){for(const auto& id:decision.ids)app->resources_->Act(id,resources::ResourceAction::Download);}
                 else (void)ui::ShowMessageDialog(window,ui::Tr("resources.manage"),ui::Tr("resources.state_failed"),ui::MessageKind::Error,ui::Tr("dialog.ok"));
-            }return 0;
+            }}return 0;
         case kEventsMessage:
             app->PublishEvents();app->EnsureRecentAnimationTimer();return 0;
         case kRaidHistoryMessage:
