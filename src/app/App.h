@@ -90,7 +90,7 @@ private:
     static constexpr UINT kRecentAnimationFrameMilliseconds = 16;
     // 可视化仅供验证；普通结果卡寿命和扫描匹配不由此开关决定。
     // Visualization is for validation; it does not control card lifetime or matching.
-    static constexpr bool kDebugScanVisualization = true;
+    static constexpr bool kDebugScanVisualization = false;
 
     static LRESULT CALLBACK WindowProc(
         HWND window,

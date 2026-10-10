@@ -6,6 +6,8 @@
 #include <dwmapi.h>
 #include <uxtheme.h>
 #include <array>
+#include <algorithm>
+#include <commctrl.h>
 namespace noven::ui {
 namespace {
 std::wstring Wide(std::string_view s){if(s.empty())return {};const auto n=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.data(),static_cast<int>(s.size()),nullptr,0);if(!n)return L"?";
@@ -14,25 +16,37 @@ COLORREF Color(D2D1_COLOR_F c){return RGB(static_cast<BYTE>(c.r*255),static_cast
 const char* State(updates::UpdateState s){using S=updates::UpdateState;switch(s){case S::Unconfigured:return "updates.unconfigured";case S::Checking:return "updates.checking";case S::Current:return "updates.current";
     case S::Available:return "updates.available";case S::Downloading:return "updates.downloading";case S::Paused:return "updates.paused";case S::Staged:return "updates.staged";case S::Error:return "updates.error";default:return "updates.idle";}}
 struct Dialog {
-    updates::UpdateService& service;HWND window{},body{};std::array<HWND,8> buttons{};UiTheme theme;HFONT font{};HBRUSH background{};bool restart{};std::wstring displayed;
+    updates::UpdateService& service;HWND window{},body{},progress{};std::array<HWND,8> buttons{};std::array<bool,8> visible{};bool showProgress{};UiTheme theme;HFONT font{};HBRUSH background{};bool restart{};std::wstring displayed;
     int Scale(int n) const {return MulDiv(n,static_cast<int>(GetDpiForWindow(window)),96);}
     void Font(unsigned dpi){if(font)DeleteObject(font);font=CreateFontW(-MulDiv(16,static_cast<int>(dpi),96),0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,0,0,CLEARTYPE_QUALITY,0,L"Segoe UI");
         if(body)SendMessageW(body,WM_SETFONT,reinterpret_cast<WPARAM>(font),TRUE);for(auto button:buttons)if(button)SendMessageW(button,WM_SETFONT,reinterpret_cast<WPARAM>(font),TRUE);}
     void Layout(){RECT r{};GetClientRect(window,&r);const int pad=Scale(18),gap=Scale(8),h=Scale(38),w=(r.right-2*pad-2*gap)/3;
-        MoveWindow(body,pad,pad,r.right-2*pad,std::max(Scale(80),static_cast<int>(r.bottom)-2*pad-3*(h+gap)-gap),TRUE);
-        for(int i=0;i<8;++i)MoveWindow(buttons[i],pad+(i%3)*(w+gap),r.bottom-pad-3*(h+gap)+(i/3)*(h+gap),w,h,TRUE);}
+        const int rows=(static_cast<int>(std::count(visible.begin(),visible.end(),true))+2)/3;
+        const int top=r.bottom-pad-rows*(h+gap),progressHeight=showProgress?Scale(16)+gap:0;
+        MoveWindow(body,pad,pad,r.right-2*pad,std::max(Scale(80),top-pad-gap-progressHeight-(showProgress?gap:0)),TRUE);
+        MoveWindow(progress,pad,top-gap-progressHeight,r.right-2*pad,Scale(16),TRUE);
+        int slot=0;for(int i=0;i<8;++i)if(visible[i]){MoveWindow(buttons[i],pad+(slot%3)*(w+gap),top+(slot/3)*(h+gap),w,h,TRUE);++slot;}}
     void Refresh(){const auto v=service.Snapshot();std::wstring text=Tr("updates.version")+L": "+Wide(v.current)+L"\r\n"+Tr(State(v.state));
         if(!v.target.empty())text+=L"\r\n"+Tr("updates.target")+L": "+Wide(v.target)+L"\r\n"+Tr("updates.download_size")+L": "+FormatBytes(v.downloadBytes)+L"\r\n"+Tr("updates.full_size")+L": "+FormatBytes(v.fullBytes)+L"\r\n"+Tr("updates.reuse")+L": "+FormatBytes(v.reusedBytes);
-        if(v.state==updates::UpdateState::Downloading)text+=L"\r\n"+FormatBytes(v.received)+L" / "+FormatBytes(v.downloadBytes)+L" ("+std::to_wstring(v.downloadBytes?std::min<std::uint64_t>(100,v.received*100/v.downloadBytes):100)+L"%)"+(v.constructing?L"\r\n"+Tr("updates.verifying"):L"");
+        if(v.state==updates::UpdateState::Downloading||v.state==updates::UpdateState::Paused)text+=L"\r\n"+FormatBytes(v.received)+L" / "+FormatBytes(v.downloadBytes)+L" ("+std::to_wstring(v.downloadBytes?std::min<std::uint64_t>(100,v.received*100/v.downloadBytes):100)+L"%)"+(v.constructing?L"\r\n"+Tr("updates.verifying"):L"");
         if(!v.previous.empty())text+=L"\r\n"+Tr("updates.rollback")+L": "+Wide(v.previous);
         if(!v.notes.empty())text+=L"\r\n\r\n"+Wide(v.notes);if(!v.error.empty())text+=L"\r\n"+Wide(v.error);if(text!=displayed){displayed=text;SetWindowTextW(body,text.c_str());}
         using S=updates::UpdateState;const bool idle=v.state!=S::Unconfigured&&v.state!=S::Checking&&v.state!=S::Downloading;
         const bool enabled[]{idle,v.state==S::Available||(v.state==S::Error&&!v.target.empty()),v.state==S::Downloading,v.state==S::Paused,v.state==S::Downloading||v.state==S::Paused,v.state==S::Staged,!v.previous.empty()&&v.state!=S::Downloading,true};
-        for(std::size_t i=0;i<buttons.size();++i)EnableWindow(buttons[i],enabled[i]);}
+        const auto actions=UpdateDialogActions(v);const bool progressVisible=v.state==S::Downloading||v.state==S::Paused||v.state==S::Staged;
+        const bool relayout=actions!=visible||progressVisible!=showProgress;visible=actions;showProgress=progressVisible;
+        for(std::size_t i=0;i<buttons.size();++i){EnableWindow(buttons[i],enabled[i]);ShowWindow(buttons[i],visible[i]?SW_SHOW:SW_HIDE);}
+        ShowWindow(progress,showProgress?SW_SHOW:SW_HIDE);
+        SendMessageW(progress,PBM_SETPOS,v.downloadBytes?static_cast<WPARAM>(std::min<std::uint64_t>(100,v.received*100/v.downloadBytes)):(v.state==S::Staged||v.constructing?100:0),0);
+        if(relayout){Layout();InvalidateRect(window,nullptr,TRUE);}}
     static LRESULT CALLBACK Procedure(HWND window,UINT message,WPARAM w,LPARAM l){auto* d=reinterpret_cast<Dialog*>(GetWindowLongPtrW(window,GWLP_USERDATA));
         if(message==WM_NCCREATE){d=static_cast<Dialog*>(reinterpret_cast<CREATESTRUCTW*>(l)->lpCreateParams);d->window=window;SetWindowLongPtrW(window,GWLP_USERDATA,reinterpret_cast<LONG_PTR>(d));}
         if(!d)return DefWindowProcW(window,message,w,l);
         if(message==WM_CREATE){BOOL dark=TRUE;DwmSetWindowAttribute(window,20,&dark,sizeof(dark));d->background=CreateSolidBrush(Color(d->theme.background));
+            INITCOMMONCONTROLSEX controls{sizeof(controls),ICC_PROGRESS_CLASS};InitCommonControlsEx(&controls);
+            d->progress=CreateWindowExW(0,PROGRESS_CLASSW,L"",WS_CHILD|PBS_SMOOTH,0,0,0,0,window,reinterpret_cast<HMENU>(108),nullptr,nullptr);
+            SetWindowTheme(d->progress,L"",L"");SendMessageW(d->progress,PBM_SETRANGE32,0,100);
+            SendMessageW(d->progress,PBM_SETBKCOLOR,0,Color(d->theme.surface));SendMessageW(d->progress,PBM_SETBARCOLOR,0,Color(d->theme.accent));
             d->Font(GetDpiForWindow(window));
             d->body=CreateWindowExW(0,L"EDIT",L"",WS_CHILD|WS_VISIBLE|ES_READONLY|ES_MULTILINE|ES_AUTOVSCROLL|WS_VSCROLL,0,0,0,0,window,nullptr,nullptr,nullptr);SendMessageW(d->body,WM_SETFONT,reinterpret_cast<WPARAM>(d->font),TRUE);
             SetWindowTheme(d->body,L"DarkMode_Explorer",nullptr);
