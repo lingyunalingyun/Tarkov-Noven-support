@@ -32,6 +32,16 @@ LRESULT CALLBACK ButtonProcedure(HWND window,UINT message,WPARAM w,LPARAM l,UINT
 COLORREF Color(D2D1_COLOR_F c){return RGB(static_cast<BYTE>(c.r*255),static_cast<BYTE>(c.g*255),static_cast<BYTE>(c.b*255));}
 std::wstring Wide(std::string_view text){const auto count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,text.data(),static_cast<int>(text.size()),nullptr,0);std::wstring result(static_cast<std::size_t>(count),L'\0');if(count)MultiByteToWideChar(CP_UTF8,0,text.data(),static_cast<int>(text.size()),result.data(),count);return result;}
 std::wstring Size(std::uint64_t bytes){return bytes?FormatBytes(bytes):Tr("resources.size_unknown");}
+// 定时轮询只更新变化的文字，避免静态控件和表格每半秒重绘。
+// Polling updates changed text only, avoiding periodic static/list repaint flicker.
+void Text(HWND control,const std::wstring& next){
+    std::wstring current(next.size()+2,L'\0');GetWindowTextW(control,current.data(),static_cast<int>(current.size()));
+    if(std::wstring_view(current.c_str())!=next)SetWindowTextW(control,next.c_str());
+}
+void Cell(HWND list,int row,int column,std::wstring& next){
+    std::wstring current(next.size()+2,L'\0');ListView_GetItemText(list,row,column,current.data(),static_cast<int>(current.size()));
+    if(std::wstring_view(current.c_str())!=next)ListView_SetItemText(list,row,column,next.data());
+}
 struct Dialog {
     resources::ResourceService& service;std::filesystem::path root;bool onboarding{},updating{};
     ResourceDialogSelection selection;ResourceDialogDecision decision;std::vector<resources::ResourceSnapshot> rows;
@@ -46,8 +56,8 @@ struct Dialog {
         rows=service.Snapshot();updating=true;const auto list=GetDlgItem(window,List);
         if(ListView_GetItemCount(list)!=static_cast<int>(rows.size())){ListView_DeleteAllItems(list);for(std::size_t i=0;i<rows.size();++i){LVITEMW item{};item.mask=LVIF_TEXT;item.iItem=static_cast<int>(i);item.pszText=const_cast<wchar_t*>(L"");ListView_InsertItem(list,&item);}}
         for(std::size_t i=0;i<rows.size();++i){const auto& row=rows[i];std::wstring columns[]{Wide(UiLocalization().ActiveLocale()=="zh-CN"?row.record.titleZh:row.record.titleEn),Tr(ResourceStateKey(row.state)),Size(row.record.downloadSize),row.record.downloadSize?std::to_wstring(row.received*100/row.record.downloadSize)+L"%":L"-",Size(row.record.installedSize),Wide(row.record.version), row.error.empty()?L"":Tr(row.error)};
-            for(int col=0;col<7;++col)ListView_SetItemText(list,static_cast<int>(i),col,columns[col].data());
-            if(onboarding)ListView_SetCheckState(list,static_cast<int>(i),selection.Selected(row.record.resourceId));}
+            for(int col=0;col<7;++col)Cell(list,static_cast<int>(i),col,columns[col]);
+            if(onboarding&&static_cast<bool>(ListView_GetCheckState(list,static_cast<int>(i)))!=selection.Selected(row.record.resourceId))ListView_SetCheckState(list,static_cast<int>(i),selection.Selected(row.record.resourceId));}
         updating=false;
         std::wstring total=Tr("resources.selected_total")+L" "+(selection.UnknownSize(rows)?Tr("resources.size_unknown"):FormatBytes(selection.Total(rows)));
         auto existing=root;while(!std::filesystem::exists(existing)&&existing!=existing.root_path())existing=existing.parent_path();ULARGE_INTEGER free{};
@@ -61,11 +71,12 @@ struct Dialog {
         case resources::RemoteAvailability::NetworkUnavailable:note="resources.catalog_offline";break;
         case resources::RemoteAvailability::ManifestInvalid:note="resources.catalog_invalid";break;
         default:break;}
-        SetDlgItemTextW(window,Total,total.c_str());SetDlgItemTextW(window,Note,Tr(note).c_str());
+        Text(GetDlgItem(window,Total),total);Text(GetDlgItem(window,Note),Tr(note));
         ResourceDialogSelection all;all.All(rows);
-        EnableWindow(GetDlgItem(window,Download),(onboarding?selection:all).Download(rows,service.CanDownload()).download);
+        const auto download=GetDlgItem(window,Download);const bool enabled=(onboarding?selection:all).Download(rows,service.CanDownload()).download;
+        if(static_cast<bool>(IsWindowEnabled(download))!=enabled)EnableWindow(download,enabled);
         actions.clear();if(!onboarding&&selected>=0&&static_cast<std::size_t>(selected)<rows.size())actions=resources::ResourceActions(rows[static_cast<std::size_t>(selected)],service.Remote());
-        for(int i=0;i<4;++i){const auto button=GetDlgItem(window,Action+i);ShowWindow(button,static_cast<std::size_t>(i)<actions.size()?SW_SHOW:SW_HIDE);if(static_cast<std::size_t>(i)<actions.size())SetWindowTextW(button,Tr(ResourceActionKey(actions[static_cast<std::size_t>(i)])).c_str());}
+        for(int i=0;i<4;++i){const auto button=GetDlgItem(window,Action+i);const bool visible=static_cast<std::size_t>(i)<actions.size();if(((GetWindowLongPtrW(button,GWL_STYLE)&WS_VISIBLE)!=0)!=visible)ShowWindow(button,visible?SW_SHOW:SW_HIDE);if(visible)Text(button,Tr(ResourceActionKey(actions[static_cast<std::size_t>(i)])));}
     }
     void Layout(HWND window){RECT rect{};GetClientRect(window,&rect);const int w=rect.right,h=rect.bottom,p=Px(20),gap=Px(8),button=Px(132),bh=Px(38);
         MoveWindow(GetDlgItem(window,Note),p,p,w-2*p,Px(46),TRUE);MoveWindow(GetDlgItem(window,List),p,Px(76),w-2*p,std::max(Px(40),h-Px(224)),TRUE);

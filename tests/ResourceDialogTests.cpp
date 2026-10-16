@@ -10,6 +10,13 @@ void Check(bool value){if(!value)throw std::runtime_error("resource dialog asser
 namespace {
 HWND owner{};bool inspected{},downloadTest{},managerTest{};unsigned ticks{};
 resources::ResourceService* activeService{};
+unsigned redundantWrites{};
+LRESULT CALLBACK ObserveRefresh(HWND window,UINT message,WPARAM w,LPARAM l,UINT_PTR id,DWORD_PTR){
+    if(message==WM_SETTEXT&&l){const auto* next=reinterpret_cast<const wchar_t*>(l);std::wstring current(wcslen(next)+2,L'\0');GetWindowTextW(window,current.data(),static_cast<int>(current.size()));if(std::wstring_view(current.c_str())==next)++redundantWrites;}
+    if(message==LVM_SETITEMTEXTW){const auto& item=*reinterpret_cast<const LVITEMW*>(l);std::wstring current(wcslen(item.pszText)+2,L'\0');ListView_GetItemText(window,static_cast<int>(w),item.iSubItem,current.data(),static_cast<int>(current.size()));if(std::wstring_view(current.c_str())==item.pszText)++redundantWrites;}
+    if(message==WM_NCDESTROY)RemoveWindowSubclass(window,ObserveRefresh,id);
+    return DefSubclassProc(window,message,w,l);
+}
 std::wstring Label(HWND dialog){wchar_t text[512]{};GetDlgItemTextW(dialog,103,text,512);return text;}
 void CheckLayout(HWND dialog){
     const auto list=GetDlgItem(dialog,101);RECT client{};GetClientRect(list,&client);int total{};
@@ -26,6 +33,11 @@ void CALLBACK Inspect(HWND,UINT,UINT_PTR timer,DWORD){
     CheckLayout(dialog);
     for(unsigned dpi:{96,144,192}){RECT rect{0,0,MulDiv(1200,dpi,96),MulDiv(650,dpi,96)};SendMessageW(dialog,WM_DPICHANGED,MAKELONG(dpi,dpi),reinterpret_cast<LPARAM>(&rect));CheckLayout(dialog);}
     Check(Label(dialog).find(L"0 B")!=std::wstring::npos);
+    // 空闲轮询不能重复写相同文字；不用像素或定时 sleep 判断闪烁。
+    // Idle polling must not rewrite identical text; test mutations rather than pixels or sleeps.
+    EnumChildWindows(dialog,[](HWND child,LPARAM)->BOOL{Check(SetWindowSubclass(child,ObserveRefresh,42,0)!=FALSE);return TRUE;},0);
+    redundantWrites=0;for(int i=0;i<3;++i)SendMessageW(dialog,WM_TIMER,1,0);
+    if(redundantWrites){PostMessageW(dialog,WM_COMMAND,IDCANCEL,0);return;}
     if(downloadTest){
         SendMessageW(dialog,WM_COMMAND,104,0);const auto rows=activeService->Snapshot();
         Check(Label(dialog).find(ui::FormatBytes(rows.front().record.downloadSize))!=std::wstring::npos&&IsWindowEnabled(GetDlgItem(dialog,106)));
@@ -70,7 +82,7 @@ int wmain(int argc,wchar_t** argv) try {
     const auto root=std::filesystem::temp_directory_path()/("noven-resource-dialog-"+std::to_string(GetCurrentProcessId()));Check(!std::filesystem::exists(root));
     resources::ResourceService service(common::AppPaths::Test(root/"program",root/"user"),{}, {},{}, {},{{"factory","工厂","Factory"}});
     owner=CreateWindowExW(0,L"STATIC",L"Resource test owner",WS_OVERLAPPEDWINDOW,0,0,900,750,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
-    for(bool onboarding:{true,false}){inspected=false;ticks=0;const auto timer=SetTimer(nullptr,0,20,Inspect);Check(!ui::ShowResourceDialog(owner,service,root,onboarding).download);KillTimer(nullptr,timer);Check(inspected&&IsWindowEnabled(owner));}
+    for(bool onboarding:{true,false}){inspected=false;ticks=0;const auto timer=SetTimer(nullptr,0,20,Inspect);Check(!ui::ShowResourceDialog(owner,service,root,onboarding).download);KillTimer(nullptr,timer);Check(redundantWrites==0);Check(inspected&&IsWindowEnabled(owner));}
     service.Shutdown();Check(!service.CanDownload()&&!std::filesystem::exists(root));
     // 真实原生选择框驱动离线安装，再从管理框验证；没有生产端点或真实地图素材。
     // The real native selector drives offline installation and manager verification, without production URLs/assets.
@@ -82,7 +94,7 @@ int wmain(int argc,wchar_t** argv) try {
         auto timer=SetTimer(nullptr,0,20,Inspect);const auto selected=ui::ShowResourceDialog(owner,offline,root,true);KillTimer(nullptr,timer);Check(inspected&&selected.download&&selected.ids==std::vector{record.resourceId});
         Check(offline.Act(selected.ids.front(),A::Download)&&offline.WaitIdle(std::chrono::seconds(10))&&offline.Snapshot().front().state==S::Installed);
         downloadTest=false;managerTest=true;inspected=false;ticks=0;timer=SetTimer(nullptr,0,20,Inspect);Check(!ui::ShowResourceDialog(owner,offline,root,false).download);KillTimer(nullptr,timer);
-        Check(inspected&&offline.WaitIdle(std::chrono::seconds(10))&&offline.Snapshot().front().state==S::Installed);offline.Shutdown();Check(!offline.CanDownload());
+        Check(redundantWrites==0&&inspected&&offline.WaitIdle(std::chrono::seconds(10))&&offline.Snapshot().front().state==S::Installed);offline.Shutdown();Check(!offline.CanDownload());
     }
     DestroyWindow(owner);std::filesystem::remove_all(root);
     std::cout<<"selection/stable IDs/total/later/unconfigured/context actions/localized state PASS\n";return 0;
