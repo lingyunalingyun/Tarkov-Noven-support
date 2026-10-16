@@ -85,6 +85,13 @@ guarantee; confirm the roommate's network can reach it.
    interrupted and resumed runs, not just the planner's estimate; TLS/header/
    transport overhead is separate from content byte counts.
 
+The native channel tool defaults to the original `0.1.0 -> 0.1.1` fixture.
+For later releases, append explicit baseline and target versions after key ID,
+for example `--resume <Program root> <Test root> <HTTPS root> <public blob>
+<keyId> 0.1.1 0.1.2`. The isolated active version must match the baseline;
+invalid versions and downgrades fail before network access. These operator-only
+arguments do not change distributed application or installer bytes.
+
 No private-key upload, source push, optional maps, ratings, marketplace package
 installation or unrelated work is part of this workflow. Historical AV and
 pending installer lifecycle acceptance remain recorded in INSTALLATION.md.

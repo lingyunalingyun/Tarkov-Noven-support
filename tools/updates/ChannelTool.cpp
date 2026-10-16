@@ -60,14 +60,16 @@ int wmain(int argc,wchar_t** argv)try{
     if(argc==6&&std::wstring_view(argv[1])==L"--verify-remote"){
         VerifyRemote(std::filesystem::absolute(argv[2]),std::filesystem::absolute(argv[3]),Ascii(argv[4]),Ascii(argv[5]));return 0;
     }
-    if(argc!=7){std::cerr<<"--verify <artifacts> <public blob> <keyId> OR --plan/--interrupt/--resume/--lifecycle <isolated Program root> <isolated Test root> <approved HTTPS root> <public blob> <keyId>\n";return 2;}
+    if(argc!=7&&argc!=9){std::cerr<<"--verify <artifacts> <public blob> <keyId> OR --plan/--interrupt/--resume/--lifecycle <isolated Program root> <isolated Test root> <approved HTTPS root> <public blob> <keyId> [<from version> <target version>]\n";return 2;}
     const auto mode=std::wstring_view(argv[1]);Check(mode==L"--plan"||mode==L"--interrupt"||mode==L"--resume"||mode==L"--lifecycle");
+    const auto from=argc==9?Ascii(argv[7]):"0.1.0",target=argc==9?Ascii(argv[8]):"0.1.1";
+    Check(updates::ValidReleaseVersion(from)&&updates::ValidReleaseVersion(target)&&updates::CompareReleaseVersions(target,from)>0);
     const auto program=std::filesystem::absolute(argv[2]);auto keys=Keys(std::filesystem::absolute(argv[5]),Ascii(argv[6]));
-    const auto paths=common::AppPaths::Test(program/L"versions"/L"0.1.0",std::filesystem::absolute(argv[3]));
-    updates::VersionStore store(program,"0.1.0",keys);Check(store.Validate("0.1.0"));
+    const auto paths=common::AppPaths::Test(program/L"versions"/from,std::filesystem::absolute(argv[3]));
+    updates::VersionStore store(program,from,keys);Check(store.Validate(from)&&store.Read().active==from);
     auto source=updates::HttpsUpdateSource({Ascii(argv[4])});Check(static_cast<bool>(source));
-    const auto release=updates::VerifyRelease(source->FetchManifest({}),keys);Check(release.Manifest().version=="0.1.1");
-    const auto plan=updates::PlanUpdate("0.1.0",paths.programRoot,paths.UpdateCache(),release);
+    const auto release=updates::VerifyRelease(source->FetchManifest({}),keys);Check(release.Manifest().version==target);
+    const auto plan=updates::PlanUpdate(from,paths.programRoot,paths.UpdateCache(),release);
     std::cout<<"verified remote version="<<release.Manifest().version<<" full="<<plan.fullBytes<<" reused="<<plan.reusedBytes<<" planned="<<plan.downloadBytes<<std::endl;
     if(mode==L"--plan")return 0;
     updates::UpdateEngine engine(program,paths.UpdateCache());Counting transport(source);std::stop_source cancel;
@@ -75,9 +77,9 @@ int wmain(int argc,wchar_t** argv)try{
         try{engine.Stage(release,plan,transport,cancel.get_token(),[&](updates::UpdateProgress p){if(mode==L"--interrupt"&&p.downloaded>=65536)cancel.request_stop();});}
         catch(const std::exception& e){
             std::cout<<"actual body bytes="<<transport.received<<" result="<<e.what()<<std::endl;
-            if(mode==L"--interrupt"&&cancel.stop_requested()){Check(store.Validate("0.1.0"));return 3;}throw;
+            if(mode==L"--interrupt"&&cancel.stop_requested()){Check(store.Validate(from));return 3;}throw;
         }
-        Check(engine.ValidateVersion(release)&&store.Validate("0.1.0"));
+        Check(engine.ValidateVersion(release)&&store.Validate(from));
         std::cout<<"remote stage PASS actual body bytes="<<transport.received<<" savedPercent="<<100.0*(1.0-static_cast<double>(transport.received)/static_cast<double>(plan.fullBytes))<<std::endl;return 0;
     }
     // 仅显式操作员隔离目录；这是核心状态验证，不声称 Launcher/UI 人工验收。
@@ -85,9 +87,9 @@ int wmain(int argc,wchar_t** argv)try{
     Check(engine.ValidateVersion(release));
     const auto marker=paths.Data()/L"channel-review-preservation.txt";
     Check(resources::WriteResourceText(marker,"channel review user state"));
-    store.Activate(release);auto boot=store.BeginLaunch();store.ConfirmHealthy(boot.active,boot.token);Check(store.Read().active=="0.1.1");
-    store.Rollback();Check(store.Read().active=="0.1.0");
+    store.Activate(release);auto boot=store.BeginLaunch();store.ConfirmHealthy(boot.active,boot.token);Check(store.Read().active==target);
+    store.Rollback();Check(store.Read().active==from);
     store.Activate(release);boot=store.BeginLaunch();store.ConfirmHealthy(boot.active,boot.token);
-    Check(store.Read().active=="0.1.1"&&resources::ReadResourceText(marker,128)=="channel review user state");
+    Check(store.Read().active==target&&resources::ReadResourceText(marker,128)=="channel review user state");
     std::cout<<"activation/rollback/reactivation/user-data core PASS; UI/manual installation acceptance remains separate\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
