@@ -1473,4 +1473,10 @@ if(BUILD_TESTING)
         target_compile_options(NovenMapPerformanceTests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     endif()
     target_link_libraries(NovenMapPerformanceTests PRIVATE d2d1 dwrite imm32 windowscodecs ole32 psapi)
+    # 安装/激活使用真实会话级存在标记，不能与 Host 测试并行；不绕过生产保护。
+    # Installer/activation tests use real session markers and must not overlap Host tests.
+    set_tests_properties(update_engine installer_version packaging_contract PROPERTIES RUN_SERIAL TRUE)
+    # 原生模态测试共享桌面焦点，其他纯模型/独立进程测试仍可并行。
+    # Native modal tests share desktop focus; independent model/process tests remain parallel.
+    set_tests_properties(message_dialog resource_dialog update_dialog localization_ui PROPERTIES RESOURCE_LOCK noven_desktop_ui)
 endif()
