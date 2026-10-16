@@ -13,8 +13,31 @@ std::optional<Timestamp> ExplicitTime(std::string_view text,std::string_view lab
     for(const std::size_t length:{25U,20U})if(start+length<=text.size())if(auto t=ParseTimestamp(text.substr(start,length)))return t;
     return {};
 }
-std::vector<EventMode> DeclaredModes(std::string_view lead) {
-    std::string_view declaration;
+struct NamedLiveEvent {std::string_view title,scope;};
+std::optional<NamedLiveEvent> NamedLive(std::string_view text) {
+    constexpr std::string_view prefix="The in-game event ";
+    if(!text.starts_with(prefix))return {};
+    text.remove_prefix(prefix.size());
+    // 仅接受具名、肯定的游戏活动声明；不靠正文中的关键词猜测新闻类型。
+    // Require a quoted name and affirmative game scope, not keyword matches anywhere in news.
+    std::string_view close;
+    if(text.starts_with("“")){text.remove_prefix(std::string_view("“").size());close="”";}
+    else if(text.starts_with('"')){text.remove_prefix(1);close="\"";}
+    else return {};
+    const auto end=text.find(close);
+    if(end==text.npos || end==0 || end>2048)return {};
+    const auto title=text.substr(0,end);
+    if(title.find_first_of("\r\n\t")!=title.npos || title.find_first_not_of(' ')==title.npos)return {};
+    text.remove_prefix(end+close.size());
+    constexpr std::string_view live=" is live in ";
+    if(!text.starts_with(live))return {};
+    text.remove_prefix(live.size());
+    if(!text.starts_with("#EscapefromTarkov.") && text!="#EscapefromTarkov"
+        && !text.starts_with("PvE mode") && !text.starts_with("PvP mode")
+        && !text.starts_with("the seasonal "))return {};
+    return NamedLiveEvent{title,text};
+}
+std::vector<EventMode> DeclaredModes(std::string_view lead,std::string_view declaration={}) {
     for(auto prefix:{"An in-game event has started in ","The in-game event has started in ",
         "An in-game event will start in ","The in-game event will start in "})
         if(lead.starts_with(prefix))declaration=lead.substr(std::string_view(prefix).size());
@@ -83,7 +106,8 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                 if(begin==block.npos || end==block.npos)throw std::runtime_error("official text structure missing");
                 const auto body=block.substr(begin+1,end-begin-1);auto text=html::Text(body);
                 if(text.size()>16384)throw std::runtime_error("official text exceeds capacity");
-                const bool started=text.starts_with("An in-game event has started") || text.starts_with("The in-game event has started");
+                const auto named=NamedLive(text);
+                const bool started=named || text.starts_with("An in-game event has started") || text.starts_with("The in-game event has started");
                 const bool upcoming=text.starts_with("An in-game event will start") || text.starts_with("The in-game event will start");
                 const bool ended=text.starts_with("The in-game event has ended");
                 const bool updated=text.starts_with("The in-game event will remain active until");
@@ -100,7 +124,7 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                     if(mixed!=text.npos)text.resize(mixed);
                     OfficialAnnouncement a;a.sourceRecordId=id;a.sourceUrl="https://t.me/escapefromtarkovEN/"+std::string(id);
                     a.publishedAt=time;a.summary=text;
-                    a.titleIsExcerpt=true;
+                    a.titleIsExcerpt=!named;
                     constexpr std::string_view changeLink="href=\"https://changes.tarkov-changes.com/view/";
                     std::size_t linkPos{};
                     while((linkPos=body.find(changeLink,linkPos))!=body.npos) {
@@ -113,10 +137,11 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                     }
                     // 未提供标题时保留原文首段摘录，而非猜测活动名称。
                     // Without an official title, retain an original leading excerpt, never invent an event name.
-                    a.title=text.substr(0,std::min<std::size_t>(text.find_first_of("\n:"),2048));
+                    a.title=named?std::string(named->title):text.substr(0,std::min<std::size_t>(text.find_first_of("\n:"),2048));
                     a.status=ended?EventStatus::Ended:started?EventStatus::Active:EventStatus::Unknown;
                     if(ended || updated)a.updatesRecordId=link;
                     a.startsAt=ExplicitTime(text,"will start at ");a.endsAt=ExplicitTime(text,"will remain active until ");
+                    if(!a.endsAt)a.endsAt=ExplicitTime(text,"The event will run until ");
                     if(started&&!a.startsAt)a.startsAt=ExplicitTime(text,"has started at ");
                     // 用户约定：明确“已开始”且未给开始时间时使用发布时间，保留依据以免冒充精确来源时间。
                     // Product convention: an explicit started notice without a start time uses publication time with provenance.
@@ -125,7 +150,7 @@ EventSourceResult OfficialEventSource::Parse(const HttpResponse& response,const 
                     // Natural-language dates lacking complete year/zone are not guessed from publication time.
                     // 仅首句的肯定范围声明；后文否定/例外规则不能反向成为适用范围。
                     // Only affirmative scope in the leading sentence; later negations/exceptions cannot establish scope.
-                    a.modes=DeclaredModes(lead);
+                    a.modes=DeclaredModes(lead,named?named->scope:std::string_view{});
                     result.announcements.push_back(std::move(a));
                 }
             }cursor=next;
