@@ -1,5 +1,14 @@
 # Noven Plugin Registry v1
 
+## Official distribution policy
+
+The [project policy](PROJECT_POLICY.md) prohibits cheating functionality in official plugins
+and the official registry/marketplace. Review must not knowingly approve or promote game-memory,
+injection, hidden-information packet sniffing, radar/ESP, hidden-state extraction, automation/pixel-bot,
+anti-cheat bypass or prohibited unfair-advantage tools. Official features/plugin access stay free;
+independent third-party licenses remain intact. This rule does not make listing a safety guarantee,
+turn PluginHost into an OS sandbox, or authorize remote metadata to disable/delete local plugins.
+
 GitHub 托管的第一方 Registry 是市场机器可读数据唯一来源，Muse 不是来源。客户端不维护硬编码插件目录。Phase 9 仅浏览元数据，不安装、下载包、执行代码、授权或修改本地插件。测试夹具仅在 tests/fixtures，不能作为生产条目。
 The first-party GitHub-hosted Registry is the marketplace's machine-readable source of truth, not Muse. The client has no hardcoded plugin catalog. Phase 9 browses metadata only: no installation/package download/execution/grants/local-plugin mutation. Test fixtures live only under tests/fixtures and must never become production listings.
 

@@ -1,7 +1,13 @@
 # Third-party notices / 第三方来源与版权
 
-Phase 10B 正常 Core 安装包不再携带可选地图图片/缩放包。以下地图来源记录继续保留，不代表下载资源已获授权；生产资源下载尚未配置。安装包中的来源说明位于 docs/maps。
-Phase 10B normal Core excludes optional map imagery/zoom packs. Historical provenance below is retained, not redistribution clearance. Production resource downloads remain unconfigured; packaged provenance text is under docs/maps.
+正常 Core 安装包不携带可选地图图片/缩放包。资源由独立签名目录管理，仅发布逐包满足许可的素材；以下历史记录不授予其他图片权利。安装包中的来源说明位于 docs/maps，新的 SVG 包自带完整许可/署名和来源账本。
+Normal Core excludes optional map imagery/zoom packs. A separate signed catalog lists only individually cleared resources; historical provenance is not a grant for other images. Core provenance text is under docs/maps; SVG packages carry full licenses, attribution and source inventories.
+
+Noven's [public policy](https://github.com/lingyunalingyun/Noven-Update-Channel/blob/main/PROJECT_POLICY.md) commits all official features to free
+access, actual noncommercial use of NC material and no cheating functionality.
+This does not replace independent third-party licenses or make PluginHost an OS
+sandbox. Qualifying Shebuka SVG derivatives use CC BY-NC-SA 4.0 with attribution,
+change notices and applicable ShareAlike, not an invented blanket game-image grant.
 
 ## Public event sources / 公开活动来源
 

@@ -1,5 +1,8 @@
 # Host 传输 v1 / Host transport v1
 
+Official distribution follows [PROJECT_POLICY.md](PROJECT_POLICY.md): no cheating plugins.
+This policy preserves all authenticated IPC/permission boundaries; process isolation is not an OS sandbox.
+
 Phase 2 建立的第一方进程边界继续保留；Phase 3 仅向明确授权的 Manifest V2 会话扩展原生加载与声明式页面。V1 永久仅元数据，未知运行字段无效；发现和 Refresh 不启动新插件，启动时只恢复有效的已保存授权。
 The Phase 2 boundary is preserved. Phase 3 adds native loading/declarative pages only for approved V2 sessions. V1 stays permanently metadata-only; unknown runtime fields remain harmless. Discovery/Refresh never start new plugins; startup resumes valid saved consent only. See [Native API](PLUGIN_API.md).
 

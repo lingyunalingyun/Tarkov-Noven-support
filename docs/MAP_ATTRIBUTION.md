@@ -1,5 +1,44 @@
 # Map attribution evidence / 地图归属证据
 
+## 2026-10-16 owner policy clarification / 项目政策补充
+
+The owner explicitly commits Noven to free official features, actual noncommercial
+use of NC material and prohibition of cheating in core/official plugins/registry;
+see [PROJECT_POLICY.md](../PROJECT_POLICY.md). This closes the earlier uncertainty
+about the project's intended use. It is not a new third-party license. Legitimate
+companion maps are not automatically cheats; separate written permission is not
+required solely because Noven is a Tarkov companion application.
+
+Qualifying Shebuka SVG derivatives use the published CC BY-NC-SA 4.0 grant.
+Original source URL and SHA-256 are verified against the source ledger/cache;
+PNG/NVTILES1 bytes and SVG provenance are checked against `all.manifest.json`.
+Packages retain unchanged original SVG and previous notices, author/upstream,
+full license, upstream anti-cheating statement, per-file provenance and Noven's
+floor-selection/crop/rasterization/tiling changes. Any copyrightable Noven
+adaptations use CC BY-NC-SA 4.0; notices do not imply endorsement or grant
+unrelated game-image rights. Actual distribution remains noncommercial.
+
+The SVG-only packaging path covers every catalogued PvP/PvE floor for Factory,
+Night Factory, Woods, Lighthouse, Shoreline, Interchange, Streets of Tarkov,
+Ground Zero, Ground Zero 21+ and Terminal. Titles explicitly say SVG. Satellite
+views may use the existing renderer's SVG fallback; these are not satellite packs.
+Original cached source PNG sets, satellite imagery and independently licensed
+icons are excluded. `tools/resources/prepare_svg_maps.py` uses the existing NVR1
+packager and refuses incomplete SVG floor coverage or hash/source mismatches.
+
+Customs has a satellite-only fourth floor; Reserve has satellite-only upper
+floors, so neither is published as a complete SVG map. Lab/Dark Lab, Labyrinth
+and Icebreaker currently use tile-fallback imagery without a verified independent
+redistribution grant. Ground Zero Tutorial lacks verified layout metadata.
+Their source records remain intact. The same applies independently to satellite
+and handbook/game icons; neither hosting nor a repository software MIT license
+is blanket image permission. These remaining boundaries are not objections to
+legitimate companion use of CC-licensed SVGs.
+
+The historical evidence below is retained; statements requiring verification of
+noncommercial intent are now resolved by the explicit owner policy above, while
+independent imagery gaps remain unresolved.
+
 核对日期：2026-10-02。范围为当前 `assets/maps/*/SOURCE.md` 的全部两份记录：`interchange/SOURCE.md`、`icons/SOURCE.md`，以及对应清单和上游官方文件。本文记录证据及缺口，不宣称已取得全部素材的发布授权。
 
 ## Asset boundaries / 素材边界

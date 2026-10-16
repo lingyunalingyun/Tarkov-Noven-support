@@ -1,8 +1,22 @@
 # Noven Tarkov Support
 
-Noven Tarkov Support is a lightweight native Windows companion application
-for Escape from Tarkov. The initial version is only a project skeleton with a
-minimal Unicode Win32 window; game features will be added in later phases.
+Noven Tarkov Support is a free, non-cheating native Windows community companion
+application for Escape from Tarkov, independent of Battlestate Games.
+
+## Permanent project principles / 永久项目原则
+
+全部官方功能永久免费：不设付费解锁、高级功能、订阅、强制捐款、地图下载费、
+官方插件访问费或使用许可费。尊重原作者及各自许可证，第三方非商业素材的实际使用
+保持非商业。核心、官方扩展/插件和官方 Registry 禁止作弊功能。
+
+All official features are free of charge, without paid unlocks, premium features,
+subscriptions, mandatory donations, paid maps, paid official-plugin access or
+required license fees. Third-party licenses remain independent; actual use of
+NC-licensed materials stays noncommercial. Cheating functionality is prohibited
+in the core, official extensions/plugins and official registry.
+
+See [Project policy](PROJECT_POLICY.md) for attribution obligations, permitted
+companion functionality and the limits of native-plugin process isolation.
 
 ## Technology stack
 

@@ -137,6 +137,12 @@ Use native C++23/Win32/Direct2D/DirectWrite. No Electron, WebView, .NET or produ
 禁止 EFT DLL 注入、进程内存读取、抓包、隐蔽游戏状态提取和自动游戏操作。
 No EFT DLL injection, process-memory reading, packet sniffing, hidden game-state extraction or automated gameplay.
 
+遵守 [公开项目政策](PROJECT_POLICY.md)：官方功能永久免费，第三方 NC 素材实际使用保持非商业；
+保留逐素材作者/来源/许可/修改记录。核心、官方插件和 Registry 不得提供或明知推广作弊。
+现有插件权限/数据边界不变；PluginHost 不是 OS 沙箱，不声称能阻止任意原生 DLL 自行作弊。
+Follow the permanent free-access, attribution and anti-cheating policy. Do not replace independent licenses,
+invent asset rights, or treat legitimate companion maps as cheating solely because they support Tarkov.
+
 代码备注中文在前、英文在后，重点解释架构、所有权、不变量、线程边界、稳定身份和数据语义，不逐行注释简单代码。
 Comments are Chinese first, English second, explaining architecture, ownership, invariants, threading, stable identity and semantics rather than trivial lines.
 

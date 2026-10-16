@@ -1,5 +1,9 @@
 # Native Plugin API v1
 
+Official plugins follow the [free-access, attribution and anti-cheating policy](PROJECT_POLICY.md).
+Cheating functionality is prohibited in official distribution; this neither expands API permissions
+nor guarantees that an arbitrary unsandboxed native DLL cannot call Windows APIs independently.
+
 第三方 DLL 仅在独立的 `NovenPluginHost.exe` 中运行，每个插件一个 Host。主程序拥有安全 UI、授权、注册表、文档渲染与状态存储；不把原生 UI/Core 指针传给插件。
 Third-party DLLs run only in a dedicated `NovenPluginHost.exe`, one per plugin. Noven owns security UI, consent, registry, rendering and state; no native UI/core pointers cross the boundary.
 
