@@ -142,10 +142,11 @@ allowlist and operator review. The normal installer remains Core-only.
 See `docs/MAP_ATTRIBUTION.md` and retained per-source records; they are not grants.
 
 * Original synthetic PNG/text: approved for isolated non-production tests only.
-* Shebuka/Tarkov.dev SVG-derived layouts (Factory, Customs, Woods, Lighthouse,
-  Shoreline, Reserve, Interchange, Streets, Ground Zero/Terminal groups): further
-  verification required for actual proposed use, CC BY-NC-SA 4.0 conditions,
-  attribution/share-alike and upstream usage restrictions. No blanket approval.
+* Qualifying Shebuka SVG-derived layouts: use the published CC BY-NC-SA 4.0
+  grant with the owner's explicit noncommercial/non-cheating policy in
+  PROJECT_POLICY.md, verified source hashes and packaged attribution/notices.
+  Companion use alone does not require separate written permission. This does
+  not clear satellite images, screenshots or independently licensed icons.
 * Satellite imagery and handbook icons: no confirmed redistribution permission;
   not approved for public publication.
 * Laboratory/Maze (Tarkov.dev) and Icebreaker (TarkovBOT.eu) groups: further
@@ -153,7 +154,26 @@ See `docs/MAP_ATTRIBUTION.md` and retained per-source records; they are not gran
 * Repository MIT icon material: preserve exact MIT notices, but separately
   verify underlying game/third-party image rights; no blanket image approval.
 
-No real third-party map package is approved in this milestone. Production catalog
-must therefore remain empty. A separately downloaded asset has exactly the same
-redistribution obligations as a bundled asset. Do not populate it with synthetic
-test maps to suggest that actual maps are available.
+Complete SVG-only coverage is available for Factory, Night Factory, Woods,
+Lighthouse, Shoreline, Interchange, Streets, Ground Zero, Ground Zero 21+ and
+Terminal. Customs/Reserve have satellite-only floors and must not be advertised
+as complete SVG maps. Tutorial has no verified layout. Other imagery-only maps
+remain withheld. A separate download has the same redistribution obligations as
+bundled content; synthetic test maps remain segregated from production.
+
+`tools/resources/prepare_svg_maps.py --assets <assets> --sources <source cache>
+--upstream <exact LICENSE.md/README.md directory> --upstream-ref <notice commit>
+--output <NEW output> --version <resource SemVer>` prepares only complete
+SVG-derived floor sets using the existing NVR1 packager. It checks source and
+derived hashes, excludes embedded raster/active SVG content and includes the
+unchanged SVG, full license, upstream statement, SOURCE.md and PROVENANCE.json.
+It never uploads or treats an unrelated image as SVG-licensed.
+
+Operator `NovenResourceChannelTool --verify-remote <signed manifest> <public blob>
+<keyId> production <fixed asset root>` verifies every remote package byte through
+the production HTTPS adapter. `--production-interrupt`, `--production-cut-flow`
+and `--production-flow` use the production signature audience and complete
+MapCatalog labels to test Factory installation, native map load, offline
+restart, verification, in-use protection, deletion and redownload. They use
+explicit Program/Test roots, never the real user's data. Existing synthetic
+modes retain their separate audience. None of these tools are shipped in Core.
