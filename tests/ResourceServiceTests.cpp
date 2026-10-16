@@ -93,6 +93,14 @@ int main() try {
     Check(WriteResourceText(completed.DownloadCache()/"resources"/"factory.part.json",EncodeResourceManifest({{record}})));
     transport->hold=false;const auto countBefore=transport->opens;
     {ResourceService service(completed,{{record}},transport,[]{return 1024*1024ULL;});Check(View(service).state==S::Paused);Check(service.Act(record.resourceId,ResourceAction::Resume));Idle(service);Check(View(service).state==S::Installed&&transport->opens==countBefore);}
+    const auto deepRecord=Record(root,"55f2d3fd4bdc2d5f408b4567");transport->bytes=Package(deepRecord.resourceId);
+    Check(root.wstring().size()+6<94);
+    const auto deepPaths=noven::common::AppPaths::Test(root/"program",root/std::string(94-root.wstring().size()-6,'d'));
+    Check((deepPaths.ResourceStaging()/std::string(64,'a')/"receipt.json").wstring().size()+65<MAX_PATH);
+    Check((deepPaths.ResourceStaging()/(std::string(64,'a')+"-delete")/deepRecord.sha256/"maps/synthetic/floor.png").wstring().size()>=MAX_PATH);
+    {ResourceService service(deepPaths,{{deepRecord}},transport,[]{return 1024*1024ULL;});service.DownloadAll();Idle(service);Check(View(service).state==S::Installed);
+        Check(service.Act(deepRecord.resourceId,ResourceAction::Delete));Idle(service);Check(View(service).state==S::NotInstalled&&View(service).received==0&&!service.ResolveMap(deepRecord.stableMapId));
+        service.DownloadAll();Idle(service);Check(View(service).state==S::Installed);}
     Check(!std::filesystem::exists(paths.Plugins())&&!std::filesystem::exists(paths.Data())&&!std::filesystem::exists(paths.programRoot));
     std::filesystem::remove_all(root);std::cout<<"state machine/offline/resume/restart/hash/atomic install/delete/leases/cancel/disk/identity PASS\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what();return 1;}

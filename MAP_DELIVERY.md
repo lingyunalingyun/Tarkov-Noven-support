@@ -28,7 +28,14 @@ prerelease and `maps-review/manifest.json`; they never populate production maps.
 
 The Releases adapter maps the authorized basename to its signed asset ID and
 uses the anonymous GitHub Asset API with `Accept: application/octet-stream`.
-Only `/repos/lingyunalingyun/Noven-Update-Channel/releases/assets/<id>` is used.
+Only `/repos/lingyunalingyun/Noven-Update-Channel/releases/assets/<id>` is used
+for API resolution. A confirmed anonymous quota response (403 with
+`X-RateLimit-Remaining: 0`, or 429) switches this adapter session to the fixed
+approved repository/tag and signed artifact basename. It does not keep calling
+the exhausted API for each chunk. Non-quota 403 does not trigger fallback.
+The basename is already authenticated; final SHA-256, size and safe extraction
+remain mandatory even if a repository owner replaces a named asset. Both
+resolution routes request no-cache and allow exactly the same single CDN hop.
 The initial browser download endpoint passed probes but repeatedly timed out
 in the complete native flow; it is not the production resolution route.
 The adapter then accepts at most one
@@ -47,7 +54,29 @@ change application updater redirect policy. Explicit static Windows proxy
 configuration is supported; no PAC/WPAD or environment-proxy execution.
 Transient connection/header failures have at most three attempts with 0.5/1 s
 cancellable backoff. Invalid redirects, signatures, hashes and Range responses
-are never retried as if valid; partial body failures resume through ResourceService.
+are never retried as if valid. A resource stream additionally allows at most two
+transient body-read recoveries (12002/12029/12030) over its entire lifetime, with
+the same cancellable 0.5/1 s backoff. It closes the failed response, resolves the
+signed asset ID again with a no-cache request, and requests precisely the
+undelivered remainder of the original Range. Every renewed response must have
+the exact 206/Content-Range/length/total. Delivered bytes are not fetched again;
+an uncommitted final block may be repeated if its EOF check failed. Timeout
+values are unchanged; a response deadline is a typed timeout, not a stale Win32
+error. Cancellation, invalid headers, TLS errors, hashes and extraction errors
+never bypass validation. Exhausted retries retain resumable partials and report
+Error. Application-update streams do not opt into these read retries.
+
+Native diagnostics report request ranges, response/header timings, read time,
+retry counts and Win32 failure stage, never CDN query strings or credentials.
+`NovenResourceChannelTool --cut-flow` deliberately closes one **real HTTPS**
+body after receiving a prefix, then requires automatic Range recovery. The
+tool checks same-session empty-cache deletion/redownload and restarted/offline
+map load, and reports received body bytes separately from HTTP/TLS overhead.
+
+Deletion uses a short random staging tombstone so an already-valid map tree
+does not acquire an unnecessary 64-character prefix. It clears only that
+resource's partial artifact and progress, retaining the same trusted-root,
+reparse-point and in-use guards. Other user data is untouched.
 
 Mutable Raw metadata can be cached (observed max-age=300); verify published bytes
 before announcing availability. Upload immutable Release assets first, check

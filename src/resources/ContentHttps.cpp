@@ -27,12 +27,12 @@ std::wstring Wide(std::string_view value){return {value.begin(),value.end()};}
 class WindowsBody final:public ContentBody {
 public:
     Handle session,connection,request;std::chrono::steady_clock::time_point deadline=std::chrono::steady_clock::now()+std::chrono::seconds(120);
-    void Ready(std::stop_token stop){CheckStop(stop);if(std::chrono::steady_clock::now()>=deadline)Failed();}
+    void Ready(std::stop_token stop){CheckStop(stop);if(std::chrono::steady_clock::now()>=deadline)throw ContentNetworkError("HTTPS response deadline exceeded",ERROR_WINHTTP_TIMEOUT);}
     std::size_t Read(std::span<char> out,std::stop_token stop)override{Ready(stop);DWORD read{};const auto n=static_cast<DWORD>(std::min<std::size_t>(out.size(),65536));
         if(!n)return 0;if(!WinHttpReadData(request.value,out.data(),n,&read))Failed("read");Ready(stop);return read;}
 };
-std::string Header(HINTERNET request,DWORD query){std::array<wchar_t,2049> text{};DWORD bytes=static_cast<DWORD>(sizeof(text));
-    if(!WinHttpQueryHeaders(request,query,WINHTTP_HEADER_NAME_BY_INDEX,text.data(),&bytes,WINHTTP_NO_HEADER_INDEX)){
+std::string Header(HINTERNET request,DWORD query,const wchar_t* name=WINHTTP_HEADER_NAME_BY_INDEX){std::array<wchar_t,2049> text{};DWORD bytes=static_cast<DWORD>(sizeof(text));
+    if(!WinHttpQueryHeaders(request,query,name,text.data(),&bytes,WINHTTP_NO_HEADER_INDEX)){
         if(GetLastError()==ERROR_WINHTTP_HEADER_NOT_FOUND)return {};Failed();}
     std::string result;for(auto c:std::wstring_view(text.data(),bytes/sizeof(wchar_t))){if(!c)break;if(c<32||c>126)Failed();result+=static_cast<char>(c);}return result;
 }
@@ -63,7 +63,8 @@ public:
             !WinHttpSetOption(body->request.value,WINHTTP_OPTION_AUTOLOGON_POLICY,&auth,sizeof(auth))||
             !WinHttpSetOption(body->request.value,WINHTTP_OPTION_MAX_RESPONSE_HEADER_SIZE,&headers,sizeof(headers)))Failed();
         std::wstring requestHeaders=L"Accept-Encoding: identity\r\n";
-        if(resourceTransfer_&&parsed->host=="api.github.com"&&parsed->target.starts_with("/repos/lingyunalingyun/Noven-Update-Channel/releases/assets/"))requestHeaders+=L"Accept: application/octet-stream\r\n";
+        if(resourceTransfer_&&parsed->host=="api.github.com"&&parsed->target.starts_with("/repos/lingyunalingyun/Noven-Update-Channel/releases/assets/"))requestHeaders+=L"Accept: application/octet-stream\r\nCache-Control: no-cache\r\n";
+        if(resourceTransfer_&&parsed->host=="github.com"&&parsed->target.starts_with("/lingyunalingyun/Noven-Update-Channel/releases/download/"))requestHeaders+=L"Cache-Control: no-cache\r\n";
         if(range){if(!range->count||range->count>ContentRangeBytes||range->offset>MaximumContentBytes||range->count>MaximumContentBytes-range->offset)Failed();
             requestHeaders+=L"Range: bytes="+std::to_wstring(range->offset)+L"-"+std::to_wstring(range->offset+range->count-1)+L"\r\n";}
         if(!WinHttpSendRequest(body->request.value,requestHeaders.c_str(),static_cast<DWORD>(requestHeaders.size()),WINHTTP_NO_REQUEST_DATA,0,0,0))Failed("send");body->Ready(stop);
@@ -71,14 +72,15 @@ public:
         if(!WinHttpQueryHeaders(body->request.value,WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,WINHTTP_HEADER_NAME_BY_INDEX,&status,&length,WINHTTP_NO_HEADER_INDEX))Failed();
         const auto encoding=Header(body->request.value,WINHTTP_QUERY_CONTENT_ENCODING);if(!encoding.empty()&&encoding!="identity")Failed();
         const auto location=Header(body->request.value,WINHTTP_QUERY_LOCATION);
-        return {status,Header(body->request.value,WINHTTP_QUERY_CONTENT_RANGE),Header(body->request.value,WINHTTP_QUERY_CONTENT_LENGTH),std::move(body),location};
+        const bool limited=status==429||(status==403&&Header(body->request.value,WINHTTP_QUERY_CUSTOM,L"X-RateLimit-Remaining")=="0");
+        return {status,Header(body->request.value,WINHTTP_QUERY_CONTENT_RANGE),Header(body->request.value,WINHTTP_QUERY_CONTENT_LENGTH),std::move(body),location,limited};
     }
 };
 class Stream final:public ResourceStream {
     ResourceSourcePolicy policy_;std::string name_,identity_;std::shared_ptr<ContentBackend> backend_;ContentResponse response_;
-    std::uint64_t offset_,count_,read_{},segmentLeft_{},total_{};
-    void Next(std::stop_token stop){const ContentRange range{offset_+read_,std::min<std::uint64_t>(ContentRangeBytes,count_-read_)};
-        response_=backend_->Open(Url(policy_,name_),range,stop);const auto total=ValidateRange(response_,range);
+    std::uint64_t offset_,count_,read_{},segmentLeft_{},total_{};unsigned retries_{};
+    void Next(std::stop_token stop,std::uint64_t maximum=ContentRangeBytes){const ContentRange range{offset_+read_,std::min({ContentRangeBytes,count_-read_,maximum})};
+        response_={};response_=backend_->Open(Url(policy_,name_),range,stop);const auto total=ValidateRange(response_,range);
         if((total_&&total!=total_)||offset_>total||count_>total-offset_)Failed();total_=total;segmentLeft_=range.count;}
 public:
     Stream(ResourceSourcePolicy policy,std::string name,ContentRange range,std::string identity,std::uint64_t total,std::shared_ptr<ContentBackend> backend,std::stop_token stop):
@@ -86,9 +88,18 @@ public:
         if(!backend_||!count_||offset_>MaximumContentBytes||count_>MaximumContentBytes-offset_)Failed();Next(stop);}
     std::uint64_t Offset()const override{return offset_;}std::uint64_t TotalSize()const override{return total_;}std::string Identity()const override{return identity_;}
     std::size_t Read(std::span<char> out,std::stop_token stop)override{CheckStop(stop);if(out.empty()||read_==count_)return 0;if(!segmentLeft_)Next(stop);
-        const auto n=static_cast<std::size_t>(std::min<std::uint64_t>(segmentLeft_,std::min<std::size_t>(out.size(),65536)));
-        const auto got=response_.body->Read(out.first(n),stop);if(!got||got>n)Failed();read_+=got;segmentLeft_-=got;
-        if(!segmentLeft_){std::array<char,1> extra{};if(response_.body->Read(extra,stop))Failed();}return got;}
+        for(;;)try{
+            const auto n=static_cast<std::size_t>(std::min<std::uint64_t>(segmentLeft_,std::min<std::size_t>(out.size(),65536)));
+            const auto got=response_.body->Read(out.first(n),stop);if(!got||got>n)Failed();
+            // EOF 校验成功后才交付最后一块；失败时不得跳过尚未持久化的字节。
+            // Commit the last block only after EOF validation; retry cannot skip undelivered bytes.
+            if(got==segmentLeft_){std::array<char,1> extra{};if(response_.body->Read(extra,stop))Failed();}
+            read_+=got;segmentLeft_-=got;return got;
+        }catch(const ContentNetworkError& error){
+            if(stop.stop_requested()||!TransientContentError(error.code)||retries_>=std::min(2U,backend_->ReadRetries()))throw;
+            const ContentRange remaining{offset_+read_,segmentLeft_};response_={};
+            backend_->ReadRetry(remaining,++retries_,error.code);ContentRetryDelay(retries_-1,stop);Next(stop,remaining.count);
+        }}
 };
 class ResourceHttps final:public ResourceTransport {
     ResourceSourcePolicy policy_;std::shared_ptr<ContentBackend> backend_;
@@ -99,6 +110,11 @@ public:
         if(!ValidArtifactName(record.artifact)||!record.downloadSize||record.downloadSize>MaximumPackageBytes||offset>=record.downloadSize)Failed();
         return OpenContentRange(policy_,record.artifact,{offset,record.downloadSize-offset},record.sha256,record.downloadSize,backend_,stop);}
 };
+}
+bool TransientContentError(unsigned code){return code==ERROR_WINHTTP_TIMEOUT||code==ERROR_WINHTTP_CANNOT_CONNECT||code==ERROR_WINHTTP_CONNECTION_ERROR;}
+void ContentRetryDelay(unsigned attempt,std::stop_token stop){
+    CheckStop(stop);std::mutex mutex;std::unique_lock lock(mutex);std::condition_variable_any delay;
+    delay.wait_for(lock,stop,std::chrono::milliseconds(500*(1U<<std::min(attempt,1U))),[]{return false;});CheckStop(stop);
 }
 std::shared_ptr<ContentBackend> WindowsContentBackend(bool systemStaticProxy,bool resourceTransfer){return std::make_shared<WindowsBackend>(systemStaticProxy,resourceTransfer);}
 std::unique_ptr<ResourceStream> OpenContentRange(const ResourceSourcePolicy& policy,std::string_view name,ContentRange range,std::string identity,std::uint64_t total,std::shared_ptr<ContentBackend> backend,std::stop_token stop){

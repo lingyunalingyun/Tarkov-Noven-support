@@ -18,15 +18,14 @@ public:
         if(stop.stop_requested())throw std::runtime_error("cancelled resource request");
         for(unsigned attempt=0;;++attempt)try{return backend_->Open(url,range,stop);}
         catch(const ContentNetworkError& error){
-            if(attempt==2||stop.stop_requested()||(error.code!=12002&&error.code!=12029&&error.code!=12030))throw;
-            std::mutex mutex;std::unique_lock lock(mutex);std::condition_variable_any delay;
-            delay.wait_for(lock,stop,std::chrono::milliseconds(500*(1U<<attempt)),[]{return false;});
-            if(stop.stop_requested())throw;
+            if(attempt==2||stop.stop_requested()||!TransientContentError(error.code))throw;
+            ContentRetryDelay(attempt,stop);
         }
     }
+    void ReadRetry(ContentRange range,unsigned retry,unsigned code)override{backend_->ReadRetry(range,retry,code);}
 };
 class GithubBackend final:public ContentBackend {
-    std::string root_;std::shared_ptr<ContentBackend> backend_;std::map<std::string,std::uint64_t> assets_;
+    std::string root_;std::shared_ptr<ContentBackend> backend_;std::map<std::string,std::uint64_t> assets_;std::atomic_bool apiLimited_{};
 public:
     GithubBackend(std::string root,std::shared_ptr<ContentBackend> backend,std::span<const ResourceRecord> assets):root_(std::move(root)),backend_(std::move(backend)){
         if(assets.size()>MaximumComponents)Invalid();for(const auto& record:assets){if(!record.githubAssetId||!ValidArtifactName(record.artifact)||!assets_.emplace(record.artifact,record.githubAssetId).second)Invalid();}
@@ -35,14 +34,23 @@ public:
         if(!url.starts_with(root_)||!ValidArtifactName(url.substr(root_.size())))Invalid();
         const auto found=assets_.find(std::string(url.substr(root_.size())));
         if(!assets_.empty()&&found==assets_.end())Invalid();
-        const auto request=found==assets_.end()?std::string(url):"https://api.github.com/repos/lingyunalingyun/Noven-Update-Channel/releases/assets/"+std::to_string(found->second);
+        const bool useApi=found!=assets_.end()&&!apiLimited_.load();
+        const auto request=!useApi?std::string(url):"https://api.github.com/repos/lingyunalingyun/Noven-Update-Channel/releases/assets/"+std::to_string(found->second);
         auto response=backend_->Open(request,range,stop);
+        // 公共 API 的匿名配额不适合逐块传输；仅确认限流后使用固定标签/签名文件名。
+        // On confirmed API quota exhaustion, use the approved release tag/signed basename, never an arbitrary URL.
+        if(useApi&&response.rateLimited&&(response.status==403||response.status==429)){apiLimited_=true;response={};response=backend_->Open(url,range,stop);}
         if(response.status==302){
             if(!TrustedGithubAssetRedirect(response.location))Invalid();
             const auto destination=response.location;response={};
             response=backend_->Open(destination,range,stop);
         }
         if(response.status>=300&&response.status<400)Invalid();return response;
+    }
+    unsigned ReadRetries()const override{return 2;}
+    void ReadRetry(ContentRange range,unsigned retry,unsigned code)override{
+        const auto message=L"[resources] read retry="+std::to_wstring(retry)+L" offset="+std::to_wstring(range.offset)+L" count="+std::to_wstring(range.count)+L" Win32="+std::to_wstring(code)+L"\n";
+        OutputDebugStringW(message.c_str());backend_->ReadRetry(range,retry,code);
     }
 };
 }

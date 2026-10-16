@@ -4,26 +4,34 @@
 #include <wincodec.h>
 #include <array>
 #include <iostream>
+#include <source_location>
 using namespace noven::resources;
 namespace {
-void Check(bool b){if(!b)throw std::runtime_error("resource channel check failed");}
+void Check(bool b,const std::source_location at=std::source_location::current()){if(!b)throw std::runtime_error("resource channel check failed at line "+std::to_string(at.line()));}
 std::string Text(std::wstring_view s){std::string out;for(auto c:s){Check(c<128);out+=static_cast<char>(c);}return out;}
 class Counting final:public ContentBackend {
     std::shared_ptr<ContentBackend> inner_=WindowsContentBackend(true,true);
-    struct Body final:ContentBody {Counting& owner;std::unique_ptr<ContentBody> inner;std::chrono::steady_clock::time_point returned{};
-        Body(Counting& o,std::unique_ptr<ContentBody> b):owner(o),inner(std::move(b)){}
+    bool cutNext_{};
+    struct Body final:ContentBody {Counting& owner;std::unique_ptr<ContentBody> inner;std::chrono::steady_clock::time_point returned{};bool cut{};std::uint64_t read{},offset{};
+        Body(Counting& o,std::unique_ptr<ContentBody> b,bool reset=false,std::uint64_t start=0):owner(o),inner(std::move(b)),cut(reset),offset(start){}
         std::size_t Read(std::span<char> out,std::stop_token stop)override{
             const auto begin=std::chrono::steady_clock::now();if(returned.time_since_epoch().count())owner.consumerMs+=std::chrono::duration_cast<std::chrono::milliseconds>(begin-returned).count();
-            try{const auto n=inner->Read(out,stop);returned=std::chrono::steady_clock::now();owner.readMs+=std::chrono::duration_cast<std::chrono::milliseconds>(returned-begin).count();owner.bytes+=n;return n;}
+            try{if(cut&&read>=65536){cut=false;inner.reset();++owner.cuts;std::cout<<"operator-injected HTTPS connection close offset="<<offset+read<<std::endl;throw ContentNetworkError("injected connection interruption",12030);}
+                const auto n=inner->Read(out,stop);returned=std::chrono::steady_clock::now();owner.readMs+=std::chrono::duration_cast<std::chrono::milliseconds>(returned-begin).count();owner.bytes+=n;read+=n;return n;}
             catch(const std::exception& e){owner.readMs+=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-begin).count();std::cerr<<"native body failure after actualBodyBytes="<<owner.bytes.load()<<" readMs="<<owner.readMs.load()<<" consumerMs="<<owner.consumerMs.load()<<" "<<e.what()<<'\n';throw;}}};
 public:
-    std::atomic_uint64_t bytes{},readMs{},consumerMs{};
+    explicit Counting(bool cut=false):cutNext_(cut){}
+    std::atomic_uint64_t bytes{},readMs{},consumerMs{},readRetries{},failedOpens{},cuts{};
+    void ReadRetry(ContentRange range,unsigned retry,unsigned code)override{
+        ++readRetries;std::cout<<"retry="<<retry<<" offset="<<range.offset<<" count="<<range.count<<" Win32="<<code<<std::endl;
+    }
     ContentResponse Open(std::string_view url,std::optional<ContentRange> range,std::stop_token stop)override{
-        const auto end=url.find('?');std::cout<<"request "<<url.substr(0,end)<<std::endl;
+        const auto begin=std::chrono::steady_clock::now();const auto end=url.find('?');std::cout<<"request "<<url.substr(0,end);if(range)std::cout<<" offset="<<range->offset<<" count="<<range->count;std::cout<<std::endl;
         ContentResponse result;
-        try{result=inner_->Open(url,range,stop);}catch(const std::exception& e){std::cerr<<"native transport failure Win32="<<GetLastError()<<" "<<e.what()<<'\n';throw;}
-        std::cout<<"HTTPS "<<url.substr(0,end)<<" status="<<result.status<<" range="<<result.range<<" length="<<result.length<<'\n';
-        if(result.body)result.body=std::make_unique<Body>(*this,std::move(result.body));return result;
+        try{result=inner_->Open(url,range,stop);}catch(const std::exception& e){++failedOpens;std::cerr<<"native transport failure "<<e.what()<<'\n';throw;}
+        std::cout<<"HTTPS "<<url.substr(0,end)<<" status="<<result.status<<" range="<<result.range<<" length="<<result.length<<" rateLimited="<<result.rateLimited<<" headersMs="<<std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-begin).count()<<'\n';
+        const bool cut=cutNext_&&result.status==206;if(cut)cutNext_=false;
+        if(result.body)result.body=std::make_unique<Body>(*this,std::move(result.body),cut,range?range->offset:0);return result;
     }
 };
 void Probe(const std::string& root){auto backend=std::make_shared<Counting>();auto adapter=GithubReleaseBackend(root,backend);const ResourceSourcePolicy policy{root};
@@ -56,11 +64,11 @@ void CatalogReady(ResourceService& service){
     const auto state=service.Remote();Check(state==RemoteAvailability::Online||state==RemoteAvailability::Cached);
     std::cout<<"authenticated catalog="<<(state==RemoteAvailability::Online?"fresh HTTPS":"reverified cached; metadata fetch unavailable")<<'\n';
 }
-void Flow(bool interrupt,const std::filesystem::path& program,const std::filesystem::path& test,ResourceRemotePolicy policy){
+void Flow(bool interrupt,bool cut,const std::filesystem::path& program,const std::filesystem::path& test,ResourceRemotePolicy policy){
     const std::string mapId="55f2d3fd4bdc2d5f408b4567",resourceId="maps."+mapId;
     const auto paths=noven::common::AppPaths::Test(program,test);const auto sentinel=paths.Data()/"channel-preservation.txt";
     if(!std::filesystem::exists(sentinel))Check(WriteResourceText(sentinel,"keep user data"));
-    auto backend=std::make_shared<Counting>();ResourceService* pointer{};bool paused{};
+    auto backend=std::make_shared<Counting>(cut);ResourceService* pointer{};bool paused{};
     {
         ResourceService service(paths,{}, {},{},[&]{if(interrupt&&pointer&&!paused){for(const auto& row:pointer->Snapshot())if(row.received>=65536&&row.state==ResourceState::Downloading){paused=true;Check(pointer->Act(row.record.resourceId,ResourceAction::Pause));}}},{{mapId,"SYNTHETIC Factory","SYNTHETIC Factory"}});pointer=&service;
         RefreshRemoteResources(service,paths,policy,{mapId},{},backend,true);CatalogReady(service);
@@ -70,6 +78,11 @@ void Flow(bool interrupt,const std::filesystem::path& program,const std::filesys
         Check(row.state==ResourceState::Installed);RuntimeMap(service,true);auto lease=service.ResolveMap(mapId);Check(lease&&VerifyPackage(*lease,record));Decode(*lease);
         Check(!service.Act(record.resourceId,ResourceAction::Delete));lease.reset();Check(service.Act(record.resourceId,ResourceAction::Verify));Check(service.WaitIdle(std::chrono::seconds(30)));Check(service.Snapshot()[0].state==ResourceState::Installed);
         std::cout<<"remote install/PNG decode/verify/in-use delete guard PASS actualBodyBytes="<<backend->bytes.load()<<'\n';
+        const auto before=backend->bytes.load();Check(service.Act(resourceId,ResourceAction::Delete));Check(service.WaitIdle(std::chrono::seconds(30)));RuntimeMap(service,false);
+        Check(service.Snapshot()[0].received==0&&service.ClearDownloadCache());Check(service.WaitIdle(std::chrono::seconds(30)));
+        Check(service.Act(resourceId,ResourceAction::Download));Check(service.WaitIdle(std::chrono::seconds(180)));Check(service.Snapshot()[0].state==ResourceState::Installed);RuntimeMap(service,true);
+        auto second=service.ResolveMap(mapId);Check(second&&VerifyPackage(*second,record));Decode(*second);
+        std::cout<<"same-session empty-cache delete/redownload/reload PASS actualBodyBytes="<<backend->bytes.load()-before<<'\n';
     }
     {
         ResourceService offline(paths,{}, {},{}, {},{{mapId,"Factory","Factory"}});Check(offline.WaitIdle(std::chrono::seconds(30)));auto lease=offline.ResolveMap(mapId);Check(static_cast<bool>(lease));Decode(*lease);lease.reset();
@@ -77,8 +90,9 @@ void Flow(bool interrupt,const std::filesystem::path& program,const std::filesys
     }
     {
         ResourceService again(paths,{}, {},{}, {},{{mapId,"Factory","Factory"}});RefreshRemoteResources(again,paths,policy,{mapId},{},backend,true);CatalogReady(again);
-        Check(again.Act(resourceId,ResourceAction::Download));Check(again.WaitIdle(std::chrono::seconds(180)));Check(again.Snapshot()[0].state==ResourceState::Installed&&ReadResourceText(sentinel,100)=="keep user data");
-    }std::cout<<"restart/offline/deletion/redownload/user-data PASS; GUI acceptance remains separate\n";
+        Check(again.Act(resourceId,ResourceAction::Download));Check(again.WaitIdle(std::chrono::seconds(180)));Check(again.Snapshot()[0].state==ResourceState::Installed&&ReadResourceText(sentinel,100)=="keep user data");RuntimeMap(again,true);auto last=again.ResolveMap(mapId);Check(static_cast<bool>(last));Decode(*last);
+    }if(cut)Check(backend->cuts==1&&backend->readRetries>=1);
+    std::cout<<"restart/offline/deletion/redownload/user-data PASS actualBodyBytes="<<backend->bytes.load()<<" readRetries="<<backend->readRetries.load()<<" failedOpens="<<backend->failedOpens.load()<<" injectedCloses="<<backend->cuts.load()<<"; GUI acceptance remains separate\n";
 }
 }
 int wmain(int argc,wchar_t** argv)try{
@@ -89,8 +103,8 @@ int wmain(int argc,wchar_t** argv)try{
         std::cout<<"independent resource signature/package verification PASS components="<<manifest.components.size()<<'\n';return 0;
     }
     if(argc==3&&std::wstring_view(argv[1])==L"--probe"){Probe(Text(argv[2]));return 0;}
-    if(argc!=8){std::cerr<<"--probe <fixed GitHub asset root> OR --interrupt|--flow <program test root> <user test root> <synthetic metadata root> <asset root> <public key file> <keyId>\n";return 2;}
-    Check(std::wstring_view(argv[1])==L"--interrupt"||std::wstring_view(argv[1])==L"--flow");
+    if(argc!=8){std::cerr<<"--probe <fixed GitHub asset root> OR --interrupt|--flow|--cut-flow <program test root> <user test root> <synthetic metadata root> <asset root> <public key file> <keyId>\n";return 2;}
+    Check(std::wstring_view(argv[1])==L"--interrupt"||std::wstring_view(argv[1])==L"--flow"||std::wstring_view(argv[1])==L"--cut-flow");
     const auto blob=ReadResourceText(std::filesystem::absolute(argv[6]),72);ResourceRemotePolicy policy{{Text(argv[4])},{Text(argv[5])},{{Text(argv[7]),{blob.begin(),blob.end()}}}};
-    Flow(std::wstring_view(argv[1])==L"--interrupt",std::filesystem::absolute(argv[2]),std::filesystem::absolute(argv[3]),std::move(policy));return std::wstring_view(argv[1])==L"--interrupt"?3:0;
+    Flow(std::wstring_view(argv[1])==L"--interrupt",std::wstring_view(argv[1])==L"--cut-flow",std::filesystem::absolute(argv[2]),std::filesystem::absolute(argv[3]),std::move(policy));return std::wstring_view(argv[1])==L"--interrupt"?3:0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

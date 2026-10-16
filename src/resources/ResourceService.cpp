@@ -144,12 +144,16 @@ void ResourceService::Execute(const Job& job,std::stop_token stop){
         if(valid||job.work==Work::Verify)return;Set(job.id,S::Queued);
     }
     if(job.work==Work::Delete){
-        const auto target=paths_.ResourceMaps()/record.stableMapId;const auto nonce=plugins::ipc::RandomSecret();const auto trash=paths_.ResourceStaging()/(nonce+"-delete");
+        // 墓碑名保持短，避免原本可读的树因增加长前缀而超出 Win32 限制。
+        // Keep tombstones shallow: moving a valid installed tree must not add a long nonce prefix.
+        const auto target=paths_.ResourceMaps()/record.stableMapId;const auto nonce=plugins::ipc::RandomSecret();const auto trash=paths_.ResourceStaging()/nonce.substr(0,16);
         const bool exists=std::filesystem::exists(target);
         if(!SafeResourcePath(target)||!ResourceDirectories(trash.parent_path())||(exists&&!MoveFileExW(target.c_str(),trash.c_str(),MOVEFILE_WRITE_THROUGH)))throw std::runtime_error("delete failed");
         if(!WriteResourceText(Pointer(record),EncodeResourceManifest({}))){MoveFileExW(trash.c_str(),target.c_str(),MOVEFILE_WRITE_THROUGH);throw std::runtime_error("inventory failed");}
         {std::lock_guard lock(mutex_);auto& e=entries_.at(job.id);e.location.reset();e.installed.reset();e.view.installed=false;e.view.present=false;}
-        if(!RemoveResourceTree(paths_.ResourceStaging(),trash))throw std::runtime_error("delete incomplete");Set(job.id,transport_?S::NotInstalled:S::Unavailable);return;
+        if(!RemoveResourceTree(paths_.ResourceStaging(),trash))throw std::runtime_error("delete incomplete");DiscardPartial(record);
+        {std::lock_guard lock(mutex_);entries_.at(job.id).view.received=0;}
+        Set(job.id,transport_?S::NotInstalled:S::Unavailable);return;
     }
     Set(job.id,S::Downloading);
     const auto required=record.downloadSize+record.installedSize;

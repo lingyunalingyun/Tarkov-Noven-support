@@ -4,6 +4,8 @@ namespace noven::resources {
 inline constexpr std::uint64_t ContentRangeBytes=4*1024*1024;
 inline constexpr std::uint64_t MaximumContentBytes=8ULL*1024*1024*1024;
 struct ContentRange final {std::uint64_t offset{},count{};};
+bool TransientContentError(unsigned code);
+void ContentRetryDelay(unsigned attempt,std::stop_token stop);
 class ContentNetworkError final:public std::runtime_error {
 public:
     unsigned code;
@@ -14,13 +16,17 @@ public:
     virtual ~ContentBody()=default;
     virtual std::size_t Read(std::span<char>,std::stop_token)=0;
 };
-struct ContentResponse final {unsigned status{};std::string range,length;std::unique_ptr<ContentBody> body;std::string location;};
+struct ContentResponse final {unsigned status{};std::string range,length;std::unique_ptr<ContentBody> body;std::string location;bool rateLimited{};};
 // 只接受第一方固定根及逻辑文件名；测试注入后端，不放宽生产 TLS/范围策略。
 // Fixed first-party root and basenames only; tests inject a backend, never weaken TLS/Range policy.
 class ContentBackend {
 public:
     virtual ~ContentBackend()=default;
     virtual ContentResponse Open(std::string_view url,std::optional<ContentRange>,std::stop_token)=0;
+    // 仅显式授权的资源适配器启用续读；应用更新器保持零次正文重试。
+    // Only an opted-in resource adapter retries reads; application updates keep zero read retries.
+    virtual unsigned ReadRetries() const {return 0;}
+    virtual void ReadRetry(ContentRange,unsigned,unsigned) {}
 };
 std::shared_ptr<ContentBackend> WindowsContentBackend(bool systemStaticProxy=false,bool resourceTransfer=false);
 std::unique_ptr<ResourceStream> OpenContentRange(const ResourceSourcePolicy&,std::string_view name,

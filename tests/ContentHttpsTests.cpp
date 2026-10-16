@@ -7,21 +7,28 @@ void Check(bool value){if(!value)throw std::runtime_error("HTTPS content asserti
 template<class F>void Reject(F operation){bool rejected{};try{operation();}catch(const std::exception&){rejected=true;}Check(rejected);}
 class Body final:public ContentBody {
     std::string data_;std::size_t at_{};
+    bool fail_;std::size_t failAt_;unsigned code_;
 public:
-    explicit Body(std::string data):data_(std::move(data)){}
-    std::size_t Read(std::span<char> out,std::stop_token stop)override{if(stop.stop_requested())throw std::runtime_error("cancelled");const auto n=std::min(out.size(),data_.size()-at_);std::copy_n(data_.data()+at_,n,out.data());at_+=n;return n;}
+    explicit Body(std::string data,bool fail=false,std::size_t after=0,unsigned code=12002):data_(std::move(data)),fail_(fail),failAt_(after),code_(code){}
+    std::size_t Read(std::span<char> out,std::stop_token stop)override{if(stop.stop_requested())throw std::runtime_error("cancelled");
+        if(fail_&&at_>=failAt_)throw ContentNetworkError("injected body failure",code_);
+        auto n=std::min(out.size(),data_.size()-at_);if(fail_)n=std::min(n,failAt_-at_);std::copy_n(data_.data()+at_,n,out.data());at_+=n;return n;}
 };
 class Backend final:public ContentBackend {
 public:
     std::string bytes="abcdefghijk",rangeOverride,lengthOverride,url;unsigned status{};bool extra{},truncated{};std::vector<ContentRange> requests;
+    unsigned readRetries{},failuresLeft{},code{12002},notices{};std::size_t failAt{};std::stop_source* cancelRetry{};
+    unsigned ReadRetries()const override{return readRetries;}
+    void ReadRetry(ContentRange,unsigned,unsigned)override{++notices;if(cancelRetry)cancelRetry->request_stop();}
     ContentResponse Open(std::string_view input,std::optional<ContentRange> range,std::stop_token stop)override{
         if(stop.stop_requested())throw std::runtime_error("cancelled");url=input;if(!range)return {status?status:200,rangeOverride,lengthOverride,std::make_unique<Body>(bytes)};
         requests.push_back(*range);if(range->offset>bytes.size()||range->count>bytes.size()-range->offset)throw std::runtime_error("fixture range");
         auto data=bytes.substr(static_cast<std::size_t>(range->offset),static_cast<std::size_t>(range->count));if(extra)data+='x';if(truncated&&!data.empty())data.pop_back();
+        const bool fail=failuresLeft!=0;if(fail)--failuresLeft;
         return {status?status:206,rangeOverride.empty()?"bytes "+std::to_string(range->offset)+"-"+std::to_string(range->offset+range->count-1)+"/"+std::to_string(bytes.size()):rangeOverride,
-            lengthOverride.empty()?std::to_string(range->count):lengthOverride,std::make_unique<Body>(std::move(data))};}
+            lengthOverride.empty()?std::to_string(range->count):lengthOverride,std::make_unique<Body>(std::move(data),fail,failAt,code)};}
 };
-std::string Read(ResourceStream& stream){std::string result;std::array<char,65536> buffer{};while(const auto n=stream.Read(buffer,{}))result.append(buffer.data(),n);return result;}
+std::string Read(ResourceStream& stream,std::stop_token stop={}){std::string result;std::array<char,65536> buffer{};while(const auto n=stream.Read(buffer,stop))result.append(buffer.data(),n);return result;}
 }
 int main()try{
     const ResourceSourcePolicy policy{"https://content.example.test/releases/"};auto backend=std::make_shared<Backend>();
@@ -46,5 +53,24 @@ int main()try{
     record.downloadSize=12;Reject([&]{(void)transport->Open(record,4,{});});record.downloadSize=11;
     backend->bytes=std::string(static_cast<std::size_t>(ContentRangeBytes+9),'z');backend->requests.clear();
     stream=source->Open("a.pack",0,backend->bytes.size(),"identity",{});Check(Read(*stream)==backend->bytes);Check(backend->requests.size()==2&&backend->requests[1].offset==ContentRangeBytes&&backend->requests[1].count==9);
+    auto retry=std::make_shared<Backend>();auto resource=HttpsResourceTransport(policy,retry);record.downloadSize=11;
+    // 更新默认策略不重试；资源仅重取尚未交付的尾段，保留已交付字节。
+    // Update defaults remain unchanged; opted-in resources request only undelivered tails.
+    retry->failuresLeft=1;retry->failAt=3;
+    Reject([&]{auto s=resource->Open(record,0,{});(void)Read(*s);});Check(retry->requests.size()==1);
+    retry->readRetries=2;retry->failuresLeft=1;retry->requests.clear();
+    auto resumed=resource->Open(record,0,{});Check(Read(*resumed)==retry->bytes&&retry->requests.size()==2&&retry->requests[1].offset==3&&retry->requests[1].count==8);
+    retry->failuresLeft=1;retry->failAt=11;retry->requests.clear();
+    resumed=resource->Open(record,0,{});Check(Read(*resumed)==retry->bytes&&retry->requests.size()==2&&retry->requests[1].offset==0);
+    retry->failuresLeft=9;retry->failAt=0;retry->requests.clear();
+    Reject([&]{auto s=resource->Open(record,0,{});(void)Read(*s);});Check(retry->requests.size()==3);
+    retry->failuresLeft=1;retry->code=12175;retry->requests.clear();
+    Reject([&]{auto s=resource->Open(record,0,{});(void)Read(*s);});Check(retry->requests.size()==1);
+    retry->code=12002;retry->failuresLeft=1;retry->failAt=3;retry->requests.clear();
+    resumed=resource->Open(record,0,{});std::array<char,3> prefix{};Check(resumed->Read(prefix,{})==3);
+    retry->rangeOverride="bytes 0-7/11";Reject([&]{(void)Read(*resumed);});Check(retry->requests.size()==2);retry->rangeOverride.clear();
+    retry->failuresLeft=0;retry->truncated=true;retry->requests.clear();Reject([&]{auto s=resource->Open(record,0,{});(void)Read(*s);});Check(retry->requests.size()==1);retry->truncated=false;
+    std::stop_source interrupted;retry->cancelRetry=&interrupted;retry->failuresLeft=1;retry->failAt=0;retry->requests.clear();
+    Reject([&]{auto s=resource->Open(record,0,interrupted.get_token());(void)Read(*s,interrupted.get_token());});Check(retry->requests.size()==1&&interrupted.stop_requested());
     std::cout<<"content HTTPS policy/range/resource/update tests PASS (offline)\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
