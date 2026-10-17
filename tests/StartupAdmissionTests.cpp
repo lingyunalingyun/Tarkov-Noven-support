@@ -78,6 +78,39 @@ int main()try{
     manifest.version="0.1.3";manifest.notes="different bytes under a published version";
     const auto changed=updates::VerifyRelease(signer.Sign(updates::EncodeReleaseManifest(manifest)),std::span(&signer.publicKey,1));
     Reject([&]{updates::RetainReleaseManifest(paths.Updates()/"manifests",changed,std::span(&signer.publicKey,1));});
+    // 真正走既有增量暂存/激活路径，再次启动校验通过；回滚不能绕过窗口。
+    // Exercise delta staging/activation and re-admission; rollback cannot bypass the version window.
+    const auto fixture=root/"fixture";std::string pack;manifest.version="0.1.10";manifest.notes.clear();manifest.files.clear();
+    for(const auto name:{"NovenTarkovSupport.exe","NovenPluginHost.exe","assets/core.dat"}){
+        const std::string content=std::string_view(name)=="NovenTarkovSupport.exe"?"new main":name;
+        const auto offset=pack.size();pack+=content;
+        Check(resources::WriteResourceText(fixture/"core.pack",pack));
+        const auto hash=updates::HashFileRange(fixture/"core.pack",offset,content.size());
+        manifest.files.push_back({name,hash,content.size(),{{0,content.size(),offset,hash,"core.pack"}}});
+    }
+    Check(resources::WriteResourceText(fixture/"release.json",signer.Sign(updates::EncodeReleaseManifest(manifest))));
+    Check(resources::WriteResourceText(fixture/"release-0.1.3.json",archive));
+    auto local=updates::LocalUpdateSource(fixture);updates::VersionStore store(program,"0.1.3",{signer.publicKey});store.SeedInitial();
+    {
+        updates::UpdateService required(paths,program,"0.1.3",{signer.publicKey},local,{},true);
+        Check(required.StartupCheck(100002)&&required.WaitIdle(std::chrono::seconds(10)));
+        Check(required.Snapshot().admission==StartupAdmission::UpdateRequired&&required.Snapshot().downloadBytes==8);
+        Check(required.Act(updates::UpdateAction::Download)&&required.WaitIdle(std::chrono::seconds(10)));
+        Check(required.Snapshot().state==updates::UpdateState::Staged&&required.Snapshot().admission!=StartupAdmission::Allowed);
+    }
+    const auto target=updates::VerifyRelease(resources::ReadResourceText(fixture/"release.json",65536),std::span(&signer.publicKey,1));
+    store.Activate(target);const auto boot=store.BeginLaunch();
+    {
+        updates::UpdateService next(common::AppPaths::Test(program/"versions"/"0.1.10",root/"isolated"),program,"0.1.10",{signer.publicKey},local,{},true);
+        Check(next.StartupCheck(100003)&&next.WaitIdle(std::chrono::seconds(10)));
+        Check(next.Snapshot().admission==StartupAdmission::Allowed);
+    }
+    store.ConfirmHealthy(boot.active,boot.token);store.Rollback();Check(store.Read().active=="0.1.3");
+    {
+        updates::UpdateService rolledBack(paths,program,"0.1.3",{signer.publicKey},local,{},true);
+        Check(rolledBack.StartupCheck(100004)&&rolledBack.WaitIdle(std::chrono::seconds(10)));
+        Check(rolledBack.Snapshot().admission==StartupAdmission::UpdateRequired);
+    }
     Check(resources::ReadResourceText(paths.Data()/"settings.json",128)=="preserve");
     Check(resources::ReadResourceText(paths.Plugins()/"keep.txt",128)=="preserve");
     Check(std::filesystem::exists(paths.Updates()/"manifests"/"release-0.1.3.json"));

@@ -1,5 +1,15 @@
 # Noven Tarkov Support
 
+### 0.1.3 启动策略 / Startup policy
+
+正式安装版每次启动须联网验证官方签名版本信息及版本化 Core 文件 SHA-256。
+同一主/次版本最多落后 5 个补丁版本；跨主/次版本须更新。无法联网、签名无效、
+缺失历史清单或文件校验失败时，不开放正常功能，仅保留重试、更新或退出。
+这是启动时准入，不持续监测断网；不能保证阻止被修改的原生客户端绕过检查。
+用户数据、插件和可选地图不属于 Core 哈希清单，不会因此被删除或改写。
+开发/测试/评审模式保持显式隔离。详见 [更新契约](APP_UPDATES.md) 和
+[签名历史发布流程](UPDATE_CHANNEL.md)。
+
 Noven Tarkov Support is a free, non-cheating native Windows community companion
 application for Escape from Tarkov, independent of Battlestate Games.
 

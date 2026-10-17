@@ -114,7 +114,8 @@ rollback on the next launch; intentional exit is not treated as a crash.
 Rollback changes Program activation only, never User Data.
 
 Settings exposes check/download/pause/resume/cancel/restart/rollback. Startup
-checks are nonblocking and at most once per 24 hours. No automatic install or
+checks in development/review are nonblocking and at most once per 24 hours;
+installed 0.1.3+ builds use the mandatory per-launch admission above. No automatic install or
 restart. Cache is hash-verified, not trusted solely by its name. Older versions
 are retained in v1 rather than aggressively reclaimed.
 

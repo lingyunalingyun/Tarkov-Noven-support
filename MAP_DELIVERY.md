@@ -1,5 +1,11 @@
 # Authenticated map delivery
 
+Starting with installed 0.1.3, the application's separate online startup
+admission policy must succeed before normal features open (see
+[APP_UPDATES.md](APP_UPDATES.md)). Offline resource lifecycle tests below mean
+the installed map bytes remain valid without downloading; they do not grant an
+offline exception to application startup. No resource is deleted by that gate.
+
 Application releases (`stable/release.json`) and optional map resources
 (`maps/manifest.json`) are independent trust domains. The latter is a bounded
 ECDSA P-256/SHA-256 envelope with `scheme`, `keyId`, `payloadHex` and

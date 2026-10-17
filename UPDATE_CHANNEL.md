@@ -54,6 +54,41 @@ guarantee; confirm the roommate's network can reach it.
 
 ## Operator workflow
 
+### 0.1.3+ startup policy and immutable history
+
+Installed 0.1.3+ requires successful online signature verification at every
+launch and permits at most five older patches in the same major/minor line.
+Cross-major/minor releases require updating; rollback does not waive admission.
+No connection, invalid signature, a missing historical manifest or a Core hash
+mismatch blocks normal features, but leaves retry/update/exit available.
+Development and explicit test/review roots remain isolated from this policy.
+
+Retain `stable/release-<version>.json` permanently for every published release,
+alongside immutable packs. The publish script archives both the previous signed
+latest and the new release **before** switching `release.json`, and refuses a
+different signed payload under an existing version. `NovenUpdateChannelTool
+--archive <signed envelope> <public blob> <keyId> <history directory>` validates
+signatures before adding history; it never reconstructs hashes from untrusted
+local bytes. Backfill any older available signed envelopes from the channel's
+Git history with this tool, without re-signing or rewriting old installers.
+An installer-only historical version without an authentic signed envelope
+cannot be retroactively declared authenticated by inventing a hash list.
+
+Fresh Setup and delta payload bytes must match the same published signed file
+inventory. Apply Authenticode before generating that inventory, never after.
+Do not distribute 0.1.3 before its own signed catalog and immutable history are
+publicly verified: a locally newer installed build correctly refuses an older
+public latest. This source change does not publish 0.1.3 or alter existing
+0.1.0/0.1.1/0.1.2 binaries. Older distributed clients cannot be retroactively
+forced to adopt startup admission.
+
+GitHub Raw's five-minute caches can delay a new policy taking effect. A signed
+static manifest authenticates bytes, not absolute real-time freshness; it is
+not an online challenge/response or an unbypassable anti-tamper service. The
+mandatory check is at launch, not a continuous connectivity monitor. Core
+hash verification excludes installer-owned Launcher/Updater, plugins, optional
+resources and user data. No user content, credential or machine ID is sent.
+
 1. Set the canonical CMake product version; make the intended visible change.
 2. Configure an MSVC x64 Release build with the beta preset's public settings.
 3. Clean/full build, complete CTest, generators/localization, and payload audits.

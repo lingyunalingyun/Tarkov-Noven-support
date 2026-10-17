@@ -54,6 +54,12 @@ void VerifyRemote(const std::filesystem::path& artifacts,const std::filesystem::
 }
 }
 int wmain(int argc,wchar_t** argv)try{
+    if(argc==6&&std::wstring_view(argv[1])==L"--archive"){
+        const auto keys=Keys(std::filesystem::absolute(argv[3]),Ascii(argv[4]));
+        const auto release=updates::VerifyRelease(resources::ReadResourceText(std::filesystem::absolute(argv[2]),2*updates::MaximumManifestBytes+2048),keys);
+        updates::RetainReleaseManifest(std::filesystem::absolute(argv[5]),release,keys);
+        std::cout<<"retained signed release-"<<release.Manifest().version<<".json identity="<<release.Identity()<<std::endl;return 0;
+    }
     if(argc==5&&std::wstring_view(argv[1])==L"--verify"){
         VerifyLocal(std::filesystem::absolute(argv[2]),std::filesystem::absolute(argv[3]),Ascii(argv[4]));return 0;
     }

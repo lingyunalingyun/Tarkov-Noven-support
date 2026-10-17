@@ -8,7 +8,7 @@
 #include <source_location>
 using namespace noven;
 namespace {
-HWND owner{};bool inspected{};unsigned ticks{};
+HWND owner{};bool inspected{},startupInspect{};unsigned ticks{};
 updates::UpdateSnapshot expected;
 class Gate final:public updates::UpdateSource {
     std::shared_ptr<updates::UpdateSource> local_;
@@ -29,13 +29,14 @@ void CALLBACK Inspect(HWND,UINT,UINT_PTR timer,DWORD)try{
     if(!dialog||!IsWindowVisible(dialog)){if(++ticks>100)ExitProcess(2);return;}
     KillTimer(nullptr,timer);Check(!IsWindowEnabled(owner));
     Check(IsWindowEnabled(GetDlgItem(dialog,107)));
-    const auto actions=ui::UpdateDialogActions(expected);
+    const auto actions=startupInspect?ui::StartupUpdateDialogActions(expected):ui::UpdateDialogActions(expected);
     for(int i=0;i<8;++i)Check(static_cast<bool>(IsWindowVisible(GetDlgItem(dialog,100+i)))==actions[i]);
     const bool transfer=expected.state==updates::UpdateState::Downloading||expected.state==updates::UpdateState::Paused||expected.state==updates::UpdateState::Staged;
     const auto progress=GetDlgItem(dialog,108);Check(static_cast<bool>(IsWindowVisible(progress))==transfer);
     Check(SendMessageW(progress,PBM_GETPOS,0,0)==(expected.state==updates::UpdateState::Staged?100:0));
     const auto body=FindWindowExW(dialog,nullptr,L"EDIT",nullptr);wchar_t text[2048]{};GetWindowTextW(body,text,2048);
     Check(std::wstring(text).find(L"0.1.0")!=std::wstring::npos);
+    if(startupInspect){Check(std::wstring(text).find(ui::Tr("updates.startup_policy"))!=std::wstring::npos);wchar_t exit[64]{};GetWindowTextW(GetDlgItem(dialog,107),exit,64);Check(exit==ui::Tr("updates.exit"));}
     if(expected.state==updates::UpdateState::Unconfigured){Check(std::wstring(text).find(ui::Tr("updates.unconfigured"))!=std::wstring::npos);for(int i=100;i<107;++i)Check(!IsWindowEnabled(GetDlgItem(dialog,i)));}
     for(unsigned dpi:{96,144,192}){
         RECT resize{0,0,MulDiv(700,dpi,96),MulDiv(550,dpi,96)};SendMessageW(dialog,WM_DPICHANGED,MAKELONG(dpi,dpi),reinterpret_cast<LPARAM>(&resize));
@@ -57,12 +58,14 @@ int wmain(int argc,wchar_t** argv)try{
     view.constructing=true;Check(ui::UpdateDialogActions(view)==std::array<bool,8>{false,false,false,false,false,false,false,true});
     view.constructing=false;view.state=S::Paused;Check(ui::UpdateDialogActions(view)==std::array<bool,8>{false,false,false,true,true,false,false,true});
     view.state=S::Staged;view.previous="0.0.9";Check(ui::UpdateDialogActions(view)==std::array<bool,8>{false,false,false,false,false,true,true,true});
+    Check(ui::StartupUpdateDialogActions(view)==std::array<bool,8>{false,false,false,false,false,true,false,true});
     Check(argc==2);std::wstring error;Check(ui::UiLocalization().DiscoverLocales(argv[1],error));
     const auto root=std::filesystem::temp_directory_path()/("noven-update-dialog-"+std::to_string(GetCurrentProcessId()));Check(!std::filesystem::exists(root));
     updates::UpdateService service(common::AppPaths::Test(root/"program",root/"test"),{},"0.1.0",{});
     owner=CreateWindowExW(0,L"STATIC",L"Update test owner",WS_OVERLAPPEDWINDOW,0,0,900,700,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
     const auto inspect=[&](updates::UpdateService& current){expected=current.Snapshot();for(const auto locale:{"en-US","zh-CN"}){Check(ui::UiLocalization().SetLocale(locale));inspected=false;ticks=0;const auto timer=SetTimer(nullptr,0,20,Inspect);
-        Check(!ui::ShowUpdateDialog(owner,current));KillTimer(nullptr,timer);Check(inspected&&IsWindowEnabled(owner));}};
+        Check(!(startupInspect?ui::ShowStartupUpdateDialog(owner,current):ui::ShowUpdateDialog(owner,current)));KillTimer(nullptr,timer);Check(inspected&&IsWindowEnabled(owner));}};
+    startupInspect=true;inspect(service);startupInspect=false;
     inspect(service);service.Shutdown();Check(!std::filesystem::exists(root));
     const auto program=root/"program",old=program/"versions"/"0.1.0",fixture=root/"fixture";
     Check(resources::WriteResourceText(old/"NovenTarkovSupport.exe","old"));Check(resources::WriteResourceText(old/"NovenPluginHost.exe","host"));
@@ -77,6 +80,19 @@ int wmain(int argc,wchar_t** argv)try{
     Check(active.Act(updates::UpdateAction::Download));inspect(active);
     Check(active.Act(updates::UpdateAction::Pause)&&active.WaitIdle(std::chrono::seconds(10)));inspect(active);
     source->Release();Check(active.Act(updates::UpdateAction::Resume)&&active.WaitIdle(std::chrono::seconds(10)));Check(active.Snapshot().state==S::Staged);inspect(active);
-    active.Shutdown();DestroyWindow(owner);std::filesystem::remove_all(root);
+    active.Shutdown();
+    updates::ReleaseManifest installed{"0.1.0","2026-10-17T00:00:00Z","",{}};
+    for(const auto name:{"NovenTarkovSupport.exe","NovenPluginHost.exe"}){const auto size=std::filesystem::file_size(old/name);const auto hash=updates::HashFileRange(old/name,0,size);
+        installed.files.push_back({name,hash,size,{{0,size,0,hash,"test.pack"}}});}
+    Check(resources::WriteResourceText(fixture/"release.json",signer.Sign(updates::EncodeReleaseManifest(installed))));
+    updates::UpdateService admitted(common::AppPaths::Test(old,root/"test"),program,"0.1.0",{signer.publicKey},updates::LocalUpdateSource(fixture),{},true);
+    Check(admitted.StartupCheck(100000)&&admitted.WaitIdle(std::chrono::seconds(10)));
+    const auto guard=SetTimer(nullptr,0,10000,[](HWND,UINT,UINT_PTR,DWORD){ExitProcess(4);});
+    Check(ui::ShowStartupUpdateDialog(owner,admitted));KillTimer(nullptr,guard);Check(IsWindowEnabled(owner));admitted.Shutdown();
+    Check(resources::WriteResourceText(old/"NovenPluginHost.exe","changed"));
+    updates::UpdateService blocked(common::AppPaths::Test(old,root/"test"),program,"0.1.0",{signer.publicKey},updates::LocalUpdateSource(fixture),{},true);
+    Check(blocked.StartupCheck(100001)&&blocked.WaitIdle(std::chrono::seconds(10)));
+    Check(blocked.Snapshot().admission==updates::StartupAdmission::Blocked);startupInspect=true;inspect(blocked);startupInspect=false;blocked.Shutdown();
+    DestroyWindow(owner);std::filesystem::remove_all(root);
     std::cout<<"native update dialog state actions/progress/localization/DPI/geometry PASS\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

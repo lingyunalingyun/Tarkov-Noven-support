@@ -316,6 +316,24 @@ int App::Run(HINSTANCE instance, int show_command) {
         );
     }
 
+    // 安装版准入在插件、OCR、扫描与正常窗口初始化之前；开发/评审路径不依赖公网。
+    // Installed admission precedes plugins, OCR, scanning and normal UI; development/review stays isolated.
+    if(paths_.mode==common::PathMode::Installed){
+        updates_=std::make_unique<updates::UpdateService>(paths_,paths_.BootstrapRoot(),NOVEN_APP_VERSION,
+            updates::CompiledReleaseKeys(),updates::CompiledUpdateSource(),std::function<void()>{},true);
+        (void)updates_->StartupCheck(static_cast<std::int64_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()));
+        if(!ui::ShowStartupUpdateDialog(nullptr,*updates_)){
+            // 联网失败或用户退出不是新版本崩溃，不能消耗健康回退次数。
+            // Network denial or intentional exit is not a startup crash and must not consume a recovery attempt.
+            try{const auto bootstrap=paths_.BootstrapRoot();int count{};auto args=CommandLineToArgvW(GetCommandLineW(),&count);
+                std::string token;if(args){for(int i=1;i+1<count;++i)if(std::wstring_view(args[i])==L"--noven-boot-token"){
+                    const std::wstring_view value(args[i+1]);if(value.size()==64&&value.find_first_not_of(L"0123456789abcdef")==value.npos)for(const auto c:value)token+=static_cast<char>(c);}LocalFree(args);}
+                if(!bootstrap.empty()&&!token.empty())updates::VersionStore(bootstrap,updates::InstallerVersion(),updates::CompiledReleaseKeys()).DeferUnconfirmedBoot(NOVEN_APP_VERSION,token);
+            }catch(...){common::DebugLog(L"[updates] Could not defer an unconfirmed gated startup.");}
+            updates_->Shutdown();return 0;
+        }
+    }
+
     if (!RegisterWindowClass(instance)) {
         common::DebugLog(L"[app] RegisterClassExW failed");
         return 1;
@@ -796,13 +814,14 @@ void App::StartResources(){
             for(const auto& value:resources_->Snapshot())if(value.record.stableMapId==id){info.bytes=value.record.downloadSize;info.downloadAllowed=value.downloadAllowed&&value.record.downloadSize&&resources_->CanDownload();break;}return info;},
         [this](auto id){resources_->Act("maps."+std::string(id),resources::ResourceAction::Download);});
     main_ui_->SetResourceManagementHandler([this]{ui::ShowResourceDialog(window_,*resources_,paths_.userRoot,false);});
-    auto updateSource=updates::CompiledUpdateSource();
+    if(!updates_){auto updateSource=updates::CompiledUpdateSource();
 #ifdef NOVEN_UPDATE_REVIEW_FIXTURE
     updateSource=updates::LocalUpdateSource(paths_.BootstrapRoot()/L"update-review-fixture",std::chrono::milliseconds(100));
 #endif
     updates_=std::make_unique<updates::UpdateService>(paths_,paths_.BootstrapRoot(),NOVEN_APP_VERSION,updates::CompiledReleaseKeys(),std::move(updateSource));
-    main_ui_->SetUpdateManagementHandler([this]{if(ui::ShowUpdateDialog(window_,*updates_))PostMessageW(window_,WM_CLOSE,0,0);});
     (void)updates_->StartupCheck(static_cast<std::int64_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()));
+    }
+    main_ui_->SetUpdateManagementHandler([this]{if(ui::ShowUpdateDialog(window_,*updates_))PostMessageW(window_,WM_CLOSE,0,0);});
 }
 void App::StartMapAssetUpdate(){
     if(paths_.mode!=common::PathMode::Development)return;

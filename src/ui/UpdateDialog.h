@@ -11,5 +11,9 @@ inline std::array<bool,8> UpdateDialogActions(const updates::UpdateSnapshot& v){
         transfer&&!v.constructing,v.state==S::Staged,
         !v.previous.empty()&&!transfer&&v.state!=S::Checking,true };
 }
+inline std::array<bool,8> StartupUpdateDialogActions(const updates::UpdateSnapshot& v){
+    auto actions=UpdateDialogActions(v);actions[6]=false;return actions;
+}
 bool ShowUpdateDialog(HWND owner,updates::UpdateService& service);
+bool ShowStartupUpdateDialog(HWND owner,updates::UpdateService& service);
 }

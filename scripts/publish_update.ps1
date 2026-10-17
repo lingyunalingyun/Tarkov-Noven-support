@@ -38,6 +38,9 @@ if($LASTEXITCODE) {throw 'Signed release generation failed.'}
 $validator=Join-Path $build 'NovenUpdateChannelTool.exe'
 & $validator --verify $artifacts $public $KeyId
 if($LASTEXITCODE) {throw 'Independent signature/pack verification failed.'}
+$history=Join-Path $artifacts 'manifests'
+& $validator --archive (Join-Path $artifacts 'release.json') $public $KeyId $history
+if($LASTEXITCODE) {throw 'Immutable signed manifest archival failed.'}
 $packs=@(Get-ChildItem -LiteralPath $artifacts -Filter '*.pack' -File)
 if(-not $packs.Count -or @($packs | Where-Object Length -ge 100MB).Count) {throw 'GitHub individual-file limit: split oversized packs before publishing.'}
 $packs | ForEach-Object {[pscustomobject]@{Name=$_.Name;Bytes=$_.Length;SHA256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}}
@@ -49,6 +52,16 @@ $channel=Join-Path $output 'channel'
 if($LASTEXITCODE) {throw 'Channel clone failed.'}
 $stable=Join-Path $channel 'stable'
 New-Item -ItemType Directory -Path $stable -Force | Out-Null
+# 历史签名清单与包先发布，latest 清单最后发布；已有版本身份不可覆盖。
+# Publish immutable history and packs before latest; never overwrite an existing version identity.
+if(Test-Path -LiteralPath (Join-Path $stable 'release.json')) {
+    & $validator --archive (Join-Path $stable 'release.json') $public $KeyId $stable
+    if($LASTEXITCODE) {throw 'Previous signed release archival failed; channel unchanged.'}
+}
+& $validator --archive (Join-Path $artifacts 'release.json') $public $KeyId $stable
+if($LASTEXITCODE) {throw 'New signed release history conflict; channel unchanged.'}
+& git -C $channel add -- 'stable/release-*.json'
+if($LASTEXITCODE) {throw 'Signed history staging failed.'}
 foreach($pack in $packs) {
     $destination=Join-Path $stable $pack.Name
     if(Test-Path -LiteralPath $destination) {throw 'Pack identity already published; use a new version, never overwrite.'}
@@ -63,6 +76,9 @@ if($LASTEXITCODE) {throw 'Pack publication failed; release.json unchanged.'}
 $root='https://raw.githubusercontent.com/lingyunalingyun/Noven-Update-Channel/main/stable/'
 & $validator --verify-remote $artifacts $public $KeyId $root
 if($LASTEXITCODE) {throw 'Remote pack validation failed; release.json unchanged. Investigate, do not publish manifest.'}
+$archiveName="release-$version.json"
+$archiveResponse=Invoke-WebRequest -UseBasicParsing -Uri ($root+$archiveName) -MaximumRedirection 0 -TimeoutSec 30
+if($archiveResponse.Content -ne (Get-Content -LiteralPath (Join-Path $stable $archiveName) -Raw)) {throw 'Immutable signed manifest is not visible yet; release.json unchanged.'}
 Copy-Item -LiteralPath (Join-Path $artifacts 'release.json') -Destination (Join-Path $stable 'release.json')
 & git -C $channel add -- stable/release.json
 if($LASTEXITCODE) {throw 'Manifest staging failed.'}
