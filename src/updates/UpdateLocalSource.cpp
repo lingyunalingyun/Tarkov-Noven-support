@@ -18,6 +18,9 @@ class Source final:public UpdateSource {
 public:
     explicit Source(std::filesystem::path path,std::chrono::milliseconds delay):root_(std::move(path)),delay_(delay){if(!resources::SafeResourcePath(root_)||delay.count()<0||delay.count()>1000)throw std::runtime_error("unsafe offline update fixture");}
     std::string FetchManifest(std::stop_token stop)override{if(stop.stop_requested())throw std::runtime_error("cancelled");return resources::ReadResourceText(root_/L"release.json",2*MaximumManifestBytes+2048);}
+    std::string FetchVersionManifest(std::string_view version,std::stop_token stop)override{
+        if(stop.stop_requested()||!ValidReleaseVersion(version))throw std::runtime_error("invalid offline release archive");
+        return resources::ReadResourceText(root_/("release-"+std::string(version)+".json"),2*MaximumManifestBytes+2048);}
     std::unique_ptr<resources::ResourceStream> Open(std::string_view pack,std::uint64_t offset,std::uint64_t count,std::string_view identity,std::stop_token stop)override{
         if(stop.stop_requested()||!ValidReleasePath(pack)||pack.find('/')!=pack.npos||!pack.ends_with(".pack"))throw std::runtime_error("invalid offline pack");return std::make_unique<Stream>(root_/std::string(pack),offset,count,std::string(identity),delay_);}
 };

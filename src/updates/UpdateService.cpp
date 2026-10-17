@@ -4,9 +4,10 @@
 #include "raid/RaidJson.h"
 namespace noven::updates {
 UpdateService::UpdateService(common::AppPaths paths,std::filesystem::path bootstrap,std::string current,std::vector<ReleasePublicKey> keys,
-    std::shared_ptr<UpdateSource> source,std::function<void()> changed):paths_(std::move(paths)),bootstrap_(std::move(bootstrap)),keys_(std::move(keys)),source_(std::move(source)),changed_(std::move(changed)){
+    std::shared_ptr<UpdateSource> source,std::function<void()> changed,bool requireStartupAdmission):paths_(std::move(paths)),bootstrap_(std::move(bootstrap)),keys_(std::move(keys)),source_(std::move(source)),changed_(std::move(changed)),requireStartupAdmission_(requireStartupAdmission){
     if(!ValidReleaseVersion(current))throw std::runtime_error("invalid current application version");view_.current=std::move(current);
     view_.state=source_&&!keys_.empty()?UpdateState::Idle:UpdateState::Unconfigured;
+    if(requireStartupAdmission_)view_.admission=StartupAdmission::Blocked;
     if(!bootstrap_.empty())try{view_.previous=VersionStore(bootstrap_,InstallerVersion(),keys_).Read().previous;}catch(...){}
     worker_=std::jthread([this](std::stop_token stop){Worker(stop);});
 }
@@ -19,13 +20,14 @@ bool UpdateService::Act(UpdateAction action){bool accepted{};{
     if(action==UpdateAction::Pause||action==UpdateAction::Cancel){if(view_.state!=UpdateState::Downloading)return false;paused_=action==UpdateAction::Pause;
         if(pending_){pending_.reset();view_.state=paused_?UpdateState::Paused:UpdateState::Available;idle_.notify_all();}else operation_.request_stop();return true;}
     if(busy_||pending_)return false;
-    if(action==UpdateAction::Check){view_.state=UpdateState::Checking;pending_=action;accepted=true;}
+    if(action==UpdateAction::Check){view_.state=UpdateState::Checking;if(requireStartupAdmission_)view_.admission=StartupAdmission::Checking;pending_=action;accepted=true;}
     else if((action==UpdateAction::Download||action==UpdateAction::Resume)&&release_&&
         (view_.state==UpdateState::Available||view_.state==UpdateState::Paused||view_.state==UpdateState::Error)){
         view_.state=UpdateState::Downloading;view_.error.clear();view_.received=0;pending_=UpdateAction::Download;paused_=false;accepted=true;}}
     if(accepted){condition_.notify_one();Notify();}return accepted;
 }
 bool UpdateService::StartupCheck(std::int64_t now){if(now<=0||Snapshot().state==UpdateState::Unconfigured)return false;
+    if(requireStartupAdmission_)return Act(UpdateAction::Check);
     try{const auto j=raid::json::Parser(resources::ReadResourceText(paths_.Updates()/L"check.json",1024)).Parse();const auto last=j.At("lastCheck").Int();
         if(last>0&&last<=now&&now-last<86400)return false;}catch(...){}
     if(!Act(UpdateAction::Check))return false;return resources::WriteResourceText(paths_.Updates()/L"check.json","{\"lastCheck\":"+std::to_string(now)+"}");
@@ -40,14 +42,24 @@ void UpdateService::Worker(std::stop_token stop){while(!stop.stop_requested()){
             if(order==0){std::lock_guard lock(mutex_);view_.state=UpdateState::Current;view_.target.clear();view_.notes.clear();view_.error.clear();view_.fullBytes=view_.reusedBytes=view_.downloadBytes=view_.received=0;release_.reset();plan_.reset();}
             else{const auto plan=PlanUpdate(view_.current,paths_.programRoot,paths_.UpdateCache(),release);
                 const bool staged=UpdateEngine(bootstrap_,paths_.UpdateCache()).ValidateVersion(release);std::lock_guard lock(mutex_);
-                release_=release;plan_=plan;view_.target=plan.version;view_.notes=release.Manifest().notes;view_.fullBytes=plan.fullBytes;view_.reusedBytes=plan.reusedBytes;view_.downloadBytes=plan.downloadBytes;view_.state=staged?UpdateState::Staged:UpdateState::Available;view_.error.clear();}}
+                release_=release;plan_=plan;view_.target=plan.version;view_.notes=release.Manifest().notes;view_.fullBytes=plan.fullBytes;view_.reusedBytes=plan.reusedBytes;view_.downloadBytes=plan.downloadBytes;view_.state=staged?UpdateState::Staged:UpdateState::Available;view_.error.clear();}
+            if(requireStartupAdmission_){
+                // 每次启动必须先取得在线签名清单；本地缓存绝不替代联网准入。
+                // Every launch requires an online signed manifest; local history is never offline admission.
+                RetainReleaseManifest(paths_.Updates()/L"manifests",release,keys_);
+                const auto installed=order==0?release:VerifyRelease(source_->FetchVersionManifest(view_.current,token),keys_);
+                if(installed.Manifest().version!=view_.current)throw std::runtime_error("signed release archive version mismatch");
+                if(!VerifyStartupFiles(paths_.programRoot,installed,token))throw std::runtime_error("installed file integrity check failed; repair using the official installer");
+                RetainReleaseManifest(paths_.Updates()/L"manifests",installed,keys_);
+                std::lock_guard lock(mutex_);view_.admission=WithinStartupWindow(view_.current,release.Manifest().version)?StartupAdmission::Allowed:StartupAdmission::UpdateRequired;
+            }}
         else{const auto release=*release_;const auto plan=PlanUpdate(view_.current,paths_.programRoot,paths_.UpdateCache(),release);
             {std::lock_guard lock(mutex_);plan_=plan;view_.downloadBytes=plan.downloadBytes;view_.reusedBytes=plan.reusedBytes;}
             UpdateEngine(bootstrap_,paths_.UpdateCache()).Stage(release,plan,*source_,token,[&](auto progress){
                 {std::lock_guard lock(mutex_);view_.received=progress.downloaded;view_.constructing=progress.constructing;}Notify();});
             std::lock_guard lock(mutex_);view_.state=UpdateState::Staged;view_.constructing=false;view_.received=view_.downloadBytes;}
     }catch(const std::exception& e){std::lock_guard lock(mutex_);if(token.stop_requested())view_.state=paused_?UpdateState::Paused:UpdateState::Available;
-        else{view_.state=UpdateState::Error;view_.error=e.what();if(view_.error.size()>256)view_.error.resize(256);}view_.constructing=false;}
+        else{view_.state=UpdateState::Error;view_.error=e.what();if(view_.error.size()>256)view_.error.resize(256);}if(requireStartupAdmission_)view_.admission=StartupAdmission::Blocked;view_.constructing=false;}
     {std::lock_guard lock(mutex_);busy_=false;}idle_.notify_all();Notify();}
 }
 bool UpdateService::WaitIdle(std::chrono::milliseconds timeout){std::unique_lock lock(mutex_);return idle_.wait_for(lock,timeout,[&]{return !busy_&&!pending_;});}

@@ -6,6 +6,9 @@ class Source final:public UpdateSource {
 public:
     Source(resources::ResourceSourcePolicy policy,std::shared_ptr<resources::ContentBackend> backend):policy_(std::move(policy)),backend_(std::move(backend)){}
     std::string FetchManifest(std::stop_token stop)override{return resources::FetchContentText(policy_,"release.json",2*MaximumManifestBytes+2048,backend_,stop);}
+    std::string FetchVersionManifest(std::string_view version,std::stop_token stop)override{
+        if(!ValidReleaseVersion(version))throw std::runtime_error("invalid archived release version");
+        return resources::FetchContentText(policy_,"release-"+std::string(version)+".json",2*MaximumManifestBytes+2048,backend_,stop);}
     std::unique_ptr<resources::ResourceStream> Open(std::string_view pack,std::uint64_t offset,std::uint64_t count,std::string_view identity,std::stop_token stop)override{
         if(!ValidReleasePath(pack)||pack.find('/')!=pack.npos||!pack.ends_with(".pack"))throw std::runtime_error("invalid HTTPS update pack");
         return resources::OpenContentRange(policy_,pack,{offset,count},std::string(identity),0,backend_,stop);}

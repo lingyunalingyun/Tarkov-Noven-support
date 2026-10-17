@@ -21,6 +21,26 @@ are not an OS sandbox and same-user filesystem tampering is not prevented.
 
 ## Release Manifest v1
 
+### 0.1.3 startup admission contract
+
+Installed builds require a fresh online, authenticated `release.json` at each
+launch, not the optional once-daily check. Same major/minor versions may trail
+by at most five patch numbers (`0.1.3` through `0.1.8`); crossing major/minor,
+remote downgrade, offline/error or invalid metadata cannot admit normal use.
+Rollback remains available, but its next launch has the same admission rule.
+Development and explicitly isolated test/review modes do not enforce this gate.
+
+When not current, fetch the corresponding signed `release-<version>.json` from
+the same fixed update root. Verify every versioned runtime file size/SHA-256,
+reject extra files and unsafe paths, and never trust a regenerated unsigned
+installer inventory for online admission. Preserve authenticated envelopes in
+User Data `updates/manifests/`; a published version cannot acquire a different
+signed payload. This history never substitutes for a successful online check.
+The check covers immutable versioned Core files, not mutable user data/plugins,
+optional maps or installer-owned Launcher/Updater. It is not Authenticode or
+an unbypassable anti-tamper system; modified native clients can remove checks.
+It checks connectivity at launch, not continuous connectivity during a session.
+
 The outer JSON envelope contains `scheme: "ecdsa-p256-sha256"`, `keyId`,
 `payloadHex`, and `signatureHex`. Windows CNG verifies a 64-byte raw P-256
 ECDSA signature of SHA-256 over `Noven.ReleaseManifest.v1\n` followed by the

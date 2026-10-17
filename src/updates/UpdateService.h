@@ -1,5 +1,6 @@
 #pragma once
 #include "updates/VersionStore.h"
+#include "updates/StartupAdmission.h"
 #include "common/AppPaths.h"
 namespace noven::updates {
 enum class UpdateState {Unconfigured,Idle,Checking,Current,Available,Downloading,Paused,Staged,Error};
@@ -7,15 +8,17 @@ enum class UpdateAction {Check,Download,Pause,Resume,Cancel};
 struct UpdateSnapshot final {
     UpdateState state{UpdateState::Unconfigured};std::string current,target,previous,notes,error;
     std::uint64_t fullBytes{},reusedBytes{},downloadBytes{},received{};bool constructing{};
+    StartupAdmission admission{StartupAdmission::Disabled};
 };
 class UpdateSource:public UpdateTransport {
 public:
     virtual std::string FetchManifest(std::stop_token)=0;
+    virtual std::string FetchVersionManifest(std::string_view,std::stop_token){throw std::runtime_error("signed release archive unavailable");}
 };
 class UpdateService final {
 public:
     UpdateService(common::AppPaths,std::filesystem::path bootstrap,std::string current,
-        std::vector<ReleasePublicKey>,std::shared_ptr<UpdateSource> source={},std::function<void()> changed={});
+        std::vector<ReleasePublicKey>,std::shared_ptr<UpdateSource> source={},std::function<void()> changed={},bool requireStartupAdmission=false);
     ~UpdateService();
     UpdateSnapshot Snapshot() const;
     bool Act(UpdateAction);
@@ -29,6 +32,6 @@ private:
     common::AppPaths paths_;std::filesystem::path bootstrap_;std::vector<ReleasePublicKey> keys_;std::shared_ptr<UpdateSource> source_;
     std::function<void()> changed_;mutable std::mutex mutex_;std::condition_variable condition_,idle_;
     UpdateSnapshot view_;std::optional<AuthenticatedRelease> release_;std::optional<UpdatePlan> plan_;
-    std::optional<UpdateAction> pending_;std::stop_source operation_;std::jthread worker_;bool stopping_{},busy_{},paused_{};
+    std::optional<UpdateAction> pending_;std::stop_source operation_;std::jthread worker_;bool stopping_{},busy_{},paused_{},requireStartupAdmission_{};
 };
 }

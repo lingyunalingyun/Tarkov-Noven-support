@@ -37,6 +37,9 @@ int main()try{
     auto source=noven::updates::HttpsUpdateSource(policy,backend);auto stream=source->Open("core-0.1.1.pack",2,5,"signed-identity",{});
     Check(stream->Offset()==2&&stream->TotalSize()==11&&stream->Identity()=="signed-identity"&&Read(*stream)=="cdefg");
     Check(backend->url==policy.baseUrl+"core-0.1.1.pack");Check(source->FetchManifest({})==backend->bytes);
+    Check(source->FetchVersionManifest("0.1.3",{})==backend->bytes);
+    Check(backend->url==policy.baseUrl+"release-0.1.3.json");
+    for(const auto bad:{"../0.1.3","https://evil.test/0.1.3","0.1.3?x","0.1.3-beta"})Reject([&]{(void)source->FetchVersionManifest(bad,{});});
     for(const auto bad:{"../a.pack","C:a.pack","a/b.pack","https://evil.test/a.pack","a.exe"})Reject([&]{(void)source->Open(bad,0,1,"identity",{});});
     Reject([&]{(void)noven::updates::HttpsUpdateSource({"http://content.example.test/"},backend);});
     for(const auto status:{200U,301U,302U,404U}){backend->status=status;Reject([&]{(void)source->Open("a.pack",2,5,"identity",{});});}backend->status=0;
