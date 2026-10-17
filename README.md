@@ -353,7 +353,7 @@ other results are not inferred. Only the verified `RezervBase` / Reserve aliases
 currently resolve to an existing MapCatalog ID; other locations remain unresolved.
 Cross-file late arrivals/reconnect recovery have not been live-EFT validated.
 
-`GameStarted` 才激活对局，结束请求才完成。加载本身不生成完成记录。
+`GameStarted` 才激活对局，结束请求才确认结束。加载本身不生成对局记录。
 Scav 正面证据只解析角色，结果始终保持 Unknown；不猜测 PMC、练习/离线模式、重连或生还结果。
 当前仅已验证的储备站别名解析为现有地图 ID，其他地图保留未解析。
 跨日志延迟写入和重连恢复尚未完成真实游戏验证。
@@ -371,8 +371,23 @@ map/identity search. Unsupported role/outcome fields remain Unknown.
 仅保存结构化会话、完整性、版本和完整行游标，不保存原文、日志副本、服务器或账户信息。
 时间为日志本地墙钟毫秒，不冒充 UTC；缺失时间/时长用 null 表示。
 文件损坏或版本不支持时保留原文件并停止写入；只允许单进程写入。
-对局历史页在本地浏览已完成会话，支持模式/角色/地图/本地日期筛选及地图/身份搜索。
+对局历史页在本地浏览已结束或明确中断的会话，支持模式/角色/地图/本地日期筛选及地图/身份搜索。
 不支持的角色或结果仍保持未知，不计算生还率或对局收益。
+
+Missing-end recovery: an exact application-log client teardown, a distinct next
+raid, or a source boundary retains the previous observed raid as incomplete.
+This is not a settlement result: end time, duration and outcome stay unknown.
+Startup/manual scans replay only committed prefixes of matching file generations
+and merge by start-file identity/offset, preserving existing IDs and scan links.
+The optional `incomplete` storage array leaves legacy `completed` records unchanged;
+older builds can read completed records but do not preserve this new array on save.
+Plugin history projections continue to expose only end-observed records.
+
+缺失结束通知时，应用日志的明确客户端释放通知、下一局或来源边界会保留上一局，
+显示“记录不完整 · 结束未知”，不伪造结束时间、时长或生还结果。
+启动/手动扫描只读回放同一文件世代的已提交前缀，补录时保留原有 ID、扫描关联和游标。
+不完整记录独立存于可选 `incomplete` 数组；旧版仍能读取已结算记录，但旧版保存时不会保留此扩展。
+插件历史投影仍只提供已观察到结束的记录。
 
 New finalized scans optionally store the active Noven session ID. Existing scans
 remain unassociated; no timestamp matching or historical backfilling is performed.

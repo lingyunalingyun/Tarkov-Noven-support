@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <atomic>
+#include <map>
 using namespace noven::raid;
 void Require(bool ok,const char* text) {if(!ok) {std::cerr<<text<<'\n';std::exit(1);}}
 void Write(const std::filesystem::path& path,std::string_view text,bool append=false) {
@@ -19,15 +20,30 @@ template<class F>void Wait(LocalRaidService& service,F predicate) {
 int main(int argc,char** argv) {
     const auto root=std::filesystem::temp_directory_path()/("noven-service-"+std::to_string(GetCurrentProcessId()));
     std::filesystem::create_directories(root);const auto history=root/"data"/"raid-history.json";
-    if(argc==3&&std::string_view(argv[1])=="--replay-root") {
+    if((argc==3&&std::string_view(argv[1])=="--replay-root")
+        ||(argc==4&&std::string_view(argv[1])=="--replay-checkpoint")) {
         // 本机历史日志仅只读回放；临时目录仅存结构化结果，输出只含计数。
         // Read-only replay of local historical logs; temp storage is structured only, output contains counts.
+        RaidCheckpoint baseline;std::string baselineError;
+        if(argc==4){std::filesystem::create_directories(history.parent_path());std::filesystem::copy_file(argv[3],history);
+            RaidSessionStore store;Require(store.Load(history,baseline,baselineError),"read copied baseline checkpoint");}
         LocalRaidService service;Require(service.Start(std::filesystem::path(std::u8string(argv[2],argv[2]+std::char_traits<char>::length(argv[2]))),history),"start replay");
         Wait(service,[&]{return service.Status().directoryPasses>0;});
         const auto sessions=service.CompletedSessions();const auto stats=service.Status();service.Stop();
+        for(const auto& old:baseline.detector.completed) {
+            const auto found=std::find_if(sessions.begin(),sessions.end(),[&](const auto& s){return s.localSessionId==old.localSessionId;});
+            Require(found!=sessions.end(),"recovery preserves every original local session identity");
+            auto retained=*found;retained.mapId=old.mapId;
+            Require(retained==old,"recovery preserves original session facts and scan-link identity");
+        }
+        if(argc==4)std::cout<<"Preserved original records="<<baseline.detector.completed.size()<<'\n';
         std::size_t scav{},pve{},unknown{};for(const auto& s:sessions) {scav+=s.raidType==RaidType::Scav;pve+=s.gameMode==GameMode::PvE;unknown+=s.outcome==RaidOutcome::Unknown;}
         std::cout<<"Historical replay: completed="<<sessions.size()<<" pve="<<pve<<" scav="<<scav
             <<" unknownOutcome="<<unknown<<" bytes="<<stats.bytesRead<<" events="<<stats.events<<'\n';
+        std::map<std::string,std::size_t> maps;std::size_t partial{};
+        for(const auto& s:sessions){++maps[s.mapId];partial+=!s.endObserved;}
+        std::cout<<"Incomplete records="<<partial<<'\n';
+        for(const auto& [map,count]:maps)std::cout<<"map="<<map<<" records="<<count<<'\n';
         std::filesystem::remove_all(root);return 0;
     }
     const auto logs=root/"Logs";const auto group=logs/"log_2026.01.01";std::filesystem::create_directories(group);
@@ -56,10 +72,12 @@ int main(int argc,char** argv) {
     const auto manualNotifications=notifications.load();
     Require(service.RequestScan(),"manual scan schedules native worker");
     Wait(service,[&]{return service.Status().manualScans==1&&!service.Status().manualScanPending&&notifications.load()>manualNotifications;});
-    Require(service.Status().bytesRead==idle.bytesRead&&service.CompletedSessions().size()==2,"manual scan preserves cursors and deduplicates history");
+    Require(service.Status().bytesRead>idle.bytesRead&&service.CompletedSessions().size()==2
+        &&service.CompletedSessions()[0].localSessionId==first,"manual committed-prefix recovery deduplicates history");
+    const auto manualBytes=service.Status().bytesRead;
     const auto before=notifications.load();
     Write(app,"2026-01-01 12:19:00.000|unrelated synthetic diagnostic\n",true);
-    Wait(service,[&]{return service.Status().bytesRead>idle.bytesRead;});
+    Wait(service,[&]{return service.Status().bytesRead>manualBytes;});
     Require(notifications==before,"irrelevant appends do not rebuild UI history");
     Write(app,"2026-01-01 12:20:00.000|[Transit] RaidId:three, Locations:RezervBase -> \n"
         "2026-01-01 12:21:00.000|GameSta",true);
@@ -141,5 +159,51 @@ int main(int argc,char** argv) {
     Require(service.RequestScan(),"manual recovery after old source restored");
     Wait(service,[&]{return service.Status().manualScans==1;});
     Require(service.CompletedSessions()==expected,"manual repair can revisit old groups without rebuilding history");service.Stop();
+    const auto remoteLogs=root/"remote-logs",remoteHistory=root/"remote-data"/"raid-history.json";
+    std::filesystem::create_directories(remoteLogs);
+    Write(remoteLogs/"synthetic application_000.log",
+        "2026-01-03 12:00:00.000|Session mode: Pve\n"
+        "2026-01-03 12:00:01.000|scene preset path:maps/factory_day_preset.bundle\n"
+        "2026-01-03 12:00:02.000|GameStarted\n"
+        "2026-01-03 12:00:03.000|Info|application|BEClient exit successfully\n"
+        "2026-01-03 12:01:01.000|scene preset path:maps/laboratory_preset.bundle\n"
+        "2026-01-03 12:01:02.000|GameStarted\n"
+        "2026-01-03 12:02:01.000|scene preset path:maps/shoreline_preset.bundle\n"
+        "2026-01-03 12:02:02.000|GameStarted\n"
+        "2026-01-03 12:02:03.000|Info|application|BEClient exit successfully\n");
+    const auto sentinel=root/"unrelated-user-settings.txt";Write(sentinel,"keep-user-state");
+    Require(service.Start(remoteLogs,remoteHistory),"read remote-session lifecycle");
+    Wait(service,[&]{return service.Status().directoryPasses>0;});service.Stop();
+    auto networkSessions=service.CompletedSessions();
+    Require(networkSessions.size()==3,"teardown and successor retain every observed raid");
+    for(const auto& s:networkSessions)Require(s.sourceInterrupted&&!s.endObserved&&!s.endedAt&&!s.duration
+        &&s.outcome==RaidOutcome::Unknown,"incomplete is not fabricated settlement");
+    RaidCheckpoint lost;
+    {RaidSessionStore store;Require(store.Load(remoteHistory,lost,error),"load remote checkpoint");
+        // 模拟旧版本只保留首局和最后一个 active，中间记录已被覆盖。
+        // Simulate the old checkpoint: one retained record, overwritten middle raid, final active context.
+        lost.detector.active=lost.detector.completed.back();lost.detector.active->sourceInterrupted=false;
+        lost.detector.active->mapId.clear();lost.detector.state=SessionState::ActiveRaid;
+        lost.detector.completed.resize(1);lost.detector.completed[0].mapId=NormalizeMap("RezervBase");
+        Require(store.Save(lost,error),"seed legacy missing-raid checkpoint");}
+    Require(service.Start(remoteLogs,remoteHistory),"recover committed historical sessions");
+    Wait(service,[&]{return service.Status().directoryPasses>0;});
+    auto recovered=service.CompletedSessions();
+    Require(recovered.size()==3&&!service.ActiveSession(),"restore lost sessions including retired legacy active");
+    Require(recovered[0]==lost.detector.completed[0]&&recovered[1].mapId==NormalizeMap("laboratory")
+        &&recovered[2].mapId==NormalizeMap("Shoreline")
+        &&recovered[2].localSessionId==lost.detector.active->localSessionId,"preserve old IDs/known records and recover proven maps");
+    Require(service.RequestScan(),"repeat missing-history recovery");
+    Wait(service,[&]{return service.Status().manualScans==1;});
+    Require(service.CompletedSessions()==recovered,"recovery is idempotent and preserves scan-link identities");service.Stop();
+    {RaidSessionStore store;RaidCheckpoint read;Require(store.Load(remoteHistory,read,error),"recovered history roundtrip");
+        Require(read.detector.completed==recovered&&read.sourceGroup==lost.sourceGroup
+            &&read.cursors.size()==lost.cursors.size(),"recovery persisted without moving source group");
+        for(std::size_t i=0;i<lost.cursors.size();++i)Require(read.cursors[i].offset==lost.cursors[i].offset
+            &&read.cursors[i].fileIdentity==lost.cursors[i].fileIdentity
+            &&read.cursors[i].generation==lost.cursors[i].generation,"recovery never rewinds or changes cursor generation");}
+    {std::ifstream sentinelInput(sentinel);std::string value;std::getline(sentinelInput,value);Require(value=="keep-user-state","recovery preserves unrelated user state");}
+    Require(service.Start({},remoteHistory),"offline recovered history");Wait(service,[&]{return !service.Status().running;});
+    Require(service.CompletedSessions()==recovered,"incomplete history usable without source logs");service.Stop();
     std::filesystem::remove_all(root);std::cout<<"Local raid service synthetic integration PASS\n";
 }

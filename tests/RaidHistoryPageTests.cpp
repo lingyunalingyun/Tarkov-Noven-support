@@ -21,6 +21,7 @@ int wmain(int argc,wchar_t** argv) {
         Require(RaidPriceText(std::nullopt)==Tr(TextKey::Unknown)&&RaidPriceText(0)==L"₽0","missing snapshot price differs from verified zero");
     };
     checkLocalizedFormats();
+    Require(Tr("raid.incomplete")!=L"raid.incomplete","incomplete history label is localized");
     for(float width:{500.0F,1100.0F}) {
         const RaidHistoryCardLayout card{D2D1::RectF(300,238,300+width,878),342};
         Require(card.bounds.bottom==450&&card.bounds.right==300+width-16,"shared card bounds use price-card height and scrollbar inset");
@@ -40,6 +41,10 @@ int wmain(int argc,wchar_t** argv) {
     noven::raid::RaidSession raid;raid.localSessionId="local-one";raid.eftRaidId="eft-one";
     raid.startObserved=raid.endObserved=true;raid.mapId="reserve";
     raid.gameMode=noven::raid::GameMode::PvE;
+    {RaidHistoryPage incompletePage;auto partial=raid;partial.endObserved=false;partial.sourceInterrupted=true;
+        incompletePage.SetSessions({partial},{},false);incompletePage.Prepare(1600,900,theme);
+        Require(incompletePage.Browser().Rows().size()==1&&incompletePage.Select(partial.localSessionId),
+            "retained incomplete raid is visible and selectable in native history page");}
     page.SetSessions({raid},{},false);page.Prepare(1600,900,theme);
     Require(page.Browser().Rows().size()==1&&page.Select("local-one"),"completed raid browsable/selectable");
     Require(page.Animating(),"selection starts detail reveal");

@@ -4,6 +4,7 @@
 #include <cwctype>
 #include <fstream>
 #include <map>
+#include <set>
 #include <stdexcept>
 
 namespace noven::raid {
@@ -40,15 +41,18 @@ std::optional<std::filesystem::path> ReadEftLogRoot(const std::filesystem::path&
     if(!path.is_absolute())return {};return path;
 }
 struct LocalRaidService::Pipeline {
-    struct Source {std::unique_ptr<EftLogReader> reader;std::deque<RaidEvent> heads;};
+    struct Source {std::unique_ptr<EftLogReader> reader;std::deque<RaidEvent> heads;std::optional<std::uint64_t> limit;};
     RaidSessionStore store;RaidSessionDetector detector;RaidCheckpoint checkpoint;
     std::map<std::filesystem::path,Source> sources;
     RaidServiceStatus stats;
+    const std::vector<LogCursor>* committed{};
     bool Fill(Source& source,std::stop_token stop) {
         std::string line;std::uint64_t offset{};
         while(source.heads.empty()&&!stop.stop_requested()) {
+            if(source.limit&&source.reader->Cursor().offset>=*source.limit)return false;
             const auto before=source.reader->BytesRead();
             const auto result=source.reader->NextLine(line,offset);stats.bytesRead+=source.reader->BytesRead()-before;
+            if(source.limit&&source.reader->Cursor().offset>*source.limit)return false;
             if(result==ReadResult::End)return false;
             if(result==ReadResult::Error)throw std::runtime_error("EFT source read failed");
             if(result==ReadResult::Skipped) {++stats.ignoredLines;continue;}
@@ -72,7 +76,50 @@ struct LocalRaidService::Pipeline {
             auto it=std::find_if(checkpoint.cursors.begin(),checkpoint.cursors.end(),[&](const auto& c){return c.path==path;});
             if(it==checkpoint.cursors.end())checkpoint.cursors.push_back(std::move(cursor));else *it=std::move(cursor);
         }
+        if(committed) {
+            if(checkpoint.detector.completed.size()>100000||checkpoint.cursors.size()>4096)
+                throw std::runtime_error("raid recovery capacity exceeded");
+            return;
+        }
         std::string error;if(!store.Save(checkpoint,error))throw std::runtime_error(error);
+    }
+    void RecoverMissingHistory(const std::filesystem::path& root,std::stop_token stop) {
+        if(checkpoint.cursors.empty())return;
+        // 独立只读回放已提交前缀；按开局来源身份合并，不重置现有游标/记录/扫描关联。
+        // Replay committed prefixes read-only; merge by start provenance, never reset cursors, IDs or scan links.
+        Pipeline replay;replay.committed=&checkpoint.cursors;replay.Drain(root,stop);
+        stats.bytesRead+=replay.stats.bytesRead;
+        if(stop.stop_requested())return;
+        auto snapshot=detector.Snapshot();bool changed{};
+        using Origin=std::pair<std::string,std::uint64_t>;
+        const auto origin=[](const RaidSession& s){return Origin{s.startSource,s.startOffset};};
+        std::map<Origin,std::size_t> known;std::set<std::string> eftIds;
+        for(std::size_t i=0;i<snapshot.completed.size();++i) {
+            known.emplace(origin(snapshot.completed[i]),i);
+            if(!snapshot.completed[i].eftRaidId.empty())eftIds.insert(snapshot.completed[i].eftRaidId);
+        }
+        for(auto recovered:replay.detector.CompletedSessions()) {
+            if(recovered.startSource.empty())continue;
+            if(const auto found=known.find(origin(recovered));found!=known.end())continue;
+            if(!recovered.eftRaidId.empty()&&!eftIds.insert(recovered.eftRaidId).second)continue;
+            if(snapshot.active&&origin(*snapshot.active)==origin(recovered)) {
+                recovered.localSessionId=snapshot.active->localSessionId;
+                recovered.raidType=snapshot.active->raidType;recovered.outcome=snapshot.active->outcome;
+                if(!snapshot.active->mapId.empty())recovered.mapId=snapshot.active->mapId;
+                snapshot.active.reset();
+                snapshot.state=SessionState::Idle;snapshot.settlementSessionId.clear();
+            }
+            known.emplace(origin(recovered),snapshot.completed.size());
+            snapshot.completed.push_back(std::move(recovered));changed=true;
+        }
+        const auto& replayActive=replay.detector.Snapshot().active;
+        if(snapshot.active&&snapshot.active->mapId.empty()&&replayActive
+            &&origin(*snapshot.active)==origin(*replayActive)&&!replayActive->mapId.empty()) {
+            snapshot.active->mapId=replayActive->mapId;changed=true;
+        }
+        if(!changed)return;
+        std::stable_sort(snapshot.completed.begin(),snapshot.completed.end(),[](const auto& a,const auto& b){return a.startedAt<b.startedAt;});
+        detector.Restore(std::move(snapshot));Save();
     }
     void RepairUnknownMaps(const std::filesystem::path& root,std::stop_token stop) {
         auto snapshot=detector.Snapshot();
@@ -146,12 +193,18 @@ struct LocalRaidService::Pipeline {
             if(paths.size()>256)throw std::runtime_error("EFT source group capacity exceeded");
             bool changed=false;
             for(const auto& path:paths) {
+                const auto& savedCursors=committed?*committed:checkpoint.cursors;
+                const auto saved=std::find_if(savedCursors.begin(),savedCursors.end(),[&](const auto& c){return c.path==path;});
+                if(committed&&saved==savedCursors.end())continue;
                 auto& source=sources[path];
                 if(!source.reader) {
                     source.reader=std::make_unique<EftLogReader>();
-                    const auto saved=std::find_if(checkpoint.cursors.begin(),checkpoint.cursors.end(),[&](const auto& c){return c.path==path;});
-                    if(!source.reader->Open(path,saved==checkpoint.cursors.end()?std::nullopt:std::optional(*saved)))
+                    auto cursor=saved==savedCursors.end()?std::nullopt:std::optional(*saved);
+                    if(committed){source.limit=cursor->offset;cursor->offset=0;}
+                    if(!source.reader->Open(path,cursor))
                         throw std::runtime_error("EFT source open failed");
+                    if(committed&&(source.reader->SourceIdentity()!=saved->fileIdentity+":"+std::to_string(saved->generation)
+                        ||std::filesystem::file_size(path)<*source.limit)) {sources.erase(path);continue;}
                     changed=true;
                 } else if(!source.reader->Refresh())throw std::runtime_error("EFT source refresh failed");
                 if(source.reader->TakeSourceReset()) {detector.SourceBoundary();source.heads.clear();changed=true;}
@@ -220,10 +273,10 @@ void LocalRaidService::Run(std::stop_token stop,std::filesystem::path root,std::
         if(!pipeline_->checkpoint.sourceGroup.empty()&&!Within(pipeline_->checkpoint.sourceGroup,root)) {
             pipeline_->detector.SourceBoundary();pipeline_->checkpoint.sourceGroup.clear();pipeline_->checkpoint.cursors.clear();
         }
-        pipeline_->RepairUnknownMaps(root,stop);
+        pipeline_->RecoverMissingHistory(root,stop);pipeline_->RepairUnknownMaps(root,stop);
         bool manualScan{};
         while(!stop.stop_requested()) {
-            if(manualScan)pipeline_->RepairUnknownMaps(root,stop);
+            if(manualScan){pipeline_->RecoverMissingHistory(root,stop);pipeline_->RepairUnknownMaps(root,stop);}
             pipeline_->Drain(root,stop);
             // 首次打开/读完前已排队的变更也要排空，再发布稳定状态。
             // Drain changes already queued during initial opening/reading before publishing a settled state.

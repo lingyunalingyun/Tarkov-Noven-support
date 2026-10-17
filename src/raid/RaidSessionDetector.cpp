@@ -26,10 +26,15 @@ const RaidSession* RaidSessionDetector::FindSession(std::string_view id) const n
         [&](const auto& session) { return session.localSessionId == id; });
     return found == data_.completed.end() ? nullptr : &*found;
 }
+void RaidSessionDetector::RetainInterrupted() {
+    if(!data_.active)return;
+    data_.active->sourceInterrupted=true;
+    data_.completed.push_back(std::move(*data_.active));data_.active.reset();
+}
 void RaidSessionDetector::SourceBoundary() {
     data_.preparing.reset(); data_.mode = GameMode::Unknown;
     data_.settlementSessionId.clear(); data_.replayingCompleted = false;
-    if (data_.active) data_.active->sourceInterrupted = true;
+    RetainInterrupted();
     data_.state = SessionState::Idle;
 }
 bool RaidSessionDetector::Consume(const RaidEvent& event) {
@@ -56,14 +61,18 @@ bool RaidSessionDetector::Consume(const RaidEvent& event) {
             return true;
         }
         if (ActiveSession() && data_.active->eftRaidId == event.raidId) return false;
-        if (data_.preparing && data_.preparing->eftRaidId != event.raidId) data_.preparing.reset();
+        if (data_.preparing && !data_.preparing->eftRaidId.empty() && data_.preparing->eftRaidId != event.raidId) data_.preparing.reset();
         auto& session = prepare(); session.eftRaidId = event.raidId;
         if (!event.mapId.empty()) session.mapId = event.mapId;
         data_.replayingCompleted = false; return true;
     }
     case EventKind::RaidStarted: {
         if (data_.replayingCompleted) return false;
-        if (ActiveSession() && !data_.preparing) return false;
+        if(data_.active&&!event.source.empty()&&event.source==data_.active->startSource
+            &&event.offset==data_.active->startOffset)return false;
+        if (ActiveSession() && !data_.preparing && (!event.time || !data_.active->startedAt
+            || *event.time<=*data_.active->startedAt || event.source.empty()
+            || (event.source==data_.active->startSource&&event.offset<=data_.active->startOffset))) return false;
         // 没有上游 ID 时，来源文件身份和开始行偏移提供稳定的回放证据。
         // Without an upstream ID, source-file identity and start-line offset identify replay.
         const auto old = std::find_if(data_.completed.begin(), data_.completed.end(), [&](const auto& s) {
@@ -77,7 +86,9 @@ bool RaidSessionDetector::Consume(const RaidEvent& event) {
         session.localSessionId = NewId(); session.gameMode = data_.mode;
         session.startedAt = event.time; session.startObserved = true;
         session.startSource = event.source; session.startOffset = event.offset;
-        data_.active = std::move(session); data_.preparing.reset();
+        // 下一局不得覆盖尚未收到结束通知的上一局；缺失的事实保持未知。
+        // Never overwrite a prior raid when its end notification is missing; retain unknown facts.
+        RetainInterrupted();data_.active = std::move(session); data_.preparing.reset();
         data_.settlementSessionId.clear(); data_.state = SessionState::ActiveRaid; return true;
     }
     case EventKind::RaidEnded:
@@ -92,6 +103,10 @@ bool RaidSessionDetector::Consume(const RaidEvent& event) {
         data_.settlementSessionId = data_.active->localSessionId;
         data_.completed.push_back(std::move(*data_.active)); data_.active.reset();
         data_.state = SessionState::CompletedRaid; return true;
+    case EventKind::RaidContextClosed:
+        if(!data_.active || (event.time && data_.active->startedAt && *event.time<*data_.active->startedAt))return false;
+        RetainInterrupted();data_.settlementSessionId.clear();data_.preparing.reset();
+        data_.state=SessionState::Idle;return true;
     case EventKind::ScavEvidenceDetected: {
         // 结算只提供角色类型证据，绝不推断生还；新准备阶段切断上一局归属。
         // Settlement proves role only, never survival; new preparation ends prior settlement correlation.

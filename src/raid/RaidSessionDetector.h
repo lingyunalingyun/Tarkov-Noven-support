@@ -23,6 +23,7 @@ public:
     const RaidSession* FindSession(std::string_view localId) const noexcept;
     const std::vector<RaidSession>& CompletedSessions() const noexcept { return data_.completed; }
 private:
+    void RetainInterrupted();
     DetectorSnapshot data_;
 };
 }

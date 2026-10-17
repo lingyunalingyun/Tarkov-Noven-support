@@ -29,5 +29,10 @@ int main() {
     const auto builds=browser.Builds();
     for (int i=0;i<10000;++i) { browser.SetFilter(f); Require(browser.Rows().size()==5000,"large snapshot"); }
     Require(browser.Builds()==builds,"idle reads and unchanged filters never rebuild");
+    auto partial=a;partial.localSessionId="incomplete";partial.endObserved=false;partial.duration.reset();partial.sourceInterrupted=true;
+    auto active=partial;active.localSessionId="still-active";active.sourceInterrupted=false;
+    browser.SetSessions({a,partial,active});
+    Require(browser.Rows().size()==2&&browser.Summary().count==2&&browser.Summary().averageDuration==60000,
+        "retained incomplete raid is visible; live context excluded and unknown duration not averaged as zero");
     std::cout << "Raid history browser contracts PASS\n";
 }

@@ -62,6 +62,11 @@ int main(int argc, char** argv) {
     Require(ParseRaidEvents("scene preset path: maps/rezerv_base_preset.bundle")[0].mapId == id[0].mapId, "preset");
     Require(ParseRaidEvents("GameStarted:91.23(0) real:125.71(0)")[0].kind == EventKind::RaidStarted, "start");
     Require(ParseRaidEvents("/client/match/local/end")[0].kind == EventKind::RaidEnded, "end");
+    Require(ParseRaidEvents("2026-01-01 12:00:00.000|Info|application|BEClient exit successfully")[0].kind
+        ==EventKind::RaidContextClosed,"application context teardown, not a claimed raid end");
+    Require(ParseRaidEvents("BEClient exit successfully").empty()
+        &&ParseRaidEvents("2026-01-01 12:00:00.000|Info|application|BEClient exit successfully pending").empty(),
+        "teardown requires exact application message");
     Require(ParseRaidEvents("Request https://example.invalid/client/match/local/end. Status: OK")[0].kind
         == EventKind::RaidEnded, "backend full URL path, host discarded");
     Require(ParseRaidEvents("https://example.invalid/client/game/profile/savage/regenerate, status: OK")[0].kind

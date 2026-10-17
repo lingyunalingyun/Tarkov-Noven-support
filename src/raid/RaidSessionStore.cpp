@@ -3,6 +3,7 @@
 #include <fstream>
 #include <set>
 #include <sstream>
+#include <algorithm>
 
 namespace noven::raid {
 namespace {
@@ -54,11 +55,18 @@ RaidCheckpoint Decode(std::string_view text) {
     if(v.At("active").type!=Value::Type::Null)d.active=Session(v.At("active"));
     d.settlementSessionId=Identity(v.At("settlementSessionId"),true);d.replayingCompleted=v.At("replayingCompleted").Bool();
     std::set<std::string> ids,eftIds;
-    const auto& sessions=v.At("completed").Array();if(sessions.size()>100000)throw std::runtime_error("history capacity exceeded");
+    const auto readHistory=[&](const Value& list,bool incomplete) {
+    const auto& sessions=list.Array();if(sessions.size()>100000-d.completed.size())throw std::runtime_error("history capacity exceeded");
     for(const auto& item:sessions) {auto s=Session(item);
-        if(!s.startObserved||!s.endObserved||s.localSessionId.empty()||!ids.insert(s.localSessionId).second
+        if(!s.startObserved||(incomplete?(!s.sourceInterrupted||s.endObserved||s.endedAt||s.duration||s.outcome!=RaidOutcome::Unknown):!s.endObserved)
+            ||s.localSessionId.empty()||!ids.insert(s.localSessionId).second
             ||(!s.eftRaidId.empty()&&!eftIds.insert(s.eftRaidId).second))throw std::runtime_error("invalid duplicate/completed session");
-        d.completed.push_back(std::move(s));}
+        d.completed.push_back(std::move(s));}};
+    readHistory(v.At("completed"),false);
+    // 扩展字段不改变旧版 completed 的含义；旧版本仍可读取已结算记录。
+    // Keep the legacy completed contract intact; older versions can still load settled records.
+    if(const auto partial=v.object.find("incomplete");partial!=v.object.end())readHistory(partial->second,true);
+    std::stable_sort(d.completed.begin(),d.completed.end(),[](const auto& a,const auto& b){return a.startedAt<b.startedAt;});
     if(d.active&&(!d.active->startObserved||d.active->endObserved||d.active->localSessionId.empty()
         ||!ids.insert(d.active->localSessionId).second))throw std::runtime_error("invalid active session");
     if(d.state==SessionState::ActiveRaid&&(!d.active||d.active->sourceInterrupted))throw std::runtime_error("missing active state");
@@ -77,7 +85,9 @@ std::string Encode(const RaidCheckpoint& cp) {
         <<",\"detector\":{\"state\":"<<static_cast<int>(d.state)<<",\"mode\":"<<static_cast<int>(d.mode)
         <<",\"preparing\":"<<(d.preparing?SessionJson(*d.preparing):"null")<<",\"active\":"<<(d.active?SessionJson(*d.active):"null")
         <<",\"settlementSessionId\":"<<json::Quote(d.settlementSessionId)<<",\"replayingCompleted\":"<<(d.replayingCompleted?"true":"false")<<",\"completed\":[";
-    bool comma=false;for(const auto& s:d.completed) {if(comma)o<<',';comma=true;o<<SessionJson(s);}o<<"]},\"cursors\":[";
+    bool comma=false;for(const auto& s:d.completed)if(s.endObserved) {if(comma)o<<',';comma=true;o<<SessionJson(s);}
+    o<<"],\"incomplete\":[";comma=false;
+    for(const auto& s:d.completed)if(!s.endObserved) {if(comma)o<<',';comma=true;o<<SessionJson(s);}o<<"]},\"cursors\":[";
     comma=false;for(const auto& c:cp.cursors) {if(comma)o<<',';comma=true;o<<"{\"path\":"<<json::Quote(Utf8(c.path))
         <<",\"fileIdentity\":"<<json::Quote(c.fileIdentity)<<",\"offset\":"<<c.offset<<",\"generation\":"<<c.generation<<'}';}
     o<<"]}";return o.str();

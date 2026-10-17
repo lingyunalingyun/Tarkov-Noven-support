@@ -105,6 +105,9 @@ std::vector<RaidEvent> ParseRaidEvents(std::string_view line, std::string_view s
     }
     if (Token(line,"GameStarted")) add(EventKind::RaidStarted);
     if (Token(line,"/client/match/local/end")) add(EventKind::RaidEnded);
+    // 只读取应用日志中的客户端释放通知；这不是生还或精确结束时间证据。
+    // Application-log teardown closes the observed context, not proof of survival or exact raid end.
+    if (line.ends_with("|application|BEClient exit successfully")) add(EventKind::RaidContextClosed);
     if (Token(line,"SellAsSavage") || Token(line,"FinishScavSession")
         || Token(line,"/client/game/profile/savage/regenerate")) add(EventKind::ScavEvidenceDetected);
     return events;

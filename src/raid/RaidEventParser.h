@@ -5,7 +5,7 @@
 
 namespace noven::raid {
 enum class EventKind { SessionModeDetected, MapPresetDetected, RaidIdentityDetected,
-    RaidStarted, RaidEnded, ScavEvidenceDetected };
+    RaidStarted, RaidEnded, ScavEvidenceDetected, RaidContextClosed };
 struct RaidEvent final {
     EventKind kind{};
     std::optional<std::int64_t> time;

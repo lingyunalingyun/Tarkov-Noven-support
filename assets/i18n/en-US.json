@@ -189,6 +189,7 @@
   "raid.started": "Started",
   "raid.ended": "Ended",
   "raid.duration": "Duration",
+  "raid.incomplete": "Incomplete record · End unknown",
   "raid.outcome": "Outcome",
   "raid.empty": "No recorded raids yet",
   "raid.empty_hint": "With EFT local logs configured, Noven automatically records supported raids.",

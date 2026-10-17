@@ -46,7 +46,7 @@ void RaidHistoryBrowser::Rebuild() {
     long double durationSum{}; std::size_t durationCount{};
     for (std::size_t i = 0; i < sessions_.size(); ++i) {
         const auto& s = sessions_[i];
-        if (!s.endObserved || !s.startObserved) continue;
+        if (!s.startObserved || (!s.endObserved&&!s.sourceInterrupted)) continue;
         if (filter_.mode && s.gameMode != *filter_.mode) continue;
         if (filter_.type && s.raidType != *filter_.type) continue;
         if (filter_.mapId && s.mapId != *filter_.mapId) continue;

@@ -35,6 +35,19 @@ int main() {
         text.erase(1,18);text.pop_back();text+=",\"schemaVersion\":1}";
         std::ofstream output(file);output<<text;}
     {RaidSessionStore store;RaidCheckpoint read;Require(store.Load(file,read,error),"reordered schema loads");}
+    {RaidSessionStore store;RaidCheckpoint read;Require(store.Load(file,read,error),"load before incomplete roundtrip");
+        auto partial=read.detector.completed[0];partial.localSessionId="raid-incomplete";partial.eftRaidId.clear();
+        partial.endObserved=false;partial.endedAt.reset();partial.duration.reset();partial.sourceInterrupted=true;
+        read.detector.completed.push_back(partial);Require(store.Save(read,error),"persist explicitly incomplete observed raid");}
+    {RaidSessionStore store;RaidCheckpoint read;Require(store.Load(file,read,error)&&read.detector.completed.size()==2
+        &&!read.detector.completed.back().endObserved,"incomplete history survives restart");
+        std::ifstream payload(file);const std::string encoded((std::istreambuf_iterator<char>(payload)),{});
+        const auto stored=json::Parser(encoded).Parse();
+        Require(stored.At("detector").At("completed").Array().size()==1
+            &&stored.At("detector").At("completed").Array()[0].At("endObserved").Bool()
+            &&stored.At("detector").At("incomplete").Array().size()==1,"legacy completed schema remains readable by older clients");
+        read.detector.completed.back().sourceInterrupted=false;
+        Require(!store.Save(read,error),"unmarked unfinished history still rejected");}
     const auto parsed=json::Parser("{\"z\":1,\"a\":\"\\u4e2d\\ud83d\\ude00\"}").Parse();
     Require(parsed.At("a").String()=="中😀","unicode escape and surrogate");
     for(const auto* bad:{"{\"a\":1,\"a\":2}","{\"a\":01}","{\"a\":\"\\ud800\"}","{\"a\":1} trailing"}) {

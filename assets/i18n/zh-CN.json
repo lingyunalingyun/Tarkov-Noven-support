@@ -189,6 +189,7 @@
   "raid.started": "开始",
   "raid.ended": "结束",
   "raid.duration": "时长",
+  "raid.incomplete": "记录不完整 · 结束未知",
   "raid.outcome": "结果",
   "raid.empty": "尚无对局记录",
   "raid.empty_hint": "配置 EFT 本地日志后，Noven 将自动记录日志支持的对局。",
