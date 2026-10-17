@@ -27,9 +27,13 @@ icons are excluded. `tools/resources/prepare_svg_maps.py` uses the existing NVR1
 packager and refuses incomplete SVG floor coverage or hash/source mismatches.
 
 Customs has a satellite-only fourth floor; Reserve has satellite-only upper
-floors, so neither is published as a complete SVG map. Lab/Dark Lab, Labyrinth
-and Icebreaker currently use tile-fallback imagery without a verified independent
-redistribution grant. Ground Zero Tutorial lacks verified layout metadata.
+floors, so neither is published as a complete SVG map. Default Lab/Dark Lab,
+Labyrinth and Icebreaker tile-fallback imagery has no verified independent
+redistribution grant. A separate acidphantasm Labyrinth SVG is now verified under
+its co-located CC BY-NC-SA 4.0 license; its rotation/bounds are converted to the
+unchanged native projection. The Shebuka Lab SVG has an applicable license but
+does not cover current extraction geometry and remains withheld. See the exact
+[source/hash/coordinate audit](MAP_SVG_EXTENSION.md). Ground Zero Tutorial lacks verified layout metadata.
 Their source records remain intact. The same applies independently to satellite
 and handbook/game icons; neither hosting nor a repository software MIT license
 is blanket image permission. These remaining boundaries are not objections to

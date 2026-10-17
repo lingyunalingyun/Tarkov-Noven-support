@@ -57,3 +57,4 @@ __pycache__/
 # Keep development documents local; retain asset attribution for distribution.
 /docs/*
 !/docs/MAP_ATTRIBUTION.md
+!/docs/MAP_SVG_EXTENSION.md

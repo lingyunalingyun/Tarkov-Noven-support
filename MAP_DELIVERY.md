@@ -149,8 +149,10 @@ See `docs/MAP_ATTRIBUTION.md` and retained per-source records; they are not gran
   not clear satellite images, screenshots or independently licensed icons.
 * Satellite imagery and handbook icons: no confirmed redistribution permission;
   not approved for public publication.
-* Laboratory/Maze (Tarkov.dev) and Icebreaker (TarkovBOT.eu) groups: further
-  verification required; author/source labels alone are not permission.
+* Default Laboratory/Maze tile imagery (Tarkov.dev) and Icebreaker (TarkovBOT.eu):
+  no independent image grant; author/source labels alone are not permission.
+  The separate acidphantasm Labyrinth SVG is covered by its own asset-specific
+  CC BY-NC-SA 4.0 notice; see [additional SVG audit](docs/MAP_SVG_EXTENSION.md).
 * Repository MIT icon material: preserve exact MIT notices, but separately
   verify underlying game/third-party image rights; no blanket image approval.
 
@@ -174,6 +176,17 @@ Operator `NovenResourceChannelTool --verify-remote <signed manifest> <public blo
 the production HTTPS adapter. `--production-interrupt`, `--production-cut-flow`
 and `--production-flow` use the production signature audience and complete
 MapCatalog labels to test Factory installation, native map load, offline
-restart, verification, in-use protection, deletion and redownload. They use
+restart, verification, in-use protection, deletion and redownload. An optional
+stable map ID after keyId selects another catalogued map, not a display name.
+`--local-package <catalog-input.json> <test root>` additionally tests native
+PvP/PvE floors and corruption/repair before publication. They use
 explicit Program/Test roots, never the real user's data. Existing synthetic
 modes retain their separate audience. None of these tools are shipped in Core.
+
+The Labyrinth SVG extension uses `maps.6733700029c367a3d40b02af`, resource version
+1.0.0, immutable asset `6733700029c367a3d40b02af-1.0.0.nvr`, GitHub asset ID
+649688513 (398,241 download bytes, 397,931 installed bytes). SHA-256:
+`2ce0f5cb577b8db34d73af6a68796799b33704ef372fa1eeb2188c4c6ec425a3`.
+The old Shebuka Lab SVG remains withheld for current-layout incompatibility,
+not because legitimate companion use lacks permission. Core/update artifacts
+are unchanged; original ten resource identities and package bytes are retained.
