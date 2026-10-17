@@ -1,6 +1,7 @@
 #include "data/DataRefreshService.h"
 
 #include "common/DebugLog.h"
+#include "data/EconomyRefreshSchedule.h"
 #include "data/ItemEconomyStore.h"
 
 #include <windows.h>
@@ -84,6 +85,7 @@ void DataRefreshService::Start(std::filesystem::path cache_directory) {
         std::lock_guard lock(queue_mutex_);
         stopping_ = false;
         started_ = true;
+        queue_.clear();
         for (const GameMode mode : AllGameModes()) {
             queue_.push_back(mode);
         }
@@ -101,7 +103,7 @@ void DataRefreshService::RequestRefresh(GameMode mode) {
         if (stopping_) {
             return;
         }
-        queue_.push_back(mode);
+        EconomyRefreshSchedule::Enqueue(queue_, mode);
     }
     queue_available_.notify_one();
 }
@@ -122,16 +124,19 @@ void DataRefreshService::Stop() {
 }
 
 void DataRefreshService::WorkerLoop() {
-    // 队列空时等待唤醒；刷新失败不清空此前加载的有效模式缓存。
-    // Wait while the queue is empty; a failed refresh preserves the prior valid mode cache.
+    // 每十分钟刷新全部模式；下载仍串行在后台，失败保留有效缓存。
+    // Refresh all modes every ten minutes, serially in the background; failures preserve valid caches.
+    EconomyRefreshSchedule schedule(EconomyRefreshSchedule::Clock::now());
     while (true) {
         GameMode mode{};
         {
             std::unique_lock lock(queue_mutex_);
-            queue_available_.wait(lock, [this] { return stopping_ || !queue_.empty(); });
-            if (queue_.empty() && stopping_) {
+            queue_available_.wait_until(lock, schedule.Next(),
+                [this] { return stopping_ || !queue_.empty(); });
+            if (stopping_) {
                 return;
             }
+            schedule.EnqueueDue(queue_, EconomyRefreshSchedule::Clock::now());
             mode = queue_.front();
             queue_.pop_front();
         }

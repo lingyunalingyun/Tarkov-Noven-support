@@ -1,4 +1,5 @@
 #include "data/GameMode.h"
+#include "data/EconomyRefreshSchedule.h"
 #include "data/ItemEconomyStore.h"
 
 #include <chrono>
@@ -55,6 +56,33 @@ std::string Payload(
 } // namespace
 
 int main() {
+    using Schedule = noven::data::EconomyRefreshSchedule;
+    const auto start = Schedule::Clock::time_point{};
+    Schedule schedule(start);
+    std::deque<noven::data::GameMode> queue;
+    Require(schedule.Next() == start + std::chrono::minutes(10),
+        "economy refresh interval is exactly ten minutes");
+    schedule.EnqueueDue(queue, start + std::chrono::minutes(10) - std::chrono::milliseconds(1));
+    Require(queue.empty(), "no periodic refresh before ten minutes");
+    schedule.EnqueueDue(queue, start + std::chrono::minutes(10));
+    Require(queue.size() == 3, "all three isolated modes refresh at the deadline");
+    for (const auto mode : noven::data::AllGameModes()) {
+        Schedule::Enqueue(queue, mode);
+    }
+    Require(queue.size() == 3, "manual requests cannot duplicate queued modes");
+    queue.clear();
+    schedule.EnqueueDue(queue, start + std::chrono::minutes(19));
+    Require(queue.empty(), "no busy polling between deadlines");
+    schedule.EnqueueDue(queue, start + std::chrono::minutes(20));
+    Require(queue.size() == 3, "refresh repeats after another ten minutes");
+    queue.clear();
+    Schedule::Enqueue(queue, noven::data::GameMode::Pve);
+    schedule.EnqueueDue(queue, start + std::chrono::hours(8));
+    Require(queue.size() == 3, "missed intervals coalesce without duplicate queued work");
+    Require(queue.front() == noven::data::GameMode::Pve, "existing request order is preserved");
+    Require(schedule.Next() == start + std::chrono::hours(8) + std::chrono::minutes(10),
+        "suspend or slow requests do not trigger catch-up storms");
+
     constexpr char kItemA[] = "61bf7b6302b3924be92fa8c3";
     constexpr char kItemB[] = "5df8a2ca86f7740bfe6df777";
     constexpr char kItemC[] = "5447a9cd4bdc2dbd208b4567";

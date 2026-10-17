@@ -198,8 +198,11 @@ before starting the background refresh service. A refresh parses and validates
 the complete response, writes a temporary file, atomically replaces the mode's
 cache, and leaves the previous valid cache in place if download, parsing, or
 validation fails. F2 lookups only read the in-memory mode map and never make a
-network request. Refresh is performed once at startup and can be requested
-manually through `DataRefreshService`; periodic refresh is not enabled.
+network request. Refresh runs once at startup and every ten minutes while Noven
+is running, for all three modes on the same background worker. Manual requests
+through `DataRefreshService` are deduplicated against queued modes. Missed
+intervals coalesce into one round rather than a burst of catch-up requests.
+Upstream snapshot age can still limit price freshness.
 
 The JSON parser is a small in-tree parser used only by the economy store, so no
 browser, Python runtime, or additional package manager dependency is required.
@@ -316,11 +319,11 @@ labels.
 
 Item images will be optional and disabled by default.
 
-## Data refresh design (planned)
+## Data refresh behavior
 
 - update once when the application starts;
 - provide a manual refresh;
-- optionally refresh on a configurable N-minute interval; and
+- refresh all price modes every ten minutes in the background; and
 - use local cached data for gameplay lookups so network requests do not block
   the lookup path.
 
